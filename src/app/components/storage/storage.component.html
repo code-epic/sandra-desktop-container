@@ -1,0 +1,62 @@
+<div class="modal-overlay">
+  <!-- DB Info Modal (View Mode) -->
+  <div class="modal-card" *ngIf="!showDropConfirmModal">
+    <h3 class="modal-title">Estructura de Datos</h3>
+    <div class="modal-body" style="text-align: left;">
+      <p class="modal-message" style="text-align: center;">Tablas activas en <strong>sdc_secure_core.db</strong></p>
+      
+      <div class="db-tree-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
+        <ul class="db-table-list" style="list-style: none; padding: 0;">
+          <li *ngFor="let table of dbStats?.tables" style="margin-bottom: 5px;">
+            <div class="tree-node" (click)="toggleTable(table)" style="cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" [style.background]="expandedTable === table ? '#F1F8E9' : 'transparent'">
+              <i class="fas" [class.fa-caret-right]="expandedTable !== table" [class.fa-caret-down]="expandedTable === table" style="width: 20px; color: #90A4AE;"></i>
+              <i class="fas fa-table" style="color: var(--accent-purple); margin-right: 8px;"></i>
+              <span style="font-weight: 500; color: #455A64;">{{ table }}</span>
+            </div>
+            
+            <!-- Columns Children (Tree) -->
+            <div class="tree-children" *ngIf="expandedTable === table" style="padding-left: 36px; margin-top: 4px;">
+               <div *ngIf="tableColumns.length === 0" style="color: #B0BEC5; font-style: italic; font-size: 0.9em; padding: 4px 0;">Cargando esquema...</div>
+               <div *ngFor="let col of tableColumns" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #F0F4F8; font-size: 0.85em;">
+                 <span style="color: #546E7A;"><i class="fas fa-columns" style="color: #CFD8DC; margin-right: 6px; font-size: 0.9em;"></i>{{ col.name }}</span>
+                 <span style="color: #607D8B; font-family: 'Consolas', monospace; background: #ECEFF1; padding: 1px 6px; border-radius: 4px; font-size: 0.85em;">{{ col.type_ }}</span>
+               </div>
+            </div>
+          </li>
+        </ul>
+        <div *ngIf="!dbStats?.tables?.length" style="text-align: center; color: #B0BEC5; padding: 20px;">
+          <i class="fas fa-database" style="font-size: 2em; margin-bottom: 10px;"></i>
+          <p>No hay tablas registradas</p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal-confirm" (click)="requestDropDB()">Eliminar BD</button>
+        <button class="btn-modal-cancel" (click)="closeModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drop Confirmation Modal -->
+  <div class="modal-card" *ngIf="showDropConfirmModal">
+      <h3 class="modal-title">Eliminar Base de Datos</h3>
+      
+      <div class="modal-body">
+        <div *ngIf="!isDroppingDB">
+          <div class="modal-icon error"><i class="fas fa-exclamation-triangle"></i></div>
+          <p class="modal-message">¿Estás seguro de que deseas eliminar toda la base de datos?<br><strong>Esta acción no se puede deshacer.</strong></p>
+          <div class="modal-actions">
+            <button class="btn-modal-cancel" (click)="cancelDropDB()">Cancelar</button>
+            <button class="btn-modal-confirm" (click)="dropDB()">Eliminar</button>
+          </div>
+        </div>
+
+        <div *ngIf="isDroppingDB">
+          <p class="modal-message">Eliminando base de datos...</p>
+          <div class="progress-track" style="margin-top: 20px;">
+            <div class="progress-bar-indeterminate"></div>
+          </div>
+        </div>
+      </div>
+  </div>
+</div>

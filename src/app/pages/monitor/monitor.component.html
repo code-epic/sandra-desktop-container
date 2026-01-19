@@ -1,0 +1,137 @@
+<div class="canvas-monitor">
+    <div class="monitor-header">
+        <h2>Monitor de Sistema</h2>
+        <div class="monitor-controls">
+            <select class="app-select" [(ngModel)]="currentAppFilter" (change)="refreshLogs()">
+                <option value="all">Todas las Apps</option>
+                <option *ngFor="let app of apps" [value]="app">{{ app }}</option>
+            </select>
+            <input type="text" placeholder="Filtrar logs..." class="search-input" [(ngModel)]="filterText">
+            <button class="btn-action refresh" (click)="refreshLogs()" title="Actualizar"><i class="fas fa-sync-alt" [class.fa-spin]="loading"></i></button>
+            <button class="btn-action transfer" (click)="openTransferModal()" title="Transferir Reporte"><i class="fas fa-file-export"></i></button>
+            <button class="btn-action clear" (click)="requestClearLogs()" title="Limpiar Base de Datos"><i class="fas fa-trash-alt"></i></button>
+        </div>
+    </div>
+    
+    <div class="monitor-table-container">
+        <div class="table-scroll">
+            <table class="monitor-table">
+                <thead>
+                    <tr>
+                        <th width="150">Fecha</th>
+                        <th width="100">Origen</th>
+                        <th width="80">Tipo</th>
+                        <th>Mensaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let log of filteredLogs" class="log-row" (dblclick)="viewLogDetails(log)">
+                        <td class="time-cell">{{ log.timestamp | date:'dd/MM/yy HH:mm:ss' }}</td>
+                        <td class="app-cell">{{ log.app_id }}</td>
+                        <td>
+                            <span class="badge" [ngClass]="log.log_type.toLowerCase()">{{ log.log_type }}</span>
+                        </td>
+                        <td class="msg-cell">{{ log.message }}</td>
+                    </tr>
+                    <tr *ngIf="!loading && filteredLogs.length === 0">
+                        <td colspan="4" class="empty-cell">No se encontraron registros.</td>
+                    </tr>
+                     <tr *ngIf="loading">
+                        <td colspan="4" class="empty-cell">Cargando registros...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Transferir Reporte -->
+<div class="modal-overlay" *ngIf="isTransferModalOpen">
+    <div class="modal-card confirm-modal">
+        <div class="modal-icon info">
+            <i class="fas fa-file-export"></i>
+        </div>
+        <h3 class="modal-title">Transferir Reporte</h3>
+        <p class="modal-text">Se enviará un reporte consolidado de los eventos actuales al servidor central para su análisis. 
+            <br><br>
+            ¿Desea continuar?</p>
+        <div class="modal-actions">
+            <button class="btn-modal-acept" (click)="confirmTransfer()">Enviar Reporte</button>
+            <button class="btn-modal-cancel" (click)="closeTransferModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+<!-- Modal Detalle Monitor -->
+<div class="modal-overlay" *ngIf="selectedLog">
+    <div class="modal-card log-detail-modal">
+      <h3 class="modal-title">Detalle de Evento</h3>
+      <div class="modal-body">
+        <div class="log-detail-header">
+            <div class="detail-item">
+                <span class="label">Aplicación</span>
+                <span class="value">{{ selectedLog.app_id }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Tipo</span>
+                <span class="badge" [ngClass]="selectedLog.log_type.toLowerCase()">{{ selectedLog.log_type }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Hora</span>
+                <span class="value">{{ selectedLog.timestamp | date:'HH:mm:ss.SSS' }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedLog.details?.status">
+                <span class="label">Estado</span>
+                <span class="status-pill" [class.error]="selectedLog.details.status >= 400">{{ selectedLog.details.status }}</span>
+            </div>
+             <div class="detail-item" *ngIf="selectedLog.details?.method">
+                <span class="label">Método</span>
+                <span class="method-pill">{{ selectedLog.details.method }}</span>
+            </div>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedLog.details?.url">
+            <label>Endpoint</label>
+            <div class="url-box">{{ selectedLog.details.url }}</div>
+        </div>
+
+        <div class="detail-section">
+            <label>Mensaje</label>
+            <div class="code-block message">{{ selectedLog.message }}</div>
+        </div>
+        
+        <div class="extended-details" *ngIf="selectedLog.details">
+            <div class="detail-section" *ngIf="selectedLog.details.request_headers && (selectedLog.details.request_headers | json) !== '{}'">
+                <label>Headers</label>
+                <div class="code-block headers-block"><div *ngFor="let item of selectedLog.details.request_headers | keyvalue"><span class="key">{{ item.key }}:</span> <span class="val">{{ item.value }}</span></div></div>
+            </div>
+            <div class="detail-section" *ngIf="selectedLog.details.request_payload">
+                <label>Payload</label>
+                <div class="code-block">{{ selectedLog.details.request_payload }}</div>
+            </div>
+            <div class="detail-section" *ngIf="selectedLog.details.response_body">
+                <label>Respuesta</label>
+                <div class="code-block response">{{ selectedLog.details.response_body }}</div>
+            </div>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" (click)="closeModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- Modal Confirmacion Borrado -->
+<div class="modal-overlay" *ngIf="isConfirmModalOpen">
+    <div class="modal-card confirm-modal">
+        <div class="modal-icon warning">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 class="modal-title">¿Eliminar Registros?</h3>
+        <p class="modal-text">Esta acción eliminará permanentemente todos los logs de las aplicaciones seleccionadas. No se puede deshacer.</p>
+        <div class="modal-actions">
+            <button class="btn-modal-confirm" (click)="confirmClearLogs()">Eliminar Todo</button>
+            <button class="btn-modal-cancel" (click)="cancelClearLogs()">Cancelar</button>
+        </div>
+    </div>
+</div>

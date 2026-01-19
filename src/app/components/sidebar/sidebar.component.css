@@ -1,0 +1,132 @@
+:host {
+  display: contents;
+}
+
+/* Sidebar Estilo Compass - Push Strategy */
+.sidebar {
+  width: var(--sidebar-width, 250px);
+  background: #ffffff;
+  border-right: 1px solid #e1e5e8;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  
+  /* Animation properties */
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden; /* Essential for wipe effect */
+  will-change: width;
+}
+
+.sidebar.closed {
+  width: 0;
+  padding: 0; /* Hide vertical padding when closed to avoid height artifacts if any */
+  border-right: none;
+}
+
+/* Prevent content squashing during wipe animation */
+.sidebar-header, .nav-menu {
+  min-width: var(--sidebar-width, 250px);
+}
+
+.sidebar-header {
+  padding: 0 25px 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-circle {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(
+    135deg,
+    var(--accent-purple, #8e75ff),
+    var(--accent-blue, #2979ff)
+  );
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.4em;
+}
+
+.brand-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brand-text {
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #2d3e4e;
+  white-space: nowrap;
+}
+
+.datetime-info {
+  font-size: 0.75em;
+  color: #90a4ae;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.time-part {
+  font-variant-numeric: tabular-nums;
+  margin-left: 5px;
+}
+
+/* Menu Navigation */
+.nav-menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow-y: auto; /* Scroll if needed */
+  overflow-x: hidden;
+}
+
+.nav-item {
+  padding: 12px 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  color: #6d7c89;
+  font-size: 0.95em;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-right: 3px solid transparent;
+  white-space: nowrap;
+}
+
+.nav-item:hover {
+  background: #f8f9fb;
+  color: var(--accent-purple, #8e75ff);
+}
+
+.nav-item.active {
+  background: #f0edff;
+  color: var(--accent-purple, #8e75ff);
+  border-right-color: var(--accent-purple, #8e75ff);
+}
+
+.nav-item i {
+  width: 20px;
+  text-align: center;
+}
+
+.nav-spacer {
+  flex-grow: 1;
+}
+
+.nav-item.settings {
+  margin-bottom: 10px;
+}

@@ -1,0 +1,146 @@
+  <aside class="right-sidebar" [class.closed]="!(rightSidebarOpen$ | async)">
+    <div class="rs-header">
+      <div class="inspector-header-controls">
+          <h3>Inspector</h3>
+          <div class="inspector-actions">
+            <!-- Save Button -->
+            <button class="clear-btn-inspector save icon-btn" title="Guardar Sesión" (click)="saveInspectorLogs()" *ngIf="unsavedLogsCount > 0"><i class="fas fa-save"></i></button>
+            <!-- Clear Button -->
+            <button class="clear-btn-inspector icon-btn" title="Limpiar" (click)="clearInspectorLogs()"><i class="fas fa-trash"></i></button>
+            <!-- Close Sidebar Button (X) -->
+             <button class="close-btn-inspector icon-btn" title="Cerrar Inspector" (click)="closeInspector()"><i class="fas fa-times"></i></button>
+          </div>
+      </div>
+    </div>
+
+    <div class="rs-content console-theme">
+      <div class="tree-root" *ngIf="currentTabId !== 'dashboard'">
+        <!-- App Root Node -->
+        <div class="tree-node expanded" (click)="toggleInspectorTree()" [style.opacity]="inspectorTreeOpen ? '1' : '0.7'">
+          <i class="fas" [class.fa-caret-down]="inspectorTreeOpen" [class.fa-caret-right]="!inspectorTreeOpen" style="width: 15px;"></i>
+          <span class="node-icon"><i class="fas fa-cube"></i></span>
+          <span class="node-label">{{ currentTabId }}</span>
+        </div>
+        
+        <!-- Children (Folders) -->
+        <div class="tree-children" *ngIf="inspectorTreeOpen">
+            
+            <!-- Folder: Console Logs -->
+            <div class="folder-node" (click)="toggleConsole()">
+                <i class="fas folder-icon" [class.fa-folder-open]="inspectorConsoleOpen" [class.fa-folder]="!inspectorConsoleOpen"></i>
+                <span>Logs</span>
+            </div>
+            <div class="tree-children" *ngIf="inspectorConsoleOpen">
+                <div class="log-entry-tree" *ngFor="let log of inspectorConsoleLogs" [ngClass]="log.log_type.toLowerCase()" (click)="viewLogDetails(log)">
+                    <span class="tree-line"></span>
+                    <span class="log-icon category-icon">
+                        <i class="fas fa-info-circle" *ngIf="log.log_type === 'LOG' || log.log_type === 'INFO'"></i>
+                        <i class="fas fa-exclamation-circle" *ngIf="log.log_type === 'WARN'"></i>
+                        <i class="fas fa-times-circle" *ngIf="log.log_type === 'ERROR'"></i>
+                    </span>
+                    <div class="log-content-wrapper">
+                        <span class="log-meta">{{ log.timestamp | date:'HH:mm:ss' }}</span>
+                        <p class="log-msg">{{ log.message }}</p>
+                    </div>
+                </div>
+                 <p class="empty-folder-text" *ngIf="inspectorConsoleLogs.length === 0" style="font-size: 0.8em; color: #78909C; padding-left: 36px; margin: 4px 0;">Vacío</p>
+            </div>
+
+            <!-- Folder: Network -->
+            <div class="folder-node" (click)="toggleNetwork()">
+                <i class="fas folder-icon" [class.fa-folder-open]="inspectorNetworkOpen" [class.fa-folder]="!inspectorNetworkOpen"></i>
+                <span>Red (Fetch)</span>
+            </div>
+            <div class="tree-children" *ngIf="inspectorNetworkOpen">
+                <div class="log-entry-tree" *ngFor="let log of inspectorNetworkLogs" [ngClass]="log.log_type.toLowerCase()" (click)="viewLogDetails(log)">
+                    <span class="tree-line"></span>
+                    <span class="log-icon category-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </span>
+                    <div class="log-content-wrapper">
+                        <span class="log-meta">{{ log.timestamp | date:'HH:mm:ss' }}</span>
+                        <p class="log-msg">{{ log.message }}</p>
+                    </div>
+                </div>
+                 <p class="empty-folder-text" *ngIf="inspectorNetworkLogs.length === 0" style="font-size: 0.8em; color: #78909C; padding-left: 36px; margin: 4px 0;">Vacío</p>
+            </div>
+
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="currentAppLogs.length === 0">
+        <i class="fas fa-check-circle success-icon" style="color: #A5D6A7;"></i>
+        <p>Todo limpio</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Modal Detalle Inspector -->
+  <div class="modal-overlay" *ngIf="inspectorDetailModal && selectedLog">
+    <div class="modal-card log-detail-modal">
+      <h3 class="modal-title">Detalle de Evento</h3>
+      <div class="modal-body">
+        <div class="log-detail-header">
+            <div class="detail-item">
+                <span class="label">Tipo</span>
+                <span class="badge" [ngClass]="selectedLog.log_type.toLowerCase()">{{ selectedLog.log_type }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Hora</span>
+                <span class="value">{{ selectedLog.timestamp | date:'HH:mm:ss.SSS' }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedLog.details?.status">
+                <span class="label">Estado</span>
+                <span class="status-pill" [class.error]="selectedLog.details.status >= 400">{{ selectedLog.details.status }}</span>
+            </div>
+             <div class="detail-item" *ngIf="selectedLog.details?.method">
+                <span class="label">Método</span>
+                <span class="method-pill">{{ selectedLog.details.method }}</span>
+            </div>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedLog.details?.url">
+            <label>Endpoint</label>
+            <div class="url-box">{{ selectedLog.details.url }}</div>
+        </div>
+
+        <div class="detail-section">
+            <label>Mensaje</label>
+            <div class="code-block message">{{ selectedLog.message }}</div>
+        </div>
+        
+        <div class="extended-details" *ngIf="selectedLog.details">
+            <div class="detail-section" *ngIf="selectedLog.details.request_headers && (selectedLog.details.request_headers | json) !== '{}'">
+                <label>Headers</label>
+                <div class="code-block headers-block"><div *ngFor="let item of selectedLog.details.request_headers | keyvalue"><span class="key">{{ item.key }}:</span> <span class="val">{{ item.value }}</span></div></div>
+            </div>
+            <div class="detail-section" *ngIf="selectedLog.details.request_payload">
+                <label>Payload</label>
+                <div class="code-block">{{ selectedLog.details.request_payload }}</div>
+            </div>
+            <div class="detail-section" *ngIf="selectedLog.details.response_body">
+                <label>Respuesta</label>
+                <div class="code-block response">{{ selectedLog.details.response_body }}</div>
+            </div>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" (click)="closeInspectorModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Confirmar Guardado -->
+  <div class="modal-overlay" *ngIf="showSaveConfirmModal">
+    <div class="modal-card">
+      <h3 class="modal-title">Guardar Registros</h3>
+      <div class="modal-body">
+        <p class="modal-message">¿Estás seguro de que deseas guardar <strong>{{ unsavedLogsCount }}</strong> registros nuevos en la base de datos?</p>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" (click)="cancelSaveLogs()">Cancelar</button>
+          <button class="btn-modal-confirm" (click)="confirmSaveLogs()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>

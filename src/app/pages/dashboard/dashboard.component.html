@@ -1,0 +1,48 @@
+<div class="dashboard-container fade-in">
+    <!-- Header estilo Web Sobrio -->
+    <div class="system-web-header" *ngIf="stats">
+        <div class="header-main">
+            <h1 class="page-title">Sandra Desktop Container</h1>
+            <div class="meta-info">
+                <span class="meta-tag"><i class="fas fa-network-wired"></i> {{ networkInfo[0] || '---' }}</span>
+                <span class="divider">/</span>
+                <span class="meta-tag"><i class="fas fa-memory"></i> {{ formatBytes(stats.free_memory) }} Libres</span>
+                <span class="divider">/</span>
+                <span class="meta-tag clickable" (click)="onDbClick.emit()"><i class="fas fa-database"></i> Core
+                    DB</span>
+            </div>
+        </div>
+
+        <div class="header-aside">
+            <div class="storage-simple" *ngFor="let disk of stats.disks">
+                <span class="label">{{ disk.name }}</span>
+                <span class="value">{{ formatBytes(disk.free_space) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="apps-canvas">
+        <div class="app-tile" *ngFor="let app of apps" (click)="!app.installed && onInstall.emit(app)"
+            [class.installed]="app.installed">
+            <div class="tile-icon"><i [class]="app.icon"></i></div>
+            <div class="tile-info">
+                <span class="name">{{ app.name }}</span>
+                <span class="status" *ngIf="!app.installed">Disponible para instalar</span>
+                <div class="actions-bar" *ngIf="app.installed">
+                    <button class="action-btn open" (click)="onOpen.emit(app); $event.stopPropagation()">
+                        <i class="fas fa-external-link-alt"></i> Abrir
+                    </button>
+                    <div class="secondary-actions">
+                        <button class="icon-btn update" (click)="onUpdate.emit(app); $event.stopPropagation()"><i
+                                class="fas fa-sync-alt"></i></button>
+                        <button class="icon-btn delete" (click)="onDelete.emit(app); $event.stopPropagation()"><i
+                                class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="action-icon" *ngIf="!app.installed">
+                <i class="fas fa-cloud-download-alt download-hint"></i>
+            </div>
+        </div>
+    </div>
+</div>

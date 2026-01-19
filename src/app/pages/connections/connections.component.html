@@ -1,0 +1,149 @@
+<div class="connections-wrapper fade-in">
+    <!-- Identity Header -->
+    <div class="identity-card">
+        <div class="id-group">
+            <span class="id-label">MY CLIENT ID</span>
+            <div class="id-value">
+                {{ clientId }} 
+                <i class="fas fa-copy copy-icon" title="Copiar" (click)="copyId()"></i>
+            </div>
+        </div>
+        <div class="id-break"></div>
+        <div class="id-group">
+            <span class="id-label">LOCAL IP - HOST</span>
+            <div class="id-value highlight">{{ localIp }}</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="connections-main">
+        <!-- Sidebar List -->
+        <aside class="conn-sidebar">
+            <div class="conn-list-header">
+                <h3>Guardados</h3>
+                <button class="icon-btn-add" (click)="resetForm()" title="Nueva Conexión"><i class="fas fa-plus"></i> Nuevo</button>
+            </div>
+            <div class="conn-list">
+                <div class="conn-item" *ngFor="let conn of savedConnections" 
+                     [class.active]="form.id === conn.id"
+                     (click)="selectConnection(conn)">
+                    <div class="conn-info">
+                        <span class="conn-name">{{ conn.name }}</span>
+                        <span class="conn-meta">{{ conn.ip_address }}:{{ conn.port }}</span>
+                    </div>
+                    <button class="conn-del" (click)="deleteConn($event, conn.id!)"><i class="fas fa-trash"></i></button>
+                </div>
+                <!-- Empty State -->
+                <div class="empty-list" *ngIf="savedConnections.length === 0">
+                    <p>Sin conexiones</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Editor Form -->
+        <main class="conn-editor">
+            <div class="editor-header">
+                <h2>{{ form.id ? 'Editar Conexión' : 'Nueva Conexión' }}</h2>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Nombre de Perfil</label>
+                    <input type="text" [(ngModel)]="form.name" placeholder="Ej: Servidor Producción">
+                </div>
+
+                <div class="form-group ip-group">
+                    <label>IP / Hostname</label>
+                    <div class="input-wrapper">
+                        <input type="text" [(ngModel)]="form.ip_address" (ngModelChange)="onAddressChange()" placeholder="192.168.1.10">
+                        <!-- Verification Status Indicator -->
+                        <div class="verify-indicator">
+                            <i *ngIf="verifyStatus === 'checking'" class="fas fa-circle-notch fa-spin checking"></i>
+                            <i *ngIf="verifyStatus === 'success'" class="fas fa-check-circle success"></i>
+                            <i *ngIf="verifyStatus === 'error'" class="fas fa-times-circle error"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group port-group">
+                    <label>Puerto</label>
+                    <input type="number" [(ngModel)]="form.port" (ngModelChange)="onAddressChange()" placeholder="22">
+                </div>
+
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" [(ngModel)]="form.username" placeholder="root">
+                </div>
+
+                <div class="form-group">
+                    <label>Clave</label>
+                    <input type="password" [(ngModel)]="form.password" placeholder="••••••">
+                </div>
+
+                <!-- WSS Custom Config (Advanced) -->
+                 <div class="form-group full-width">
+                    <label style="color: #B0BEC5; font-size: 0.75em; text-transform: uppercase; margin-top: 10px; display: block;">Configuración WebSocket (Opcional)</label>
+                </div>
+                
+                <div class="form-group">
+                    <label>WSS Host</label>
+                    <input type="text" [(ngModel)]="form.wss_host" placeholder="Ej: wss.midominio.com">
+                </div>
+                 <div class="form-group">
+                    <label>WSS Port</label>
+                    <input type="number" [(ngModel)]="form.wss_port" placeholder="8443">
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="editor-actions">
+                <button class="btn-save" (click)="save()" [disabled]="!form.name || !form.ip_address">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                
+                <button class="btn-connect" (click)="connect()" [disabled]="!isHostAvailable && connectionState !== 'connected'"
+                        [class.connected-btn]="connectionState === 'connected'">
+                    <i class="fas" [class.fa-plug]="connectionState !== 'connected'" [class.fa-unlink]="connectionState === 'connected'"></i> 
+                    {{ connectionState === 'connected' ? 'Desconectar' : (form.id ? 'Conectar' : 'Probar Conexión') }}
+                </button>
+            </div>
+            
+            <!-- Helper text -->
+            <p class="helper-text" *ngIf="!isHostAvailable && form.ip_address.length > 3">
+                <span *ngIf="verifyStatus === 'checking'">Verificando host y puerto...</span>
+                <span *ngIf="verifyStatus === 'error'" class="text-error">Conexión fallida. Verifique que IP y Puerto {{ form.port }} estén accesibles.</span>
+            </p>
+
+        </main>
+    </div>
+
+    <!-- Connection Progress Modal -->
+    <div class="modal-overlay" *ngIf="showModal">
+        <div class="modal-card conn-modal">
+            <div class="conn-loader">
+                <div class="spinner-ring"></div>
+                <div class="logo-center"><i class="fas fa-bolt"></i></div>
+            </div>
+            <h3>Conectando a {{ form.name }}</h3>
+            <p class="conn-status">{{ connStatusMsg }}</p>
+            
+            <div class="progress-container">
+                <div class="progress-bar-fill" [style.width.%]="connProgress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome / Confetti Modal -->
+    <div class="modal-overlay" *ngIf="showWelcomeModal" (click)="closeWelcome()">
+       <div class="modal-card confirm-modal">
+            <div class="modal-icon info">
+                <i class="fas fa-server"></i>
+            </div>
+            <h2>¡Bienvenido a Sandra Server!</h2>
+            <p>Conexión segura establecida con {{ form.name }}</p>
+            <div class="modal-actions">
+                <button class="btn-modal-acept" (click)="closeWelcome()">Continuar</button>
+            </div>
+        </div>
+    </div>
+</div>

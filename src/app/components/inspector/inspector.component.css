@@ -1,0 +1,239 @@
+:host {
+  display: contents;
+}
+
+.right-sidebar {
+  width: var(--right-sidebar-width);
+  background: #ffffff;
+  border-left: 1px solid #E1E5E8;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 2000;
+  height: 100%;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: -2px 0 24px rgba(0,0,0,0.08);
+  box-sizing: border-box;
+  will-change: width;
+}
+
+.right-sidebar.closed {
+  width: 0;
+  border-left: none;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.rs-header {
+  padding: 20px;
+  border-bottom: 1px solid #F0F0F0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #FFFFFF;
+  min-height: 50px;
+  min-width: var(--right-sidebar-width); /* Prevent squashing */
+}
+
+.inspector-header-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.inspector-header-controls h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #37474F;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+}
+
+.inspector-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inspector-actions .icon-btn {
+  font-size: 1rem;
+  color: #90A4AE;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.inspector-actions .icon-btn:hover {
+  color: var(--accent-purple, #66BB6A);
+  background: #F5F7FA;
+}
+
+.inspector-actions .icon-btn.save:hover {
+  color: #29B6F6;
+}
+
+.inspector-actions .icon-btn.close-btn-inspector:hover {
+  color: #FF5252;
+}
+
+.rs-content {
+  padding: 10px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: var(--right-sidebar-width); /* Prevent squashing */
+}
+
+/* Inspector Theme: Clean Light Style (Restaurado Elegante) */
+.console-theme {
+  background: #FFFFFF;
+  color: #455A64;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tree Styles */
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  color: #546E7A;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tree-node i, .folder-node i {
+    width: 18px;
+    text-align: center;
+    font-size: 0.95em;
+}
+
+.tree-node:hover {
+  background: #F4F6F8;
+  color: #263238;
+}
+
+.tree-node .node-label {
+   font-weight: 600;
+   color: #37474F;
+   font-size: 0.9em;
+   letter-spacing: 0.01em;
+}
+
+/* Estado activo/expandido */
+.tree-node.expanded {
+    background: #FAFAFA;
+}
+
+.folder-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 30px;
+  cursor: pointer;
+  color: #78909C;
+  border-radius: 4px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.folder-node:hover {
+  color: var(--accent-purple, #66BB6A);
+  background: rgba(102, 187, 106, 0.05); /* Verde muy sutil */
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Log Entries */
+.log-entry-tree {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px 8px 42px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  opacity: 1;
+  transition: background 0.1s;
+  align-items: center;
+  border-bottom: 1px solid #F5F5F5;
+}
+
+.log-entry-tree:last-child {
+    border-bottom: none;
+}
+
+.log-entry-tree:hover {
+  background: #F9FAFB;
+}
+
+/* Colores de estado (Bordes y Texto) */
+.log-entry-tree.error { border-left-color: #EF5350; background: #FFEBEE; }
+.log-entry-tree.error .log-msg { color: #C62828; }
+
+.log-entry-tree.warn { border-left-color: #FFA726; background: #FFF3E0; }
+.log-entry-tree.warn .log-msg { color: #EF6C00; }
+
+.log-entry-tree.fetch { border-left-color: #AB47BC; }
+.log-entry-tree.fetch .log-msg { color: #8E24AA; }
+
+/* Iconos de logs */
+.log-entry-tree .log-icon {
+    font-size: 0.9em;
+    opacity: 0.8;
+    width: 16px;
+    text-align: center;
+}
+
+.log-meta {
+  font-size: 0.75em;
+  color: #B0BEC5;
+  min-width: 55px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.log-msg {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  font-size: 0.85em;
+  color: #546E7A;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: #CFD8DC;
+}
+.empty-state i {
+  font-size: 3em;
+  margin-bottom: 15px;
+  color: #ECEFF1;
+}
+
+/* Botones de acción específicos */
+.close-btn-inspector {
+  /* Estilos específicos si se requieren */
+}

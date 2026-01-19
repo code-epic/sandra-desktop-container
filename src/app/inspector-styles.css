@@ -1,0 +1,122 @@
+/* Actualizar clases del Inspector */
+.console-theme {
+  background: #F8F9FA; /* Soft Gray */
+  color: #546E7A; /* Blue Grey */
+  font-family: 'Inter', sans-serif; /* Más limpio que Consolas */
+  font-size: 0.85em;
+  padding: 10px;
+}
+
+.tree-root {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: #263238;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.tree-node:hover {
+  background: #ECEFF1;
+}
+
+.toggle-icon {
+  color: #B0BEC5;
+  font-size: 0.8em;
+}
+
+.node-icon {
+  color: var(--accent-purple);
+}
+
+.tree-children {
+  margin-left: 22px; /* Indentación visual */
+  border-left: 1px solid #CFD8DC; /* Línea del árbol */
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-entry-tree {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 6px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.log-entry-tree:hover {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.log-icon {
+  font-size: 0.9em;
+  margin-top: 2px;
+}
+
+/* Colores Pastel para Iconos */
+.log-entry-tree.info .log-icon,
+.log-entry-tree.log .log-icon {
+  color: #29B6F6; /* Light Blue */
+}
+
+.log-entry-tree.warn .log-icon {
+  color: #FFA726; /* Pastel Orange */
+}
+
+.log-entry-tree.error .log-icon {
+  color: #EF5350; /* Pastel Red */
+}
+
+.log-entry-tree.fetch .log-icon {
+  color: #AB47BC; /* Pastel Purple */
+}
+
+.log-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.log-meta {
+  font-size: 0.75em;
+  color: #90A4AE;
+  margin-bottom: 2px;
+}
+
+.log-msg {
+  margin: 0;
+  word-break: break-word;
+  line-height: 1.4;
+  color: #37474F;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #B0BEC5;
+  gap: 10px;
+}
+
+.success-icon {
+  font-size: 2em;
+  color: #A5D6A7; /* Pastel Green */
+}
+
+/* Remover estilos antiguos si ya no se usan */
+.log-entry { display: none; }

@@ -1,0 +1,167 @@
+:host {
+    display: block;
+    height: 100%;
+    overflow: hidden;
+}
+
+.canvas-monitor {
+    padding: 15px; /* Disminuir margenes */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-sizing: border-box;
+}
+
+.monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.monitor-header h2 {
+    color: var(--text-main);
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.monitor-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.search-input {
+    padding: 8px 15px;
+    border: 1px solid #E1E5E8;
+    border-radius: 8px;
+    width: 250px;
+    font-size: 0.9em;
+}
+
+.btn-action {
+    border: 1px solid #E1E5E8;
+    color: #6D7C89;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.btn-action:hover {
+    background: #F8F9FB;
+}
+
+.btn-action.refresh:hover { color: var(--accent-purple); }
+.btn-action.clear:hover { color: #EF5350; background: #FFEBEE; border-color: #FFCDD2; }
+
+/* Table Container & Scroll */
+.monitor-table-container {
+    flex: 1;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #E1E5E8;
+    overflow: hidden; /* El container no scrollea, lo de adentro sí */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Important for flex scrolling */
+}
+
+.table-scroll {
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Sticky Header */
+.monitor-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Sombra sutil al hacer scroll */
+}
+
+.monitor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.monitor-table th {
+    text-align: left;
+    padding: 15px 20px;
+    background: #F8F9FB;
+    color: #6D7C89;
+    font-weight: 600;
+    border-bottom: 1px solid #E1E5E8;
+}
+
+.monitor-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #2D3E4E;
+}
+
+.empty-cell {
+    text-align: center;
+    padding: 40px;
+    color: #90A4AE;
+}
+
+.app-select {
+    padding: 8px 15px;
+    border: 1px solid #E1E5E8;
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: #546E7A;
+    background: #fff;
+}
+
+.log-row:hover {
+    background: #F8F9FA;
+}
+
+.time-cell {
+    font-family: 'Consolas', monospace;
+    font-size: 0.85em;
+    color: #607D8B;
+}
+
+.app-cell {
+    font-weight: 600;
+    color: #455A64;
+}
+
+.msg-cell {
+    font-family: 'Consolas', monospace;
+    font-size: 0.9em;
+    word-break: break-all;
+}
+
+/* Reutilizamos los badges */
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge.log, .badge.info { background: #29B6F6; }
+.badge.warn { background: #FFA726; }
+.badge.error { background: #EF5350; }
+.badge.fetch { background: #AB47BC; }
+
+
+
+
+
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
