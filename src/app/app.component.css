@@ -1,6 +1,4 @@
-:host {
-  /* Variables movidas a styles.css */
-}
+/* Variables moves to styles.css */
 
 .sdc-container {
   display: flex;
@@ -20,6 +18,8 @@
   padding: 20px 0;
   transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
+
+
 
 .sidebar.closed {
   margin-left: calc(var(--sidebar-width) * -1);
@@ -564,17 +564,37 @@
 }
 
 /* Estilo de la X de cerrar */
-.close-icon {
+.tab-close-hitbox {
   margin-left: 8px;
-  font-size: 10px;
-  padding: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
   transition: background 0.2s;
+  -webkit-app-region: no-drag; /* CRITICAL for Tauri/Electron */
 }
 
-.close-icon:hover {
+.tab-close-hitbox:hover {
   background: rgba(255, 82, 82, 0.2);
+}
+
+.tab-close-hitbox i {
+  font-size: 10px;
+  color: #B0BEC5;
+  transition: color 0.2s;
+}
+
+.tab-close-hitbox:hover i {
   color: #FF5252;
+}
+
+/* Legacy close-icon cleanup if needed anywhere else, but for tabs we use hitbox now */
+.close-icon {
+  font-size: 10px;
 }
 
 
@@ -878,348 +898,30 @@
   font-size: 0.8em;
 }
 
-/* --- Config Modal Styles --- */
-.config-overlay {
-  z-index: 2000; /* Por encima de todo */
-}
-
-.config-card {
-  background: white;
-  width: 700px;
-  height: 500px;
-  border-radius: 12px;
-  display: flex;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-.config-sidebar {
-  width: 220px;
-  background: #F8F9FA;
-  border-right: 1px solid #E1E5E8;
-  padding: 20px 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.config-header-title {
-  padding: 0 20px 20px;
-  font-weight: 700;
-  color: #2D3E4E;
-  font-size: 1.1em;
-  border-bottom: 1px solid #E1E5E8;
-  margin-bottom: 10px;
-}
-
-.config-nav {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.config-nav li {
-  padding: 12px 20px;
-  cursor: pointer;
-  color: #546E7A;
-  font-size: 0.95em;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
-}
-
-.config-nav li:hover {
-  background: #ECEFF1;
-  color: #263238;
-}
-
-.config-nav li.active {
-  background: #E8F5E9; /* Verde suave */
-  color: #2E7D32;
-  border-left-color: #66BB6A;
-  font-weight: 600;
-}
-
-.config-content {
-  flex: 1;
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.config-content .modal-actions {
-  margin-top: auto;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.config-section h3 {
-  margin-top: 0;
-  margin-bottom: 25px;
-  color: #2D3E4E;
-  font-weight: 600;
-  font-size: 1.2em;
-}
-
-.toggle-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-}
-
-.toggle-row span {
-  color: #455A64;
-}
-
-/* Theme Selector */
-.theme-selector {
-  display: flex;
-  gap: 10px;
-}
-
-.theme-option {
-  padding: 10px 20px;
-  border: 1px solid #CFD8DC;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.theme-option.selected {
-  border-color: #66BB6A;
-  background: #E8F5E9;
-  color: #2E7D32;
-  font-weight: 600;
-}
-
-/* Info Section */
-.info-section .version-text { font-weight: 600; color: #2D3E4E; }
-.info-section .desc-text { color: #78909C; font-size: 0.9em; margin-bottom: 30px; }
-
-.help-box {
-  background: #FFF8E1;
-  border: 1px solid #FFE082;
-  padding: 15px;
-  border-radius: 8px;
-}
-.help-box h4 { margin: 0 0 10px 0; font-size: 0.9em; color: #F57F17; }
-.help-box ul { margin: 0; padding-left: 20px; font-size: 0.85em; color: #5D4037; }
 
 
-
-.btn-save {
-  background: #66BB6A;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.btn-save:hover { background: #43A047; }
-
-/* Actualizar clases del Inspector */
-.console-theme {
-  background: #F8F9FA; /* Soft Gray */
-  color: #546E7A; /* Blue Grey */
-  font-family: 'Inter', sans-serif; /* Más limpio que Consolas */
-  font-size: 0.85em;
-  padding: 10px;
-}
-
-/* Inspector Styles Updates */
-.folder-node {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 6px 6px 20px; /* Mas intendado */
-  cursor: pointer;
-  color: #546E7A;
-  font-weight: 500;
-  border-radius: 6px;
-  font-size: 0.9em;
-}
-
-.folder-node:hover {
-  background: #ECEFF1;
-}
-
-.folder-icon {
-  color: #90A4AE;
-  font-size: 0.9em;
-}
-
-.inspector-header-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Iframes */
+.iframe-container {
     width: 100%;
+    height: 100%;
+    position: absolute; /* Stack iframes */
+    top: 0;
+    left: 0;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-.inspector-actions {
-    display: flex;
-    gap: 8px;
+.iframe-container.hidden {
+    visibility: hidden;
+    z-index: -1;
+    pointer-events: none;
 }
 
-.clear-btn-inspector {
-    background: transparent;
+iframe {
+    width: 100%;
+    height: 100%;
     border: none;
-    color: #B0BEC5;
-    cursor: pointer;
-    font-size: 0.9em;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
 
-.clear-btn-inspector:hover {
-    color: #EF5350;
-    background: #FFEBEE;
-}
-
-.clear-btn-inspector.save:hover {
-    color: #4CAF50;
-    background: #E8F5E9;
-}
-
-
-.tree-root {
-  display: flex;
-  flex-direction: column;
-}
-
-.tree-node {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  cursor: pointer;
-  color: #263238;
-  font-weight: 600;
-  border-radius: 6px;
-}
-
-.tree-node:hover {
-  background: #ECEFF1;
-}
-
-.toggle-icon {
-  color: #B0BEC5;
-  font-size: 0.8em;
-}
-
-.node-icon {
-  color: var(--accent-purple);
-}
-
-.tree-children {
-  margin-left: 22px; /* Indentación visual */
-  border-left: 1px solid #CFD8DC; /* Línea del árbol */
-  padding-left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.log-entry-tree {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 6px;
-  border-radius: 6px;
-  position: relative;
-  transition: background 0.2s;
-}
-
-.log-entry-tree:hover {
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.log-icon {
-  font-size: 0.9em;
-  margin-top: 2px;
-}
-
-/* Colores Pastel para Iconos */
-.log-entry-tree.info .log-icon,
-.log-entry-tree.log .log-icon {
-  color: #29B6F6; /* Light Blue */
-}
-
-.log-entry-tree.warn .log-icon {
-  color: #FFA726; /* Pastel Orange */
-}
-
-.log-entry-tree.error .log-icon {
-  color: #EF5350; /* Pastel Red */
-}
-
-.log-entry-tree.fetch .log-icon {
-  color: #AB47BC; /* Pastel Purple */
-}
-
-.log-content-wrapper {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.log-meta {
-  font-size: 0.75em;
-  color: #90A4AE;
-  margin-bottom: 2px;
-}
-
-.log-msg {
-  margin: 0;
-  word-break: break-word;
-  line-height: 1.4;
-  color: #37474F;
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 0;
-  color: #B0BEC5;
-  gap: 10px;
-}
-
-.success-icon {
-  font-size: 2em;
-  color: #A5D6A7; /* Pastel Green */
-}
-
-/* Dynamic Iframe Zoom based on Sidebars */
-.app-iframe-wrapper iframe {
-  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  transform-origin: top center;
-  border-radius: 0; /* Default */
-}
-
-/* Level 1: One Sidebar Open (Zoom Out Sutil) */
-.content-area.zoom-level-1 .app-iframe-wrapper iframe {
-  transform: scale(0.97);
-  border-radius: 6px; /* Visual polish */
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-}
-
-/* Level 2: Both Sidebars Open (Zoom Out More) */
-.content-area.zoom-level-2 .app-iframe-wrapper iframe {
-  transform: scale(0.94);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.08);
-}
 
 /* --- Dynamic Iframe Zoom Refined --- */
 
@@ -1237,22 +939,21 @@
 }
 
 /* Scenario 2: Inspector (Right) Open (Stronger 10% zoom out) */
-/* Note: This applies if Inspector is open, regardless of Left Sidebar initially */
 .content-area.inspector-active .app-iframe-wrapper iframe {
   transform: scale(0.90);
   border-radius: 10px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.12);
 }
 
-/* Scenario 3: BOTH Open (Max zoom out) -- Overrides previous due to specificity or cascade */
+/* Scenario 3: BOTH Open (Max zoom out) */
 .content-area.sidebar-left-active.inspector-active .app-iframe-wrapper iframe {
-  transform: scale(0.85); /* 15% reduction to accommodate both */
+  transform: scale(0.85);
   border-radius: 12px;
 }
 
 /* --- Content Zoom Strategy (Simulated Browser Zoom) --- */
 .app-iframe-wrapper {
-  overflow: hidden; /* Crop any sub-pixel overflow */
+  overflow: hidden;
   background: #FFF;
 }
 
@@ -1294,4 +995,5 @@
   transform: scale(0.85);
   border-radius: 10px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
 }

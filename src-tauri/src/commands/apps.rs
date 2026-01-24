@@ -28,6 +28,7 @@ pub async fn download_app_repo(app_handle: tauri::AppHandle, repo_url: String, f
     }
 }
 
+
 #[tauri::command]
 pub async fn update_app_repo(app_handle: tauri::AppHandle, folder_name: String) -> Result<(), String> {
     let app_data = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;

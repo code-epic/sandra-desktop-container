@@ -1,0 +1,151 @@
+<div class="modal-overlay config-overlay" (click)="closeModal()">
+    <div class="modal-card config-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Configuración del Sistema</h2>
+        <button class="btn-close-modal" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body-layout">
+        <div class="config-sidebar">
+          <button [class.active]="activeConfigTab === 'logs'" (click)="activeConfigTab = 'logs'">
+            <i class="fas fa-clipboard-list sidebar-icon"></i> Logs
+          </button>
+          <button [class.active]="activeConfigTab === 'theme'" (click)="activeConfigTab = 'theme'">
+            <i class="fas fa-palette sidebar-icon"></i> Tema
+          </button>
+          <button [class.active]="activeConfigTab === 'network'" (click)="activeConfigTab = 'network'">
+            <i class="fas fa-network-wired sidebar-icon"></i> Red
+          </button>
+          <button [class.active]="activeConfigTab === 'access'" (click)="activeConfigTab = 'access'">
+            <i class="fas fa-shield-alt sidebar-icon"></i> Acceso
+          </button>
+          <button [class.active]="activeConfigTab === 'updates'" (click)="activeConfigTab = 'updates'">
+            <i class="fas fa-sync-alt sidebar-icon"></i> Updates
+          </button>
+          <button [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'">
+            <i class="fas fa-info-circle sidebar-icon"></i> Info
+          </button>
+          <button [class.active]="activeConfigTab === 'connections'" (click)="activeConfigTab = 'connections'">
+            <i class="fas fa-plug sidebar-icon"></i> Conexiones
+          </button>
+        </div>
+        <div class="config-content">
+          <!-- Logs Tab -->
+          <div *ngIf="activeConfigTab === 'logs'" class="config-section">
+            <h3>Registros de Eventos</h3>
+            <label class="toggle-row">
+              <span>Activar registro de eventos</span>
+              <input type="checkbox" [(ngModel)]="config.logs.enabled">
+            </label>
+            <label class="toggle-row">
+              <span>Reportar al Creador (Log, Red)</span>
+              <input type="checkbox" [(ngModel)]="config.logs.reportToCreator">
+            </label>
+             <div class="config-group" style="margin-top:15px;">
+               <label>Nivel de Logs</label>
+               <select class="styled-select">
+                 <option>Info</option>
+                 <option>Debug</option>
+                 <option>Error</option>
+               </select>
+             </div>
+          </div>
+  
+        <!-- Sección Tema -->
+        <div *ngIf="activeConfigTab === 'theme'" class="config-section">
+          <h3>Apariencia</h3>
+          <div class="theme-selector">
+            <div class="theme-option" [class.selected]="config.theme === 'light'" (click)="config.theme = 'light'">Claro</div>
+            <div class="theme-option" [class.selected]="config.theme === 'dark'" (click)="config.theme = 'dark'">Oscuro</div>
+            <div class="theme-option" [class.selected]="config.theme === 'sandra'" (click)="config.theme = 'sandra'">Sandra Teal Soft</div>
+          </div>
+        </div>
+  
+        <!-- Sección Acceso -->
+        <div *ngIf="activeConfigTab === 'access'" class="config-section">
+          <h3>Control de Acceso</h3>
+          <label class="toggle-row">
+            <span>Activar control de acceso remoto</span>
+            <input type="checkbox" [(ngModel)]="config.access.remoteControl">
+          </label>
+          <label class="toggle-row">
+            <span>Emisión de mensajes en la red</span>
+            <input type="checkbox" [(ngModel)]="config.access.networkBroadcast">
+          </label>
+        </div>
+  
+        <!-- Sección Actualizaciones -->
+        <div *ngIf="activeConfigTab === 'updates'" class="config-section">
+          <h3>Sistema</h3>
+          <label class="toggle-row">
+            <span>Actualizaciones automáticas</span>
+            <input type="checkbox" [(ngModel)]="config.updates.autoUpdate">
+          </label>
+        </div>
+  
+        <!-- Sección Información -->
+        <div *ngIf="activeConfigTab === 'info'" class="config-section info-section">
+          <h3>Sandra Desktop Container</h3>
+          <p class="version-text">Versión 1.0.0 Alpha</p>
+          <p class="desc-text">Plataforma de orquestación segura para aplicaciones de escritorio distribuidas.</p>
+          
+          <div class="help-box">
+            <h4><i class="fas fa-book"></i> Referencias de Seguridad</h4>
+            <ul>
+              <li>Conexión: <strong>WSS (WebSocket Secure)</strong></li>
+              <li>Encriptación: <strong>AES-256</strong></li>
+              <li>Base de Datos: <strong>SQLite Cipher</strong></li>
+            </ul>
+          </div>
+        </div>
+  
+          
+          <!-- Network Tab -->
+           <div *ngIf="activeConfigTab === 'network'">
+             <h3>Información de Red</h3>
+             <div class="config-group" *ngFor="let ip of networkInfo">
+                <label>IP Detectada:</label>
+                <input type="text" [value]="ip" readonly>
+             </div>
+           </div>
+  
+          <!-- Connections Tab (NEW) -->
+          <div *ngIf="activeConfigTab === 'connections'">
+            <h3>Selector de Conexión Global</h3>
+            <p class="hint-text">Define qué conexión remota usarán las aplicaciones locales.</p>
+            
+            <div class="connection-list">
+                <div class="connection-item" *ngFor="let conn of availableConnections" 
+                     [class.active]="activeConnection?.id === conn.id"
+                     (click)="activateConnectionGlobal(conn)">
+                    <div class="conn-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="conn-info">
+                        <span class="conn-name">{{ conn.name }}</span>
+                        <span class="conn-ip">{{ conn.ip_address }}:{{ conn.port }}</span>
+                    </div>
+                    <div class="conn-status">
+                      <ng-container *ngIf="activeConnection?.id === conn.id; else inactiveStatus">
+                        <button class="btn-disconnect" (click)="$event.stopPropagation(); disconnect(conn)" title="Desconectar / Inactivar">
+                           <i class="fas fa-power-off"></i> Desconectar
+                        </button>
+                      </ng-container>
+                      <ng-template #inactiveStatus>
+                         <!-- Empty or maybe a connect icon if desired, but default clean is fine -->
+                      </ng-template>
+                    </div>
+                </div>
+                <div class="no-data" *ngIf="availableConnections.length === 0">
+                    No hay conexiones guardadas. Ve a la sección de Conexiones.
+                </div>
+            </div>
+          </div>
+  
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" (click)="closeModal()">Cerrar</button>
+        <button class="btn-modal-confirm" (click)="saveConfig()">Guardar</button>
+      </div>
+    </div>
+  </div>

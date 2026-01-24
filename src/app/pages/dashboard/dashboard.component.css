@@ -1,0 +1,495 @@
+/* Dashboard Header Styles & Pastel Palette */
+
+.system-web-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #f8f9fa; /* Más sutil */
+  margin-bottom: 35px;
+}
+
+/* --- Brand Section --- */
+.header-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.8rem;
+  letter-spacing: -0.5px;
+  color: #5d6d7e; /* Gris azulado suave */
+}
+
+.brand-main {
+  font-weight: 700;
+}
+
+.brand-sub {
+  font-weight: 300;
+  color: #b0bec5; /* Gris muy claro pastel */
+}
+
+.os-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #78909c;
+}
+
+.os-icon-box {
+  background: #eff3f5; /* Gris casi blanco */
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #546e7a;
+}
+
+/* --- Status Pills Section --- */
+.header-status {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.metric-pill {
+  background: #ffffff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid #edf2f7;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); /* Sombra muy suave y difusa */
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  min-width: 140px;
+}
+
+.metric-pill:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04);
+}
+
+.metric-pill i {
+  font-size: 1.2rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.pill-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.pill-label {
+  font-size: 0.7rem;
+  color: #b0bec5;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pill-value {
+  font-weight: 600;
+  color: #546e7a;
+  font-size: 0.95rem;
+}
+
+.pill-value.ellipsis {
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Pastel Color Themes (Backgrounds & Text) --- */
+
+/* Blue / Network: Airy Blue */
+.pill-network i {
+  background-color: #f4f8fb; /* Casi blanco azulado */
+  color: #90a4ae; /* Azul grisáceo sobrio */
+}
+.pill-network:hover { border-color: #cfd8dc; }
+.pill-network:hover i { color: #546e7a; background-color: #eceff1; }
+
+/* Purple / Identity: Soft Lavender */
+.pill-identity i {
+  background-color: #fcfbfd; /* Casi blanco violáceo */
+  color: #b39ddb; /* Lavanda suave */
+}
+.pill-identity:hover { border-color: #e1bee7; }
+.pill-identity:hover i { color: #9575cd; background-color: #f3e5f5; }
+
+/* Orange / Storage: Pale Sand */
+.pill-storage i {
+  background-color: #fffbf9; /* Arena muy pálido */
+  color: #ffccbc; /* Durazno suave */
+}
+.pill-storage:hover { border-color: #ffe0b2; }
+
+/* Red-Pink / Database: Misty Rose */
+.pill-db i {
+  background-color: #fff9fa; /* Rosa bruma muy pálido */
+  color: #f48fb1; /* Rosa pastel suave */
+}
+.pill-db:hover { border-color: #f8bbd0; }
+.pill-db:hover i { color: #f06292; background-color: #fce4ec; }
+
+/* Clickable Cursor */
+.clickable {
+  cursor: pointer;
+}
+/* --- Smart Modern App Cards (Intelligent Design - Refined) --- */
+
+.apps-canvas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); /* Más compactas y angostas */
+  gap: 16px; /* Gap reducido */
+}
+
+.app-tile {
+  background: radial-gradient(circle at 10% 10%, #ffffff 0%, #fcfdfe 90%); /* Piel sutil "olas" de luz */
+  border-radius: 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #f1f3f5;
+  height: 115px; /* Altura Reducida */
+}
+
+/* Hover Lift Effect */
+/* Hover Lift Effect + Smart Gestures */
+.app-tile:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 16px 36px rgba(46, 125, 50, 0.08); /* Sombra verde sutil */
+  border-color: #c8e6c9; /* Borde verde sutil al hover */
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f8fb 100%);
+}
+
+.app-tile:active .tile-icon {
+  transform: scale(0.9);
+  transition: transform 0.1s;
+}
+
+/* Layout - Split View */
+.tile-body {
+  padding: 16px; /* Padding reducido */
+  display: flex;
+  align-items: center;
+  gap: 14px; /* Gap reducido */
+  height: 100%;
+  z-index: 2;
+  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1); /* Movimiento fluido */
+  background: transparent;
+}
+
+/* Move Content Up on Hover (Smart Gesture) */
+.app-tile:hover .tile-body {
+  transform: translateY(-20px); /* Deja más espacio para el menú */
+}
+
+/* Icon Design - Neumorphic Touch with Green Hint */
+.tile-icon {
+  width: 46px; /* Icono más pequeño */
+  height: 46px;
+  background: transparent;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem; /* Fuente ajustada */
+  color: #90a4ae;
+  border: 1px solid #c8e6c9;
+  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.1);
+  transition: transform 0.3s ease; /* Para la animación de click */
+}
+
+.tile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.tile-info .name {
+  font-size: 0.95rem; /* Texto ajustado */
+  font-weight: 700;
+  color: #37474f;
+  letter-spacing: -0.3px;
+}
+
+.tile-info .meta {
+  font-size: 0.75rem;
+  color: #b0bec5;
+  font-weight: 500;
+}
+
+/* === Smart Overlay Actions (The "Intelligent" Part) === */
+
+/* === Smart Overlay Actions (The "Intelligent" Part) === */
+
+.tile-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px 16px; /* Padding equilibrado y más sustancial */
+  background: rgba(255, 255, 255, 0.92); /* Fondo blanco sutil para contraste */
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  border-top: 1px solid rgba(0,0,0,0.03); /* Borde casi invisible para definir el corte */
+  z-index: 10;
+  box-sizing: border-box; /* Asegura que el padding no sume al ancho */
+}
+
+.app-tile:hover .tile-overlay {
+  transform: translateY(0);
+}
+
+/* Primary Action Button - Pastel Green (Small & Non-Aggressive) */
+.btn-smart {
+  background: #e8f5e9; /* Verde Pastel muy suave */
+  color: #2e7d32; /* Verde bosque para texto */
+  border: 1px solid #c8e6c9; /* Borde sutil */
+  padding: 6px 10px; /* Padding optimizado */
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap; /* Evita que el texto salte de línea */
+  transition: all 0.2s;
+  box-shadow: none;
+}
+
+.btn-smart:hover {
+  background: #c8e6c9; 
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(46, 125, 50, 0.1);
+}
+
+.btn-smart.full-width {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-smart-secondary {
+  display: flex;
+  gap: 6px; /* Gap mínimo */
+  flex-shrink: 0; /* IMPEDIR que se encojan/oculten */
+}
+
+.icon-smart {
+  width: 30px; /* Reducido de 34px/32px para evitar desboredes */
+  height: 30px;
+  border-radius: 50%;
+  background: #f1f2f6;
+  color: #90a4ae;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.8rem;
+}
+
+.icon-smart:hover {
+  background: #eceff1;
+  color: #546e7a;
+}
+
+.icon-smart.delete:hover {
+  background: #fff3e0; /* Naranja muy pastel al hover */
+  color: #ffb74d; /* Naranja suave */
+}
+
+/* Status Dot */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.status-dot.active {
+  background: #26c6da; /* Cyan Pastel suave */
+  box-shadow: 0 0 6px rgba(38, 198, 218, 0.3);
+}
+
+/* Download State */
+.download-area {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.8rem; /* Más grande como pedido */
+  color: #eceff1;
+  transition: color 0.3s;
+}
+
+.app-tile:hover .download-area {
+  color: #90caf9; /* Soft blue */
+}
+
+
+/* --- Identity Info Modal Styles --- */
+.info-modal {
+  width: 400px;
+  max-width: 90%;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f2f5;
+  cursor: default;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #37474f;
+  font-weight: 700;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: #b0bec5;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #ef5350;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.info-group label {
+  font-size: 0.75rem;
+  color: #90a4ae;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fcfdfe;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #f1f3f5;
+  color: #455a64;
+  font-family: 'Consolas', monospace; /* Monospace for IDs/IPs */
+  font-size: 0.95rem;
+}
+
+.info-value.highlight {
+  background: #e8f5e9; /* Pastel Green bg */
+  border-color: #c8e6c9;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.icon-accent {
+  color: #b0bec5;
+  font-size: 1.1rem;
+}
+
+.info-value.highlight .icon-accent {
+  color: #66bb6a;
+}
+
+.copyable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copyable:hover {
+  background: #eceff1;
+  border-color: #cfd8dc;
+}
+
+.ip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-value.small {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  background: #ffffff;
+  border: 1px solid #f1f3f5;
+}
+
+.text-muted {
+  color: #cfd8dc;
+  font-style: italic;
+}
+
+.divider {
+  height: 1px;
+  background: #f1f3f5;
+  margin: 5px 0;
+}
+
+.modal-actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-modal-primary {
+  background: #546e7a;
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-modal-primary:hover {
+  background: #455a64;
+}

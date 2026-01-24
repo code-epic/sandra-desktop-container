@@ -139,8 +139,41 @@ body {
   transition: all 0.2s;
 }
 
-.btn-modal-acept:hover {
-  background: #d4d4ce;
+.btn-modal-save {
+  background: var(--pastel-green-bg);
+  color: var(--pastel-green-text);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modal-save:hover {
+  background: var(--pastel-green-hover);
+}
+
+
+.btn-close-modal {
+    background: transparent;
+    border: none;
+    color: #90A4AE;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 6px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-close-modal:hover {
+    color: #455A64;
+    background: #f1f5f9;
 }
 
 

@@ -79,14 +79,27 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
         setTimeout(() => {
           this.showModal = false;
           this.showWelcomeModal = true;
+          this.loadSavedConnections().then(() => this.syncFormStatus()); // Sync UI
         }, 800);
       } else if (status === 'error') {
         this.connStatusMsg = 'Error en la conexión.';
         this.verifyStatus = 'error';
         setTimeout(() => { this.showModal = false; }, 2000);
+        this.loadSavedConnections().then(() => this.syncFormStatus());
+      } else if (status === 'disconnected') {
+        this.loadSavedConnections().then(() => this.syncFormStatus());
       }
       this.cdr.detectChanges();
     });
+  }
+
+  // Sync the currently edited form with the updated list status
+  syncFormStatus() {
+    if (!this.form.id) return;
+    const updated = this.savedConnections.find(c => c.id === this.form.id);
+    if (updated) {
+      this.form.is_connected = updated.is_connected;
+    }
   }
 
   ngOnDestroy() {
@@ -194,8 +207,8 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
 
   // --- Connect/Disconnect Action ---
   async connect() {
-    // Toggle Logic
-    if (this.connectionState === 'connected') {
+    // Toggle Logic based on SPECIFIC connection status
+    if (this.form.is_connected) {
       await this.disconnect();
       return;
     }

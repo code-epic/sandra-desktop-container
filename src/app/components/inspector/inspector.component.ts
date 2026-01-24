@@ -11,6 +11,7 @@ interface AppLog {
   app_id: string;
   log_type: string;
   message: string;
+  source?: string;
   timestamp?: string;
   details?: any;
 }
@@ -60,26 +61,26 @@ export class InspectorComponent implements OnInit {
 
     // Subscribe to Logger for live updates
     this.logger.logs$.subscribe(log => {
-      // Determine source App ID
-      let source = this.currentTabId !== 'dashboard' ? (log.source || this.currentTabId) : 'App.SDC';
-      if (source === 'external-app' || source === 'unknown-app') source = this.currentTabId;
+      // Use app_id from LoggerService as the source of truth for grouping
+      const targetAppId = log.app_id || 'App.SDC';
 
       const appLog: AppLog = {
-        app_id: source,
+        app_id: targetAppId,
         log_type: log.type === 'INFO' ? 'LOG' : log.type,
         message: log.message,
+        source: log.source,
         timestamp: log.timestamp.toISOString(),
         details: log.details
       };
 
       // Add to session memory
-      if (!this.sessionLogs.has(source)) {
-        this.sessionLogs.set(source, []);
+      if (!this.sessionLogs.has(targetAppId)) {
+        this.sessionLogs.set(targetAppId, []);
       }
-      this.sessionLogs.get(source)?.unshift(appLog);
+      this.sessionLogs.get(targetAppId)?.unshift(appLog);
 
       // If viewing this app, update UI immediately
-      if (this.currentTabId === source || (['dashboard', 'connections', 'security', 'monitor', 'system'].includes(this.currentTabId) && source === 'App.SDC')) {
+      if (this.currentTabId === targetAppId || (['dashboard', 'connections', 'security', 'monitor', 'system'].includes(this.currentTabId) && targetAppId === 'App.SDC')) {
         this.loadLogsForActiveTab();
       }
     });
@@ -156,7 +157,8 @@ export class InspectorComponent implements OnInit {
 
     const promises = logsToSave.map(log => {
       // Persist to backend without reloading immediately if we want to clear them
-      return this.logger.persistBackend(log.log_type, log.message, log.details, log.app_id, log.timestamp);
+      // Pass separate app_id and source
+      return this.logger.persistBackend(log.log_type, log.message, log.details, log.app_id, log.timestamp, log.source);
     });
 
     await Promise.all(promises);
@@ -170,7 +172,21 @@ export class InspectorComponent implements OnInit {
     this.showSaveConfirmModal = false;
   }
 
-  closeInspector() {
+  async closeInspector() {
+    // 1. Evaluate if current view has XHR/Fetch logs
+    const hasNetworkLogs = this.currentAppLogs.some(l =>
+      l.log_type === 'FETCH' ||
+      l.log_type === 'XHR' ||
+      (l.message && l.message.includes('XHR'))
+    );
+
+    // 2. Ask to save if detected
+    if (hasNetworkLogs) {
+      if (confirm('Se ha detectado actividad de red (XHR/Fetch) en esta aplicación. ¿Desea guardar los logs antes de cerrar?')) {
+        await this.confirmSaveLogs();
+      }
+    }
+
     this.appState.toggleRightSidebar();
   }
 }

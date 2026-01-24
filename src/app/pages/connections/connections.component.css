@@ -149,8 +149,20 @@
 }
 
 .conn-item.active {
-  background: #F1F8E9; /* Pastel Green tint */
-  border-left-color: #66BB6A;
+  background: #ECEFF1; /* Active selection (edit) */
+  border-left-color: #B0BEC5;
+}
+
+/* Connected State in List */
+.conn-item.connected-item {
+  background: #E8F5E9; /* Pastel Green background */
+  border-left-color: #66BB6A; /* Strong Green Indicator */
+}
+
+/* If active AND connected, blend or keep connected style dominant */
+.conn-item.connected-item.active {
+  background: #C8E6C9; /* Darker Green hint */
+  font-weight: 600;
 }
 
 .conn-info {
@@ -340,6 +352,19 @@ button:disabled {
   box-shadow: 0 6px 20px rgba(102, 187, 106, 0.4);
   transform: translateY(-1px);
 }
+
+/* Disconnect State Style */
+.btn-connect.connected-btn {
+  background: #EF5350; /* Red for Drop */
+  border: 1px solid #E53935;
+  box-shadow: 0 4px 15px rgba(239, 83, 80, 0.3);
+}
+
+.btn-connect.connected-btn:hover {
+  background: #E53935;
+  box-shadow: 0 6px 20px rgba(239, 83, 80, 0.4);
+}
+
 
 .helper-text {
   font-size: 0.85em;

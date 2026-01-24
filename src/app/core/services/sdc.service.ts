@@ -26,7 +26,11 @@ export class SdcService {
   // 2. Espacio en disco (Ya incluido en getSystemTelemetry, pero podemos aislarlo)
   async getDiskUsage() {
     const stats = await this.getSystemTelemetry();
-    return stats.disks;
+    return { free: stats.disk_free, total: stats.disk_total, name: 'System Storage' };
+  }
+
+  async getDbStats(): Promise<any> {
+    return await invoke('get_db_stats');
   }
 
   // 3. Reiniciar equipo
@@ -36,5 +40,32 @@ export class SdcService {
       return await invoke<string>('remote_reboot');
     }
     return "Reinicio cancelado";
+  }
+
+  // Connection Management
+  async getConnections(): Promise<any[]> {
+    return await invoke('get_connections');
+  }
+
+  async saveConnection(connection: any): Promise<void> {
+    return await invoke('save_connection', { connData: connection });
+  }
+
+  async deleteConnection(id: number): Promise<void> {
+    return await invoke('delete_connection', { id });
+  }
+
+  async connectToServer(connection: any, clientId: string): Promise<void> {
+    return await invoke('connect_to_server', { connData: connection, clientId });
+  }
+
+  async disconnectFromServer(connection: any, clientId: string): Promise<void> {
+    return await invoke('disconnect_from_server', { connData: connection, clientId });
+  }
+
+
+
+  async getClientId(): Promise<string> {
+    return await invoke('get_or_create_client_id');
   }
 }

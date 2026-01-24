@@ -6,7 +6,7 @@ use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]

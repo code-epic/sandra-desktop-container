@@ -9,6 +9,7 @@ pub struct AppLog {
     pub log_type: String,
     pub message: String,
     pub details: Option<Value>,
+    pub source: Option<String>,
     pub timestamp: Option<String>,
 }
 
@@ -17,6 +18,7 @@ pub struct DbStats {
     pub connected: bool,
     pub table_count: usize,
     pub tables: Vec<String>,
+    pub size_bytes: i64,
 }
 
 #[derive(Serialize)]
@@ -30,11 +32,8 @@ pub async fn get_table_columns(
     state: tauri::State<'_, DbState>,
     table_name: String,
 ) -> Result<Vec<ColumnInfo>, String> {
+    // ... (get_table_columns implementation remains) ...
     let conn = state.0.lock().unwrap();
-
-    // Validación básica de seguridad (aunque PRAGMA table_info suele ser seguro si se controla el input)
-    // En un entorno real se debe validar que table_name exista en sqlite_master
-
     let query = format!("PRAGMA table_info('{}')", table_name.replace("'", "''"));
     let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
 
@@ -65,8 +64,8 @@ pub async fn save_app_log(state: tauri::State<'_, DbState>, log: AppLog) -> Resu
     };
 
     conn.execute(
-        "INSERT INTO app_logs (app_id, log_type, message, details) VALUES (?1, ?2, ?3, ?4)",
-        rusqlite::params![&log.app_id, &log.log_type, &log.message, details_str],
+        "INSERT INTO app_logs (app_id, log_type, message, details, source) VALUES (?1, ?2, ?3, ?4, ?5)",
+        rusqlite::params![&log.app_id, &log.log_type, &log.message, details_str, &log.source],
     )
     .map_err(|e| e.to_string())?;
     Ok(())
@@ -80,7 +79,7 @@ pub async fn get_app_logs(
     let conn = state.0.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT id, app_id, log_type, message, details, timestamp 
+            "SELECT id, app_id, log_type, message, details, source, timestamp 
          FROM app_logs WHERE app_id = ?1 
          ORDER BY id DESC LIMIT 100",
         )
@@ -101,7 +100,8 @@ pub async fn get_app_logs(
                 log_type: row.get(2)?,
                 message: row.get(3)?,
                 details: details_val,
-                timestamp: Some(row.get(5)?),
+                source: row.get(5).unwrap_or(None),
+                timestamp: Some(row.get(6)?),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -142,10 +142,19 @@ pub async fn get_db_stats(state: tauri::State<'_, DbState>) -> Result<DbStats, S
         tables.push(r.unwrap());
     }
 
+    let page_count: i64 = conn
+        .query_row("PRAGMA page_count", [], |row| row.get(0))
+        .unwrap_or(0);
+    let page_size: i64 = conn
+        .query_row("PRAGMA page_size", [], |row| row.get(0))
+        .unwrap_or(0);
+    let total_size = page_count * page_size;
+
     Ok(DbStats {
         connected: true,
         table_count: tables.len(),
         tables,
+        size_bytes: total_size,
     })
 }
 

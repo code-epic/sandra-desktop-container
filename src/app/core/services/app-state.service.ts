@@ -34,6 +34,12 @@ export class AppStateService {
     this.leftSidebarOpenSubject.next(!this.leftSidebarOpenSubject.value);
   }
 
+  setLeftSidebar(isOpen: boolean) {
+    if (this.leftSidebarOpenSubject.value !== isOpen) {
+      this.leftSidebarOpenSubject.next(isOpen);
+    }
+  }
+
   toggleRightSidebar() {
     this.rightSidebarOpenSubject.next(!this.rightSidebarOpenSubject.value);
   }

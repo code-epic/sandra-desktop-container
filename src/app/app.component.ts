@@ -17,8 +17,9 @@ import { SecurityComponent } from './pages/security/security.component';
 import { MonitorComponent } from './pages/monitor/monitor.component';
 import { StorageComponent } from './components/storage/storage.component';
 import { InspectorComponent } from './components/inspector/inspector.component';
+import { ConfigComponent } from './components/config/config.component';
 
-type ConnectionStatus = 'Connected' | 'Retrying' | 'Suspended' | 'Disconnected';
+type ConnectionStatus = 'Conectado' | 'Reintentando' | 'Suspendido' | 'Desconectado';
 
 interface DesktopApp {
   id: string;
@@ -27,12 +28,13 @@ interface DesktopApp {
   name: string;
   icon: string;
   action?: string;
+  externalUrl?: string; // Soporte para URL remotas o locales fuera del sandra-app://
 }
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, SidebarComponent, DashboardComponent, ConnectionsComponente, SecurityComponent, MonitorComponent, StorageComponent, InspectorComponent],
+  imports: [CommonModule, FormsModule, SidebarComponent, DashboardComponent, ConnectionsComponente, SecurityComponent, MonitorComponent, StorageComponent, InspectorComponent, ConfigComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
@@ -52,7 +54,7 @@ export class AppComponent implements OnInit {
     { title: 'Actualización Certs', time: '04:30 PM', status: 'pending' }
   ];
 
-  wsStatus: ConnectionStatus = 'Disconnected';
+  wsStatus: ConnectionStatus = 'Desconectado';
   attemptNumber: number = 0;
 
   installModal = {
@@ -71,8 +73,6 @@ export class AppComponent implements OnInit {
   };
 
   showDbModal = false;
-
-  activeConfigTab: string = 'logs';
   config = {
     logs: {
       enabled: true,
@@ -92,17 +92,28 @@ export class AppComponent implements OnInit {
     { name: 'Gestión Doc.', icon: 'fas fa-folder-open', id: 'gdoc', installed: true, repo: "https://github.com/code-epic/gdoc" },
     { name: 'Sicoex', icon: 'fas fa-user-plus', id: 'bdv', installed: true, repo: "https://github.com/code-epic/gdoc.proceedings" },
     { name: 'Nómina', icon: 'fas fa-file-invoice-dollar', id: 'nomina-app', installed: false, repo: "" },
-    { name: 'Carnetización', icon: 'fas fa-id-card', id: 'nomina-app', installed: false, repo: "" },
-    { name: 'Fideicomiso.', icon: 'fas fa-hand-holding-usd', id: 'nomina-app', installed: false, repo: "" },
-    { name: 'Panel de Control', icon: 'fas fa-cogs', action: 'toggleCP', id: 'nomina-app', installed: false, repo: "" },
-    { name: 'Divisas', icon: 'fas fa-file', action: 'toggleCP', id: 'cmpdivisas', installed: true, repo: "https://code-epic.io/code-epic/cmpdivisas" }
+
+    // Nuevos Paradigmas de Navegación (Remoto / Localhost)
+    { name: 'Google', icon: 'fas fa-globe', id: 'google', installed: true, externalUrl: "https://google.co.ve" },
+    { name: 'WikiPedia', icon: 'fas fa-laptop-code', id: 'wikipedia', installed: true, externalUrl: "https://wikipedia.org" },
+
+    { name: 'Panel de Control', icon: 'fas fa-cogs', action: 'toggleCP', id: 'web-panel', installed: true, externalUrl: "http://localhost:4201" },
+    { name: 'Divisas', icon: 'fas fa-file', action: 'toggleCP', id: 'cmpdivisas', installed: true, externalUrl: "http://localhost:4200/cmpdivisas" },
+    { name: 'GDoc. Localhost', icon: 'fas fa-folder-open', id: 'gdoc', installed: true, externalUrl: "http://localhost:4300" },
   ];
+
+  // Connections
+  availableConnections: any[] = [];
+  activeConnection: any = null;
+  clientId: string = '';
 
   activeTabId$: Observable<string>;
   openTabs$: Observable<Tab[]>;
   rightSidebarOpen$: Observable<boolean>;
   leftSidebarOpen$: Observable<boolean>;
   currentTabId: string = 'dashboard';
+
+  isInspectorOpen = false;
 
   constructor(
     public appState: AppStateService,
@@ -117,12 +128,21 @@ export class AppComponent implements OnInit {
     this.rightSidebarOpen$ = this.appState.rightSidebarOpen$;
     this.leftSidebarOpen$ = this.appState.leftSidebarOpen$;
 
+    this.rightSidebarOpen$.subscribe(val => this.isInspectorOpen = val);
+
     this.logger.initialize();
 
     // -- Dynamic Title Logic --
     this.activeTabId$.subscribe(id => {
       this.currentTabId = id;
       this.updateTitle(id);
+      // Aplicar reglas de sidebar al cambiar de pestaña
+      setTimeout(() => this.checkSidebarResponsive(window.innerWidth), 0);
+
+      // Si volvemos al dashboard, refrescar datos inmediatamente para no esperar 5 min
+      if (id === 'dashboard') {
+        this.refreshStats();
+      }
     });
 
     setInterval(() => {
@@ -131,6 +151,72 @@ export class AppComponent implements OnInit {
     }, 1000);
     this.updateDateTime();
   }
+
+
+  // ... (UpdateTitle and ReloadActiveIframe remain same) ...
+
+  @HostListener('window:keydown', ['$event'])
+  async handleKeyboardEvent(event: KeyboardEvent) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+      event.preventDefault();
+
+      const contextId = ['dashboard', 'connections', 'security', 'monitor', 'system'].includes(this.currentTabId)
+        ? 'App.SDC'
+        : this.currentTabId;
+
+      if (!this.isInspectorOpen) {
+        // Opening: Just toggle. Do NOT clear logs.
+        this.toggleRightSidebar();
+      } else {
+        // Closing: Check for logs for THIS app
+        if (this.logger.hasLogs(contextId)) {
+          if (confirm('Hay logs en el inspector para esta aplicación. ¿Desea guardarlos antes de cerrar?')) {
+            await this.logger.saveAllLogs(contextId);
+          }
+        }
+        this.toggleRightSidebar();
+      }
+    }
+  }
+
+  // Modal Log State
+  showSaveLogModal = false;
+  tabIdToClose: string | null = null;
+
+  async closeTab(tabId: string, evt: Event) {
+
+    evt.stopPropagation();
+    evt.preventDefault();
+
+    // Silent Mode Check: XHR created for THIS tab?
+    if (this.logger.hasXhrLogsForApp(tabId)) {
+      this.tabIdToClose = tabId;
+      this.showSaveLogModal = true;
+      return;
+    }
+
+    this.appState.closeTab(tabId);
+  }
+
+  selectTab(tabId: string) {
+    this.appState.setActiveTab(tabId);
+  }
+
+  async confirmCloseTab(shouldSave: boolean) {
+    if (this.tabIdToClose) {
+      if (shouldSave) {
+        await this.logger.saveAllLogs(this.tabIdToClose);
+      } else {
+        // If discarding, we should probably clear them to avoid them lingering?
+        // Or just close. The user said "No guardar".
+        this.logger.clearLogs(this.tabIdToClose);
+      }
+      this.appState.closeTab(this.tabIdToClose);
+    }
+    this.showSaveLogModal = false;
+    this.tabIdToClose = null;
+  }
+
 
   updateTitle(tabId: string) {
     if (tabId === 'dashboard') {
@@ -167,33 +253,172 @@ export class AppComponent implements OnInit {
     }
   }
 
+  // Messaging to Iframes
+  onIframeLoad(tabId: string) {
+    console.log(`[Iframe Loaded] Sending context to ${tabId}`);
+    this.sendContextToIframe(tabId);
+  }
+
+  sendContextToIframe(tabId: string) {
+    const iframeId = 'iframe-' + tabId;
+    const iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+
+    if (iframe && iframe.contentWindow) {
+      const contextPayload = {
+        system: this.stats, // mac_address, os_info, disk...
+        network: {
+          ips: this.networkInfo
+        },
+        config: {
+          clientId: this.clientId,
+          // Puedes agregar más config aquí
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      console.log(`[PostMessage] Sending NETWORK_CONTEXT to ${tabId}`, contextPayload);
+
+      iframe.contentWindow.postMessage({
+        type: 'NETWORK_CONTEXT', // Tipo de mensaje acordado
+        payload: contextPayload
+      }, '*'); // TODO: Restringir origen en producción si es necesario
+    }
+  }
+
   async ngOnInit() {
+    this.checkSidebarResponsive(window.innerWidth);
     this.refreshStats();
-    setInterval(() => this.refreshStats(), 5000);
+    // Modificado: Ejecutar solo si estamos en Dashboard y cada 5 minutos
+    setInterval(() => {
+      if (this.currentTabId === 'dashboard') {
+        this.refreshStats();
+      }
+    }, 300000);
     this.initStatusListener();
     this.loadNetwork();
-    this.appState.onConfigToggle.subscribe(() => this.showControlPanel = !this.showControlPanel);
+    this.appState.onConfigToggle.subscribe(() => {
+      this.showControlPanel = !this.showControlPanel;
+      if (this.showControlPanel) this.loadConnections();
+    });
 
     // Global Connection Status Listener
     await listen('connection-status', (event: any) => {
       const s = event.payload as string;
       if (s === 'connected') {
-        this.wsStatus = 'Connected';
+        this.wsStatus = 'Conectado';
       } else if (s === 'disconnected') {
-        this.wsStatus = 'Disconnected';
+        this.wsStatus = 'Desconectado';
       } else if (s === 'connecting') {
-        this.wsStatus = 'Retrying'; // Or generic connecting state
+        this.wsStatus = 'Reintentando'; // Or generic connecting state
       }
       this.zone.run(() => { }); // Update UI
     });
+
+    // Initialize Client ID and Connections
+    this.clientId = await this.sdcService.getClientId();
+    await this.loadConnections();
   }
+
+  async loadConnections() {
+    try {
+      this.availableConnections = await this.sdcService.getConnections();
+      this.activeConnection = this.availableConnections.find(c => c.is_connected) || null;
+
+      // Verificar estado real si hay una conexión activa marcada
+      if (this.activeConnection) {
+        await this.verifyActiveConnection();
+      } else {
+        this.wsStatus = 'Desconectado';
+      }
+
+    } catch (e) {
+      console.error("Error loading connections", e);
+    }
+  }
+
+  // Verificar estado del host (Ping/TCP Check) tal como en Configurar Conexión
+  async verifyActiveConnection() {
+    if (!this.activeConnection) return;
+
+    try {
+      const isUp = await invoke('verify_connection_status', {
+        ip: this.activeConnection.ip_address,
+        port: Number(this.activeConnection.port)
+      });
+
+      if (isUp) {
+        // Si el host responde y estaba marcado como conectado
+        this.wsStatus = 'Conectado';
+      } else {
+        // Host no responde
+        this.wsStatus = 'Reintentando';
+      }
+    } catch (e) {
+      console.error("Error verifying connection status", e);
+      this.wsStatus = 'Desconectado';
+    }
+  }
+
+  async activateConnectionGlobal(conn: any) {
+    if (this.activeConnection && this.activeConnection.id === conn.id) return; // Already active
+
+    // Deactivate previous if any? connect_to_server handles this in DB.
+    // We invoke connect_to_server which sets is_connected=1 and starts WSS.
+
+    // Optimistic UI update
+    this.activeConnection = conn;
+    try {
+      await this.sdcService.connectToServer(conn, this.clientId);
+      // Refresh list to sync is_connected flags from DB
+      await this.loadConnections();
+    } catch (e) {
+      console.error("Error activating connection", e);
+      alert("Error al activar conexión: " + e);
+    }
+  }
+
+  async disconnectConnection(conn: any) {
+    if (!conn) return;
+    try {
+      await this.sdcService.disconnectFromServer(conn, this.clientId);
+      this.activeConnection = null;
+      this.wsStatus = 'Desconectado'; // Optimistic update
+
+      // Update the connection in the list to reflect disconnected state 
+      // (assuming getConnections reads from DB where flag is updated)
+      await this.loadConnections();
+    } catch (e) {
+      console.error("Error disconnecting", e);
+      alert("Error al desconectar: " + e);
+    }
+  }
+
+  // ... other methods ...
+
+  openApp(app: any) {
+    let rawUrl = '';
+
+    if (app.externalUrl) {
+      rawUrl = app.externalUrl;
+      console.log(`🌍 [External Nav] Direct (No Proxy) ${app.name} -> ${rawUrl}`);
+      this.logger.log('FETCH', `GET ${rawUrl} [200]`, 'Navigation', app.id);
+    } else {
+      rawUrl = `sandra-app://localhost/${app.id}/`;
+      console.log(`🚀 [Local Nav] Opening ${app.name} via ${rawUrl} (Proxy Active: ${!!this.activeConnection})`);
+    }
+
+    const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl);
+    this.appState.addTab({ id: app.id, name: app.name, icon: app.icon, url: safeUrl });
+  }
+
+  // ... rest of class ...
 
   get statusColor(): string {
     switch (this.wsStatus) {
-      case 'Connected': return '#66BB6A';
-      case 'Disconnected': return '#CFD8DC'; // Gray
-      case 'Retrying': return '#FFA726';
-      case 'Suspended': return '#EF5350';
+      case 'Conectado': return '#66BB6A';
+      case 'Desconectado': return '#CFD8DC'; // Gray
+      case 'Reintentando': return '#FFA726';
+      case 'Suspendido': return '#EF5350';
       default: return '#CFD8DC';
     }
   }
@@ -213,10 +438,10 @@ export class AppComponent implements OnInit {
       this.zone.run(() => {
         const payload = event.payload;
         switch (payload.status) {
-          case 'Connected': this.wsStatus = 'Connected'; this.attemptNumber = 0; break;
-          case 'Retrying': this.wsStatus = 'Retrying'; this.attemptNumber = payload.attempt || 0; break;
-          case 'Suspended': this.wsStatus = 'Suspended'; this.attemptNumber = 0; break;
-          default: this.wsStatus = 'Disconnected';
+          case 'Connected': this.wsStatus = 'Conectado'; this.attemptNumber = 0; break;
+          case 'Retrying': this.wsStatus = 'Reintentando'; this.attemptNumber = payload.attempt || 0; break;
+          case 'Suspended': this.wsStatus = 'Suspendido'; this.attemptNumber = 0; break;
+          default: this.wsStatus = 'Desconectado';
         }
       });
     });
@@ -227,18 +452,45 @@ export class AppComponent implements OnInit {
   toggleLeftSidebar() { this.appState.toggleLeftSidebar(); }
   toggleRightSidebar() { this.appState.toggleRightSidebar(); }
 
-  @HostListener('window:keydown', ['$event'])
-  handleKeyboardEvent(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
-      event.preventDefault();
-      this.toggleRightSidebar();
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any) {
+    this.checkSidebarResponsive(window.innerWidth);
+  }
+
+  checkSidebarResponsive(width: number) {
+    // Definir páginas estáticas donde el sidebar SI puede aparecer (sujeto a resolución)
+    const staticPages = ['dashboard', 'connections', 'security', 'monitor'];
+
+    // 1. Si NO es una página estática (Es una App corriendo), Ocultar siempre.
+    if (!staticPages.includes(this.currentTabId)) {
+      this.appState.setLeftSidebar(false);
+      return;
+    }
+
+    // 2. Si es Dashboard/Estática, aplicar lógica responsiva por tamaño
+    // Threshold adjusted to 1150px - Balanced point
+    const responsiveThreshold = 1150;
+
+    if (width < responsiveThreshold) {
+      this.appState.setLeftSidebar(false);
+    } else {
+      this.appState.setLeftSidebar(true);
     }
   }
 
+
+
   switchToDashboard() { this.appState.setActiveTab('dashboard'); }
+
+  dbStats: any = null;
 
   async refreshStats() {
     this.stats = await this.sdcService.getSystemTelemetry();
+    try {
+      this.dbStats = await this.sdcService.getDbStats();
+    } catch (e) {
+      console.error("Error fetching db stats", e);
+    }
   }
 
   formatBytes(bytes: number): string {
@@ -326,16 +578,23 @@ export class AppComponent implements OnInit {
     }
   }
 
-  openApp(app: any) {
-    const rawUrl = `sandra-app://localhost/${app.id}/`;
-    const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl);
-    this.appState.addTab({ id: app.id, name: app.name, icon: app.icon, url: safeUrl });
+  showIpInfo() {
+    if (this.networkInfo.length > 0) {
+      alert(`Direcciones IP Detectadas:\n\n${this.networkInfo.join('\n')}`);
+    } else {
+      alert("No se detectaron direcciones IP.");
+    }
   }
 
-  closeTab(tabId: string, event: Event) {
-    event.stopPropagation();
-    this.appState.closeTab(tabId);
+  showMacInfo() {
+    if (this.stats && this.stats.mac_address) {
+      alert(`Identidad del Sistema (MAC/ID):\n\n${this.stats.mac_address}\n\nNota: Si no se detecta la MAC física, se muestra el Hostname.`);
+    } else {
+      alert("Información de Identidad no disponible.");
+    }
   }
+
+
 
   saveConfig() {
     console.log('Config guardada:', this.config);

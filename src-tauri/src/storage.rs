@@ -53,16 +53,18 @@ pub fn initialize_db(app: &AppHandle) -> Result<Connection, String> {
             app_id TEXT NOT NULL,       -- ID de la app (ej: 'gdoc')
             log_type TEXT NOT NULL,     -- 'LOG', 'ERROR', 'FETCH'
             message TEXT NOT NULL,      -- El contenido del log o la URL del fetch
-            details TEXT,               -- JSON estructurado (headers, body, etc)
+            details TEXT,               -- JSON estructurado
+            source TEXT,                -- Origen del log (ej: 'Console', 'Network')
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
         [],
     )
     .map_err(|e| e.to_string())?;
 
-    // Migración silenciosa: Intentar añadir columna details si no existe (para DBs antiguas)
-    // Se ignora el error si la columna ya existe.
+    // Migración silenciosa: Intentar añadir columna details si no existe
     let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN details TEXT", []);
+    // Migración silenciosa: Añadir columna source si no existe
+    let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN source TEXT", []);
 
     // Migración silenciosa: Añadir soporte para WSS Custom
     let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_host TEXT", []);
@@ -104,6 +106,7 @@ pub fn recreate_app_logs_table(conn: &rusqlite::Connection) -> Result<(), String
             log_type TEXT NOT NULL,
             message TEXT NOT NULL,
             details TEXT,
+            source TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
         [],

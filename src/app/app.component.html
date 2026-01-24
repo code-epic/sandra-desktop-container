@@ -3,7 +3,7 @@
   <app-sidebar></app-sidebar>
 
   <main class="main-stage">
-    <header class="stage-header" [class.connected-anim]="wsStatus === 'Connected'">
+    <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'">
       <div class="header-left-group">
         <button class="icon-btn toggle-btn" (click)="toggleLeftSidebar()">
           <i class="fas fa-bars"></i>
@@ -22,10 +22,12 @@
           </div>
 
           <div class="compass-tab" *ngFor="let tab of tabs" [class.active]="(activeTabId$ | async) === tab.id"
-            (click)="appState.setActiveTab(tab.id)">
+            (click)="selectTab(tab.id)">
             <i [class]="tab.icon"></i>
             <span *ngIf="tabs.length <= 2 || (activeTabId$ | async) === tab.id" class="tab-label fade-in">{{ tab.name }}</span>
-            <i class="fas fa-times close-icon" (click)="closeTab(tab.id, $event)"></i>
+            <span class="tab-close-hitbox" (click)="closeTab(tab.id, $event)">
+               <i class="fas fa-times"></i>
+            </span>
           </div>
         </nav>
       </div>
@@ -33,7 +35,7 @@
       <div class="header-right-group">
         <div class="connection-pill" [style.border-color]="statusColor">
           <div class="pulse-dot" [style.background-color]="statusColor"
-            [class.pulse-animation]="wsStatus === 'Connected'"></div>
+            [class.pulse-animation]="wsStatus === 'Conectado'"></div>
           <span class="status-text">{{ wsStatus }}</span>
         </div>
         <div class="app-brand-display">Sandra <span class="brand-lite">DC</span></div>
@@ -49,11 +51,14 @@
         [stats]="stats"
         [networkInfo]="networkInfo"
         [apps]="apps"
+        [dbStats]="dbStats"
         (onInstall)="DownloadAppRepo($event)"
         (onOpen)="openApp($event)"
         (onUpdate)="updateApp($event)"
         (onDelete)="deleteApp($event)"
         (onDbClick)="showDbModal = true"
+        (onIpClick)="showIpInfo()"
+        (onMacClick)="showMacInfo()"
       ></app-dashboard>
 
       <app-connections *ngIf="(activeTabId$ | async) === 'connections'"></app-connections>
@@ -62,12 +67,12 @@
 
       <!-- Iframe Container para Apps -->
       <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)" [hidden]="(activeTabId$ | async) !== tab.id">
-        <iframe [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0"></iframe>
+        <iframe [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0" (load)="onIframeLoad(tab.id)"></iframe>
       </div>
     </section>
   </main>
 
-  <app-inspector></app-inspector>
+  <app-inspector *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor' && (activeTabId$ | async) !== 'security'"></app-inspector>
 
   <div class="modal-overlay" *ngIf="installModal.show">
     <div class="modal-card">
@@ -100,6 +105,19 @@
     </div>
   </div>
 
+  <div class="modal-overlay" *ngIf="showSaveLogModal">
+    <div class="modal-card">
+      <h3 class="modal-title">Monitor de Actividad</h3>
+      <div class="modal-body">
+        <p class="modal-message">Hemos detectado tráfico de red en esta sesión. <br>¿Deseas guardar el registro antes de cerrar?</p>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" (click)="confirmCloseTab(false)">No guardar</button>
+          <button class="btn-modal-save" (click)="confirmCloseTab(true)">Guardar Log</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Modular Storage Component -->
   <app-storage *ngIf="showDbModal" (close)="showDbModal = false"></app-storage>
@@ -107,96 +125,15 @@
 
 
   <!-- Modal de Configuración Avanzada -->
-  <div class="modal-overlay config-overlay" *ngIf="showControlPanel">
-    <div class="config-card">
-      <aside class="config-sidebar">
-        <div class="config-header-title">Configuración</div>
-        <ul class="config-nav">
-          <li [class.active]="activeConfigTab === 'logs'" (click)="activeConfigTab = 'logs'">
-            <i class="fas fa-clipboard-list"></i> Registros
-          </li>
-          <li [class.active]="activeConfigTab === 'theme'" (click)="activeConfigTab = 'theme'">
-            <i class="fas fa-palette"></i> Tema
-          </li>
-          <li [class.active]="activeConfigTab === 'access'" (click)="activeConfigTab = 'access'">
-            <i class="fas fa-shield-alt"></i> Acceso
-          </li>
-          <li [class.active]="activeConfigTab === 'updates'" (click)="activeConfigTab = 'updates'">
-            <i class="fas fa-sync"></i> Actualizaciones
-          </li>
-          <li [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'">
-            <i class="fas fa-info-circle"></i> Información
-          </li>
-        </ul>
-      </aside>
-
-      <main class="config-content">
-        <!-- Sección Registros -->
-        <div *ngIf="activeConfigTab === 'logs'" class="config-section">
-          <h3>Registros de Eventos</h3>
-          <label class="toggle-row">
-            <span>Activar registro de eventos</span>
-            <input type="checkbox" [(ngModel)]="config.logs.enabled">
-          </label>
-          <label class="toggle-row">
-            <span>Reportar al Creador (Log, Red)</span>
-            <input type="checkbox" [(ngModel)]="config.logs.reportToCreator">
-          </label>
-        </div>
-
-        <!-- Sección Tema -->
-        <div *ngIf="activeConfigTab === 'theme'" class="config-section">
-          <h3>Apariencia</h3>
-          <div class="theme-selector">
-            <div class="theme-option" [class.selected]="config.theme === 'light'" (click)="config.theme = 'light'">Claro</div>
-            <div class="theme-option" [class.selected]="config.theme === 'dark'" (click)="config.theme = 'dark'">Oscuro</div>
-            <div class="theme-option" [class.selected]="config.theme === 'sandra'" (click)="config.theme = 'sandra'">Sandra Teal Soft</div>
-          </div>
-        </div>
-
-        <!-- Sección Acceso -->
-        <div *ngIf="activeConfigTab === 'access'" class="config-section">
-          <h3>Control de Acceso</h3>
-          <label class="toggle-row">
-            <span>Activar control de acceso remoto</span>
-            <input type="checkbox" [(ngModel)]="config.access.remoteControl">
-          </label>
-          <label class="toggle-row">
-            <span>Emisión de mensajes en la red</span>
-            <input type="checkbox" [(ngModel)]="config.access.networkBroadcast">
-          </label>
-        </div>
-
-        <!-- Sección Actualizaciones -->
-        <div *ngIf="activeConfigTab === 'updates'" class="config-section">
-          <h3>Sistema</h3>
-          <label class="toggle-row">
-            <span>Actualizaciones automáticas</span>
-            <input type="checkbox" [(ngModel)]="config.updates.autoUpdate">
-          </label>
-        </div>
-
-        <!-- Sección Información -->
-        <div *ngIf="activeConfigTab === 'info'" class="config-section info-section">
-          <h3>Sandra Desktop Container</h3>
-          <p class="version-text">Versión 1.0.0 Alpha</p>
-          <p class="desc-text">Plataforma de orquestación segura para aplicaciones de escritorio distribuidas.</p>
-          
-          <div class="help-box">
-            <h4><i class="fas fa-book"></i> Referencias de Seguridad</h4>
-            <ul>
-              <li>Conexión: <strong>WSS (WebSocket Secure)</strong></li>
-              <li>Encriptación: <strong>AES-256</strong></li>
-              <li>Base de Datos: <strong>SQLite Cipher</strong></li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" (click)="showControlPanel = false">Cancelar</button>
-          <button class="btn-modal-acept" (click)="saveConfig()">Aceptar Cambios</button>
-        </div>
-      </main>
-    </div>
-  </div>
+  <app-config 
+    *ngIf="showControlPanel"
+    [config]="config" 
+    [networkInfo]="networkInfo"
+    [availableConnections]="availableConnections"
+    [activeConnection]="activeConnection"
+    (onSave)="saveConfig()"
+    (onActivateConnection)="activateConnectionGlobal($event)"
+    (onDisconnect)="disconnectConnection($event)"
+    (close)="showControlPanel = false">
+  </app-config>
 </div>

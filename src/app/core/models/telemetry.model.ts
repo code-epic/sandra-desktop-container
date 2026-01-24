@@ -5,7 +5,8 @@ export interface DiskStats {
 }
 
 export interface SystemStats {
-  free_memory: number;
-  total_memory: number;
-  disks: DiskStats[];
+  disk_total: number;
+  disk_free: number;
+  os_info: string;
+  mac_address: string;
 }

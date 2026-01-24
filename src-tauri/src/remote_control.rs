@@ -2,7 +2,7 @@ use futures_util::StreamExt;
 use native_tls::TlsConnector;
 use serde_json::Value;
 use std::process::Command;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio_tungstenite::{connect_async_tls_with_config, tungstenite::protocol::Message, Connector};
 
 // Modified signature to take AppHandle for emitting events

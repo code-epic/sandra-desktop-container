@@ -1,38 +1,46 @@
-use sysinfo::{System, Disks};
+use mac_address::get_mac_address;
 use serde::Serialize;
+use sysinfo::{Disks, System};
 
 #[derive(Serialize)]
 pub struct SystemStats {
-    pub free_memory: u64,
-    pub total_memory: u64,
-    pub disks: Vec<DiskStats>,
-}
-
-#[derive(Serialize)]
-pub struct DiskStats {
-    
-    pub name: String,
-    pub free_space: u64,
-    pub total_space: u64,
+    pub disk_total: u64,
+    pub disk_free: u64,
+    pub os_info: String,
+    pub mac_address: String,
 }
 
 #[tauri::command]
 pub async fn get_system_telemetry() -> Result<SystemStats, String> {
-    // 1. Obtener memoria
     let mut sys = System::new_all();
     sys.refresh_all();
 
-    // 2. Obtener Discos (En sysinfo v0.30 se usa la struct Disks por separado)
-    let disks_list = Disks::new_with_refreshed_list();
-    let disks = disks_list.iter().map(|disk| DiskStats {
-        name: disk.mount_point().to_string_lossy().into_owned(),
-        free_space: disk.available_space(),
-        total_space: disk.total_space(),
-    }).collect();
+    // Calcular Espacio Total y Disponible Global (Suma de todos los discos)
+    let disks = Disks::new_with_refreshed_list();
+    let mut total_space = 0;
+    let mut available_space = 0;
+
+    for disk in &disks {
+        total_space += disk.total_space();
+        available_space += disk.available_space();
+    }
+
+    // Obtener Info del SO
+    let os_name = System::name().unwrap_or("Unknown".to_string());
+    let os_version = System::os_version().unwrap_or("".to_string());
+    let os_info = format!("{} {}", os_name, os_version).trim().to_string();
+
+    // Obtener MAC Address Real
+    let mac = match get_mac_address() {
+        Ok(Some(mac)) => mac.to_string(),
+        Ok(None) => "No MAC Found".to_string(),
+        Err(_) => "Unknown MAC".to_string(),
+    };
 
     Ok(SystemStats {
-        free_memory: sys.free_memory(),
-        total_memory: sys.total_memory(),
-        disks,
+        disk_total: total_space,
+        disk_free: available_space,
+        os_info,
+        mac_address: mac,
     })
 }

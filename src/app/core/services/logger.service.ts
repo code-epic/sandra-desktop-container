@@ -7,7 +7,8 @@ export interface LogEntry {
   type: 'INFO' | 'ERROR' | 'WARN' | 'SUCCESS' | 'FETCH' | 'XHR';
   message: string;
   timestamp: Date;
-  source?: string;
+  app_id: string; // The Application ID (e.g. 'gdoc')
+  source: string; // The Origin/Module (e.g. 'Bridge', 'Fetch', 'System')
   details?: any;
 }
 
@@ -23,16 +24,59 @@ export class LoggerService {
   private initialized = false;
 
   private currentAppId: string = 'App.SDC';
+  private unsavedLogs: LogEntry[] = [];
 
   constructor(private appState: AppStateService) {
     this.appState.activeTabId$.subscribe(id => {
-      // Normalizar IDs de sistema a App.SDC
       if (['dashboard', 'connections', 'security', 'monitor', 'system'].includes(id)) {
         this.currentAppId = 'App.SDC';
       } else {
         this.currentAppId = id;
       }
     });
+  }
+
+  getAlledLogs(): LogEntry[] {
+    return this.unsavedLogs;
+  }
+
+  getUnsavedLogs(appId?: string) {
+    if (appId) {
+      return this.unsavedLogs.filter(l => l.app_id === appId);
+    }
+    return this.unsavedLogs;
+  }
+
+  clearLogs(appId?: string) {
+    if (appId) {
+      this.unsavedLogs = this.unsavedLogs.filter(l => l.app_id !== appId);
+    } else {
+      this.unsavedLogs = [];
+    }
+  }
+
+  hasLogs(appId?: string): boolean {
+    if (appId) {
+      return this.unsavedLogs.some(l => l.app_id === appId);
+    }
+    return this.unsavedLogs.length > 0;
+  }
+
+  hasXhrLogsForApp(appId?: string): boolean {
+    if (appId) {
+      return this.unsavedLogs.some(l => l.app_id === appId && (l.type === 'XHR' || l.type === 'FETCH' || l.message.includes('XHR')));
+    }
+    return this.unsavedLogs.some(l => l.type === 'XHR' || l.type === 'FETCH' || l.message.includes('XHR'));
+  }
+
+  async saveAllLogs(appId?: string) {
+    const logsToSave = appId ? this.unsavedLogs.filter(l => l.app_id === appId) : this.unsavedLogs;
+
+    for (const log of logsToSave) {
+      await this.persistBackend(log.type, log.message, log.details, log.app_id, log.timestamp.toISOString(), log.source);
+    }
+
+    this.clearLogs(appId);
   }
 
   initialize() {
@@ -43,68 +87,58 @@ export class LoggerService {
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'SDC_LOG') {
         const payload = event.data.payload;
-        const appId = payload.app_id || 'unknown-app';
+
+        let appId = payload.app_id;
+        if (!appId || appId === 'unknown-app') {
+          appId = this.currentAppId;
+        }
+
         const logType = payload.log_type || 'INFO';
         const message = payload.message || '';
         const details = payload.details || null;
 
-        // NO guardamos automáticamente en BD.
-        // Se envía al Inspector para revisión y guardado manual.
-        // this.persistBackend(logType, message, appId); 
-
-        this.logSubject.next({
+        const entry: LogEntry = {
           type: logType as any,
           message: message,
           timestamp: new Date(),
-          source: appId,
-          details: details // Pasamos los detalles estructurados
-        });
+          app_id: appId,
+          source: 'Bridge',
+          details: details
+        };
+
+        this.unsavedLogs.push(entry);
+        this.logSubject.next(entry);
       }
     });
 
-    // Override console methods
-    // console.log = (...args) => {
-    //   this.originalConsoleLog.apply(console, args);
-    //   this.persistLog('INFO', args.join(' '));
-    // };
-
     console.error = (...args) => {
       this.originalConsoleError.apply(console, args);
-      this.persistLog('ERROR', args.join(' '));
+      this.persistLog('ERROR', args.join(' '), 'Console', this.currentAppId);
     };
 
-    // console.warn = (...args) => {
-    //   this.originalConsoleWarn.apply(console, args);
-    //   this.persistLog('WARN', args.join(' '));
-    // };
-
-    // Intercept Fetch
     // Intercept Fetch
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const [resource, config] = args;
       const url = resource.toString();
 
-      // Skip logging logic for noisy internal calls
       if (url.includes('save_app_log') ||
         url.includes('ipc://') ||
         url.includes('get_system_telemetry')) {
         return originalFetch(...args);
       }
 
-      // NO logueamos el Request de salida para reducir ruido.
-
       try {
         const response = await originalFetch(...args);
 
-        // Solo reportar errores HTTP (400+) como ERROR
-        if (response.status >= 400) {
-          this.persistLog('ERROR', `HTTP Error ${response.status} [${config?.method || 'GET'}] ${url}`);
-        }
+        const type = response.status >= 400 ? 'ERROR' : 'FETCH';
+        const msg = `${config?.method || 'GET'} ${url} [${response.status}]`;
+
+        this.persistLog(type, msg, 'Network', this.currentAppId);
 
         return response;
       } catch (err: any) {
-        this.persistLog('ERROR', `Fetch Exception: ${url} - ${err.message}`);
+        this.persistLog('ERROR', `Fetch Exception: ${url} - ${err.message}`, 'Network', this.currentAppId);
         throw err;
       }
     };
@@ -112,25 +146,24 @@ export class LoggerService {
     this.originalConsoleLog('[LoggerService] Initialized and capturing console/network events.');
   }
 
-  private persistLog(type: 'INFO' | 'ERROR' | 'WARN' | 'SUCCESS' | 'FETCH' | 'XHR', message: string, source: string = 'System') {
+  private persistLog(type: 'INFO' | 'ERROR' | 'WARN' | 'SUCCESS' | 'FETCH' | 'XHR', message: string, source: string = 'System', appId?: string) {
     if (message.includes('[LoggerService]') || message.includes('save_app_log')) return;
 
-    // Fix: Usar el ID de la app actual si la fuente es genérica, para que el Inspector lo asocie correctamente
-    const effectiveSource = source === 'System' ? this.currentAppId : source;
+    const effectiveAppId = appId || this.currentAppId;
 
     const entry: LogEntry = {
       type,
       message,
       timestamp: new Date(),
-      source: effectiveSource
+      app_id: effectiveAppId,
+      source: source
     };
 
+    this.unsavedLogs.push(entry);
     this.logSubject.next(entry);
-    // No esperamos aquí para no bloquear la consola, pero se envía al backend
-    this.persistBackend(type, message, null, this.currentAppId);
   }
 
-  public async persistBackend(type: string, message: string, details: any, appId: string, timestamp?: string) {
+  public async persistBackend(type: string, message: string, details: any, appId: string, timestamp?: string, source?: string) {
     let backendType = type;
     if (type === 'INFO') backendType = 'LOG';
 
@@ -141,6 +174,7 @@ export class LoggerService {
           log_type: backendType,
           message: message,
           details: details,
+          source: source || 'System',
           timestamp: timestamp
         }
       });
@@ -149,8 +183,7 @@ export class LoggerService {
     }
   }
 
-  // Método manual para logs explícitos
-  log(type: 'INFO' | 'ERROR' | 'WARN' | 'SUCCESS', message: string, source: string = 'System') {
-    this.persistLog(type, message, source);
+  log(type: 'INFO' | 'ERROR' | 'WARN' | 'SUCCESS' | 'FETCH' | 'XHR', message: string, source: string = 'System', appId?: string) {
+    this.persistLog(type, message, source, appId || this.currentAppId);
   }
 }

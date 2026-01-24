@@ -15,6 +15,7 @@
         </div>
     </div>
 
+    
     <!-- Main Content -->
     <div class="connections-main">
         <!-- Sidebar List -->
@@ -25,8 +26,9 @@
             </div>
             <div class="conn-list">
                 <div class="conn-item" *ngFor="let conn of savedConnections" 
-                     [class.active]="form.id === conn.id"
-                     (click)="selectConnection(conn)">
+                 [class.active]="form.id === conn.id"
+                 [class.connected-item]="conn.is_connected"
+                 (click)="selectConnection(conn)">
                     <div class="conn-info">
                         <span class="conn-name">{{ conn.name }}</span>
                         <span class="conn-meta">{{ conn.ip_address }}:{{ conn.port }}</span>
@@ -70,12 +72,12 @@
                     <input type="number" [(ngModel)]="form.port" (ngModelChange)="onAddressChange()" placeholder="22">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label>Usuario</label>
                     <input type="text" [(ngModel)]="form.username" placeholder="root">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label>Clave</label>
                     <input type="password" [(ngModel)]="form.password" placeholder="••••••">
                 </div>
@@ -97,14 +99,14 @@
 
             <!-- Actions -->
             <div class="editor-actions">
-                <button class="btn-save" (click)="save()" [disabled]="!form.name || !form.ip_address">
+                <button class="btn-modal-confirm" (click)="save()" [disabled]="!form.name || !form.ip_address">
                     <i class="fas fa-save"></i> Guardar
                 </button>
                 
-                <button class="btn-connect" (click)="connect()" [disabled]="!isHostAvailable && connectionState !== 'connected'"
-                        [class.connected-btn]="connectionState === 'connected'">
-                    <i class="fas" [class.fa-plug]="connectionState !== 'connected'" [class.fa-unlink]="connectionState === 'connected'"></i> 
-                    {{ connectionState === 'connected' ? 'Desconectar' : (form.id ? 'Conectar' : 'Probar Conexión') }}
+                <button class="btn-modal-acept" (click)="connect()" [disabled]="!isHostAvailable && !form.is_connected"
+                        [class.connected-btn]="form.is_connected">
+                    <i class="fas" [class.fa-plug]="!form.is_connected" [class.fa-unlink]="form.is_connected"></i> 
+                    {{ form.is_connected ? 'Desconectar' : (form.id ? 'Conectar' : 'Probar Conexión') }}
                 </button>
             </div>
             
