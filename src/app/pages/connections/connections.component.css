@@ -271,15 +271,27 @@
   box-shadow: 0 0 0 4px rgba(102, 187, 106, 0.08);
 }
 
-/* IP Input with Indicator */
+/* IP Input with Indicator & Icons */
 .input-wrapper {
   position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #B0BEC5;
+    z-index: 2;
+    font-size: 0.9em;
+    pointer-events: none; /* Let clicks pass through to input */
 }
 
 .input-wrapper input {
   width: 100%;
   box-sizing: border-box;
-  padding-right: 40px;
+  padding-left: 42px; /* Space for Left Icon */
+  padding-right: 40px; /* Space for Right Indicator */
 }
 
 .verify-indicator {
@@ -472,3 +484,26 @@ button:disabled {
     50% { transform: scale(0.9); opacity: 0.8; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+.btn-modal-cancel {
+    background: #F5F5F5;
+    color: #78909C;
+    border: 1px solid #ECEFF1;
+}
+
+.btn-modal-cancel:hover {
+    background: #E0E0E0;
+    color: #546E7A;
+}
+
+/* Modal Icons Colors */
+.modal-icon.success i { color: #66BB6A; }
+.modal-icon.info i { color: #29B6F6; }
+.modal-icon.error i { color: #EF5350; }
+.modal-icon.warning i { color: #FFA726; }
+
+.modal-icon {
+    font-size: 3em;
+    margin-bottom: 20px;
+}
+

@@ -47,7 +47,7 @@ export class AppStateService {
   setActiveTab(id: string) {
     this.activeTabIdSubject.next(id);
     // Lógica inteligente: mantener sidebar para páginas principales, ocultar para apps
-    const staticPages = ['dashboard', 'connections', 'security', 'monitor'];
+    const staticPages = ['dashboard', 'connections', 'apps', 'security', 'monitor'];
 
     if (!staticPages.includes(id)) {
       this.leftSidebarOpenSubject.next(false);

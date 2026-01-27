@@ -51,12 +51,16 @@
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label>Nombre de Perfil</label>
-                    <input type="text" [(ngModel)]="form.name" placeholder="Ej: Servidor Producción">
+                    <div class="input-wrapper">
+                        <i class="fas fa-tag input-icon"></i>
+                        <input type="text" [(ngModel)]="form.name" placeholder="Ej: Servidor Producción">
+                    </div>
                 </div>
 
                 <div class="form-group ip-group">
                     <label>IP / Hostname</label>
                     <div class="input-wrapper">
+                        <i class="fas fa-network-wired input-icon"></i>
                         <input type="text" [(ngModel)]="form.ip_address" (ngModelChange)="onAddressChange()" placeholder="192.168.1.10">
                         <!-- Verification Status Indicator -->
                         <div class="verify-indicator">
@@ -100,7 +104,7 @@
             <!-- Actions -->
             <div class="editor-actions">
                 <button class="btn-modal-confirm" (click)="save()" [disabled]="!form.name || !form.ip_address">
-                    <i class="fas fa-save"></i> Guardar
+                    <i class="fas" [class.fa-save]="!form.id" [class.fa-sync]="form.id"></i> {{ form.id ? 'Actualizar' : 'Guardar' }}
                 </button>
                 
                 <button class="btn-modal-acept" (click)="connect()" [disabled]="!isHostAvailable && !form.is_connected"
@@ -145,6 +149,37 @@
             <p>Conexión segura establecida con {{ form.name }}</p>
             <div class="modal-actions">
                 <button class="btn-modal-acept" (click)="closeWelcome()">Continuar</button>
+            </div>
+        </div>
+    </div>
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" *ngIf="showConfirmModal" (click)="closeConfirm()">
+       <div class="modal-card confirm-modal">
+            <div class="modal-icon warning">
+                <i class="fas fa-question-circle"></i>
+            </div>
+            <h2>{{ confirmTitle }}</h2>
+            <p>{{ confirmMessage }}</p>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" (click)="closeConfirm()">Cancelar</button>
+                <button [class]="confirmBtnParams.class" (click)="executeConfirm()">
+                    <i class="fas" [class]="confirmBtnParams.icon"></i> {{ confirmBtnParams.text }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" *ngIf="showFeedbackModal" (click)="closeFeedback()">
+       <div class="modal-card confirm-modal">
+            <div class="modal-icon" [ngClass]="feedbackType">
+                <i class="fas" [class.fa-check-circle]="feedbackType === 'success'" 
+                   [class.fa-info-circle]="feedbackType === 'info'"
+                   [class.fa-times-circle]="feedbackType === 'error'"></i>
+            </div>
+            <h2>{{ feedbackTitle }}</h2>
+            <p>{{ feedbackMessage }}</p>
+            <div class="modal-actions">
+                <button class="btn-modal-acept" (click)="closeFeedback()">Aceptar</button>
             </div>
         </div>
     </div>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sandra Loading</title>
+    <style>
+        :root {
+            /* Palette from styles.css */
+            --bg-primary: #F4F6F8;
+            --accent: #66BB6A; /* Green */
+            --accent-light: #A5D6A7; /* Light Green */
+            --text-main: #455A64;
+            --text-muted: #90A4AE;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-primary);
+            color: var(--text-main);
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 12px;
+            user-select: none;
+            cursor: wait;
+        }
+
+        /* Container for content */
+        .content {
+            z-index: 20;
+            text-align: center;
+            animation: fadeIn 1s ease-out;
+            margin-bottom: 60px;
+        }
+
+        /* Logo Animation - Circular with Border */
+        .logo-container {
+            width: 160px;
+            height: 160px;
+            margin: 0 auto 30px;
+            position: relative;
+            background: #ffffff;
+            border-radius: 50%;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(102, 187, 106, 0.2);
+            border: 3px solid #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Highlight border effect */
+            animation: borderPulse 3s infinite ease-in-out;
+        }
+
+        .logo {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+            animation: breathe 3s infinite ease-in-out;
+        }
+
+        @keyframes borderPulse {
+            0% { border-color: #ffffff; box-shadow: 0 10px 25px rgba(102, 187, 106, 0.2); }
+            50% { border-color: var(--accent-light); box-shadow: 0 10px 35px rgba(102, 187, 106, 0.4); }
+            100% { border-color: #ffffff; box-shadow: 0 10px 25px rgba(102, 187, 106, 0.2); }
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0 0 5px;
+            letter-spacing: 0.5px;
+            color: var(--text-main);
+        }
+
+        .version {
+            font-size: 0.9rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        /* License Footer */
+        .footer {
+            margin-top: 30px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            opacity: 0.8;
+            z-index: 10;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-weight: 600;
+        }
+        
+        .footer a:hover {
+            color: var(--accent-light);
+            text-decoration: underline;
+        }
+
+        /* --- Animations: Waves --- */
+        .ocean {
+            height: 180px; /* Taller for smoother curve perception */
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .wave {
+            /* Seamless SVG Curve (Start Y=192, End Y=192). Two equal peaks/troughs. */
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2366BB6A' fill-opacity='1' d='M0,192 C240,290 480,90 720,192 C960,290 1200,90 1440,192 L1440,320 L0,320 Z'%3E%3C/path%3E%3C/svg%3E") repeat-x;
+            
+            position: absolute;
+            width: 2880px;
+            height: 320px;
+            animation: wave 10s linear infinite;
+            transform: translate3d(0, 0, 0);
+            opacity: 0.4;
+            bottom: -50px;
+        }
+
+        .wave:nth-of-type(2) {
+            bottom: -60px;
+            opacity: 0.6;
+            animation: wave 12s linear reverse infinite;
+            margin-left: -100px;
+        }
+
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-1440px); }
+        }
+
+        /* Bubbles - adapted for light theme */
+        .bubbles {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -50px; /* Start further down */
+            background: rgba(102, 187, 106, 0.4); /* Slightly softer main opacity */
+            border-radius: 50%;
+            /* Linear animation for constant speed - prevents "heavy/stuck" start */
+            animation: fly 10s infinite linear; 
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Adjust timings for a continuous stream */
+        .bubble:nth-child(1) { width: 40px; height: 40px; left: 10%; animation-duration: 8s; animation-delay: 0s; }
+        .bubble:nth-child(2) { width: 20px; height: 20px; left: 20%; animation-duration: 5s; animation-delay: 1s; }
+        .bubble:nth-child(3) { width: 50px; height: 50px; left: 35%; animation-duration: 7s; animation-delay: 2s; }
+        .bubble:nth-child(4) { width: 80px; height: 80px; left: 50%; animation-duration: 11s; animation-delay: 0s; }
+        .bubble:nth-child(5) { width: 35px; height: 35px; left: 55%; animation-duration: 6s; animation-delay: 3s; }
+        .bubble:nth-child(6) { width: 45px; height: 45px; left: 65%; animation-duration: 8s; animation-delay: 1s; }
+        .bubble:nth-child(7) { width: 25px; height: 25px; left: 70%; animation-duration: 12s; animation-delay: 2s; }
+        .bubble:nth-child(8) { width: 60px; height: 60px; left: 80%; animation-duration: 6s; animation-delay: 4s; }
+        .bubble:nth-child(9) { width: 15px; height: 15px; left: 40%; animation-duration: 5s; animation-delay: 1s; }
+        .bubble:nth-child(10) { width: 70px; height: 70px; left: 90%; animation-duration: 9s; animation-delay: 3s; }
+
+        @keyframes fly {
+            0% { transform: translateY(0); opacity: 0; }
+            10% { opacity: 0.6; } /* Fade in quickly */
+            100% { transform: translateY(-110vh); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="bubbles">
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+
+    <!-- Wrapped waves in ocean container -->
+    <div class="ocean">
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+
+    <div class="content">
+        <div class="logo-container">
+            <!-- Loading from sandra.png (relative) -->
+            <img src="sandra.png" alt="Sandra Logo" class="logo">
+        </div>
+        <h1>Sandra Desktop Container</h1>
+        <div class="version">Version 1.0</div>
+        <div class="date" id="buildDate"></div>
+
+        <div class="footer">
+            <p>Licencia: <a href="https://code-epic.com/wiki" target="_blank">Code-Epic Authority</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Set dynamic date
+        const dateElement = document.getElementById('buildDate');
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        dateElement.textContent = "Compilación: " + now.toLocaleDateString('es-ES', options);
+    </script>
+</body>
+</html>

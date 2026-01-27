@@ -166,6 +166,7 @@ pub async fn delete_connection(state: tauri::State<'_, DbState>, id: i32) -> Res
 #[tauri::command]
 pub async fn connect_to_server(
     state: tauri::State<'_, DbState>,
+    conn_task: tauri::State<'_, crate::ConnectionTask>,
     app_handle: AppHandle,
     conn_data: Connection,
     client_id: String,
@@ -183,6 +184,15 @@ pub async fn connect_to_server(
 
     println!("🔌 Iniciando conexión bajo demanda a: {}", url);
 
+    // 1. Abort previous task if any
+    {
+        let mut task_guard = conn_task.0.lock().unwrap();
+        if let Some(handle) = task_guard.take() {
+            println!("⚠️ Abortando tarea de conexión anterior...");
+            handle.abort();
+        }
+    }
+
     // Update DB status
     let conn = state.0.lock().unwrap();
     // Reset all others
@@ -194,9 +204,18 @@ pub async fn connect_to_server(
         );
     }
 
-    tauri::async_runtime::spawn(async move {
-        remote_control::start_remote_listener(url, app_handle).await;
+    // Capture ID for the background thread
+    let conn_id_i64 = conn_data.id.map(|n| n as i64);
+
+    // 2. Spawn new task and save handle
+    let handle = tauri::async_runtime::spawn(async move {
+        remote_control::start_remote_listener(url, app_handle, conn_id_i64).await;
     });
+
+    {
+        let mut task_guard = conn_task.0.lock().unwrap();
+        *task_guard = Some(handle);
+    }
 
     Ok(())
 }
@@ -204,10 +223,20 @@ pub async fn connect_to_server(
 #[tauri::command]
 pub async fn disconnect_from_server(
     state: tauri::State<'_, DbState>,
+    conn_task: tauri::State<'_, crate::ConnectionTask>,
     app_handle: AppHandle,
     conn_data: Connection,
     client_id: String,
 ) -> Result<(), String> {
+    // 1. Abort background task immediately
+    {
+        let mut task_guard = conn_task.0.lock().unwrap();
+        if let Some(handle) = task_guard.take() {
+            println!("⏹️ Deteniendo listener background...");
+            handle.abort();
+        }
+    }
+
     let host = conn_data
         .wss_host
         .clone()
@@ -219,7 +248,7 @@ pub async fn disconnect_from_server(
 
     println!("🔌 Desconectando y notificando servicio logout: {}", url);
 
-    // 1. Update DB immediately
+    // 2. Update DB immediately
     {
         let conn = state.0.lock().unwrap();
         if let Some(id) = conn_data.id {
@@ -230,7 +259,7 @@ pub async fn disconnect_from_server(
         }
     }
 
-    // 2. Notify Server
+    // 3. Notify Server
     let url_clone = url.clone();
     tauri::async_runtime::spawn(async move {
         let client = Client::builder()
@@ -243,7 +272,7 @@ pub async fn disconnect_from_server(
         }
     });
 
-    // 3. Emit Disconnected
+    // 4. Emit Disconnected
     let _ = app_handle.emit("connection-status", "disconnected");
 
     Ok(())

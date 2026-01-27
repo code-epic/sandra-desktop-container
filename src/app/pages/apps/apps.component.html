@@ -1,0 +1,186 @@
+<div class="apps-container fade-in">
+    <div class="header">
+        <h2>Gestión de Aplicaciones</h2>
+        <button class="btn-add" (click)="openAddModal()">
+            <i class="fas fa-plus"></i> Nueva App
+        </button>
+    </div>
+
+    <!-- Lista vacía -->
+    <div *ngIf="apps.length === 0" class="empty-state">
+        <i class="fas fa-box-open"></i>
+        <p>No hay aplicaciones registradas.</p>
+    </div>
+
+    <!-- Grid de Apps -->
+    <div class="apps-grid" *ngIf="apps.length > 0">
+        <div class="app-tile" *ngFor="let app of apps">
+            
+            <!-- Main Content Layer -->
+            <div class="tile-body">
+                <div class="tile-icon">
+                    <i [class]="app.icon"></i>
+                </div>
+                <div class="tile-info">
+                    <span class="name">{{ app.name }}</span>
+                    <span class="meta" *ngIf="app.is_installed">
+                        <span class="status-dot active"></span> Instalado
+                    </span>
+                    <span class="meta" *ngIf="!app.is_installed">
+                        <span class="status-dot"></span> Disponible
+                    </span>
+                </div>
+            </div>
+
+            <!-- Intelligent Overlay Layer (Slide Up) -->
+            <div class="tile-overlay">
+                <button class="btn-smart" (click)="openEditModal(app)">
+                    <i class="fas fa-pencil-alt"></i> Editar
+                </button>
+                
+                <div class="btn-smart-secondary">
+                    <div class="icon-smart delete" (click)="initiateDelete(app)" title="Eliminar Aplicación">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar -->
+<div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-card wide-modal">
+        <h3 class="modal-title">{{ isEditing ? 'Editar Aplicación' : 'Nueva Aplicación' }}</h3>
+        
+        <div class="modal-body">
+            <!-- Row 1: ID & Name -->
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label>ID Único</label>
+                    <div class="icon-input-group">
+                        <i class="fas fa-fingerprint input-icon"></i>
+                        <input type="text" [(ngModel)]="currentApp.app_id" [disabled]="isEditing" placeholder="ej: my-app" class="input-modern with-icon">
+                    </div>
+                </div>
+                <div class="form-group half-width">
+                    <label>Nombre</label>
+                    <div class="icon-input-group">
+                        <i class="fas fa-tag input-icon"></i>
+                        <input type="text" [(ngModel)]="currentApp.name" placeholder="Ej: Gestión Doc." class="input-modern with-icon">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Icon & Repo -->
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label>Icono (FontAwesome)</label>
+                    <div class="icon-input-group">
+                        <div class="icon-preview"><i [class]="currentApp.icon"></i></div>
+                        <input type="text" [(ngModel)]="currentApp.icon" placeholder="fas fa-cube" class="input-modern">
+                    </div>
+                </div>
+                <div class="form-group half-width">
+                    <label>Repositorio Git</label>
+                    <div class="icon-input-group">
+                        <i class="fab fa-git-alt input-icon"></i>
+                        <input type="text" [(ngModel)]="currentApp.repo" placeholder="https://github.com/usuario/repo.git" class="input-modern with-icon">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Description -->
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea [(ngModel)]="currentApp.description" placeholder="Breve descripción de la aplicación..." class="input-modern"></textarea>
+            </div>
+
+            <!-- Row 4: External URL -->
+             <div class="form-group">
+                <label>URL Externa (Web/Localhost)</label>
+                <div class="icon-input-group">
+                    <i class="fas fa-link input-icon"></i>
+                    <input type="text" [(ngModel)]="currentApp.external_url" placeholder="http://localhost:4200" class="input-modern with-icon">
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="form-divider">
+                <span>Configuración de Autenticación (Opcional)</span>
+            </div>
+
+            <!-- Row 5: Auth Fields -->
+            <div class="form-row">
+                <div class="form-group third-width">
+                    <label>Usuario</label>
+                    <div class="icon-input-group">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" [(ngModel)]="currentApp.username" placeholder="admin" class="input-modern with-icon">
+                    </div>
+                </div>
+                <div class="form-group third-width">
+                    <label>Contraseña</label>
+                    <div class="icon-input-group">
+                        <i class="fas fa-key input-icon"></i>
+                        <input type="password" [(ngModel)]="currentApp.password" placeholder="••••••" class="input-modern with-icon">
+                    </div>
+                </div>
+                <div class="form-group third-width">
+                    <label>Token / API Key</label>
+                    <div class="icon-input-group">
+                        <i class="fas fa-shield-alt input-icon"></i>
+                        <input type="text" [(ngModel)]="currentApp.token" placeholder="Bearer..." class="input-modern with-icon">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Divider -->
+             <div class="form-divider">
+                <span>Opciones de Estado</span>
+            </div>
+
+            <!-- Row 6: Switches -->
+            <div class="form-row switches-row">
+                 <div class="switch-group">
+                    <label class="switch">
+                        <input type="checkbox" [(ngModel)]="currentApp.is_favorite">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Favorito</span>
+                 </div>
+
+                 <div class="switch-group">
+                    <label class="switch">
+                        <input type="checkbox" [(ngModel)]="currentApp.is_installed">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Instalada (Activa)</span>
+                 </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-modal-confirm" (click)="closeModal()">Cancelar</button>
+                <button class="btn-modal-acept" (click)="saveApp()">{{ isEditing ? 'Guardar Cambios' : 'Crear Aplicación' }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmación Eliminar -->
+<div class="modal-overlay" *ngIf="showDeleteModal">
+    <div class="modal-card">
+        <h3 class="modal-title">Desinstalar Aplicación</h3>
+        <div class="modal-body">
+            <p class="modal-message">
+                ¿Estás seguro de quitar <strong>{{ appToDelete?.name }}</strong>? 
+                <br>Esta acción desactivará el registro de la base de datos y eliminara los temporales del sistema.
+            </p>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" (click)="cancelDelete()">Cancelar</button>
+                <button class="btn-modal-confirm btn-modal-delete" (click)="confirmDelete()">Quitar</button>
+            </div>
+        </div>
+    </div>
+</div>

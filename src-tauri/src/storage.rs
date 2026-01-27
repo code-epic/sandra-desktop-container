@@ -90,6 +90,52 @@ pub fn initialize_db(app: &AppHandle) -> Result<Connection, String> {
     )
     .map_err(|e| e.to_string())?;
 
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS desktop_apps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            app_id TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            icon TEXT,
+            repo TEXT,
+            external_url TEXT,
+            is_installed BOOLEAN DEFAULT 0,
+            is_favorite BOOLEAN DEFAULT 0,
+            description TEXT,
+            username TEXT,
+            password TEXT,
+            token TEXT
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Migración silenciosa: Nuevos campos para desktop_apps (Descripcion, Auth)
+    let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN description TEXT", []);
+    let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN username TEXT", []);
+    let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN password TEXT", []);
+    let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN token TEXT", []);
+
+    // Seed Data (if empty)
+    let count: i32 = conn
+        .query_row("SELECT COUNT(*) FROM desktop_apps", [], |row| row.get(0))
+        .unwrap_or(0);
+
+    if count == 0 {
+        conn.execute_batch("
+            INSERT INTO desktop_apps (app_id, name, icon, repo, is_installed) VALUES 
+                ('gdoc', 'Gestión Doc.', 'fas fa-folder-open', 'https://github.com/code-epic/gdoc', 1),
+                ('bdv', 'Sicoex', 'fas fa-user-plus', 'https://github.com/code-epic/gdoc.proceedings', 1),
+                ('nomina-app', 'Nómina', 'fas fa-file-invoice-dollar', '', 0);
+
+            INSERT INTO desktop_apps (app_id, name, icon, external_url, is_installed) VALUES
+                ('google', 'Google', 'fas fa-globe', 'https://google.co.ve', 1),
+                ('wikipedia', 'WikiPedia', 'fas fa-laptop-code', 'https://wikipedia.org', 1),
+                ('web-panel', 'Panel de Control', 'fas fa-cogs', 'http://localhost:4201', 1),
+                ('cmpdivisas', 'Divisas', 'fas fa-file', 'http://localhost:4200/cmpdivisas', 1),
+                ('gdoc-local', 'GDoc. Localhost', 'fas fa-folder-open', 'http://localhost:4300', 1);
+        ").map_err(|e| e.to_string())?;
+    }
+
     Ok(conn)
 }
 

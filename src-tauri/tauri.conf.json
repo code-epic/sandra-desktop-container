@@ -10,11 +10,27 @@
     "frontendDist": "../dist/sandra-desktop-container/browser"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Sandra Desktop Container",
-        "width": 1024,
-        "height": 768
+        "label": "main",
+        "width": 1440,
+        "height": 900,
+        "maximized": true,
+        "visible": false,
+        "minWidth": 1024,
+        "minHeight": 768
+      },
+      {
+        "width": 750,
+        "height": 550,
+        "decorations": false,
+        "url": "/assets/splash.html",
+        "label": "splashscreen",
+        "center": true,
+        "transparent": true,
+        "alwaysOnTop": true
       }
     ],
     "security": {
@@ -23,13 +39,22 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macos": {
+        "dmg": {
+            "background": null,
+            "windowSize": {
+                "width": 600,
+                "height": 400
+            }
+        }
+    }
   }
 }

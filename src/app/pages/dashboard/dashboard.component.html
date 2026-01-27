@@ -68,7 +68,7 @@
                     <i [class]="app.icon"></i>
                 </div>
                 <div class="tile-info">
-                    <span class="name">{{ app.name }}</span>
+                    <span class="name">{{ app.name }} </span>
                     <span class="meta" *ngIf="app.installed">
                         <span class="status-dot active"></span> Instalado
                     </span>
@@ -90,8 +90,8 @@
                     <div class="icon-smart" (click)="onUpdate.emit(app); $event.stopPropagation()" title="Buscar Actualizaciones">
                         <i class="fas fa-sync-alt"></i>
                     </div>
-                    <div class="icon-smart delete" (click)="onDelete.emit(app); $event.stopPropagation()" title="Gestionar / Eliminar">
-                        <i class="fas fa-trash-alt"></i>
+                    <div class="icon-smart delete" (click)="onDelete.emit(app); $event.stopPropagation()" title="Desactivar / Quitar">
+                        <i class="fas fa-folder-minus"></i>
                     </div>
                 </div>
             </div>

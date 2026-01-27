@@ -10,7 +10,7 @@
         </button>
         <!-- Refresh Button (Only active for active iframes) -->
         <button class="icon-btn toggle-btn" 
-                *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor' && (activeTabId$ | async) !== 'security'" 
+                *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor'  && (activeTabId$ | async) !== 'apps' && (activeTabId$ | async) !== 'security'" 
                 (click)="reloadActiveIframe()" 
                 title="Actualizar Aplicación">
            <i class="fas fa-redo-alt"></i>
@@ -64,6 +64,7 @@
       <app-connections *ngIf="(activeTabId$ | async) === 'connections'"></app-connections>
       <app-security *ngIf="(activeTabId$ | async) === 'security'"></app-security>
       <app-monitor *ngIf="(activeTabId$ | async) === 'monitor'"></app-monitor>
+      <app-desktop-apps *ngIf="(activeTabId$ | async) === 'apps'"></app-desktop-apps>
 
       <!-- Iframe Container para Apps -->
       <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)" [hidden]="(activeTabId$ | async) !== tab.id">
@@ -72,7 +73,7 @@
     </section>
   </main>
 
-  <app-inspector *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor' && (activeTabId$ | async) !== 'security'"></app-inspector>
+  <app-inspector *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor' && (activeTabId$ | async) !== 'apps'  && (activeTabId$ | async) !== 'security'"></app-inspector>
 
   <div class="modal-overlay" *ngIf="installModal.show">
     <div class="modal-card">
@@ -136,4 +137,6 @@
     (onDisconnect)="disconnectConnection($event)"
     (close)="showControlPanel = false">
   </app-config>
+
+  <app-chat [wsStatus]="wsStatus"></app-chat>
 </div>

@@ -1,0 +1,91 @@
+<!-- Floating Action Button -->
+<div class="chat-fab-container">
+    <button class="chat-fab" (click)="toggleChat()">
+        <div class="fab-content">
+            <!-- Logo when closed, Chevron when open -->
+             <img src="assets/sandra.png" alt="Sandra" class="sandra-icon-img" *ngIf="!isOpen">
+             <i class="fas fa-chevron-down" *ngIf="isOpen" style="font-size: 1.2em;"></i>
+        </div>
+        <div class="status-indicator" [class.online]="wsStatus === 'Conectado'"></div>
+    </button>
+</div>
+
+<!-- Chat Window -->
+<div class="chat-window-container" [class.open]="isOpen">
+    
+    <!-- Header -->
+    <div class="chat-header">
+        <div class="header-info">
+            <div class="avatar-circle">
+                <img src="assets/sandra.png" alt="Sandra" class="avatar-img">
+                <div class="status-dot" [class.online]="wsStatus === 'Conectado'"></div>
+            </div>
+            <div class="header-text">
+                <h3>Sandra AI</h3>
+                <span class="status-text">{{ wsStatus }}</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" (click)="toggleChat()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Body / Messages -->
+    <div class="chat-body" #scrollContainer>
+        
+        <!-- Loading Initial State -->
+        <div class="loading-state" *ngIf="isLoading">
+            <div class="spinner-circle"></div>
+            <p>Conectando con el Núcleo...</p>
+        </div>
+
+        <!-- Disconnected Overlay -->
+        <div class="disconnected-overlay" *ngIf="wsStatus === 'Desconectado' && !isLoading">
+            <div class="overlay-content">
+                <i class="fas fa-wifi-slash"></i>
+                <p>Sin conexión al servidor</p>
+                <small>Las funciones remotas no están disponibles.</small>
+            </div>
+        </div>
+
+        <!-- Messages List -->
+        <div class="messages-list" *ngIf="!isLoading">
+            <div class="message-row" *ngFor="let msg of messages" [class.user-row]="msg.sender === 'user'">
+                <div class="message-bubble" [class.user-bubble]="msg.sender === 'user'" [class.ai-bubble]="msg.sender === 'sandra'">
+                    <span [innerHTML]="msg.text"></span>
+                    <span class="typing-cursor" *ngIf="msg.isTyping">|</span>
+                </div>
+                <div class="message-time">{{ msg.timestamp | date:'shortTime' }}</div>
+            </div>
+
+            <!-- Global Typing Indicator (Thinking) -->
+            <div class="message-row" *ngIf="isTyping">
+                <div class="message-bubble ai-bubble typing-bubble">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer / Input -->
+    <div class="chat-footer">
+        <div class="input-wrapper">
+            <button class="btn-attach" (click)="attachFile()" title="Adjuntar Archivo">
+                <i class="fas fa-paperclip"></i>
+            </button>
+            <input type="text" 
+                   [(ngModel)]="newMessage" 
+                   (keydown.enter)="sendMessage()"
+                   placeholder="Escribe un comando o mensaje..." 
+                   [disabled]="wsStatus === 'Desconectado' || isLoading">
+            <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim() || wsStatus === 'Desconectado'">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+</div>

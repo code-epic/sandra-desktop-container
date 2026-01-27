@@ -17,6 +17,9 @@
             (click)="setActive('connections')">
             <i class="fas fa-network-wired"></i> <span>Conexiones</span>
         </div>
+        <div class="nav-item" [class.active]="(activeTab$ | async) === 'apps'" (click)="setActive('apps')">
+            <i class="fas fa-globe"></i> <span>Aplicaciones</span>
+        </div>
         <div class="nav-item" [class.active]="(activeTab$ | async) === 'security'" (click)="setActive('security')">
             <i class="fas fa-shield-alt"></i> <span>Seguridad</span>
         </div>

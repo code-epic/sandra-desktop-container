@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "bundle:dmg": "./scripts/build-dmg.sh",
+    "build:release": "npm run tauri build && npm run bundle:dmg"
   },
   "private": true,
   "dependencies": {
