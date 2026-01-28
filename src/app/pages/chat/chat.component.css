@@ -15,7 +15,7 @@
     height: 60px;
     border-radius: 50%;
     /* Gradient Green from Splash/Styles */
-    background: linear-gradient(135deg, #66BB6A 0%, #43A047 100%);
+    background: linear-gradient(135deg, #c4e5c6 0%, #a6c2a8 100%);
     border: 3px solid #ffffff;
     box-shadow: 0 4px 20px rgba(102, 187, 106, 0.4);
     cursor: pointer;
@@ -53,7 +53,7 @@
     right: 2px;
     width: 14px;
     height: 14px;
-    background: #EF5350; /* Offline Red */
+    background: #ca908f; /* Offline Red */
     border: 2px solid #ffffff;
     border-radius: 50%;
     transition: background 0.3s;

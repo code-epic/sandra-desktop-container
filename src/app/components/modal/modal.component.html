@@ -1,0 +1,67 @@
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal-card" [style.width]="width">
+    
+    <!-- Title Section -->
+    <div class="modal-header" style="position: relative;">
+      <h3 class="modal-title" *ngIf="title">{{ title }}</h3>
+      <button *ngIf="showCloseButton" class="btn-close-modal" style="position: absolute; right: 0; top: -10px;" (click)="onCancel()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      
+      <!-- Loading State Override -->
+      <div *ngIf="isLoading || type === 'loading'" class="loading-state fade-in" style="text-align: center; padding: 20px 0;">
+        <div class="modal-icon spin primary" style="font-size: 3em; color: var(--accent-purple); margin-bottom: 15px;">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </div>
+        <p class="modal-message" style="color: #455A64; font-weight: 500;">{{ loadingText }}</p>
+        <div class="progress-track" style="margin-top: 20px; height: 6px; background: #F0F4F8; border-radius: 3px; overflow: hidden; position: relative;">
+            <div class="progress-bar-indeterminate" style="background: var(--accent-blue); height: 100%; width: 40%; position: absolute; border-radius: 3px; animation: shimmer 1.5s infinite ease-in-out;"></div>
+        </div>
+      </div>
+
+      <!-- Standard Content (If not loading) -->
+      <div *ngIf="!isLoading && type !== 'loading'" class="fade-in">
+        
+        <!-- Auto Icon -->
+        <div *ngIf="showIcon && type !== 'custom' && type !== 'info'" [class]="'modal-icon ' + iconColorClass" style="text-align: center; font-size: 3em; margin-bottom: 15px;">
+           <i [class]="iconClass"></i>
+        </div>
+
+        <!-- Auto Icon for Info (Primary Color) -->
+        <div *ngIf="showIcon && type === 'info'" class="modal-icon primary" style="text-align: center; font-size: 3em; margin-bottom: 15px; color: var(--accent-purple);">
+            <i class="fas fa-info-circle"></i>
+         </div>
+
+        <!-- Message Text -->
+        <p *ngIf="message" class="modal-message" style="text-align: center; color: #546E7A; margin-bottom: 20px; line-height: 1.5;">
+          {{ message }}
+        </p>
+
+        <!-- Custom Content Projection -->
+        <ng-content></ng-content>
+
+        <!-- Default Actions Footer -->
+        <div class="modal-actions">
+          <ng-content select="[footer]"></ng-content>
+          
+          <button *ngIf="showCancel" class="btn-modal-cancel" (click)="onCancel()">{{ cancelText }}</button>
+          <button *ngIf="showConfirm" [class]="confirmButtonClass" (click)="onConfirm()">{{ confirmText }}</button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+/* Local overrides or specific styles for the component if needed */
+/* Most styles are inherited from styles.css globally */
+@keyframes shimmer {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+</style>

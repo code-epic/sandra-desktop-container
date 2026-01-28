@@ -61,3 +61,29 @@ pub fn export_database(
 
     Ok("Base de datos exportada correctamente".into())
 }
+
+#[tauri::command]
+pub fn reset_database(state: tauri::State<'_, crate::storage::DbState>) -> Result<String, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+
+    // 1. Eliminar todas las tablas
+    conn.execute_batch(
+        "
+        DROP TABLE IF EXISTS connections;
+        DROP TABLE IF EXISTS desktop_apps;
+        DROP TABLE IF EXISTS app_logs;
+        DROP TABLE IF EXISTS system_events;
+        DROP TABLE IF EXISTS config;
+        DROP TABLE IF EXISTS desktop_apps;
+    ",
+    )
+    .map_err(|e| e.to_string())?;
+
+    // 2. Reconstruir esquema
+    crate::storage::init_tables(&conn)?;
+
+    // 3. Re-sembrar datos por defecto
+    crate::storage::seed_db(&conn)?;
+
+    Ok("Base de datos reiniciada correctamente".into())
+}

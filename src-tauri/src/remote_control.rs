@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::process::Command;
 use tauri::{AppHandle, Emitter};
-use tokio_tungstenite::tungstenite::Utf8Bytes;
+
 use tokio_tungstenite::{connect_async_tls_with_config, tungstenite::protocol::Message, Connector};
 
 use crate::storage::DbState;

@@ -8,10 +8,6 @@ use tauri::{AppHandle, Manager};
 use url::Url;
 
 // Extensiones que SIEMPRE deben servirse desde el sistema de archivos local
-const STATIC_EXTENSIONS: &[&str] = &[
-    "html", "htm", "js", "css", "png", "jpg", "jpeg", "svg", "gif", "ico", "woff", "woff2", "ttf",
-    "eot", "map", "json",
-];
 
 // Global Context for "Sticky" External Sessions (Solves missing Referer in iframes)
 use std::sync::Mutex;
@@ -96,15 +92,6 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
         }
     }
 
-    // 2. Discriminación de Tráfico Estático Local
-    if is_static_resource(path) {
-        return serve_local_file(app_handle, path);
-    }
-
-    // ... rest of filtering ...
-
-    // 3. Fallback General: Si no hay referer y no es fichero estático local...
-
     // A) Intentar Contexto Externo (Sticky Session)
     // Si el usuario navegó antes a Google, asumimos que sigue ahí para peticiones dinámicas (ej: /search, /complete/search)
     if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
@@ -125,56 +112,39 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
         }
     }
 
-    // B) Si NO hay contexto externo, intentamos usar el Proxy Remoto a la conexión activa (tunneling)
-    if let Some(active_conn) = get_active_connection(app_handle) {
-        match proxy_to_remote(active_conn, request) {
-            Ok(response) => return response,
-            Err(e) => {
-                println!("❌ Error en Proxy Remoto: {}", e);
-                return create_response(
-                    502,
-                    "text/plain",
-                    format!("Bad Gateway: {}", e).into_bytes(),
-                );
+    // 2. API PROXY (Only /v1/)
+    // Todo lo que empiece por /v1/ es tráfico de Backend -> Proxy Remoto (si hay conexión)
+    if path.starts_with("/v1/") {
+        if let Some(active_conn) = get_active_connection(app_handle) {
+            match proxy_to_remote(active_conn, request) {
+                Ok(response) => return response,
+                Err(e) => {
+                    println!("❌ Error en Proxy Remoto: {}", e);
+                    return create_error_response(
+                        502,
+                        format!("Proxy Error (Remote Unreachable): {}", e).as_str(),
+                    );
+                }
             }
         }
     }
 
-    // 3. Fallback: Si no es estático pero no hay conexión activa,
-    // intentamos servir localmente (por ejemplo, rutas de navegación SPA que no tienen extensión)
-    // o devolvemos 404 si realmente se esperaba una API.
+    // 3. TODO LO DEMÁS -> LOCAL (UI, Assets, Scripts)
+    // Cualquier cosa que no sea /v1/ se asume parte del Frontend Local.
     serve_local_file(app_handle, path)
-}
-
-fn is_static_resource(path: &str) -> bool {
-    // Si termina en slash, es una navegación a un directorio (index.html), por ende estático local.
-    if path.ends_with('/') {
-        return true;
-    }
-
-    if let Some(ext) = std::path::Path::new(path)
-        .extension()
-        .and_then(|s| s.to_str())
-    {
-        STATIC_EXTENSIONS.contains(&ext.to_lowercase().as_str())
-    } else {
-        // Si no tiene extensión, asumimos que es dinámico (API) o ruta SPA.
-        // Pero para efectos del Proxy Selectivo solicitado:
-        // "Si es petición de datos... redirigirla". Las APIs suelen no tener extensión.
-        false
-    }
 }
 
 fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
     let state = app_handle.state::<DbState>();
     let conn_guard = state.0.lock().ok()?; // Handle lock error gracefully
 
-    conn_guard.query_row(
+    let result = conn_guard.query_row(
         "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected FROM connections WHERE is_connected = 1",
         [],
         |row| {
              let is_connected_val: Option<i32> = row.get(9).ok();
              let is_connected = matches!(is_connected_val, Some(1));
+             // println!("DB Check: {} (is_connected: {})", row.get::<_, String>(1).unwrap_or_default(), is_connected);
              Ok(Connection {
                 id: Some(row.get(0)?),
                 name: row.get(1)?,
@@ -188,7 +158,18 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
                 is_connected: Some(is_connected),
             })
         }
-    ).optional().unwrap_or(None)
+    ).optional().unwrap_or(None);
+
+    if let Some(ref conn) = result {
+        println!(
+            "✅ [Proxy] Active Connection Found: {} ({}:{})",
+            conn.name, conn.ip_address, conn.port
+        );
+    } else {
+        println!("🚫 [Proxy] No Active Connection found in DB.");
+    }
+
+    result
 }
 
 fn serve_local_file(app_handle: &AppHandle, path: &str) -> Response<Vec<u8>> {
@@ -234,18 +215,44 @@ fn serve_local_file(app_handle: &AppHandle, path: &str) -> Response<Vec<u8>> {
     if !file_path.exists() {
         // println!("⚠️ [Local] File NOT found: {:?}", file_path);
 
-        // FALLBACK INTELIGENTE: Si no encontramos el archivo localmente,
-        // y tenemos un contexto externo activo (porque el Referer falló o se perdió),
-        // intentamos resolver contra ese sitio externo.
+        // FALLBACK SPA: Si el archivo no existe, pero parece ser una ruta de navegación (sin extensión),
+        // intentamos servir el index.html de la aplicación correspondiente.
+        if std::path::Path::new(path).extension().is_none() {
+            let clean_path = path.trim_start_matches('/');
+            let parts: Vec<&str> = clean_path.splitn(2, '/').collect();
+            if !parts.is_empty() {
+                let app_id = parts[0];
+                // Intentamos buscar apps/<app_id>/dist/index.html
+                let index_path = app_dir
+                    .join("apps")
+                    .join(app_id)
+                    .join("dist")
+                    .join("index.html");
+
+                if index_path.exists() {
+                    // println!("🔄 [SPA Fallback] Serving index.html for route: {}", path);
+                    match fs::read(&index_path) {
+                        Ok(content) => {
+                            return Response::builder()
+                                .header(CONTENT_TYPE, "text/html")
+                                .header("Access-Control-Allow-Origin", "*")
+                                .body(content)
+                                .unwrap_or_else(|_| {
+                                    create_error_response(500, "Error building response")
+                                });
+                        }
+                        Err(_) => {} // Fall through to 404
+                    }
+                }
+            }
+        }
+
+        // FALLBACK INTELIGENTE ANTIGUO (Opcional mantener si se usa external-proxy)
         if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
             if let Some(target_url) = &*guard {
                 if let Ok(base_url) = Url::parse(target_url) {
                     if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
                         let full_url_str = full_url.to_string();
-                        // println!(
-                        //     "🚀 [Context Fallback] Proxying missing local file -> {}",
-                        //     full_url_str
-                        // );
                         if let Ok(resp) = proxy_arbitrary_url(&full_url_str) {
                             return resp;
                         }
@@ -297,10 +304,15 @@ fn proxy_to_remote(
     let remote_ip = conn.ip_address;
     let remote_port = conn.port;
     let path = request.uri().path();
+    let query = request.uri().query();
 
-    // Construir URL remota
-    let remote_url = format!("https://{}:{}{}", remote_ip, remote_port, path);
-    // println!("🚀 [Proxy] Forwarding to: {}", remote_url);
+    // Construir URL remota preservando query params
+    let remote_url = if let Some(q) = query {
+        format!("https://{}:{}{}?{}", remote_ip, remote_port, path, q)
+    } else {
+        format!("https://{}:{}{}", remote_ip, remote_port, path)
+    };
+    println!("🚀 [Proxy] Forwarding to: {}", remote_url);
 
     let method = request.method().clone();
 

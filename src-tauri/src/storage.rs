@@ -25,6 +25,16 @@ pub fn initialize_db(app: &AppHandle) -> Result<Connection, String> {
     )
     .map_err(|e| e.to_string())?;
 
+    // 3. Crear Tablas
+    init_tables(&conn)?;
+
+    // 4. Seed Data
+    seed_db(&conn)?;
+
+    Ok(conn)
+}
+
+pub fn init_tables(conn: &Connection) -> Result<(), String> {
     // 3. Crear Tablas de Auditoría e Infraestructura
     conn.execute(
         "CREATE TABLE IF NOT EXISTS system_events (
@@ -61,21 +71,7 @@ pub fn initialize_db(app: &AppHandle) -> Result<Connection, String> {
     )
     .map_err(|e| e.to_string())?;
 
-    // Migración silenciosa: Intentar añadir columna details si no existe
-    let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN details TEXT", []);
-    // Migración silenciosa: Añadir columna source si no existe
-    let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN source TEXT", []);
-
-    // Migración silenciosa: Añadir soporte para WSS Custom
-    let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_host TEXT", []);
-    let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_port INTEGER", []);
-
-    // Migración silenciosa: Estado de conexión activo
-    let _ = conn.execute(
-        "ALTER TABLE connections ADD COLUMN is_connected BOOLEAN DEFAULT 0",
-        [],
-    );
-
+    // 3a. Crear Connections SI NO EXISTE (Con schema actualizado)
     conn.execute(
         "CREATE TABLE IF NOT EXISTS connections (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,11 +80,29 @@ pub fn initialize_db(app: &AppHandle) -> Result<Connection, String> {
             port INTEGER NOT NULL,
             username TEXT,
             password TEXT,
+            wss_host TEXT,
+            wss_port INTEGER,
+            is_connected BOOLEAN DEFAULT 0,
             last_connected DATETIME
         )",
         [],
     )
     .map_err(|e| e.to_string())?;
+
+    // Migración silenciosa: Intentar añadir columna details si no existe
+    let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN details TEXT", []);
+    // Migración silenciosa: Añadir columna source si no existe
+    let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN source TEXT", []);
+
+    // Migración silenciosa: Añadir soporte para WSS Custom (Para DBs antiguas)
+    let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_host TEXT", []);
+    let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_port INTEGER", []);
+
+    // Migración silenciosa: Estado de conexión activo (Para DBs antiguas)
+    let _ = conn.execute(
+        "ALTER TABLE connections ADD COLUMN is_connected BOOLEAN DEFAULT 0",
+        [],
+    );
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS desktop_apps (
@@ -115,6 +129,10 @@ pub fn initialize_db(app: &AppHandle) -> Result<Connection, String> {
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN password TEXT", []);
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN token TEXT", []);
 
+    Ok(())
+}
+
+pub fn seed_db(conn: &Connection) -> Result<(), String> {
     // Seed Data (if empty)
     let count: i32 = conn
         .query_row("SELECT COUNT(*) FROM desktop_apps", [], |row| row.get(0))
@@ -122,21 +140,11 @@ pub fn initialize_db(app: &AppHandle) -> Result<Connection, String> {
 
     if count == 0 {
         conn.execute_batch("
-            INSERT INTO desktop_apps (app_id, name, icon, repo, is_installed) VALUES 
-                ('gdoc', 'Gestión Doc.', 'fas fa-folder-open', 'https://github.com/code-epic/gdoc', 1),
-                ('bdv', 'Sicoex', 'fas fa-user-plus', 'https://github.com/code-epic/gdoc.proceedings', 1),
-                ('nomina-app', 'Nómina', 'fas fa-file-invoice-dollar', '', 0);
-
             INSERT INTO desktop_apps (app_id, name, icon, external_url, is_installed) VALUES
-                ('google', 'Google', 'fas fa-globe', 'https://google.co.ve', 1),
-                ('wikipedia', 'WikiPedia', 'fas fa-laptop-code', 'https://wikipedia.org', 1),
-                ('web-panel', 'Panel de Control', 'fas fa-cogs', 'http://localhost:4201', 1),
-                ('cmpdivisas', 'Divisas', 'fas fa-file', 'http://localhost:4200/cmpdivisas', 1),
-                ('gdoc-local', 'GDoc. Localhost', 'fas fa-folder-open', 'http://localhost:4300', 1);
+                ('sandra-consola', 'Consola Sandra', 'fas fa-laptop-code', 'https://code-epic.com/consola/', 1);
         ").map_err(|e| e.to_string())?;
     }
-
-    Ok(conn)
+    Ok(())
 }
 
 pub fn recreate_app_logs_table(conn: &rusqlite::Connection) -> Result<(), String> {

@@ -29,6 +29,7 @@ pub fn run() {
             commands::system::get_network_info,
             commands::system::remote_reboot,
             commands::system::export_database,
+            commands::system::reset_database,
             commands::apps::download_app_repo,
             commands::apps::open_app_window,
             commands::apps::update_app_repo,

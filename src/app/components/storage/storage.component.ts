@@ -1,5 +1,6 @@
 import { Component, EventEmitter, OnInit, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { ModalComponent } from "../modal/modal.component";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 
@@ -17,7 +18,7 @@ export interface ColumnInfo {
 @Component({
   selector: "app-storage",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ModalComponent],
   templateUrl: "./storage.component.html",
   styleUrl: "./storage.component.css",
 })
@@ -68,9 +69,12 @@ export class StorageComponent implements OnInit {
   async dropDB() {
     this.isDroppingDB = true;
     try {
-      await invoke("clear_app_logs", { appId: null });
-      await this.loadDbStats();
-      setTimeout(() => {
+      // Ahora llamamos al comando real de reseteo completo
+      await invoke("reset_database");
+
+      // Esperamos un poco para que se note la acción
+      setTimeout(async () => {
+        await this.loadDbStats(); // Recargar stats (debería estar casi vacío pero con la data default)
         this.isDroppingDB = false;
         this.showDropConfirmModal = false;
         this.closeModal();
@@ -81,8 +85,32 @@ export class StorageComponent implements OnInit {
     }
   }
 
-  async exportDB() {
+  showExportConfirmModal = false;
+  exportStep: "confirm" | "loading" | "ready" = "confirm";
+
+  requestExportDB() {
+    this.showExportConfirmModal = true;
+    this.exportStep = "confirm";
+  }
+
+  cancelExportDB() {
+    this.showExportConfirmModal = false;
+    this.exportStep = "confirm";
+  }
+
+  generateBackup() {
+    this.exportStep = "loading";
+
+    // Simulamos el proceso de "Generación" del backup
+    setTimeout(() => {
+      this.exportStep = "ready";
+    }, 2000);
+  }
+
+  async downloadBackup() {
+    console.log("Iniciando descarga de backup...");
     try {
+      console.log("Abriendo diálogo de guardado...");
       const filePath = await save({
         defaultPath: "sdc_backup.db",
         filters: [
@@ -92,13 +120,19 @@ export class StorageComponent implements OnInit {
           },
         ],
       });
+      console.log("Resultado del diálogo:", filePath);
 
       if (filePath) {
+        console.log("Guardando en:", filePath);
         await invoke("export_database", { targetPath: filePath });
-        alert("Base de datos exportada exitosamente.");
+        console.log("Exportación completada en backend");
+        alert("Archivo guardado exitosamente.");
+        this.closeModal();
+      } else {
+        console.log("Diálogo cancelado por el usuario");
       }
     } catch (error) {
-      console.error("Error extporting DB:", error);
+      console.error("Error exporting DB (Catch):", error);
       alert("Error al exportar la base de datos: " + error);
     }
   }

@@ -154,7 +154,7 @@
 
 .apps-canvas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); /* Más compactas y angostas */
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Más compactas y angostas */
   gap: 16px; /* Gap reducido */
 }
 

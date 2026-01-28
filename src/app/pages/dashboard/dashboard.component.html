@@ -71,6 +71,7 @@
                 
             </div>
 
+            
             <!-- Intelligent Overlay Layer (Slide Up) -->
             <div class="tile-overlay" *ngIf="app.installed">
                 <button class="btn-smart" (click)="onOpen.emit(app); $event.stopPropagation()">
@@ -78,7 +79,7 @@
                 </button>
                 
                 <div class="btn-smart-secondary">
-                    <div class="icon-smart" (click)="onUpdate.emit(app); $event.stopPropagation()" title="Buscar Actualizaciones">
+                    <div   *ngIf="app.externalUrl == ''" class="icon-smart" (click)="onUpdate.emit(app); $event.stopPropagation()" title="Buscar Actualizaciones">
                         <i class="fas fa-sync-alt"></i>
                     </div>
                     <div class="icon-smart delete" (click)="onDelete.emit(app); $event.stopPropagation()" title="Desactivar / Quitar">

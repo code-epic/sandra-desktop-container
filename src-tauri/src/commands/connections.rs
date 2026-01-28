@@ -198,10 +198,19 @@ pub async fn connect_to_server(
     // Reset all others
     let _ = conn.execute("UPDATE connections SET is_connected = 0", []);
     if let Some(id) = conn_data.id {
-        let _ = conn.execute(
+        println!(
+            "🔌 [DB] Marking connection ID={} as ACTIVE (is_connected=1)",
+            id
+        );
+        let res = conn.execute(
             "UPDATE connections SET is_connected = 1 WHERE id = ?1",
             [id],
         );
+        if let Err(e) = res {
+            println!("❌ [DB] Error updating is_connected: {}", e);
+        }
+    } else {
+        println!("❌ [DB] Cannot mark active: conn_data.id is NONE");
     }
 
     // Capture ID for the background thread

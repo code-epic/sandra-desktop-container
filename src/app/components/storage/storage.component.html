@@ -1,10 +1,13 @@
-<div class="modal-overlay">
-  <!-- DB Info Modal (View Mode) -->
-  <div class="modal-card" *ngIf="!showDropConfirmModal">
-    <h3 class="modal-title">Estructura de Datos</h3>
-    <div class="modal-body" style="text-align: left;">
-      <p class="modal-message" style="text-align: center;">Tablas activas en <strong>sdc_secure_core.db</strong></p>
-      
+<!-- DB Info Modal (View Mode) -->
+<app-modal 
+  *ngIf="!showDropConfirmModal && !showExportConfirmModal"
+  title="Estructura de Datos (sdc_secure_core.db)"
+  width="500px"
+  [showConfirm]="false"
+  [showIcon]="false"
+  [showCancel]="false">
+  
+  <div style="text-align: left;">
       <div class="db-tree-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
         <ul class="db-table-list" style="list-style: none; padding: 0;">
           <li *ngFor="let table of dbStats?.tables" style="margin-bottom: 5px;">
@@ -30,34 +33,67 @@
         </div>
       </div>
 
+      <!-- Custom Actions Footer injected into the modal -->
       <div class="modal-actions">
-        <button class="btn-modal-confirm" (click)="requestDropDB()">Eliminar BD</button>
-        <button class="btn-modal-primary" (click)="exportDB()">Exportar BD</button>
+        <button class="btn-modal-acept" (click)="requestDropDB()">Eliminar BD</button>
+        <button class="btn-modal-acept" (click)="requestExportDB()">Exportar BD</button>
         <button class="btn-modal-cancel" (click)="closeModal()">Cerrar</button>
       </div>
-    </div>
+  </div>
+</app-modal>
+
+<!-- Drop Confirmation Modal -->
+<app-modal
+  *ngIf="showDropConfirmModal"
+  title="Eliminar Base de Datos"
+  type="error"
+  [isLoading]="isDroppingDB"
+  loadingText="Reiniciando Base de Datos..."
+  message="¿Estás seguro de que deseas eliminar toda la base de datos? Esta acción no se puede deshacer."
+  confirmText="Eliminar"
+  confirmStyle="danger"
+  (confirm)="dropDB()"
+  (cancel)="cancelDropDB()">
+</app-modal>
+
+<!-- Export Confirmation Modal -->
+<app-modal
+  *ngIf="showExportConfirmModal"
+  title="Exportar Base de Datos"
+  [type]="exportStep === 'loading' ? 'loading' : (exportStep === 'ready' ? 'success' : 'info')"
+  [isLoading]="exportStep === 'loading'"
+  loadingText="Generando archivo de respaldo..."
+  [showConfirm]="false"
+  [showCancel]="false"
+  (cancel)="cancelExportDB()">
+  
+  <!-- Custom Body Content for specific steps -->
+  <div *ngIf="exportStep === 'confirm'">
+     <p class="modal-message" style="text-align: center;">¿Deseas iniciar la generación del respaldo de la base de datos?</p>
   </div>
 
-  <!-- Drop Confirmation Modal -->
-  <div class="modal-card" *ngIf="showDropConfirmModal">
-      <h3 class="modal-title">Eliminar Base de Datos</h3>
-      
-      <div class="modal-body">
-        <div *ngIf="!isDroppingDB">
-          <div class="modal-icon error"><i class="fas fa-exclamation-triangle"></i></div>
-          <p class="modal-message">¿Estás seguro de que deseas eliminar toda la base de datos?<br><strong>Esta acción no se puede deshacer.</strong></p>
-          <div class="modal-actions">
-            <button class="btn-modal-cancel" (click)="cancelDropDB()">Cancelar</button>
-            <button class="btn-modal-confirm" (click)="dropDB()">Eliminar</button>
-          </div>
-        </div>
-
-        <div *ngIf="isDroppingDB">
-          <p class="modal-message">Eliminando base de datos...</p>
-          <div class="progress-track" style="margin-top: 20px;">
-            <div class="progress-bar-indeterminate"></div>
-          </div>
-        </div>
-      </div>
+  <div *ngIf="exportStep === 'ready'">
+      <p class="modal-message" style="text-align: center;">¡Respaldo generado correctamente!<br>Listo para descargar.</p>
   </div>
-</div>
+
+  <!-- Custom Footer for CONFIRM step -->
+  <div footer *ngIf="exportStep === 'confirm'" class="modal-actions-group">
+      <button class="btn-modal-cancel" (click)="cancelExportDB()">Cancelar</button>
+      &nbsp;  
+      <button class="btn-modal-acept" (click)="generateBackup()">
+        <i class="fas fa-play" style="margin-right: 6px; font-size: 0.9em;"></i> Iniciar
+      </button>
+  </div>
+   
+   <!-- Custom Footer for READY step -->
+   <div footer *ngIf="exportStep === 'ready'" class="modal-actions-group">
+      <button class="btn-modal-cancel" (click)="cancelExportDB()">Cerrar</button>
+      &nbsp;  
+      <button class="btn-modal-acept" (click)="downloadBackup()">
+        <i class="fas fa-download" style="margin-right: 8px;"></i> Descargar Archivo
+      </button>
+   </div>
+
+   <!-- Hidden Footer for LOADING step (optional, usually empty) -->
+</app-modal>
+
