@@ -17,6 +17,7 @@ pub fn run() {
             proxy_handler::handle_request(app_handle.app_handle(), &request)
         })
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
             let conn = storage::initialize_db(&app.handle()).expect("Error al inicializar SQLite");
             app.manage(DbState(Mutex::new(conn)));
@@ -27,6 +28,7 @@ pub fn run() {
             commands::monitor::get_system_telemetry,
             commands::system::get_network_info,
             commands::system::remote_reboot,
+            commands::system::export_database,
             commands::apps::download_app_repo,
             commands::apps::open_app_window,
             commands::apps::update_app_repo,
