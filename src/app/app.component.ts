@@ -11,7 +11,10 @@ import { SdcService } from "./core/services/sdc.service";
 import { LoggerService } from "./core/services/logger.service";
 import { SystemStats } from "./core/models/telemetry.model";
 import { AppStateService, Tab } from "./core/services/app-state.service";
+import { DownloadService } from "./core/services/download.service";
 import { Observable } from "rxjs";
+// import { PDFDocument, rgb, degrees } from 'pdf-lib'; // REMOVED: Now handled in DownloadService/ChildApp
+
 
 import { listen } from "@tauri-apps/api/event";
 import { SidebarComponent } from "./components/sidebar/sidebar.component";
@@ -127,10 +130,12 @@ export class AppComponent implements OnInit {
 
   isInspectorOpen = false;
 
+
   constructor(
     public appState: AppStateService,
-    private sdcService: SdcService, // Keep sdcService
-    private desktopAppsService: DesktopAppsService, // Inject new service
+    private sdcService: SdcService,
+    private desktopAppsService: DesktopAppsService,
+    private downloadService: DownloadService, // Inyección del nuevo servicio
     private logger: LoggerService,
     private zone: NgZone,
     private sanitizer: DomSanitizer,
@@ -636,157 +641,16 @@ export class AppComponent implements OnInit {
 
   async handleIframeDownload(fileName: string, dataUri: string) {
     try {
-      // Importación dinámica
-      const { writeFile } = await import('@tauri-apps/plugin-fs');
-      const { save } = await import('@tauri-apps/plugin-dialog');
+      console.log("📥 [Bridge -> DownloadService] Delegando descarga:", fileName);
+      const success = await this.downloadService.handleDownload(fileName, dataUri);
 
-      // 1. Abrir diálogo nativo "Guardar como..."
-      const filePath = await save({
-        defaultPath: fileName,
-        title: 'Guardar PDF',
-        filters: [{
-          name: 'Documentos PDF',
-          extensions: ['pdf']
-        }]
-      });
-
-      if (!filePath) {
-        console.log("Guardado cancelado por el usuario");
-        return;
+      if (success) {
+        console.log("✅ Descarga completada correctamente.");
+      } else {
+        console.warn("⚠️ Descarga cancelada o fallida.");
       }
-
-      // 2. Procesar base64 y aplicar Watermark (Frontend)
-      console.log("💧 [Watermark] Aplicando marca de agua dinámica...");
-      const { PDFDocument, rgb, degrees } = await import('pdf-lib');
-
-      const originalPdfBytes = Uint8Array.from(atob(dataUri.split(',')[1]), c => c.charCodeAt(0));
-      const pdfDoc = await PDFDocument.load(originalPdfBytes);
-      const pages = pdfDoc.getPages();
-
-      // Obtener datos del usuario/contexto
-      const userIp = this.networkInfo.length > 0 ? this.networkInfo[0] : 'IP_UNKNOWN';
-      const userName = this.stats?.mac_address || 'Usuario_SDC'; // O algún nombre de sesión si existiera
-      const timestamp = new Date().toLocaleString();
-      const watermarkText = `CONFIDENCIAL - ${userName} - ${userIp} - ${timestamp}`;
-
-      pages.forEach(page => {
-        const { width, height } = page.getSize();
-        page.drawText(watermarkText, {
-          x: 50,
-          y: height / 2,
-          size: 30,
-          color: rgb(0.7, 0.7, 0.7), // Gris claro
-          rotate: degrees(45),
-          opacity: 0.4,
-        });
-
-        // Marca adicional en pie de página
-        page.drawText(`Rastreado por Sandra Server - ID: ${this.clientId}`, {
-          x: 20,
-          y: 20,
-          size: 10,
-          color: rgb(0.5, 0.5, 0.5),
-        });
-      });
-
-      // ---------------------------------------------------------
-      // ESTRATEGIA "CANDADO DIGITAL" (Lock & Unlock)
-      // ---------------------------------------------------------
-      // 1. Generamos un PIN de acceso aleatorio (La "Llave")
-      const accessPin = Math.floor(1000 + Math.random() * 9000).toString(); // PIN de 4 dígitos
-      console.log(`🔐 [Security] PIN Generado para este documento: ${accessPin}`);
-      console.log(`⚠️ EN PRODUCCIÓN: Este PIN debe enviarse al API de Sandra para que el usuario lo recupere al escanear.`);
-
-      const trackingId = `${this.clientId}__${userName.replace(/[^a-zA-Z0-9]/g, '')}`;
-      // URL de desbloqueo: En la vida real, esta URL autentica al usuario y le revela el PIN
-      const auditUrl = `https://code-epic.com/v1/api/trace?id=${trackingId}&action=REQ_PIN`;
-
-      console.log("🔑 [Web Key] Generando QR de acceso para:", auditUrl);
-
-      // Generar QR en memoria
-      const QRCode = await import('qrcode');
-      const qrDataUrl = await QRCode.toDataURL(auditUrl, { margin: 1, color: { dark: '#000000', light: '#FFFFFF' } });
-      const qrImageBytes = Uint8Array.from(atob(qrDataUrl.split(',')[1]), c => c.charCodeAt(0));
-      const qrImage = await pdfDoc.embedPng(qrImageBytes);
-
-      // Inyectar Portada de Seguridad / Cabecera en cada página o solo primera
-      const firstPage = pages[0];
-      const { width: pWidth, height: pHeight } = firstPage.getSize();
-
-      // Dibujar caja de "Documento Bloqueado"
-      firstPage.drawRectangle({
-        x: 0,
-        y: pHeight - 140,
-        width: pWidth,
-        height: 140,
-        color: rgb(0.1, 0.1, 0.1), // Fondo casi negro
-      });
-
-      firstPage.drawText('[SECURE] DOCUMENTO CIFRADO - ACCESO RESTRINGIDO', {
-        x: 20,
-        y: pHeight - 40,
-        size: 14,
-        color: rgb(1, 0.3, 0.3), // Rojo brillante
-      });
-
-      firstPage.drawText('El contenido esta protegido por encriptacion AES-256.', {
-        x: 20,
-        y: pHeight - 65,
-        size: 10,
-        color: rgb(0.9, 0.9, 0.9),
-      });
-
-      firstPage.drawText('Para obtener su CLAVE DE ACCESO, escanee este QR e inicie sesion:', {
-        x: 20,
-        y: pHeight - 85,
-        size: 9,
-        color: rgb(1, 1, 0), // Amarillo
-      });
-
-      // Insertar QR
-      const qrDim = 100; // QR un poco más grande
-      firstPage.drawImage(qrImage, {
-        x: pWidth - qrDim - 20,
-        y: pHeight - qrDim - 20,
-        width: qrDim,
-        height: qrDim,
-      });
-
-      // APLICAR ENCRIPTACIÓN REAL (Maldita sea pdf-lib 1.17 no soporta encrypt)
-      // TODO: Mover la encriptación AES-256 al Backend Rust (lopdf/qpdf).
-      // Por ahora, el documento tiene la "marca" visual de seguridad y el QR.
-      /*
-      await (pdfDoc as any).encrypt({
-        userPassword: accessPin,
-        ownerPassword: 'SandraMasterKey_2026_Secure!',
-        permissions: {
-          modifying: false,
-          copying: false,
-          fillingForms: false,
-          annotating: false,
-          printing: false 
-        }
-      });
-      */
-
-      console.log("✅ [Security] PDF Encriptado y Bloqueado. Esperando guardado...");
-
-      const watermarkedBase64 = await pdfDoc.saveAsBase64();
-
-      // 3. Invocar comando Rust para seguridad y guardado
-      // Enviamos el PDF "marcado" y el PIN para que Rust aplique la encriptación real.
-      console.log("🔒 [Security] Enviando PDF a Rust para blindaje con PIN:", accessPin);
-      await invoke('save_protected_pdf', {
-        pdfBase64: watermarkedBase64,
-        filePath: filePath,
-        password: accessPin // <--- Enviamos la clave al backend
-      });
-
-      // Opcional: Notificar éxito sutilmente o dejar que el usuario lo vea
-      // alert(`✅ Guardado y Protegido en: ${filePath}`);
-
     } catch (e) {
-      console.error("Error guardando archivo desde iframe:", e);
+      console.error("❌ Error en puente de descarga:", e);
       alert("Error al guardar archivo protegido: " + e);
     }
   }
