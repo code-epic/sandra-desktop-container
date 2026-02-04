@@ -13,6 +13,7 @@ pub struct ConnectionTask(pub Mutex<Option<JoinHandle<()>>>);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .register_uri_scheme_protocol("sandra-app", |app_handle, request| {
             proxy_handler::handle_request(app_handle.app_handle(), &request)
         })
@@ -52,7 +53,8 @@ pub fn run() {
             commands::connections::delete_connection,
             commands::connections::connect_to_server,
             commands::connections::disconnect_from_server,
-            commands::window::close_splash
+            commands::window::close_splash,
+            commands::pdf::save_protected_pdf
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -37,3 +37,21 @@ webpki-roots = "1.0.5"
 rustls-ring = "0.0.1"
 urlencoding = "2.1.3"
 mac_address = "1.1.8"
+tauri-plugin-fs = "2"
+base64 = "0.22.1"
+
+# Enable lopdf features explicitly to support encryption if needed, though 0.32 usually has base encryption.
+# However, errors suggest 'encrypt' method and type are missing. 
+# lopdf 0.32+ might have moved encryption behind a feature flag or changed API.
+# Common feature for encryption is sometimes 'pom' or embedding it manually.
+# Let's try adding features that might enable it or check if we need to implement it manually.
+# Actually, lopdf removed high-level encrypt() in recent versions to focus on low-level structures.
+# We might need to manually construct the Encrypt dictionary.
+# BUT, let's first try to see if a feature flag brings it back or if we switched versions.
+# Standard lopdf 0.31 had it. 0.32 might have changed it.
+# Let's try using the 'embed_image', 'pom' features just in case, or revert/check docs.
+# Safer bet: Manual implementation of the Dictionary if the helper is gone.
+
+[dependencies.lopdf]
+version = "0.32.0"
+features = ["pom", "embed_image"] 

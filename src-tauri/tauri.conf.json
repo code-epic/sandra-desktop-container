@@ -40,6 +40,10 @@
   "bundle": {
     "active": true,
     "targets": ["dmg", "nsis", "msi"],
+    "macOS": {
+      "signingIdentity": "Developer ID Application: Carlos Peña (Q7A9MLT493)",
+      "entitlements": "entitlements.plist"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

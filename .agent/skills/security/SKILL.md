@@ -23,7 +23,41 @@ Esta habilidad define las prácticas obligatorias para garantizar la seguridad d
 - **Scope**: Limita el alcance de los comandos de Tauri en `tauri.conf.json`. No habilites permisos de sistema de archivos o shell globalmente si no son necesarios.
 - **Context Isolation**: Asegura que el frontend no tenga acceso directo a APIs de Node.js o sistema operativo sin pasar por la capa segura de Tauri.
 
-## 4. Dependencias
+## 4. Protección de Documentos (PDF)
+
+Todo documento generado o distribuido por la aplicación debe cumplir con el **Paradigma de Información Controlada**:
+
+- **Encriptación Obligatoria**:
+  - Se debe utilizar `setEncryption` (o equivalente en la librería de generación).
+  - Algoritmo mínimo: AES-128 (Idealmente AES-256 si la librería lo soporta).
+  - **Password de Propietario (Owner Password)**: Debe ser robusta (ej. `SandraSec2025!`) para impedir la eliminación de restricciones.
+  - **Password de Usuario**: Puede ser `undefined` si el acceso es público, pero las restricciones deben aplicarse.
+
+- **Permisos Restrictivos (Whitelisting)**:
+  - Definir explícitamente solo lo permitido.
+  - **IMPRESIÓN**: Debe estar **DESHABILITADA** por defecto (omitir 'print' en la lista de permisos).
+  - Permisos típicos permitidos: `['copy', 'modify', 'annot-forms']`.
+
+- **Ejemplo de Implementación (jsPDF)**:
+  ```typescript
+  // Restringir impresión mediante encriptación
+  // Permisos: solo copia y modificación, NO impresión
+  try {
+    if ((doc as any).setEncryption) {
+      // (userPassword, ownerPassword, permissions, encryptionAlgorithm)
+      // Nota: Al omitir 'print', se deshabilita.
+      (doc as any).setEncryption(
+        undefined, // Acceso sin clave para lectura
+        "CLAVE_MAESTRA", // Clave requerida para cambiar permisos
+        ["copy", "modify", "annot-forms"], // Lista blanca (Print excluido)
+      );
+    }
+  } catch (error) {
+    console.warn("Fallo al aplicar seguridad PDF:", error);
+  }
+  ```
+
+## 5. Dependencias
 
 - Revisa regularmente vulnerabilidades con `npm audit` y `cargo audit`.
 - Evita librerías abandonadas.
@@ -32,5 +66,5 @@ Esta habilidad define las prácticas obligatorias para garantizar la seguridad d
 
 - [ ] ¿El input del usuario se valida en Rust?
 - [ ] ¿Las queries SQL usan parámetros?
-- [ ] ¿Estás usando `innerHTML` peligrosamente?
 - [ ] ¿Los permisos de Tauri son los mínimos necesarios?
+- [ ] ¿Los PDFs generados tienen bloqueada la impresión?

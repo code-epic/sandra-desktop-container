@@ -68,7 +68,11 @@
 
       <!-- Iframe Container para Apps -->
       <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)" [hidden]="(activeTabId$ | async) !== tab.id">
-        <iframe [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads" (load)="onIframeLoad(tab.id)"></iframe>
+        <iframe [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0" 
+          allow="activestate"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads" 
+          (load)="onIframeLoad(tab.id)">
+        </iframe>
       </div>
     </section>
   </main>

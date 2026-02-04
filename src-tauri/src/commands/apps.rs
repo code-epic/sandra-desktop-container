@@ -34,7 +34,6 @@ pub async fn download_app_repo(
         Err("Error al clonar el repositorio".into())
     }
 }
-
 #[tauri::command]
 pub async fn update_app_repo(
     app_handle: tauri::AppHandle,

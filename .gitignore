@@ -1,3 +1,4 @@
+
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # Compiled output
@@ -40,3 +41,18 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# --- TAURI SPECIFIC ---
+src-tauri/target/
+src-tauri/gen/
+src-tauri/.env
+src-tauri/*.p12
+src-tauri/*.mobileprovision
+
+# --- SECURITY & LOCAL SCRIPTS ---
+build_macos.sh
+.env
+*.pem
+*.key
+credentials.json
+secrets/*
