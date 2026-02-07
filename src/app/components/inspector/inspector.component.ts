@@ -36,6 +36,7 @@ export class InspectorComponent implements OnInit {
   inspectorNetworkOpen = true;
   inspectorDetailModal = false;
   showSaveConfirmModal = false;
+  showCloseConfirmModal = false;
 
   get inspectorConsoleLogs() {
     return this.currentAppLogs.filter(l => ['LOG', 'INFO', 'WARN', 'ERROR', 'SUCCESS'].includes(l.log_type));
@@ -59,31 +60,11 @@ export class InspectorComponent implements OnInit {
     this.rightSidebarOpen$ = this.appState.rightSidebarOpen$;
     this.activeTabId$ = this.appState.activeTabId$;
 
-    // Subscribe to Logger for live updates
-    this.logger.logs$.subscribe(log => {
-      // Use app_id from LoggerService as the source of truth for grouping
-      const targetAppId = log.app_id || 'App.SDC';
+    // 1. Hydrate existing logs
+    this.logger.getUnsavedLogs().forEach(log => this.processLog(log));
 
-      const appLog: AppLog = {
-        app_id: targetAppId,
-        log_type: log.type === 'INFO' ? 'LOG' : log.type,
-        message: log.message,
-        source: log.source,
-        timestamp: log.timestamp.toISOString(),
-        details: log.details
-      };
-
-      // Add to session memory
-      if (!this.sessionLogs.has(targetAppId)) {
-        this.sessionLogs.set(targetAppId, []);
-      }
-      this.sessionLogs.get(targetAppId)?.unshift(appLog);
-
-      // If viewing this app, update UI immediately
-      if (this.currentTabId === targetAppId || (['dashboard', 'connections', 'security', 'monitor', 'system'].includes(this.currentTabId) && targetAppId === 'App.SDC')) {
-        this.loadLogsForActiveTab();
-      }
-    });
+    // 2. Subscribe to Logger for live updates
+    this.logger.logs$.subscribe(log => this.processLog(log));
 
     this.activeTabId$.subscribe(id => {
       this.currentTabId = id;
@@ -91,9 +72,48 @@ export class InspectorComponent implements OnInit {
     });
   }
 
+  private processLog(log: any) {
+    const targetAppId = log.app_id || 'App.SDC';
+
+    // Duplicate Check (Basic) - prevent re-adding identical logs during hydration overlap
+    const existingLogs = this.sessionLogs.get(targetAppId);
+    const tsString = log.timestamp instanceof Date ? log.timestamp.toISOString() : log.timestamp;
+
+    if (existingLogs && existingLogs.some(l => l.timestamp === tsString && l.message === log.message)) {
+      return;
+    }
+
+    const appLog: AppLog = {
+      app_id: targetAppId,
+      log_type: log.type === 'INFO' ? 'LOG' : log.type,
+      message: log.message,
+      source: log.source,
+      timestamp: tsString,
+      details: log.details
+    };
+
+    if (!this.sessionLogs.has(targetAppId)) {
+      this.sessionLogs.set(targetAppId, []);
+    }
+    this.sessionLogs.get(targetAppId)?.unshift(appLog);
+
+    // UI Update if active
+    if (this.shouldShowLogForCurrentTab(targetAppId)) {
+      this.loadLogsForActiveTab();
+    }
+  }
+
+  private shouldShowLogForCurrentTab(logAppId: string): boolean {
+    if (this.currentTabId === logAppId) return true;
+    const systemTabs = ['dashboard', 'connections', 'security', 'monitor', 'system', 'apps', 'secure-viewer'];
+    if (systemTabs.includes(this.currentTabId) && logAppId === 'App.SDC') return true;
+    return false;
+  }
+
   async loadLogsForActiveTab() {
     let targetAppId = this.currentTabId;
-    if (['dashboard', 'connections', 'security', 'monitor', 'system'].includes(targetAppId)) {
+    const systemTabs = ['dashboard', 'connections', 'security', 'monitor', 'system', 'apps', 'secure-viewer'];
+    if (systemTabs.includes(targetAppId)) {
       targetAppId = 'App.SDC';
     }
 
@@ -172,21 +192,25 @@ export class InspectorComponent implements OnInit {
     this.showSaveConfirmModal = false;
   }
 
-  async closeInspector() {
-    // 1. Evaluate if current view has XHR/Fetch logs
-    const hasNetworkLogs = this.currentAppLogs.some(l =>
-      l.log_type === 'FETCH' ||
-      l.log_type === 'XHR' ||
-      (l.message && l.message.includes('XHR'))
+  closeInspector() {
+    // 1. Evaluate if current view has XHR/Fetch logs THAT ARE NOT SAVED
+    const hasUnsavedNetworkLogs = this.currentAppLogs.some(l =>
+      !l.id && (l.log_type === 'FETCH' || l.log_type === 'XHR' || (l.message && l.message.includes('XHR')))
     );
 
     // 2. Ask to save if detected
-    if (hasNetworkLogs) {
-      if (confirm('Se ha detectado actividad de red (XHR/Fetch) en esta aplicación. ¿Desea guardar los logs antes de cerrar?')) {
-        await this.confirmSaveLogs();
-      }
+    if (hasUnsavedNetworkLogs) {
+      this.showCloseConfirmModal = true;
+    } else {
+      this.appState.toggleRightSidebar();
     }
+  }
 
+  async proceedCloseInspector(shouldSave: boolean) {
+    this.showCloseConfirmModal = false;
+    if (shouldSave) {
+      await this.confirmSaveLogs();
+    }
     this.appState.toggleRightSidebar();
   }
 }

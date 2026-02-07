@@ -13,60 +13,79 @@ export class DownloadService {
      * Soporta PDF, CSV, XLSX, DOC, ZIP, etc.
      * @param fileName Nombre sugerido del archivo.
      * @param dataBase64 Contenido del archivo en Base64 (con o sin prefijo data:...).
+     * @param pin PIN opcional (Default: "1234").
+     * @param forceSSE Si es true (default), los PDF se convierten a .sse (formato seguro Bunker). Si es false, se descargan como .pdf normal.
      */
-    async handleDownload(fileName: string, dataBase64: string): Promise<boolean> {
+    async handleDownload(fileName: string, dataBase64: string, pin: string = "1234", forceSSE: boolean = true): Promise<boolean> {
         try {
-            console.log(`📥 [DownloadService] Iniciando descarga: ${fileName}`);
+            console.log(`📥 [DownloadService] Iniciando descarga: ${fileName} (SSE: ${forceSSE})`);
 
-            // 1. Limpiar prefijo data:URI si existe
+            // 1. Limpiar prefijo
             const base64Content = dataBase64.includes(',') ? dataBase64.split(',')[1] : dataBase64;
 
-            // 2. Determinar extensión y filtros
-            const extension = fileName.split('.').pop()?.toLowerCase() || 'dat';
-            const filters = this.getFiltersForExtension(extension);
+            // 2. Determinar extensión base
+            let originalExtension = fileName.split('.').pop()?.toLowerCase() || 'dat';
 
-            // 3. Importar plugins de Tauri dinámicamente
+            // 3. Configurar Dialogo
+            let finalFileName = fileName;
+            let displayExtension = originalExtension;
+            let filters = this.getFiltersForExtension(originalExtension);
+
+            // LOGICA SSE (Prioridad Máxima si forceSSE es true)
+            if (forceSSE) {
+                displayExtension = 'sse';
+                // Asegurar extensión .sse
+                if (finalFileName.toLowerCase().endsWith('.pdf')) {
+                    finalFileName = finalFileName.replace(/\.pdf$/i, '.sse');
+                } else if (!finalFileName.toLowerCase().endsWith('.sse')) {
+                    finalFileName = finalFileName + '.sse';
+                }
+                filters = [{ name: 'Bunker Encrypted Document', extensions: ['sse'] }];
+            }
+
+            // 4. Diálogo de guardado
             const { save } = await import('@tauri-apps/plugin-dialog');
-
-            // 4. Abrir diálogo de guardado
             const filePath = await save({
-                defaultPath: fileName,
-                title: `Guardar ${extension.toUpperCase()}`,
+                defaultPath: finalFileName,
+                title: `Guardar ${displayExtension.toUpperCase()}`,
                 filters: filters
             });
 
             if (!filePath) {
-                console.log("🚫 [DownloadService] Guardado cancelado por el usuario.");
+                console.log("🚫 [DownloadService] Cancelado.");
                 return false;
             }
 
-            // 5. Guardar archivo usando Rust (Sistema de archivos seguro)
-            // Usamos el comando genérico o writeBinaryFile del plugin-fs si está disponible.
-            // Para consistencia con PDFs protegidos, podríamos seguir usando un comando Rust,
-            // pero para archivos genéricos (zip, xlsx) es mejor usar el plugin-fs estándar o crear un comando genérico.
+            // 5. Guardar Handler
+            if (forceSSE) {
+                // Modo Protegido (Siempre, si forceSSE es true)
+                console.log("🔒 [DownloadService] Guardando como SSE...");
+                await invoke('save_protected_pdf', {
+                    pdfBase64: base64Content,
+                    filePath: filePath,
+                    pin: pin
+                });
+            }
+            else {
+                // Modo Estándar (Raw Write)
+                // Usamos plugin-fs para escribir los bytes decodificados
+                const { writeFile } = await import('@tauri-apps/plugin-fs');
+                const binaryData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
+                await writeFile(filePath, binaryData);
+            }
 
-            // Opción A: Usar plugin-fs directamente (Más rápido para archivos normales)
-            const { writeFile } = await import('@tauri-apps/plugin-fs');
-            const binaryData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
-            await writeFile(filePath, binaryData);
-
-            // Opción B: Si necesitamos lógica de seguridad extra en backend, usaríamos invoke('save_secure_file', ...)
-
-            console.log(`✅ [DownloadService] Archivo guardado exitosamente en: ${filePath}`);
-
-            // TODO: Aquí podríamos inyectar logs de auditoría: "Usuario X descargó Y en ruta Z"
-
+            console.log(`✅ [DownloadService] Guardado en: ${filePath}`);
             return true;
 
         } catch (error) {
-            console.error("❌ [DownloadService] Error crítico al guardar:", error);
-            // Aquí podrías disparar una notificación Toast/Alert global
+            console.error("❌ [DownloadService] Error:", error);
             return false;
         }
     }
 
     private getFiltersForExtension(ext: string) {
         switch (ext) {
+            case 'sse': return [{ name: 'Bunker Encrypted Document', extensions: ['sse'] }];
             case 'pdf': return [{ name: 'Documento PDF', extensions: ['pdf'] }];
             case 'xlsx': return [{ name: 'Excel / Hoja de Cálculo', extensions: ['xlsx', 'xls'] }];
             case 'csv': return [{ name: 'Archivo CSV', extensions: ['csv'] }];

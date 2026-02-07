@@ -22,7 +22,9 @@
         <aside class="conn-sidebar">
             <div class="conn-list-header">
                 <h3>Guardados</h3>
-                <button class="icon-btn-add" (click)="resetForm()" title="Nueva Conexión"><i class="fas fa-plus"></i> Nuevo</button>
+                <button class="btn-modal-primary" (click)="resetForm()" title="Nueva Conexión">
+                    <i class="fas fa-plus"></i> Nuevo
+                </button>
             </div>
             <div class="conn-list">
                 <div class="conn-item" *ngFor="let conn of savedConnections" 

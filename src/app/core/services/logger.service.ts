@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { AppStateService } from "./app-state.service";
 
 export interface LogEntry {
+  id?: number; // Added for tracking persistence
   type: 'INFO' | 'ERROR' | 'WARN' | 'SUCCESS' | 'FETCH' | 'XHR';
   message: string;
   timestamp: Date;
@@ -28,7 +29,8 @@ export class LoggerService {
 
   constructor(private appState: AppStateService) {
     this.appState.activeTabId$.subscribe(id => {
-      if (['dashboard', 'connections', 'security', 'monitor', 'system'].includes(id)) {
+      // Expanded system tabs list to include 'apps' and 'secure-viewer'
+      if (['dashboard', 'connections', 'security', 'monitor', 'system', 'apps', 'secure-viewer'].includes(id)) {
         this.currentAppId = 'App.SDC';
       } else {
         this.currentAppId = id;
@@ -63,10 +65,11 @@ export class LoggerService {
   }
 
   hasXhrLogsForApp(appId?: string): boolean {
+    const isNetwork = (l: LogEntry) => l.type === 'XHR' || l.type === 'FETCH' || l.message.includes('XHR');
     if (appId) {
-      return this.unsavedLogs.some(l => l.app_id === appId && (l.type === 'XHR' || l.type === 'FETCH' || l.message.includes('XHR')));
+      return this.unsavedLogs.some(l => l.app_id === appId && isNetwork(l));
     }
-    return this.unsavedLogs.some(l => l.type === 'XHR' || l.type === 'FETCH' || l.message.includes('XHR'));
+    return this.unsavedLogs.some(isNetwork);
   }
 
   async saveAllLogs(appId?: string) {
@@ -143,6 +146,39 @@ export class LoggerService {
       }
     };
 
+    // Intercept XHR
+    const originalOpen = XMLHttpRequest.prototype.open;
+    const originalSend = XMLHttpRequest.prototype.send;
+    const self = this;
+
+    XMLHttpRequest.prototype.open = function (method: string, url: string | URL) {
+      (this as any)._method = method;
+      (this as any)._url = url ? url.toString() : '';
+      return originalOpen.apply(this, arguments as any);
+    };
+
+    XMLHttpRequest.prototype.send = function (body: any) {
+      const xhr = this as any;
+
+      // Filter noisy internal requests based on URL
+      if (xhr._url && (xhr._url.includes('save_app_log') || xhr._url.includes('ipc://') || xhr._url.includes('get_system_telemetry'))) {
+        return originalSend.apply(this, arguments as any);
+      }
+
+      this.addEventListener('load', function () {
+        const type = this.status >= 400 ? 'ERROR' : 'XHR';
+        const msg = `${xhr._method || 'GET'} ${xhr._url} [${this.status}]`;
+        // Log details if available (status text, etc)
+        self.persistLog(type, msg, 'Network', self.currentAppId);
+      });
+
+      this.addEventListener('error', function () {
+        self.persistLog('ERROR', `XHR Error: ${xhr._method || 'GET'} ${xhr._url}`, 'Network', self.currentAppId);
+      });
+
+      return originalSend.apply(this, arguments as any);
+    };
+
     this.originalConsoleLog('[LoggerService] Initialized and capturing console/network events.');
   }
 
@@ -161,13 +197,23 @@ export class LoggerService {
 
     this.unsavedLogs.push(entry);
     this.logSubject.next(entry);
+
+    // AUTO-SAVE Logic: Network Errors must be reported to Monitor (DB) immediately
+    if (type === 'ERROR' && (source === 'Network' || message.includes('Fetch') || message.includes('XHR'))) {
+      this.persistBackend(type, message, null, effectiveAppId, entry.timestamp.toISOString(), source)
+        .then(id => {
+          // Determine ID or mark as saved with placeholder if void return
+          entry.id = id || -1;
+        });
+    }
   }
 
-  public async persistBackend(type: string, message: string, details: any, appId: string, timestamp?: string, source?: string) {
+  public async persistBackend(type: string, message: string, details: any, appId: string, timestamp?: string, source?: string): Promise<number | null> {
     let backendType = type;
     if (type === 'INFO') backendType = 'LOG';
 
     try {
+      // Rust returns () so we await implicitly.
       await invoke('save_app_log', {
         log: {
           app_id: appId,
@@ -178,8 +224,11 @@ export class LoggerService {
           timestamp: timestamp
         }
       });
+      // Return a dummy ID to indicate success to the frontend
+      return 1;
     } catch (err) {
       this.originalConsoleLog('[LoggerService] Failed to persist log:', err);
+      return null;
     }
   }
 

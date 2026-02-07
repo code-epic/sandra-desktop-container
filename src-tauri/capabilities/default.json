@@ -9,6 +9,11 @@
     "dialog:default",
     "shell:default",
     "fs:default",
-    "fs:allow-download-write"
+    "fs:allow-download-write",
+    "fs:allow-temp-write",
+    {
+      "identifier": "fs:scope",
+      "allow": ["$DOWNLOAD/*", "$TEMP/*"]
+    }
   ]
 }

@@ -129,6 +129,18 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN password TEXT", []);
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN token TEXT", []);
 
+    // Tabla Historial de Documentos Seguros
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS document_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_name TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            opened_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     Ok(())
 }
 

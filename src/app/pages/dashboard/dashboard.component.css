@@ -487,21 +487,6 @@
   justify-content: flex-end;
 }
 
-.btn-modal-primary {
-  background: #546e7a;
-  color: #ffffff;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-modal-primary:hover {
-  background: #455a64;
-}
-
 .app-id-badge {
     font-size: 0.65rem;
     background: #eceff1;

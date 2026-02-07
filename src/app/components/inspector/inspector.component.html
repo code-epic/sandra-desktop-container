@@ -14,12 +14,12 @@
     </div>
 
     <div class="rs-content console-theme">
-      <div class="tree-root" *ngIf="currentTabId !== 'dashboard'">
+      <div class="tree-root">
         <!-- App Root Node -->
         <div class="tree-node expanded" (click)="toggleInspectorTree()" [style.opacity]="inspectorTreeOpen ? '1' : '0.7'">
           <i class="fas" [class.fa-caret-down]="inspectorTreeOpen" [class.fa-caret-right]="!inspectorTreeOpen" style="width: 15px;"></i>
           <span class="node-icon"><i class="fas fa-cube"></i></span>
-          <span class="node-label">{{ currentTabId }}</span>
+          <span class="node-label">{{ ['dashboard','connections','security','monitor','apps','secure-viewer'].includes(currentTabId) ? 'App.SDC' : currentTabId }}</span>
         </div>
         
         <!-- Children (Folders) -->
@@ -143,4 +143,17 @@
         </div>
       </div>
     </div>
+  <!-- Modal Confirmar Cierre con Logs -->
+  <div class="modal-overlay" *ngIf="showCloseConfirmModal">
+    <div class="modal-card">
+      <h3 class="modal-title">Monitor de Actividad</h3>
+      <div class="modal-body">
+        <p class="modal-message">Hemos detectado tráfico de red no guardado. <br>¿Deseas registrarlo en el Monitor?</p>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" (click)="proceedCloseInspector(false)">Descartar</button>
+          <button class="btn-modal-confirm" (click)="proceedCloseInspector(true)">Guardar y Cerrar</button>
+        </div>
+      </div>
+    </div>
   </div>
+</div>

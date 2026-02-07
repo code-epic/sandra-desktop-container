@@ -449,3 +449,18 @@ textarea {
     min-width: 100px; /* Optional for visual balance */
     flex-grow: 0;
 }
+
+.btn-modal-primary {
+  background: #546e7a;
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-modal-primary:hover {
+  background: #455a64;
+}

@@ -23,15 +23,28 @@ export class MonitorComponent implements OnInit {
     logs: AppLog[] = [];
     loading = false;
     filterText = '';
-
-    // Apps conocidas (hardcoded por ahora, idealmente dinámico)
-    // Apps conocidas (hardcoded por ahora, idealmente dinámico)
-    // Nota: 'system', 'dashboard', 'connections', etc ahora se guardan como 'App.SDC'
-    apps = ['App.SDC', 'gdoc', 'bdv', 'nomina-app', 'cmpdivisas'];
+    apps: string[] = ['App.SDC'];
     currentAppFilter = 'all';
 
-    ngOnInit() {
+    async ngOnInit() {
+        await this.loadInstalledApps();
         this.refreshLogs();
+    }
+
+    async loadInstalledApps() {
+        try {
+            const installedApps = await invoke<any[]>('get_all_apps');
+            if (installedApps && Array.isArray(installedApps)) {
+                const dynamicIds = installedApps
+                    .map(a => a.app_id)
+                    .filter(id => id && id !== 'App.SDC');
+
+                // Merge uniquely
+                this.apps = Array.from(new Set(['App.SDC', ...dynamicIds]));
+            }
+        } catch (error) {
+            console.error('Error loading installed apps for Monitor:', error);
+        }
     }
 
     async refreshLogs() {

@@ -7,6 +7,15 @@ export interface Tab {
   name: string;
   icon: string;
   url?: SafeResourceUrl;
+  type?: 'iframe' | 'pdf-viewer'; // New field for Secure Viewer tabs
+  content?: SafeResourceUrl;      // Content for internal viewers
+  blobData?: string;              // Raw Base64/DataUri for saving later
+  originalName?: string;          // Filename for saving
+  isProtected?: boolean;          // If true, download as SSE
+  showToolbar?: boolean;          // Controls visibility of PDF actions
+  isSavedToHistory?: boolean;     // If true, hides history button
+  zoomLevel?: number;             // Current zoom level for PDF (default 1.0)
+  filePath?: string;              // Original file path (required for unlocking)
 }
 
 @Injectable({
@@ -47,7 +56,8 @@ export class AppStateService {
   setActiveTab(id: string) {
     this.activeTabIdSubject.next(id);
     // Lógica inteligente: mantener sidebar para páginas principales, ocultar para apps
-    const staticPages = ['dashboard', 'connections', 'apps', 'security', 'monitor'];
+    // Secure Viewer se agrega a estáticas.
+    const staticPages = ['dashboard', 'connections', 'apps', 'security', 'monitor', 'secure-viewer'];
 
     if (!staticPages.includes(id)) {
       this.leftSidebarOpenSubject.next(false);

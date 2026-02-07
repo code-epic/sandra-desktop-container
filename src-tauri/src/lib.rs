@@ -54,7 +54,12 @@ pub fn run() {
             commands::connections::connect_to_server,
             commands::connections::disconnect_from_server,
             commands::window::close_splash,
-            commands::pdf::save_protected_pdf
+            commands::pdf::save_protected_pdf,
+            commands::pdf::load_sse_document,
+            commands::pdf::print_pdf_direct,
+            commands::history::add_document_history,
+            commands::history::get_document_history,
+            commands::history::delete_document_history
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
