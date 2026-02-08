@@ -128,6 +128,10 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN username TEXT", []);
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN password TEXT", []);
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN token TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE desktop_apps ADD COLUMN is_proxy_required BOOLEAN DEFAULT 0",
+        [],
+    );
 
     // Tabla Historial de Documentos Seguros
     conn.execute(

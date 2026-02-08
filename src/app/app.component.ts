@@ -146,6 +146,19 @@ export class AppComponent implements OnInit {
     private titleService: Title,
   ) {
     // ... existing constructor logic ...
+
+    // Close splash screen
+    // Esperamos 5 segundos antes de cerrar el splash y mostrar el main
+    setTimeout(async () => {
+      try {
+        await invoke("close_splash");
+        // console.log("Splash closed via Frontend Timer");
+      } catch (err) {
+        console.error("Error closing splash:", err);
+      }
+    }, 5000);
+
+
     this.activeTabId$ = this.appState.activeTabId$;
     this.openTabs$ = this.appState.openTabs$;
     this.rightSidebarOpen$ = this.appState.rightSidebarOpen$;
@@ -176,12 +189,7 @@ export class AppComponent implements OnInit {
   }
 
   async ngOnInit() {
-    // Close splash screen
-    setTimeout(() => {
-      invoke("close_splash").catch((err) =>
-        console.error("Error closing splash:", err),
-      );
-    }, 5000);
+
 
     this.loadApps(); // Load dynamic apps
     this.checkSidebarResponsive(window.innerWidth);
@@ -201,7 +209,7 @@ export class AppComponent implements OnInit {
 
     // Global Connection Status Listener
     await listen("connection-status", (event: any) => {
-      console.log("Global connection status updated:", event.payload);
+      // console.log("Global connection status updated:", event.payload);
       const s = event.payload as string;
       if (s === "connected") {
         this.wsStatus = "Conectado";
@@ -241,6 +249,7 @@ export class AppComponent implements OnInit {
         // Propagating full DB object for updates
         _dbId: a.id,
         _original: a,
+        is_proxy_required: a.is_proxy_required, // Ensure this property is mapped!
       }));
     } catch (e) {
       console.error("Error loading apps", e);
@@ -347,6 +356,8 @@ export class AppComponent implements OnInit {
       name: app.name,
       icon: app.icon,
       url: safeUrl,
+      isProxyRequired: app.is_proxy_required,
+      isExternal: !app.externalUrl,
     });
   }
 

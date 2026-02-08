@@ -15,6 +15,7 @@ export interface DesktopApp {
   username?: string;
   password?: string;
   token?: string;
+  is_proxy_required?: boolean;
   action?: string; // Optional for mapped actions like 'toggleCP'
 }
 
@@ -25,7 +26,7 @@ export class DesktopAppsService {
   private appsUpdatedSubject = new Subject<void>();
   public appsUpdated$ = this.appsUpdatedSubject.asObservable();
 
-  constructor() {}
+  constructor() { }
 
   async getAllApps(): Promise<DesktopApp[]> {
     return await invoke<DesktopApp[]>("get_all_apps");

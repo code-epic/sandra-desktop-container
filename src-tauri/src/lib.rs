@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod crypto;
 pub mod proxy_handler;
 pub mod remote_control;
 pub mod storage;
@@ -13,16 +14,37 @@ pub struct ConnectionTask(pub Mutex<Option<JoinHandle<()>>>);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_fs::init())
+        // .plugin(tauri_plugin_fs::init())
         .register_uri_scheme_protocol("sandra-app", |app_handle, request| {
             proxy_handler::handle_request(app_handle.app_handle(), &request)
         })
+        // .plugin(tauri_plugin_shell::init())
+        // .plugin(tauri_plugin_dialog::init())
+        // .setup(move |app| {
+        //     println!("🚀 [Tauri] Iniciando setup...");
+        //     let conn = storage::initialize_db(&app.handle()).expect("Error al inicializar SQLite");
+        //     app.manage(DbState(Mutex::new(conn)));
+        //     app.manage(ConnectionTask(Mutex::new(None)));
+        //     // Asegurar que splash esté visible y top
+        //     /* if let Some(splash) = app.get_webview_window("splashscreen") {
+        //          splash.show().unwrap();
+        //          splash.set_focus().unwrap();
+        //     } */
+        //     println!("✅ [Tauri] Setup finalizado correctamente.");
+        //     Ok(())
+        // })
+        .plugin(tauri_plugin_fs::init())
+        // .register_uri_scheme_protocol("sandra-app", |app_handle, request| {
+        //     println!("🚀 [Tauri] Procesando solicitud...");
+        //     proxy_handler::handle_request(app_handle.app_handle(), &request)
+        // })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
             let conn = storage::initialize_db(&app.handle()).expect("Error al inicializar SQLite");
             app.manage(DbState(Mutex::new(conn)));
             app.manage(ConnectionTask(Mutex::new(None)));
+            // println!("✅ [Tauri] Setup finalizado correctamente.");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

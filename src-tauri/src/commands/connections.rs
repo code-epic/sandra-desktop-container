@@ -218,7 +218,7 @@ pub async fn connect_to_server(
 
     // 2. Spawn new task and save handle
     let handle = tauri::async_runtime::spawn(async move {
-        remote_control::start_remote_listener(url, app_handle, conn_id_i64).await;
+        remote_control::start_remote_listener(url, app_handle, conn_id_i64, client_id).await;
     });
 
     {

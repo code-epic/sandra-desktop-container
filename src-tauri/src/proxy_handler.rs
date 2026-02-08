@@ -18,11 +18,12 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
     let path = uri.path();
 
     // DEBUG: Ver qué llega realmente
-    // println!(
-    //     "🔍 Req: {} | Referer: {:?}",
-    //     path,
-    //     request.headers().get("referer")
-    // );
+
+    println!(
+        "🔍 Req: {} | Referer: {:?}",
+        path,
+        request.headers().get("referer")
+    );
 
     // 0. Caso Especial: Proxy para URLs Externas (Bypass X-Frame-Options)
     // Uso: sandra-app://localhost/external-proxy?target=https://google.com

@@ -4,25 +4,34 @@ use serde::Serialize;
 use serde_json::Value;
 use std::process::Command;
 use tauri::{AppHandle, Emitter};
+use urlencoding::encode;
 
 use tokio_tungstenite::{connect_async_tls_with_config, tungstenite::protocol::Message, Connector};
 
+use crate::commands::monitor::collect_system_stats;
+use crate::crypto::encrypt_string;
 use crate::storage::DbState;
 use tauri::Manager;
 
 #[derive(Serialize)]
 struct ClientMessage {
-    // Si en Go el struct usa `json:"message"`, usa camelCase.
-    // Si no tiene tags en Go, usa PascalCase para que coincida con "Message".
+    #[serde(rename = "id")]
+    id: String,
+    #[serde(rename = "name")]
+    name: String,
     #[serde(rename = "message")]
     message: String,
 }
+
+// Clave fija para handshake (32 chars hex string)
+const HANDSHAKE_SECRET: &str = "dd17a4b17e60f28cc11d052a3c82556c";
 
 // Modified signature to take AppHandle for emitting events
 pub async fn start_remote_listener(
     ws_url: String,
     app_handle: AppHandle,
     connection_id: Option<i64>,
+    client_id: String,
 ) {
     let mut tls_builder = TlsConnector::builder();
     tls_builder.danger_accept_invalid_certs(true);
@@ -35,24 +44,48 @@ pub async fn start_remote_listener(
     let _ = app_handle.emit("connection-status", "connecting");
 
     loop {
-        attempt_count += 1;
-        println!("🔄 Intentando conectar a: {}", ws_url);
+        // Parametro estático en URL
+        let mut final_url = ws_url.clone();
+        let encoded_msg = encode("Iniciando Conexion Sandra");
 
-        match connect_async_tls_with_config(&ws_url, None, false, Some(connector.clone())).await {
+        if final_url.contains('?') {
+            final_url = format!("{}&initialMessage={}", final_url, encoded_msg);
+        } else {
+            final_url = format!("{}?initialMessage={}", final_url, encoded_msg);
+        }
+
+        attempt_count += 1;
+        println!("🔄 Intentando conectar a: {}", final_url);
+
+        match connect_async_tls_with_config(&final_url, None, false, Some(connector.clone())).await
+        {
             Ok((mut ws_stream, _)) => {
                 println!("📡 Conectado exitosamente");
                 let _ = app_handle.emit("connection-status", "connected");
                 attempt_count = 0; // Reset on success
 
-                let initial_payload = ClientMessage {
-                    message: "Initial Handshake from Sandra OS".to_string(),
-                };
+                // Recolectar estadísticas y cifrarlas para el primer mensaje
+                let stats = collect_system_stats();
 
-                if let Ok(json_str) = serde_json::to_string(&initial_payload) {
-                    if let Err(e) = ws_stream.send(Message::Text(json_str.into())).await {
-                        eprintln!("❌ Error enviando mensaje inicial: {}", e);
-                    } else {
-                        println!("🚀 Mensaje inicial enviado a Go");
+                if let Ok(json_stats) = serde_json::to_string(&stats) {
+                    match encrypt_string(&json_stats, HANDSHAKE_SECRET) {
+                        Ok(encrypted_data) => {
+                            let initial_payload = ClientMessage {
+                                id: client_id.clone(),
+                                name: "SDC-User".to_string(), // Si quieres dynamic name, pasalo tambien
+                                message: encrypted_data,
+                            };
+
+                            if let Ok(json_str) = serde_json::to_string(&initial_payload) {
+                                if let Err(e) = ws_stream.send(Message::Text(json_str.into())).await
+                                {
+                                    eprintln!("❌ Error enviando mensaje inicial cifrado: {}", e);
+                                } else {
+                                    println!("🚀 Mensaje inicial cifrado enviado a Go");
+                                }
+                            }
+                        }
+                        Err(e) => eprintln!("❌ Error cifrando payload inicial: {}", e),
                     }
                 }
 

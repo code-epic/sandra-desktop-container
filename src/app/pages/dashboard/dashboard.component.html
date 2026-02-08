@@ -53,6 +53,11 @@
     <div class="apps-canvas">
         <div class="app-tile" *ngFor="let app of apps" (click)="!app.installed && onInstall.emit(app)">
             
+            <!-- Proxy Indicator (Fixed Position) -->
+            <div class="proxy-badge" *ngIf="app.is_proxy_required" title="Proxy Activo">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+
             <!-- Main Content Layer -->
             <div class="tile-body">
                 <div class="tile-icon">

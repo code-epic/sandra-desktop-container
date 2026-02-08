@@ -16,6 +16,8 @@ export interface Tab {
   isSavedToHistory?: boolean;     // If true, hides history button
   zoomLevel?: number;             // Current zoom level for PDF (default 1.0)
   filePath?: string;              // Original file path (required for unlocking)
+  isProxyRequired?: boolean;      // If true, proxy is required
+  isExternal?: boolean;           // If true, external URL
 }
 
 @Injectable({

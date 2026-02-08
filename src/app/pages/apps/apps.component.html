@@ -16,6 +16,11 @@
     <div class="apps-grid" *ngIf="apps.length > 0">
         <div class="app-tile" *ngFor="let app of apps">
             
+            <!-- Proxy Indicator (Fixed Position) -->
+            <div class="proxy-badge" *ngIf="app.is_proxy_required" title="Proxy Activo">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+
             <!-- Main Content Layer -->
             <div class="tile-body">
                 <div class="tile-icon">
@@ -99,7 +104,7 @@
 
             <!-- Row 4: External URL -->
              <div class="form-group">
-                <label>URL Externa (Web/Localhost)</label>
+                <label>URL Externa (Web/127.0.0.1)</label>
                 <div class="icon-input-group">
                     <i class="fas fa-link input-icon"></i>
                     <input type="text" [(ngModel)]="currentApp.external_url" placeholder="http://localhost:4200" class="input-modern with-icon">
@@ -156,7 +161,17 @@
                         <input type="checkbox" [(ngModel)]="currentApp.is_installed">
                         <span class="slider round"></span>
                     </label>
-                    <span class="switch-label">Instalada (Activa)</span>
+                    <span class="switch-label">Instalada</span>
+                 </div>
+
+                 <div class="switch-group">
+                    <label class="switch">
+                        <input type="checkbox" [(ngModel)]="currentApp.is_proxy_required">
+                        <span class="slider round"></span>
+                    </label>
+                    <div class="switch-label-container">
+                        <span class="switch-label">Usar Proxy</span>
+                    </div>
                  </div>
             </div>
 

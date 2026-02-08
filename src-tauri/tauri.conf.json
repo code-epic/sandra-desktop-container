@@ -5,7 +5,7 @@
   "identifier": "com.sandra.desktop",
   "build": {
     "beforeDevCommand": "npm run start",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:1421",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist/sandra-desktop-container/browser"
   },

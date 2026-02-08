@@ -70,27 +70,20 @@
       <!-- Container Dinámico de Pestañas (Apps & Docs) -->
       <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)" [hidden]="(activeTabId$ | async) !== tab.id">
         
-        <!-- Caso 1: Aplicación Web (Iframe Standard) -->
         <iframe *ngIf="!tab.type || tab.type === 'iframe'" 
           [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0" 
           allow="activestate"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads" 
           (load)="onIframeLoad(tab.id)">
         </iframe>
-
-        <!-- Caso 2: Visor Seguro PDF (Memoria) -->
-        <!-- Caso 2: Visor Seguro PDF (Memoria) -->
         <div *ngIf="tab.type === 'pdf-viewer'" class="pdf-tab-container" style="width:100%; height:100%; background:#525659; position: relative;">
              <div class="pdf-overlay-bar">
                  <span class="pdf-title">{{ tab.name }}</span>
                   <div class="pdf-actions" *ngIf="tab.showToolbar">
                     
-                    <!-- Print Button (Only for Non-Protected) -->
                     <button class="btn-pdf-action" *ngIf="!tab.isProtected" (click)="printPdf(tab)" title="Imprimir Documento">
                         <i class="fas fa-print"></i>
                     </button>
-
-                    <!-- Unlock Button (Only for Protected AND currently Locked) -->
                     <button class="btn-pdf-action" *ngIf="tab.isProtected" (click)="unlockTab(tab)" title="Desbloquear para Ver">
                         <i class="fas fa-key"></i> Desbloquear
                     </button>

@@ -32,9 +32,9 @@
               }
             ],
             "styles": [
-                    "src/styles.css",
-                    "node_modules/@fortawesome/fontawesome-free/css/all.css"
-                  ]
+              "src/styles.css",
+              "node_modules/@fortawesome/fontawesome-free/css/all.css"
+            ]
           },
           "configurations": {
             "production": {
@@ -63,7 +63,7 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "port": 1420
+            "port": 1421
           },
           "configurations": {
             "production": {

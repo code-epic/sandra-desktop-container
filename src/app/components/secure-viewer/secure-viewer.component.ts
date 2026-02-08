@@ -276,7 +276,7 @@ export class SecureViewerComponent {
         this.isEncrypting = true;
         try {
             // 1. Get Active Connection Base URL
-            let baseUrl = 'https://localhost';
+            let baseUrl = 'https://127.0.0.1';
             try {
                 const storedConn = localStorage.getItem('active_connection');
                 if (storedConn) {
@@ -293,7 +293,7 @@ export class SecureViewerComponent {
                 console.warn("Could not determine active connection, using default", e);
             }
 
-            if (!baseUrl) baseUrl = 'https://localhost';
+            if (!baseUrl) baseUrl = 'https://127.0.0.1';
 
             // Backend expects: /v1/api/makepdf/encrypt/{id}/{doc}
             const docId = this.itemToExport.id || ('doc_' + Date.now());

@@ -498,3 +498,21 @@
     font-family: 'Consolas', monospace;
     vertical-align: middle;
 }
+
+/* Proxy Badge */
+.proxy-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: #66bb6a; /* Verde ligeramente más intenso */
+  font-size: 18px; /* Tamaño aumentado */
+  opacity: 1; /* Opacidad completa para destacar */
+  pointer-events: none;
+  z-index: 20; /* Encima de todo */
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+  transition: opacity 0.3s;
+}
+
+.app-tile:hover .proxy-badge {
+  color: #81c784; /* Click effect or hover tweak if needed */
+}

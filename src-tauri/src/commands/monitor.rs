@@ -2,16 +2,19 @@ use mac_address::get_mac_address;
 use serde::Serialize;
 use sysinfo::{Disks, System};
 
+use local_ip_address::local_ip;
+
 #[derive(Serialize)]
 pub struct SystemStats {
     pub disk_total: u64,
     pub disk_free: u64,
     pub os_info: String,
     pub mac_address: String,
+    pub local_ip: String,
 }
 
-#[tauri::command]
-pub async fn get_system_telemetry() -> Result<SystemStats, String> {
+// Helper function to collect stats (callable from Rust)
+pub fn collect_system_stats() -> SystemStats {
     let mut sys = System::new_all();
     sys.refresh_all();
 
@@ -37,10 +40,22 @@ pub async fn get_system_telemetry() -> Result<SystemStats, String> {
         Err(_) => "Unknown MAC".to_string(),
     };
 
-    Ok(SystemStats {
+    // Obtener IP Local
+    let ip_local = match local_ip() {
+        Ok(ip) => ip.to_string(),
+        Err(_) => "Unknown IP".to_string(),
+    };
+
+    SystemStats {
         disk_total: total_space,
         disk_free: available_space,
         os_info,
         mac_address: mac,
-    })
+        local_ip: ip_local,
+    }
+}
+
+#[tauri::command]
+pub async fn get_system_telemetry() -> Result<SystemStats, String> {
+    Ok(collect_system_stats())
 }
