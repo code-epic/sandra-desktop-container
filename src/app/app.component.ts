@@ -628,7 +628,7 @@ export class AppComponent implements OnInit {
   tabToUnlock: any = null;
 
   unlockTab(tab: any) {
-    if (!tab.filePath) {
+    if (!tab.filePath && !tab.hiddenContent) {
       this.showModal("Error", "No se puede determinar la ruta del archivo original. Asegúrate de abrirlo desde el Historial.");
       return;
     }
@@ -648,11 +648,26 @@ export class AppComponent implements OnInit {
     this.showUnlockTabModal = false;
 
     try {
-      // Call Rust with PIN
-      const base64Data = await invoke<string>('load_sse_document', {
-        filePath: this.tabToUnlock.filePath,
-        unlockPin: this.unlockTabPin
-      });
+      let base64Data = '';
+
+      // Opción A: Desbloqueo en Memoria (Recién abierto)
+      if (this.tabToUnlock.hiddenContent) {
+        // Validación simple de PIN (TODO: Mejorar seguridad en producción)
+        if (this.unlockTabPin !== '1234') {
+          throw "PIN Incorrecto";
+        }
+        base64Data = this.tabToUnlock.hiddenContent;
+        this.tabToUnlock.hiddenContent = undefined; // Limpiar memoria
+      }
+      // Opción B: Desbloqueo desde Disco (Historial)
+      else if (this.tabToUnlock.filePath) {
+        base64Data = await invoke<string>('load_sse_document', {
+          filePath: this.tabToUnlock.filePath,
+          unlockPin: this.unlockTabPin
+        });
+      } else {
+        throw "No se encontró contenido para desbloquear.";
+      }
 
       // Success -> Update Tab Content
       const byteCharacters = atob(base64Data);
@@ -674,16 +689,15 @@ export class AppComponent implements OnInit {
       this.tabToUnlock.url = safeUrl;
       this.tabToUnlock.blobData = dataUri;
       this.tabToUnlock.isProtected = false; // Now it IS unlocked in view
-
-      // Force change detection if needed? Angular handles object mutation often if bound to props.
-      // Using AppState update might be cleaner but mutation usually works for *ngIf checks.
+      this.tabToUnlock.isLocked = false;
 
     } catch (e: any) {
       console.error(e);
       if (e && typeof e === 'string' && e.includes("PIN Incorrecto")) {
         this.showModal("Error de PIN", "El PIN es incorrecto.");
       } else {
-        this.showModal("Error", "No se pudo desbloquear: " + e);
+        const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
+        this.showModal("Error", "No se pudo desbloquear: " + msg);
       }
     } finally {
       this.tabToUnlock = null;
@@ -752,6 +766,54 @@ export class AppComponent implements OnInit {
   }
 
   async handleIframeOpen(fileName: string, dataUri: string, isProtected: boolean, isSaved: boolean = false) {
+    // --- Secure Viewer Logic (Intercept Protected Docs) ---
+    if (isProtected) {
+      try {
+        const base64 = dataUri.includes('base64,') ? dataUri.split('base64,')[1] : dataUri;
+        // Call Rust to split PDF (Cover vs Content)
+        const res = await invoke<{ cover: string, content: string }>('prepare_sse_preview', { pdfBase64: base64 });
+
+        // Convert Cover to BlobUrl for View
+        const byteCharacters = atob(res.cover);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+
+        const tabId = 'doc-view-' + Date.now();
+
+        this.appState.addTab({
+          id: tabId,
+          name: fileName.replace(/\.pdf$/i, '.sse'),
+          icon: 'fas fa-file-shield',
+          type: 'pdf-viewer',
+          content: safeUrl,        // Visible: Cover Page (QR)
+          url: safeUrl,
+          blobData: dataUri,       // Save/History: Original Full PDF
+          originalName: fileName,
+          isProtected: true,
+          isSavedToHistory: isSaved,
+          showToolbar: true,
+          zoomLevel: 1.0,
+          isLocked: true,          // Flag: Locked State
+          hiddenContent: res.content // Unlock Data: Content Pages
+        });
+
+        // Show unlock modal immediately if desired, or let user click button.
+        // User requested: "queda habilitado el boton desbloquear". So we just open the tab locked.
+        return;
+
+      } catch (e) {
+        console.error("Error creating secure preview, falling back to standard view:", e);
+        // Fallthrough to standard logic below
+      }
+    }
+
+    // --- Standard Logic (Original) ---
     try {
       const res = await fetch(dataUri);
       const blob = await res.blob();

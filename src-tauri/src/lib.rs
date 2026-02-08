@@ -79,6 +79,7 @@ pub fn run() {
             commands::pdf::save_protected_pdf,
             commands::pdf::load_sse_document,
             commands::pdf::print_pdf_direct,
+            commands::pdf::prepare_sse_preview,
             commands::history::add_document_history,
             commands::history::get_document_history,
             commands::history::delete_document_history

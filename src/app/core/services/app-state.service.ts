@@ -18,6 +18,8 @@ export interface Tab {
   filePath?: string;              // Original file path (required for unlocking)
   isProxyRequired?: boolean;      // If true, proxy is required
   isExternal?: boolean;           // If true, external URL
+  isLocked?: boolean;             // New: If true, show unlock UI
+  hiddenContent?: string;         // New: Base64 of hidden content (Pages 2+)
 }
 
 @Injectable({

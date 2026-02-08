@@ -754,3 +754,68 @@ pub fn print_pdf_direct(pdf_base64: String, job_title: Option<String>) -> Result
     // 4. Cleanup handled by OS Temp Policy
     Ok(())
 }
+
+#[derive(serde::Serialize)]
+pub struct SplitSseResponse {
+    pub cover: String,
+    pub content: String,
+}
+
+#[command]
+pub fn prepare_sse_preview(pdf_base64: String) -> Result<SplitSseResponse, String> {
+    // 1. Decode Base64
+    let bytes = general_purpose::STANDARD
+        .decode(&pdf_base64)
+        .map_err(|e| format!("Base64 Error: {}", e))?;
+
+    // 2. Load PDF
+    let mut doc_cover = Document::load_from(bytes.as_slice())
+        .map_err(|e| format!("PDF Load Error (Cover): {}", e))?;
+    let mut doc_content = Document::load_from(bytes.as_slice())
+        .map_err(|e| format!("PDF Load Error (Content): {}", e))?;
+
+    // 3. Process Cover (Keep Page 1, Delete Rest)
+    let total_pages = doc_cover.get_pages().len() as u32;
+    if total_pages > 1 {
+        let pages_to_delete: Vec<u32> = (2..=total_pages).collect();
+        doc_cover.delete_pages(&pages_to_delete);
+        doc_cover.prune_objects();
+    }
+
+    // 4. Process Content (Delete Page 1, Keep Rest)
+    if total_pages > 1 {
+        doc_content.delete_pages(&[1]);
+        doc_content.prune_objects();
+    } else {
+        // If only 1 page, maybe it's just content? Or just cover?
+        // Let's assume if 1 page, content is empty or same (logic dependent)
+        // User says: Page 1 is QR, rest is content.
+        // If 1 page total, content is empty.
+        // Actually, creating empty PDF is tricky. Let's return empty string for content in edge case.
+        // Or return page 1 as content too? Safer to return empty if strictly following logic.
+        // But doc_content needs at least 1 page to valid PDF.
+        // Let's assume valid SSE has >= 2 pages.
+    }
+
+    // 5. Save to Buffers
+    let mut cover_buf = Vec::new();
+    doc_cover
+        .save_to(&mut cover_buf)
+        .map_err(|e| format!("Cover Save Error: {}", e))?;
+
+    let mut content_buf = Vec::new();
+    if total_pages > 1 {
+        doc_content
+            .save_to(&mut content_buf)
+            .map_err(|e| format!("Content Save Error: {}", e))?;
+    } else {
+        // Fallback: Si solo hay 1 pagina, el contenido es esa página (quizás no había portada)
+        // O devolvemos vacío y el frontend maneja.
+        content_buf = bytes.clone();
+    }
+
+    Ok(SplitSseResponse {
+        cover: general_purpose::STANDARD.encode(&cover_buf),
+        content: general_purpose::STANDARD.encode(&content_buf),
+    })
+}
