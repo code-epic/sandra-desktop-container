@@ -1195,3 +1195,52 @@ iframe {
     background: white;
     box-shadow: 0 0 0 3px rgba(128, 203, 196, 0.2);
 }
+
+/* Estilos para la barra de Proxy Activo (Glass Effect) */
+.proxy-glass-bar {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.85); /* Translúcido */
+  backdrop-filter: blur(12px);          /* Efecto Glass */
+  -webkit-backdrop-filter: blur(12px);
+  padding: 8px 24px;
+  border-radius: 0 0 16px 16px;         /* Solo esquinas inferiores */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); /* Sombra suave */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-top: none;
+  z-index: 100;                         /* Encima del iframe */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #455A64;
+  font-size: 0.9em;
+  font-weight: 600;
+  animation: barSlideDown 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none; /* Dejar pasar clicks al iframe si es necesario */
+}
+
+.proxy-glass-bar i {
+  color: #66BB6A; /* Verde éxito consistente */
+  font-size: 1.1em;
+}
+
+.proxy-label {
+  font-size: 0.85em;
+  color: #90A4AE;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+@keyframes barSlideDown {
+  from { 
+      transform: translate(-50%, -100%); 
+      opacity: 0; 
+  }
+  to { 
+      transform: translate(-50%, 0); 
+      opacity: 1; 
+  }
+}

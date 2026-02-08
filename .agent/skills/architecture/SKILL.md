@@ -41,9 +41,31 @@ src/
     layout/     # Header, Sidebar, Footer components
 ```
 
+## 5. Mapeo de Rutas y API (Project Map)
+
+Para mantener control sobre la complejidad de un proyecto híbrido, mantendremos siempre actualizado un `docs/PROJECT_MAP.md` que detalle:
+
+### A. Frontend: Rutas Virtuales y Orquestación
+
+- **Rutas**: Mapeo de `tabId` (AppState) a Componentes. (Dashboard, Apps, Monitor, etc.)
+- **Orquestadores**: Componentes que manejan lógica global (ej: `AppComponent` y sus handlers de `window:message`).
+- **Servicios Críticos**: Resumen de su responsabilidad (ej: `SecureViewer`, `Inspector`).
+
+### B. Backend: Comandos Tauri (API)
+
+Documentar cada módulo (`src-tauri/src/commands/*`) con:
+
+- **Comando**: Nombre exacto de la función (`#[tauri::command]`).
+- **Input**: Argumentos y sus tipos (ej: `folder_name: String`).
+- **Output**: Tipo de retorno (ej: `Result<Vec<DesktopApp>, String>`).
+- **Descripción Técnica**: Lógica interna crítica (ej: "Ejecuta git clone", "Encripta con AES-256").
+
+Esta documentación sirve como la "Fuente de Verdad" para la integración Frontend-Backend.
+
 ## Checklist de Arquitectura
 
 - [ ] ¿La lógica de negocio compleja está en Rust?
 - [ ] ¿Las llamadas a Tauri están encapsuladas en un Servicio?
 - [ ] ¿El componente es demasiado grande? (>400 líneas -> considerar refactor).
 - [ ] ¿Estás duplicando código? -> Mover a `shared` o `core`.
+- [ ] ¿Está actualizado el `docs/PROJECT_MAP.md` con los nuevos comandos o rutas?

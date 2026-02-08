@@ -337,13 +337,28 @@ export class AppComponent implements OnInit {
   openApp(app: any) {
     let rawUrl = "";
 
-    if (app.externalUrl) {
+    // Lógica inteligente de URL:
+    // 1. Si la App requiere Proxy -> Forzar sandra-app:// (incluso si es externa) para interceptar tráfico
+    // 2. Si es Externa y NO requiere Proxy -> Usar URL directa (Navegador maneja)
+    // 3. Si es Local -> Usar sandra-app:// estándar
+
+    if (app.externalUrl && !app.is_proxy_required) {
+      // Caso 2: Externa Directa
       rawUrl = app.externalUrl;
       console.log(
         `🌍 [External Nav] Direct (No Proxy) ${app.name} -> ${rawUrl}`,
       );
       this.logger.log("FETCH", `GET ${rawUrl} [200]`, "Navigation", app.id);
+    } else if (app.externalUrl && app.is_proxy_required) {
+      // Caso 1: Externa Proxied (Wrap en sandra-app)
+      // Formato: sandra-app://localhost/external-proxy/{APP_ID}?target={URL}
+      const target = encodeURIComponent(app.externalUrl);
+      rawUrl = `sandra-app://localhost/external-proxy/${app.id}?target=${target}`;
+      console.log(
+        `🛡️ [Proxy Nav] Wrapping External ${app.name} -> ${rawUrl}`,
+      );
     } else {
+      // Caso 3: Local (Proxied o No, siempre usa sandra-app)
       rawUrl = `sandra-app://localhost/${app.id}/`;
       console.log(
         `🚀 [Local Nav] Opening ${app.name} via ${rawUrl} (Proxy Active: ${!!this.activeConnection})`,

@@ -70,6 +70,12 @@
       <!-- Container Dinámico de Pestañas (Apps & Docs) -->
       <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)" [hidden]="(activeTabId$ | async) !== tab.id">
         
+        <!-- PROXY ACTIVE INDICATOR -->
+        <div class="proxy-glass-bar" *ngIf="tab.isProxyRequired && activeConnection">
+            <i class="fas fa-network-wired"></i>
+            <span class="proxy-label">Conectado vía</span>
+            <span style="font-weight: 700; color: #455A64;">{{ activeConnection.name }}</span>
+        </div>
         <iframe *ngIf="!tab.type || tab.type === 'iframe'" 
           [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0" 
           allow="activestate"

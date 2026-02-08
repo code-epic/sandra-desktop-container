@@ -11,7 +11,14 @@ use url::Url;
 
 // Global Context for "Sticky" External Sessions (Solves missing Referer in iframes)
 use std::sync::Mutex;
-static LAST_EXTERNAL_TARGET: Mutex<Option<String>> = Mutex::new(None);
+
+#[derive(Clone, Debug)]
+struct ExternalContext {
+    target_url: String,
+    app_id: String,
+}
+
+static LAST_EXTERNAL_TARGET: Mutex<Option<ExternalContext>> = Mutex::new(None);
 
 pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Response<Vec<u8>> {
     let uri = request.uri();
@@ -36,10 +43,24 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
                 urlencoding::decode(target_url).unwrap_or(std::borrow::Cow::Borrowed(target_url));
             let target_str = decoded_target.to_string();
 
+            // Extract APP_ID from path: /external-proxy/{APP_ID}
+            let app_id = path
+                .trim_start_matches("/external-proxy/")
+                .split('/')
+                .next()
+                .unwrap_or("")
+                .to_string();
+
             // 🧠 SAVE CONTEXT: Guardamos esto como el último sitio externo visitado
             if let Ok(mut guard) = LAST_EXTERNAL_TARGET.lock() {
-                *guard = Some(target_str.clone());
-                // println!("🧠 [Context] Set External Target: {}", target_str);
+                *guard = Some(ExternalContext {
+                    target_url: target_str.clone(),
+                    app_id: app_id.clone(),
+                });
+                println!(
+                    "🧠 [Context] Set External Target: {} (App: {})",
+                    target_str, app_id
+                );
             }
 
             match proxy_arbitrary_url(&decoded_target) {
@@ -95,37 +116,113 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
 
     // A) Intentar Contexto Externo (Sticky Session)
     // Si el usuario navegó antes a Google, asumimos que sigue ahí para peticiones dinámicas (ej: /search, /complete/search)
-    if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
-        if let Some(target_url) = &*guard {
-            // Solo si NO estamos en una petición de API interna explícita (opcional refinar)
-            if let Ok(base_url) = Url::parse(target_url) {
-                if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
-                    let full_url_str = full_url.to_string();
-                    // println!(
-                    //     "🚀 [Context Fallback Dynamic] Proxying dynamic req -> {}",
-                    //     full_url_str
-                    // );
-                    if let Ok(resp) = proxy_arbitrary_url(&full_url_str) {
-                        return resp;
+    // EXCLUIMOS /v1/ para que sea manejado por el API PROXY lógico siguiente (al túnel)
+    if !path.contains("/v1/") {
+        if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
+            if let Some(ctx) = &*guard {
+                let target_url = &ctx.target_url;
+                if let Ok(base_url) = Url::parse(target_url) {
+                    if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
+                        let full_url_str = full_url.to_string();
+                        println!(
+                            "🚀 [Context Fallback Dynamic] Attemting to proxy dynamic req -> {}",
+                            full_url_str
+                        );
+                        if let Ok(resp) = proxy_arbitrary_url(&full_url_str) {
+                            return resp;
+                        } else {
+                            println!(
+                                "⚠️ [Context Fallback] Failed remote fetch to {}",
+                                full_url_str
+                            );
+                        }
+                    } else {
+                        println!(
+                            "⚠️ [Context Fallback] URL Join Failed: {:?} + {:?}",
+                            base_url, path
+                        );
                     }
+                } else {
+                    println!(
+                        "⚠️ [Context Fallback] Base URL Parse Failed: {}",
+                        target_url
+                    );
                 }
             }
         }
     }
 
-    // 2. API PROXY (Only /v1/)
-    // Todo lo que empiece por /v1/ es tráfico de Backend -> Proxy Remoto (si hay conexión)
-    if path.starts_with("/v1/") {
-        if let Some(active_conn) = get_active_connection(app_handle) {
-            match proxy_to_remote(active_conn, request) {
-                Ok(response) => return response,
-                Err(e) => {
-                    println!("❌ Error en Proxy Remoto: {}", e);
-                    return create_error_response(
-                        502,
-                        format!("Proxy Error (Remote Unreachable): {}", e).as_str(),
-                    );
+    // 2. API PROXY (Only if path contains "v1")
+    // Todo lo que contenga "v1" es tráfico de Backend -> Proxy Remoto (si la App lo requiere y hay conexión)
+    if path.contains("v1") {
+        // Intentar extraer App ID del Referer para saber si requiere proxy
+        let referer_opt = request
+            .headers()
+            .get("referer")
+            .and_then(|v| v.to_str().ok());
+        let mut should_proxy = false;
+
+        if let Some(referer) = referer_opt {
+            // Referer format: sandra-app://127.0.0.1/{APP_ID}/... OR sandra-app://localhost/{APP_ID}/...
+            let after_scheme_opt = referer
+                .strip_prefix("sandra-app://127.0.0.1/")
+                .or_else(|| referer.strip_prefix("sandra-app://localhost/"));
+
+            if let Some(after_scheme) = after_scheme_opt {
+                // Check format: external-proxy/{APP_ID}?target=...
+                let app_id_candidates = if after_scheme.starts_with("external-proxy/") {
+                    let part = after_scheme.strip_prefix("external-proxy/").unwrap_or("");
+                    // Split by ? to ignore query params, or / to ignore path
+                    part.split_once('?').map(|(id, _)| id).unwrap_or(part)
+                } else {
+                    // Standard format: {APP_ID}/path...
+                    after_scheme
+                        .split_once('/')
+                        .map(|(id, _)| id)
+                        .unwrap_or(after_scheme)
+                };
+
+                let app_id = app_id_candidates.trim_end_matches('/'); // Cleanup trailing slash if any
+
+                // Consultar si la App requiere Proxy
+                if is_app_proxy_required(app_handle, app_id) {
+                    should_proxy = true;
                 }
+            }
+        } else {
+            // Sin Referer check... Intentar Contexto Global
+            if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
+                if let Some(ctx) = &*guard {
+                    if is_app_proxy_required(app_handle, &ctx.app_id) {
+                        should_proxy = true;
+                        // println!("🔗 [Proxy] Recovered App ID from context: {}", ctx.app_id);
+                    }
+                }
+            }
+            if !should_proxy {
+                println!("⚠️ [Proxy] Request to /v1 without Referer and No Context match. Skipping Proxy.");
+            }
+        }
+
+        if should_proxy {
+            if let Some(active_conn) = get_active_connection(app_handle) {
+                match proxy_to_remote(active_conn, request) {
+                    Ok(response) => return response,
+                    Err(e) => {
+                        println!("❌ Error en Proxy Remoto: {}", e);
+                        // Si falla el proxy pero era requerido, devolvemos error 502 explícito
+                        return create_error_response(
+                            502,
+                            format!("Proxy Error (Remote Unreachable): {}", e).as_str(),
+                        );
+                    }
+                }
+            } else {
+                println!("⚠️ [Proxy] App requires proxy but NO active connection found.");
+                // Fallback: Dejar pasar a local (o 404), o retornar error específico?
+                // Usuario dijo: "Evalua cuidosamente que siempre que este activo el proxy pero no hay una conexion activa entonces seguir su flujo normal."
+                // "Flujo normal" podría ser intentar local, o simplemente fallar.
+                // Seguiré al bloque 3 (serve_local_file) que probablemente dará 404 si no existe local.
             }
         }
     }
@@ -171,6 +268,30 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
     }
 
     result
+}
+
+fn is_app_proxy_required(app_handle: &AppHandle, app_id: &str) -> bool {
+    // Si app_id es inválido, retorna false
+    if app_id.is_empty() {
+        return false;
+    }
+
+    let state = app_handle.state::<DbState>();
+    let conn_res = state.0.lock();
+    if conn_res.is_err() {
+        eprintln!("❌ [Proxy Check] Failed to lock DB mutex");
+        return false;
+    }
+    let conn = conn_res.unwrap();
+
+    let query = "SELECT is_proxy_required FROM desktop_apps WHERE app_id = ?1";
+    let required: bool = conn
+        .query_row(query, [app_id], |row| row.get(0))
+        .unwrap_or(false);
+
+    // DEBUG
+    // println!("🔍 [Proxy Check] App: '{}', Required: {}", app_id, required);
+    required
 }
 
 fn serve_local_file(app_handle: &AppHandle, path: &str) -> Response<Vec<u8>> {
@@ -248,14 +369,27 @@ fn serve_local_file(app_handle: &AppHandle, path: &str) -> Response<Vec<u8>> {
             }
         }
 
-        // FALLBACK INTELIGENTE ANTIGUO (Opcional mantener si se usa external-proxy)
         if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
-            if let Some(target_url) = &*guard {
+            if let Some(ctx) = &*guard {
+                let target_url = &ctx.target_url;
+                println!(
+                    "🚀 [Local Fallback] Attempting external proxy via stored context: {}",
+                    target_url
+                );
                 if let Ok(base_url) = Url::parse(target_url) {
                     if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
                         let full_url_str = full_url.to_string();
-                        if let Ok(resp) = proxy_arbitrary_url(&full_url_str) {
-                            return resp;
+                        // println!("🚀 [Local Fallback] Attempting: {}", full_url_str);
+                        match proxy_arbitrary_url(&full_url_str) {
+                            Ok(resp) => return resp,
+                            Err(e) => {
+                                println!(
+                                    "⚠️ [Local Fallback] Failed remote fetch to {}: {}",
+                                    full_url_str, e
+                                );
+                                // Continue to 404 local? Or return 502?
+                                // Let's return local 404 for now as fallback chain suggests.
+                            }
                         }
                     }
                 }
@@ -403,8 +537,54 @@ fn proxy_arbitrary_url(remote_url: &str) -> Result<Response<Vec<u8>>, Box<dyn st
 
     // Procesar respuesta
     let status = resp.status();
+    println!(
+        "✅ [External Proxy] Response: {} status {}",
+        remote_url, status
+    );
+
     let headers = resp.headers().clone();
-    let body = resp.bytes()?.to_vec();
+    let mut body = resp.bytes()?.to_vec();
+
+    // Hot-Patch para Angular/Webpack Dev Server en sandra-app://
+    // Inyectamos un script que intercepta new WebSocket() para evitar crash por URL inválida
+    let content_type = headers
+        .get(CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    if content_type.contains("text/html") {
+        if let Ok(body_str) = String::from_utf8(body.clone()) {
+            let script = r#"
+<script>
+(function(){
+  // SDC Patch: Prevent WebSocket crash on sandra-app:// schema
+  var StdWS = window.WebSocket;
+  window.WebSocket = function(url, proto){
+    try {
+        var u = url ? url.toString() : "";
+        if(u.indexOf('sandra-app:') >= 0) {
+            console.warn('[SDC] Patch: Blocking invalid WebSocket URL:', u);
+            return { 
+                close: function(){}, 
+                send: function(){}, 
+                addEventListener: function(e,cb){}, 
+                removeEventListener: function(e,cb){},
+                readyState: 3 
+            };
+        }
+        return new StdWS(url, proto);
+    } catch(e) {
+        console.error('[SDC] WS Error:', e);
+        return new StdWS(url, proto);
+    }
+  };
+  ["CONNECTING", "OPEN", "CLOSING", "CLOSED"].forEach(k => window.WebSocket[k] = StdWS[k]);
+})();
+</script>
+</head>"#;
+            let patched = body_str.replace("</head>", script);
+            body = patched.into_bytes();
+        }
+    }
 
     // 1. Iniciar el builder con el status original
     let mut response_builder = Response::builder().status(status.as_u16());
