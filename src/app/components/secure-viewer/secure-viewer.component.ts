@@ -212,8 +212,11 @@ export class SecureViewerComponent {
             // "manteniendo las reglas creadas" -> .sse or PDF with JS lock. 
             // Better to keep .pdf extension so users try to open it and see lock.
             const savePath = await save({
-                defaultPath: item.file_name.replace('.sse', '_protected.pdf'),
-                filters: [{ name: 'PDF Document', extensions: ['pdf'] }]
+                defaultPath: item.file_name.toLowerCase().endsWith('.sse') ? item.file_name : item.file_name.replace(/\.pdf$/i, '.sse'),
+                filters: [
+                    { name: 'Bunker Encrypted Document', extensions: ['sse'] },
+                    { name: 'PDF Document', extensions: ['pdf'] }
+                ]
             });
 
             if (savePath) {
