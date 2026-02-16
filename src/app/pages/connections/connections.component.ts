@@ -10,6 +10,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { SdcService } from "../../core/services/sdc.service";
 
 interface Connection {
   id?: number;
@@ -81,7 +82,10 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
 
   private unlistenFn: any;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private sdcService: SdcService
+  ) { }
 
   requestConfirm(
     title: string,
@@ -118,6 +122,13 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
     this.loadSystemData();
     this.loadSavedConnections();
 
+    // Solicitar permisos de notificación nativa al inicio
+    if ('Notification' in window) {
+      Notification.requestPermission().then(status => {
+        console.log('NATIVE NOTIFICATION PERMISSION:', status);
+      });
+    }
+
     // Listen to global connection status
     this.unlistenFn = await listen("connection-status", (event: any) => {
       const status = event.payload as string; // connecting, connected, disconnected, error
@@ -132,10 +143,16 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
       } else if (status === "connected") {
         this.connProgress = 100;
         this.connStatusMsg = "¡Conectado!";
+
+        // Actualizamos estado local inmediatamente para liberar los botones
+        if (this.form) {
+          this.form.is_connected = true;
+        }
+
         setTimeout(() => {
           this.showModal = false;
           this.showWelcomeModal = true;
-          this.loadSavedConnections().then(() => this.syncFormStatus()); // Sync UI
+          this.loadSavedConnections().then(() => this.syncFormStatus()); // Sincronización final con DB
         }, 800);
       } else if (status === "error") {
         this.connStatusMsg = "Error en la conexión.";

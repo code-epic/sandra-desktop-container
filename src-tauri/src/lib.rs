@@ -2,6 +2,7 @@ pub mod commands;
 pub mod crypto;
 pub mod proxy_handler;
 pub mod remote_control;
+pub mod sha256;
 pub mod storage;
 
 use crate::storage::DbState;
@@ -40,6 +41,7 @@ pub fn run() {
         // })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(move |app| {
             let conn = storage::initialize_db(&app.handle()).expect("Error al inicializar SQLite");
             app.manage(DbState(Mutex::new(conn)));
@@ -68,6 +70,8 @@ pub fn run() {
             commands::handler_error::get_db_stats,
             commands::handler_error::get_table_columns,
             commands::connections::get_or_create_client_id,
+            commands::connections::get_setup_status,
+            commands::connections::save_setup_data,
             commands::connections::get_local_ip,
             commands::connections::verify_connection_status,
             commands::connections::save_connection,
@@ -76,13 +80,26 @@ pub fn run() {
             commands::connections::connect_to_server,
             commands::connections::disconnect_from_server,
             commands::window::close_splash,
+            commands::window::emit_splash_status,
             commands::pdf::save_protected_pdf,
             commands::pdf::load_sse_document,
             commands::pdf::print_pdf_direct,
             commands::pdf::prepare_sse_preview,
             commands::history::add_document_history,
             commands::history::get_document_history,
-            commands::history::delete_document_history
+            commands::history::delete_document_history,
+            // Security Module
+            commands::security::get_mailbox_messages,
+            commands::security::create_mailbox_message,
+            commands::security::update_mailbox_status,
+            commands::security::get_security_config,
+            commands::security::update_security_config,
+            commands::security::get_proxy_routes,
+            commands::security::create_proxy_route,
+            commands::security::delete_proxy_route,
+            commands::security::sha256_hash,
+            commands::security::hmac_sha256,
+            commands::security::encrypt_device_context
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

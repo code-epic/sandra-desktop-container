@@ -29,6 +29,7 @@ import { AppsComponent } from "./pages/apps/apps.component";
 import { DesktopAppsService } from "./core/services/desktop-apps.service";
 import { ChatComponent } from "./pages/chat/chat.component";
 import { SecureViewerComponent } from "./components/secure-viewer/secure-viewer.component";
+import { SetupWizardComponent } from "./components/setup-wizard/setup-wizard.component";
 
 type ConnectionStatus =
   | "Conectado"
@@ -63,6 +64,7 @@ interface DesktopApp {
     AppsComponent,
     ChatComponent,
     SecureViewerComponent,
+    SetupWizardComponent
   ],
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
@@ -149,14 +151,7 @@ export class AppComponent implements OnInit {
 
     // Close splash screen
     // Esperamos 5 segundos antes de cerrar el splash y mostrar el main
-    setTimeout(async () => {
-      try {
-        await invoke("close_splash");
-        // console.log("Splash closed via Frontend Timer");
-      } catch (err) {
-        console.error("Error closing splash:", err);
-      }
-    }, 5000);
+    this.initApplication();
 
 
     this.activeTabId$ = this.appState.activeTabId$;
@@ -332,7 +327,95 @@ export class AppComponent implements OnInit {
     }
   }
 
-  // ... other methods ...
+  // --- Application Lifecycle & Setup ---
+
+  showSetupWizard = false;
+
+  async initApplication() {
+    try {
+      // 1. Validar identidad
+      await invoke('emit_splash_status', { message: 'Validando identidad...' });
+      const setupStatus = await invoke<any>('get_setup_status');
+
+      // Cargar Identidad del Sistema (MAC, IP, SO) para el Wizard
+      await this.refreshStats();
+      await this.loadNetwork();
+
+      if (!setupStatus.is_done) {
+        // No configurado -> Mostrar Wizard después de cerrar splash
+        await invoke('emit_splash_status', { message: 'Requiere Configuración' });
+        setTimeout(async () => {
+          await invoke("close_splash");
+          this.zone.run(() => {
+            console.log("🚀 [Init] Activando Setup Wizard...");
+            this.showSetupWizard = true;
+          });
+        }, 2000);
+      } else {
+        // Configurado -> Intentar conexión
+        await invoke('emit_splash_status', { message: `Bienvenido, ${setupStatus.machine_name}` });
+
+        // Cargar conexiones existentes
+        await this.loadConnections();
+
+        if (this.activeConnection) {
+          await invoke('emit_splash_status', { message: 'Sincronizando con Sandra Server...' });
+          // Refrescar conexión: Desconectar y Volver a intentar (Handshake con nuevo userName)
+          await this.sdcService.connectToServer(this.activeConnection, this.clientId);
+        }
+
+        setTimeout(async () => {
+          await invoke("close_splash");
+        }, 2000);
+      }
+
+    } catch (e) {
+      console.error("Error during initApplication:", e);
+      // Fallback: cerrar splash para no bloquear al usuario
+      setTimeout(() => invoke("close_splash"), 3000);
+    }
+  }
+
+  async handleSetupComplete(data: any) {
+    try {
+      this.showSetupWizard = false;
+      this.showModal("Configurando", "Registrando identidad y enlace de red...");
+
+      // 1. Guardar Identidad en Rust
+      await invoke('save_setup_data', {
+        name: data.name,
+        description: data.description,
+        area: data.area
+      });
+
+      // 2. Guardar Conexión Inicial
+      const connData = {
+        name: data.connName,
+        ip_address: data.ip_address,
+        port: Number(data.port),
+        wss_host: data.wss_host || null,
+        wss_port: Number(data.wss_port) || null,
+        is_connected: false // Se activará ahora
+      };
+
+      await invoke("save_connection", { connData });
+
+      // 3. Activar Conexión Inmediatamente
+      // Necesitamos cargarla de nuevo para que tenga ID (o el backend puede retornar el ID)
+      // Pero connect_to_server acepta el objeto directamente.
+      await this.sdcService.connectToServer(connData, this.clientId);
+
+      this.showModal("Configuración Finalizada", `Tu terminal '${data.name}' ha sido registrado y conectado exitosamente.`);
+
+      // Recargar todo el estado
+      await this.loadConnections();
+      await this.refreshStats();
+
+    } catch (e) {
+      console.error("Error in setup complete:", e);
+      this.showModal("Error", "No se pudo completar la configuración: " + e);
+    }
+  }
 
   openApp(app: any) {
     let rawUrl = "";

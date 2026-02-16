@@ -145,6 +145,87 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
+    // Security Mailbox Table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS security_mailbox (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sid TEXT,
+            content TEXT,
+            author TEXT,
+            status TEXT DEFAULT 'Pending', -- Pending, Read, Approved, Rejected
+            tracking_info TEXT,
+            responsible TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_read BOOLEAN DEFAULT 0
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Seed Security Mailbox with Initial Campaign (Updated with Attachment)
+    conn.execute(
+        "INSERT INTO security_mailbox (sid, content, author, status, responsible, tracking_info) 
+         SELECT 'SEC-2026-ALERT', '⚠️ CAMPAÑA DE SEGURIDAD: Actualización Crítica de Protocolos v2.0\n\nEstimado usuario,\n\nSe informa que a partir del 15/02/2026 entrará en vigencia el nuevo protocolo de encriptación AES-256 para todos los documentos PDF generados por el sistema Sandra.\n\nSe adjunta el documento técnico con los detalles de la migración.\n\nAcción Requerida:\n1. Revisar el documento adjunto.\n2. Confirmar lectura.', 'SISTEMA', 'Pending', 'General', '[{\"name\": \"Boletin_Tecnico_v2.sse\", \"type\": \"SSE\", \"path\": \"/system/docs/SEC-2026-ALERT.sse\"}]'
+         WHERE NOT EXISTS (SELECT 1 FROM security_mailbox WHERE sid = 'SEC-2026-ALERT')",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Seed Example Message with Multiple Attachments
+    conn.execute(
+        "INSERT INTO security_mailbox (sid, content, author, status, responsible, tracking_info) 
+         SELECT 'DOC-2026-EXAMPLE', '📄 DOCUMENTACIÓN DE EJEMPLO\n\nEste es un mensaje de prueba para demostrar la capacidad de adjuntar múltiples tipos de documentos seguros.\n\nAdjuntos:\n1. Guía de Soporte (PDF estándar).\n2. Claves Maestras (SSE Encriptado).\n\nPor favor proceda a verificar la apertura de ambos formatos.', 'SOPORTE', 'Pending', 'Admin', '[{\"name\": \"Guia_Soporte.pdf\", \"type\": \"PDF\", \"path\": \"/docs/guia.pdf\"}, {\"name\": \"Claves_Maestras.sse\", \"type\": \"SSE\", \"path\": \"/secure/keys.sse\"}]'
+         WHERE NOT EXISTS (SELECT 1 FROM security_mailbox WHERE sid = 'DOC-2026-EXAMPLE')",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Security Config Table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS security_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            password_format_regex TEXT,
+            reporting_level TEXT,
+            audit_level TEXT,
+            cache_enabled BOOLEAN DEFAULT 1
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Security Proxy Routes Table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS security_proxy_routes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            route_path TEXT NOT NULL UNIQUE,
+            target_database TEXT,
+            code TEXT,
+            description TEXT,
+            is_active BOOLEAN DEFAULT 1
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Sembrar valores por defecto para la identidad del equipo si no existen
+    let _ = conn.execute(
+        "INSERT OR IGNORE INTO config (key, value) VALUES ('setup_done', '0')",
+        [],
+    );
+    let _ = conn.execute(
+        "INSERT OR IGNORE INTO config (key, value) VALUES ('machine_name', '')",
+        [],
+    );
+    let _ = conn.execute(
+        "INSERT OR IGNORE INTO config (key, value) VALUES ('machine_description', '')",
+        [],
+    );
+    let _ = conn.execute(
+        "INSERT OR IGNORE INTO config (key, value) VALUES ('machine_area', '')",
+        [],
+    );
+
     Ok(())
 }
 

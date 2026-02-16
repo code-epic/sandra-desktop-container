@@ -222,6 +222,7 @@
         <h1>Sandra Desktop Container</h1>
         <div class="version">Version 1.0</div>
         <div class="date" id="buildDate"></div>
+        <div id="statusText" style="margin-top: 15px; font-weight: 600; font-size: 0.85rem; color: var(--accent); letter-spacing: 0.5px;">Validando sistema...</div>
 
         <div class="footer">
             <p>Licencia: <a href="https://code-epic.com/wiki" target="_blank">Code-Epic Authority</a></p>
@@ -234,6 +235,16 @@
         const now = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         dateElement.textContent = "Compilación: " + now.toLocaleDateString('es-ES', options);
+
+        // Tauri Event Listener to update status
+        if (window.__TAURI__) {
+            const { listen } = window.__TAURI__.event;
+            const statusText = document.getElementById('statusText');
+            
+            listen('splash-status', (event) => {
+                statusText.textContent = event.payload;
+            });
+        }
     </script>
 </body>
 </html>

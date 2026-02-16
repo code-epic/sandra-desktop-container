@@ -7,6 +7,7 @@
              <i class="fas fa-chevron-down" *ngIf="isOpen" style="font-size: 1.2em;"></i>
         </div>
         <div class="status-indicator" [class.online]="wsStatus === 'Conectado'"></div>
+        <div class="unread-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</div>
     </button>
 </div>
 
@@ -50,15 +51,28 @@
             </div>
         </div>
 
-        <!-- Messages List -->
-        <div class="messages-list" *ngIf="!isLoading">
-            <div class="message-row" *ngFor="let msg of messages" [class.user-row]="msg.sender === 'user'">
-                <div class="message-bubble" [class.user-bubble]="msg.sender === 'user'" [class.ai-bubble]="msg.sender === 'sandra'">
-                    <span [innerHTML]="msg.text"></span>
-                    <span class="typing-cursor" *ngIf="msg.isTyping">|</span>
+            <!-- Messages List -->
+            <div class="messages-list" *ngIf="!isLoading">
+                <div class="message-row" *ngFor="let msg of messages" [class.user-row]="msg.sender === 'user'" [class.ai-row]="msg.sender === 'sandra'">
+                    
+                    <!-- Sender and Bubble Container -->
+                    <div class="message-content-wrapper">
+                        <div class="sender-info" *ngIf="msg.sender === 'sandra' && msg.from">
+                            <span class="sender-name">{{ msg.from }}</span>
+                        </div>
+                        
+                        <div class="bubble-container">
+                            <div class="message-bubble" [class.user-bubble]="msg.sender === 'user'" [class.ai-bubble]="msg.sender === 'sandra'">
+                                <span [innerHTML]="msg.text"></span>
+                                <span class="typing-cursor" *ngIf="msg.isTyping"></span>
+                            </div>
+                        </div>
+
+                        <div class="message-meta">
+                            <span class="message-time">{{ msg.timestamp | date:'shortTime' }}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="message-time">{{ msg.timestamp | date:'shortTime' }}</div>
-            </div>
 
             <!-- Global Typing Indicator (Thinking) -->
             <div class="message-row" *ngIf="isTyping">
@@ -74,9 +88,6 @@
     <!-- Footer / Input -->
     <div class="chat-footer">
         <div class="input-wrapper">
-            <button class="btn-attach" (click)="attachFile()" title="Adjuntar Archivo">
-                <i class="fas fa-paperclip"></i>
-            </button>
             <input type="text" 
                    [(ngModel)]="newMessage" 
                    (keydown.enter)="sendMessage()"

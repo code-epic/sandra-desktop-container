@@ -575,6 +575,25 @@ fn proxy_arbitrary_url(
         .build()?;
 
     // Realizamos petición GET simple por defecto (o podríamos intentar pasar métodos)
+    // CRITICAL: Intercept SockJS/CLI info requests that fail CORS/Protocol checks
+    if remote_url.contains("sockjs-node")
+        || remote_url.contains("ng-cli-ws")
+        || remote_url.contains("/info?t=")
+    {
+        println!(
+            "🛑 [Proxy] Intercepted DevServer Info Request (fake 200): {}",
+            remote_url
+        );
+        // Return dummy SockJS info response to pacify client
+        return Ok(create_response(
+            200,
+            "application/json",
+            r#"{"websocket":true,"origins":["*:*"],"cookie_needed":false,"entropy":1234567890}"#
+                .as_bytes()
+                .to_vec(),
+        ));
+    }
+
     let resp = client.get(remote_url).send()?;
 
     // Procesar respuesta
@@ -599,19 +618,48 @@ fn proxy_arbitrary_url(
             // 1. INJECT BASE HREF (If requested)
             if let Some(href_val) = base_href {
                 // Try reasonable variations of base tag
+                // 1. Double Quotes "/"
                 if body_str.contains("<base href=\"/\">") {
                     body_str = body_str.replace(
                         "<base href=\"/\">",
                         &format!("<base href=\"{}\">", href_val),
                     );
-                    println!("🔧 [Proxy] Patched <base href> to {}", href_val);
-                } else if body_str.contains("<base href=\"./\">") {
+                    println!(
+                        "🔧 [Proxy] Patched <base href> (double-quote /) to {}",
+                        href_val
+                    );
+                }
+                // 2. Double Quotes "./"
+                else if body_str.contains("<base href=\"./\">") {
                     body_str = body_str.replace(
                         "<base href=\"./\">",
                         &format!("<base href=\"{}\">", href_val),
                     );
-                    println!("🔧 [Proxy] Patched <base href> ./ to {}", href_val);
-                } else if !body_str.contains("<base ") {
+                    println!(
+                        "🔧 [Proxy] Patched <base href> (double-quote ./) to {}",
+                        href_val
+                    );
+                }
+                // 3. Single Quotes '/'
+                else if body_str.contains("<base href='/'>") {
+                    body_str = body_str
+                        .replace("<base href='/'>", &format!("<base href=\"{}\">", href_val));
+                    println!(
+                        "🔧 [Proxy] Patched <base href> (single-quote /) to {}",
+                        href_val
+                    );
+                }
+                // 4. Single Quotes './'
+                else if body_str.contains("<base href='./'>") {
+                    body_str = body_str
+                        .replace("<base href='./'>", &format!("<base href=\"{}\">", href_val));
+                    println!(
+                        "🔧 [Proxy] Patched <base href> (single-quote ./) to {}",
+                        href_val
+                    );
+                }
+                // 5. No base found? Inject one.
+                else if !body_str.contains("<base ") {
                     // Inject head if no base exists
                     // Very crude injection, but covers 99% of generated index.html
                     body_str =
@@ -771,9 +819,17 @@ fn proxy_arbitrary_url(
     }
 
     // 3. Inyectar nuestros headers permisivos ("Engaño" al navegador)
+    // FORCE CORS: We must ensure these headers are present to satisfy the browser
+    // treating sandra-app:// as a distinct origin from http://localhost
     Ok(response_builder
-        .header("Access-Control-Allow-Origin", "*") // Ojo: con credentials true, esto no puede ser '*' en browsers estrictos, pero en Tauri custom protocol a veces cuela. Si falla, hay que reflejar el Origin.
-        .header("Access-Control-Allow-Credentials", "true")
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Credentials", "true") // Often conflicts with *, but needed for some XHR
+        .header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+        )
+        .header("Access-Control-Allow-Headers", "*") // Wildcard headers
+        .header("Access-Control-Expose-Headers", "*")
         .header(
             "Access-Control-Allow-Methods",
             "GET, POST, OPTIONS, PUT, DELETE",

@@ -109,7 +109,8 @@
                     <i class="fas" [class.fa-save]="!form.id" [class.fa-sync]="form.id"></i> {{ form.id ? 'Actualizar' : 'Guardar' }}
                 </button>
                 
-                <button class="btn-modal-acept" (click)="connect()" [disabled]="!isHostAvailable && !form.is_connected"
+                <button class="btn-modal-acept" (click)="connect()" 
+                        [disabled]="!isHostAvailable && !form.is_connected && connectionState !== 'connected'"
                         [class.connected-btn]="form.is_connected">
                     <i class="fas" [class.fa-plug]="!form.is_connected" [class.fa-unlink]="form.is_connected"></i> 
                     {{ form.is_connected ? 'Desconectar' : (form.id ? 'Conectar' : 'Probar Conexión') }}

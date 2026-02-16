@@ -196,6 +196,15 @@
   </app-config>
 
   <app-chat [wsStatus]="wsStatus"></app-chat>
+
+  <!-- SETUP WIZARD OVERLAY -->
+  <app-setup-wizard 
+    *ngIf="showSetupWizard" 
+    [stats]="stats" 
+    [networkInfo]="networkInfo"
+    (onComplete)="handleSetupComplete($event)">
+  </app-setup-wizard>
+
   <!-- UNLOCK TAB MODAL -->
   <div class="modal-overlay" *ngIf="showUnlockTabModal">
       <div class="modal-card">

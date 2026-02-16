@@ -44,9 +44,37 @@ pub async fn start_remote_listener(
     let _ = app_handle.emit("connection-status", "connecting");
 
     loop {
-        // Parametro estático en URL
+        // 1. Recolectar contexto del dispositivo para el Handshake Seguro
+        let machine_name = if let Some(state) = app_handle.try_state::<DbState>() {
+            let conn = state.0.lock().unwrap();
+            conn.query_row(
+                "SELECT value FROM config WHERE key = 'machine_name'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap_or_else(|_| "SDC-Node".to_string())
+        } else {
+            "SDC-Node".to_string()
+        };
+
+        let stats = collect_system_stats();
+        let context = serde_json::json!({
+            "machine_name": machine_name,
+            "os_info": stats.os_info,
+            "mac_address": stats.mac_address,
+            "network": stats.local_ip,
+            "timestamp": chrono::Utc::now().to_rfc3339()
+        });
+
+        // 2. Cifrar el contexto usando el nuevo Sha256Service
+        // Se usa HANDSHAKE_SECRET como clave de cifrado
+        let encrypted_context =
+            crate::sha256::Sha256Service::encrypt_device_context(&context, HANDSHAKE_SECRET)
+                .unwrap_or_else(|_| "ENCRYPTION_ERROR".to_string());
+
+        // 3. Preparar URL con initialMessage cifrado
         let mut final_url = ws_url.clone();
-        let encoded_msg = encode("Iniciando Conexion Sandra");
+        let encoded_msg = encode(&encrypted_context);
 
         if final_url.contains('?') {
             final_url = format!("{}&initialMessage={}", final_url, encoded_msg);
@@ -55,7 +83,10 @@ pub async fn start_remote_listener(
         }
 
         attempt_count += 1;
-        println!("🔄 Intentando conectar a: {}", final_url);
+        println!(
+            "🔄 Intentando conectar a Sandra Server (Attempt {})...",
+            attempt_count
+        );
 
         match connect_async_tls_with_config(&final_url, None, false, Some(connector.clone())).await
         {
@@ -148,19 +179,115 @@ fn set_db_disconnected(app_handle: &AppHandle, connection_id: Option<i64>) {
 }
 
 fn process_command(text: &str, app_handle: &AppHandle) {
+    println!("📩 [WS] Mensaje CRUDO recibido: {}", text);
+
     if let Ok(json) = serde_json::from_str::<Value>(text) {
-        match json["cmd"].as_str() {
-            Some("reboot") => {
-                execute_system_reboot();
+        // Estructura Plana: { "type": "chat", "id": "...", "message": "...", "from": "..." }
+        let msg_type = json["type"].as_str().unwrap_or("unknown");
+        println!("🔍 [WS] Tipo de mensaje detectado: {}", msg_type);
+
+        match msg_type {
+            "notification" => {
+                println!("🔔 [WS] Procesando Notificación Nativa...");
+                use tauri_plugin_notification::NotificationExt;
+
+                // Verificar estado de permisos (diagnóstico)
+                let permission_state = app_handle.notification().permission_state();
+                println!(
+                    "🔐 [WS] Estado de permiso de notificación: {:?}",
+                    permission_state
+                );
+
+                let title = json["title"]
+                    .as_str()
+                    .or(json["from"].as_str())
+                    .unwrap_or("Sandra Alert");
+                let body = json["message"].as_str().unwrap_or("Nuevo evento detectado");
+
+                // 1. Intentar ruta de recursos (Producción)
+                let mut icon_path = app_handle
+                    .path()
+                    .resource_dir()
+                    .map(|p| p.join("icons").join("icon.png"))
+                    .ok();
+
+                // 2. Si no existe, intentar ruta de desarrollo (Source)
+                if icon_path.as_ref().map_or(true, |p| !p.exists()) {
+                    if let Ok(_app_dir) = app_handle.path().app_config_dir() {
+                        // app_config_dir suele estar cerca de la fuente en dev,
+                        // pero la forma mas segura en dev es app_handle.path().current_dir() si esta habilitado
+                        // O simplemente reconstruir desde app_handle.path().resource_dir() hacia arriba.
+                        if let Ok(res_dir) = app_handle.path().resource_dir() {
+                            let dev_path =
+                                res_dir.join("..").join("..").join("icons").join("icon.png");
+                            if dev_path.exists() {
+                                icon_path = Some(dev_path);
+                            }
+                        }
+                    }
+                }
+
+                if let Some(ref path) = icon_path {
+                    println!("🖼️ [WS] Ruta final del icono: {:?}", path);
+                    println!("❓ [WS] ¿Existe el icono?: {}", path.exists());
+                }
+
+                let mut builder = app_handle.notification().builder();
+                builder = builder.title(title).body(body).sound("Default");
+
+                if let Some(path) = icon_path {
+                    if path.exists() {
+                        builder = builder.icon(path.to_string_lossy().to_string());
+                    }
+                }
+
+                builder
+                    .show()
+                    .unwrap_or_else(|e| println!("❌ Error mostrando notificación: {}", e));
+
+                println!("🚀 [WS] Notificación enviada al sistema operativo.");
+
+                // También emitimos al frontend
+                let _ = app_handle.emit("system-notification", &json);
             }
-            Some("status") => {
-                // Respond or log
+            "chat" => {
+                println!("💬 [WS] Redirigiendo mensaje al sistema de Chat...");
+                // Mensaje plano para el componente de Chat
+                let _ = app_handle.emit("chat-message", &json);
             }
-            Some("welcome") => {
-                let _ = app_handle.emit("server-welcome", json);
+            "operation" => {
+                println!("⚙️ [WS] Ejecutando operación de sistema...");
+                // Acciones de sistema (reboot, updates, etc)
+                match json["cmd"].as_str() {
+                    Some("reboot") => execute_system_reboot(),
+                    Some("status") => { /* Responder con stats */ }
+                    _ => println!("📩 Operación desconocida: {:?}", json),
+                }
+                let _ = app_handle.emit("operation-event", &json);
             }
-            _ => println!("📩 Mensaje recibido: {}", text),
+            "welcome" => {
+                println!("👋 [WS] Servidor dio la bienvenida");
+                let _ = app_handle.emit("server-welcome", &json);
+            }
+            _ => {
+                println!("⚠️ [WS] Tipo desconocido o legacy. Buscando 'cmd'...");
+                // Compatibilidad con comandos antiguos (id-less o legacy)
+                if let Some(cmd) = json["cmd"].as_str() {
+                    println!("🏷️ [WS] Comando legacy encontrado: {}", cmd);
+                    match cmd {
+                        "reboot" => execute_system_reboot(),
+                        "welcome" => {
+                            let _ = app_handle.emit("server-welcome", &json);
+                        }
+                        _ => println!("📩 Comando legacy detectado: {}", cmd),
+                    }
+                } else {
+                    println!("📩 [WS] No se pudo determinar la acción para el mensaje");
+                }
+            }
         }
+    } else {
+        println!("❌ [WS] Falló el parseo de JSON: {}", text);
     }
 }
 

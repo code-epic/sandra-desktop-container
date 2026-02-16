@@ -4,5 +4,6 @@ pub mod handler_error;
 pub mod history;
 pub mod monitor;
 pub mod pdf;
+pub mod security;
 pub mod system;
 pub mod window;

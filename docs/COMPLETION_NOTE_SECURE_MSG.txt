@@ -1,0 +1,1 @@
+Funcionalidad de mensajes seguros implementada. Comandos: generate_secure_package (Server Sim) y ingest_secure_package (Client Ingest).

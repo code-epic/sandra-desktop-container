@@ -1,0 +1,1 @@
+Soporte para documentos adjuntos SSE/PDF implementado con éxito.

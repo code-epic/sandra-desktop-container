@@ -164,6 +164,61 @@ pub async fn delete_connection(state: tauri::State<'_, DbState>, id: i32) -> Res
 }
 
 #[tauri::command]
+pub async fn get_setup_status(
+    state: tauri::State<'_, DbState>,
+) -> Result<serde_json::Value, String> {
+    let conn = state.0.lock().unwrap();
+    let is_done: String = conn
+        .query_row(
+            "SELECT value FROM config WHERE key = 'setup_done'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_else(|_| "0".to_string());
+
+    let name: String = conn
+        .query_row(
+            "SELECT value FROM config WHERE key = 'machine_name'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_default();
+
+    Ok(serde_json::json!({
+        "is_done": is_done == "1",
+        "machine_name": name
+    }))
+}
+
+#[tauri::command]
+pub async fn save_setup_data(
+    state: tauri::State<'_, DbState>,
+    name: String,
+    description: String,
+    area: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().unwrap();
+    conn.execute("UPDATE config SET value = '1' WHERE key = 'setup_done'", [])
+        .map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE config SET value = ?1 WHERE key = 'machine_name'",
+        [&name],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE config SET value = ?1 WHERE key = 'machine_description'",
+        [&description],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE config SET value = ?1 WHERE key = 'machine_area'",
+        [&area],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn connect_to_server(
     state: tauri::State<'_, DbState>,
     conn_task: tauri::State<'_, crate::ConnectionTask>,
@@ -171,20 +226,32 @@ pub async fn connect_to_server(
     conn_data: Connection,
     client_id: String,
 ) -> Result<(), String> {
+    let conn = state.0.lock().unwrap();
+
+    // Obtener el nombre descriptivo de la máquina para usarlo en el handshake
+    let machine_name: String = conn
+        .query_row(
+            "SELECT value FROM config WHERE key = 'machine_name'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_else(|_| "SDC-Node".to_string());
+
     let host = conn_data
         .wss_host
         .clone()
         .unwrap_or(conn_data.ip_address.clone());
     let port = conn_data.wss_port.unwrap_or(8443);
 
+    // Inyectar el machine_name en la URL
     let url = format!(
         "wss://{}:{}/sandra_ws?userId={}&userName={}",
-        host, port, client_id, "SDC-User"
+        host, port, client_id, machine_name
     );
 
-    println!("🔌 Iniciando conexión bajo demanda a: {}", url);
+    println!("🔌 Iniciando conexión segura a: {}", url);
 
-    // 1. Abort previous task if any
+    // 1. Abort previous task if any (drop the lock immediately)
     {
         let mut task_guard = conn_task.0.lock().unwrap();
         if let Some(handle) = task_guard.take() {
@@ -194,26 +261,15 @@ pub async fn connect_to_server(
     }
 
     // Update DB status
-    let conn = state.0.lock().unwrap();
-    // Reset all others
     let _ = conn.execute("UPDATE connections SET is_connected = 0", []);
     if let Some(id) = conn_data.id {
-        println!(
-            "🔌 [DB] Marking connection ID={} as ACTIVE (is_connected=1)",
-            id
-        );
-        let res = conn.execute(
+        let _ = conn.execute(
             "UPDATE connections SET is_connected = 1 WHERE id = ?1",
             [id],
         );
-        if let Err(e) = res {
-            println!("❌ [DB] Error updating is_connected: {}", e);
-        }
-    } else {
-        println!("❌ [DB] Cannot mark active: conn_data.id is NONE");
     }
 
-    // Capture ID for the background thread
+    // Capture IDs for the background thread
     let conn_id_i64 = conn_data.id.map(|n| n as i64);
 
     // 2. Spawn new task and save handle

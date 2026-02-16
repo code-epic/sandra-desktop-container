@@ -12,9 +12,13 @@ import { FormsModule } from "@angular/forms";
 interface ChatMessage {
   text: string;
   sender: "user" | "sandra";
+  from?: string;
   timestamp: Date;
   isTyping?: boolean;
 }
+
+import { WebSocketService } from "../../core/services/websocket.service";
+import { Subscription } from "rxjs";
 
 @Component({
   selector: "app-chat",
@@ -24,6 +28,8 @@ interface ChatMessage {
   styleUrls: ["./chat.component.css"],
 })
 export class ChatComponent implements OnInit, AfterViewChecked {
+  private chatSub?: Subscription;
+  private statusSub?: Subscription;
   @Input() wsStatus: string = "Desconectado";
   @ViewChild("scrollContainer") privatescrollContainer!: ElementRef;
 
@@ -32,15 +38,32 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   newMessage = "";
   messages: ChatMessage[] = [];
   isTyping = false;
+  unreadCount = 0;
 
-  constructor() {}
+  constructor(private wsService: WebSocketService) { }
 
   ngOnInit() {
-    // Simulate initial loading/connection
+    // Escuchar mensajes reales del WebSocket
+    this.chatSub = this.wsService.chatMessages$.subscribe(msg => {
+      this.addIncomingMessage(msg.from, msg.message);
+    });
+
+    this.statusSub = this.wsService.connectionStatus$.subscribe(status => {
+      this.wsStatus = status;
+    });
+
+    // Simular bienvenida inicial si no hay historial
     setTimeout(() => {
       this.isLoading = false;
-      this.addSystemMessage("Hola, soy Sandra. ¿En qué puedo ayudarte hoy?");
-    }, 1500);
+      if (this.messages.length === 0) {
+        this.addSystemMessage("Hola, soy Sandra. ¿En qué puedo ayudarte hoy?");
+      }
+    }, 1000);
+  }
+
+  ngOnDestroy() {
+    this.chatSub?.unsubscribe();
+    this.statusSub?.unsubscribe();
   }
 
   ngAfterViewChecked() {
@@ -53,13 +76,13 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         this.privatescrollContainer.nativeElement.scrollTop =
           this.privatescrollContainer.nativeElement.scrollHeight;
       }
-    } catch (err) {}
+    } catch (err) { }
   }
 
   toggleChat() {
     this.isOpen = !this.isOpen;
-    if (this.isOpen && this.messages.length === 0 && !this.isLoading) {
-      // Optional: Fresh start logic
+    if (this.isOpen) {
+      this.unreadCount = 0;
     }
   }
 
@@ -104,10 +127,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.typeWriterEffect(responseText);
   }
 
-  typeWriterEffect(text: string) {
+  typeWriterEffect(text: string, from: string = "Sandra") {
     const msg: ChatMessage = {
       text: "",
       sender: "sandra",
+      from: from,
       timestamp: new Date(),
       isTyping: true,
     };
@@ -130,9 +154,20 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     type();
   }
 
+  addIncomingMessage(from: string, text: string) {
+    // Si el chat está cerrado, aumentar contador de no leídos
+    if (!this.isOpen) {
+      this.unreadCount++;
+    }
+
+    // Aplicar efecto de escritura para mensajes entrantes de Sandra
+    this.typeWriterEffect(text, from);
+  }
+
   addSystemMessage(text: string) {
     this.messages.push({
       text: text,
+      from: "Sistema",
       sender: "sandra",
       timestamp: new Date(),
     });

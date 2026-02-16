@@ -507,3 +507,25 @@ button:disabled {
     margin-bottom: 20px;
 }
 
+/* Web Push Styles */
+.id-value.subscribing { color: #FFA726; }
+.id-value.subscribed { color: #66BB6A; }
+.id-value.denied { color: #EF5350; }
+.id-value.error { color: #EF5350; }
+.id-value.unsupported { color: #90A4AE; }
+
+.vapid-tag {
+    font-size: 0.6em;
+    background: #E8F5E9;
+    color: #2E7D32;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-left: 10px;
+    border: 1px solid #C8E6C9;
+    text-transform: uppercase;
+}
+
+.id-value i {
+    font-size: 0.9em;
+}

@@ -1,0 +1,114 @@
+<div class="setup-overlay">
+  <div class="setup-card fade-in">
+    <header class="setup-header">
+      <div class="setup-logo">
+        <img src="assets/sandra.png" alt="Sandra Logo">
+      </div>
+      <h2>Configuración de Identidad</h2>
+      <p class="setup-subtitle">Personaliza tu terminal para el ecosistema Sandra</p>
+    </header>
+
+    <!-- STEP 1: Identification -->
+    <div class="step-container" *ngIf="step === 1">
+      <div class="input-group">
+        <label>Nombre del Equipo</label>
+        <input type="text" [(ngModel)]="formData.name" placeholder="Ej: PC-Administracion-01" class="sdc-input">
+      </div>
+      <div class="input-group">
+        <label>Área o Departamento</label>
+        <input type="text" [(ngModel)]="formData.area" placeholder="Ej: Contabilidad / Legal" class="sdc-input">
+      </div>
+      <div class="input-group">
+        <label>Descripción Breve</label>
+        <textarea [(ngModel)]="formData.description" placeholder="Uso principal del terminal..." class="sdc-input"></textarea>
+      </div>
+    </div>
+
+    <!-- STEP 2: Technical Summary -->
+    <div class="step-container" *ngIf="step === 2">
+      <div class="tech-summary">
+        <div class="summary-item">
+          <i class="fas fa-desktop"></i>
+          <div class="summary-details">
+            <span class="label">Sistema Operativo</span>
+            <span class="value">{{ stats?.os_info || 'Detectando...' }}</span>
+          </div>
+        </div>
+        <div class="summary-item">
+          <i class="fas fa-fingerprint"></i>
+          <div class="summary-details">
+            <span class="label">Client ID (Unique)</span>
+            <span class="value">{{ clientId }}</span>
+          </div>
+        </div>
+        <div class="summary-item">
+          <i class="fas fa-network-wired"></i>
+          <div class="summary-details">
+            <span class="label">Dirección MAC</span>
+            <span class="value">{{ stats?.mac_address || 'Detectando...' }}</span>
+          </div>
+        </div>
+        <div class="summary-item">
+          <i class="fas fa-globe"></i>
+          <div class="summary-details">
+            <span class="label">IP Local</span>
+            <span class="value">{{ stats?.local_ip || 'No detectada' }}</span>
+          </div>
+        </div>
+      </div>
+      <p class="summary-notice">
+        <i class="fas fa-info-circle"></i> Esta información será vinculada a la identidad del nodo para auditoría.
+      </p>
+    </div>
+
+    <!-- STEP 3: Connection Config -->
+    <div class="step-container" *ngIf="step === 3">
+      <div class="input-group">
+        <label>Dirección del Servidor (IP/Host)</label>
+        <div class="input-with-verify">
+          <input type="text" [(ngModel)]="formData.ip_address" (ngModelChange)="onAddressChange()" placeholder="Ej: 192.168.1.100" class="sdc-input">
+          <div class="verify-badge">
+            <i *ngIf="verifyStatus === 'checking'" class="fas fa-circle-notch fa-spin checking"></i>
+            <i *ngIf="verifyStatus === 'success'" class="fas fa-check-circle success"></i>
+            <i *ngIf="verifyStatus === 'error'" class="fas fa-times-circle error"></i>
+          </div>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Puerto Principal</label>
+        <input type="number" [(ngModel)]="formData.port" (ngModelChange)="onAddressChange()" class="sdc-input">
+      </div>
+      
+      <div class="advanced-toggle">
+        <p><i class="fas fa-cog"></i> WebSocket (Opcional)</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label>WSS Host</label>
+          <input type="text" [(ngModel)]="formData.wss_host" placeholder="Dejar vacío para auto" class="sdc-input">
+        </div>
+        <div class="input-group">
+          <label>WSS Port</label>
+          <input type="number" [(ngModel)]="formData.wss_port" class="sdc-input">
+        </div>
+      </div>
+    </div>
+
+    <footer class="setup-footer">
+      <div class="dots-indicator">
+        <div class="dot" [class.active]="step === 1"></div>
+        <div class="dot" [class.active]="step === 2"></div>
+        <div class="dot" [class.active]="step === 3"></div>
+      </div>
+      <div class="actions">
+        <button class="btn-setup-back" *ngIf="step > 1" (click)="back()">Anterior</button>
+        <button class="btn-setup-next" (click)="next()" 
+                [disabled]="(step === 1 && (!formData.name || !formData.area)) || (step === 3 && !isHostAvailable)">
+          {{ step === 3 ? 'Finalizar y Conectar' : 'Continuar' }} 
+          <i class="fas" [class.fa-chevron-right]="step < 3" [class.fa-rocket]="step === 3"></i>
+        </button>
+      </div>
+    </footer>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 #[tauri::command]
 pub async fn close_splash(app_handle: AppHandle) {
@@ -19,4 +19,9 @@ pub async fn close_splash(app_handle: AppHandle) {
     } else {
         // println!("⚠️ [Splash] No se encontró la ventana 'main'");
     }
+}
+
+#[tauri::command]
+pub fn emit_splash_status(app_handle: AppHandle, message: String) {
+    let _ = app_handle.emit("splash-status", message);
 }
