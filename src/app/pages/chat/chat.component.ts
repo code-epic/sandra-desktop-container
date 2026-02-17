@@ -29,7 +29,6 @@ import { Subscription } from "rxjs";
 })
 export class ChatComponent implements OnInit, AfterViewChecked {
   private chatSub?: Subscription;
-  private statusSub?: Subscription;
   @Input() wsStatus: string = "Desconectado";
   @ViewChild("scrollContainer") privatescrollContainer!: ElementRef;
 
@@ -48,10 +47,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       this.addIncomingMessage(msg.from, msg.message);
     });
 
-    this.statusSub = this.wsService.connectionStatus$.subscribe(status => {
-      this.wsStatus = status;
-    });
-
     // Simular bienvenida inicial si no hay historial
     setTimeout(() => {
       this.isLoading = false;
@@ -63,7 +58,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   ngOnDestroy() {
     this.chatSub?.unsubscribe();
-    this.statusSub?.unsubscribe();
   }
 
   ngAfterViewChecked() {

@@ -47,7 +47,7 @@ export class SdcService {
     return await invoke('get_connections');
   }
 
-  async saveConnection(connection: any): Promise<void> {
+  async saveConnection(connection: any): Promise<number> {
     return await invoke('save_connection', { connData: connection });
   }
 

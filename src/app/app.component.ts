@@ -7,6 +7,7 @@ import {
   Title,
 } from "@angular/platform-browser";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { SdcService } from "./core/services/sdc.service";
 import { LoggerService } from "./core/services/logger.service";
 import { SystemStats } from "./core/models/telemetry.model";
@@ -135,6 +136,8 @@ export class AppComponent implements OnInit {
   isInspectorOpen = false;
 
   genericModal = { show: false, title: '', message: '' };
+  exitModal = { show: false, closing: false };
+  isExitConfirmed = false;
 
 
   constructor(
@@ -152,7 +155,6 @@ export class AppComponent implements OnInit {
     // Close splash screen
     // Esperamos 5 segundos antes de cerrar el splash y mostrar el main
     this.initApplication();
-
 
     this.activeTabId$ = this.appState.activeTabId$;
     this.openTabs$ = this.appState.openTabs$;
@@ -204,29 +206,40 @@ export class AppComponent implements OnInit {
 
     // Global Connection Status Listener
     await listen("connection-status", (event: any) => {
-      // console.log("Global connection status updated:", event.payload);
-      const s = event.payload as string;
-      if (s === "connected") {
-        this.wsStatus = "Conectado";
-      } else if (s === "disconnected") {
-        this.wsStatus = "Desconectado";
-      } else if (s === "connecting") {
-        this.wsStatus = "Reintentando";
-      } else if (s === "error") {
-        this.wsStatus = "Desconectado";
-      }
       this.zone.run(() => {
-        // Trigger UI update
+        const s = event.payload as string;
+        if (s === "connected") {
+          this.wsStatus = "Conectado";
+        } else if (s === "disconnected") {
+          this.wsStatus = "Desconectado";
+        } else if (s === "connecting") {
+          this.wsStatus = "Reintentando";
+        } else if (s === "error") {
+          this.wsStatus = "Desconectado";
+        }
       });
     });
 
-    // Initialize Client ID and Connections
-    this.clientId = await this.sdcService.getClientId();
-    await this.loadConnections();
+    // Initialize Connections (Client ID and Startup logic handled in initApplication)
+    // Removed redundant loadConnections here to avoid race conditions with splash flow.
 
     // Subscribe to App Updates
     this.desktopAppsService.appsUpdated$.subscribe(() => {
       this.loadApps();
+    });
+
+    // Intercept Window Close
+    const win = getCurrentWindow();
+    win.onCloseRequested(async (event) => {
+      if (this.isExitConfirmed) {
+        // Si ya confirmamos la salida, dejamos que el evento proceda
+        return;
+      }
+
+      event.preventDefault();
+      this.zone.run(() => {
+        this.handleGlobalLogout();
+      });
     });
   }
 
@@ -333,8 +346,11 @@ export class AppComponent implements OnInit {
 
   async initApplication() {
     try {
-      // 1. Validar identidad
-      await invoke('emit_splash_status', { message: 'Validando identidad...' });
+      // 1. Huella Única del Terminal (Inmutable)
+      await invoke('emit_splash_status', { message: 'Iniciando Kernel Sandra...' });
+      this.clientId = await this.sdcService.getClientId();
+
+      // 2. Validar identidad
       const setupStatus = await invoke<any>('get_setup_status');
 
       // Cargar Identidad del Sistema (MAC, IP, SO) para el Wizard
@@ -358,10 +374,26 @@ export class AppComponent implements OnInit {
         // Cargar conexiones existentes
         await this.loadConnections();
 
+        // Si no hay marcada como conectada, pero hay al menos una, tomamos la primera
+        if (!this.activeConnection && this.availableConnections.length > 0) {
+          this.activeConnection = this.availableConnections[0];
+          console.log("ℹ️ [Init] Usando perfil por defecto:", this.activeConnection.name);
+        }
+
         if (this.activeConnection) {
-          await invoke('emit_splash_status', { message: 'Sincronizando con Sandra Server...' });
-          // Refrescar conexión: Desconectar y Volver a intentar (Handshake con nuevo userName)
+          console.log("🔌 [Init] Auto-conectando a:", this.activeConnection.name);
+          await invoke('emit_splash_status', { message: `Enlazando con ${this.activeConnection.name}...` });
+
+          // Refreco proactivo: Limpieza de hilos y Apertura de Socket
+          try {
+            await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+          } catch (e) { }
+
           await this.sdcService.connectToServer(this.activeConnection, this.clientId);
+          await invoke('emit_splash_status', { message: 'Enlace Establecido' });
+        } else {
+          await invoke('emit_splash_status', { message: 'Sin Perfiles de Conexión' });
+          console.log("⚠️ [Init] No se encontró ninguna conexión para auto-consecución.");
         }
 
         setTimeout(async () => {
@@ -373,6 +405,34 @@ export class AppComponent implements OnInit {
       console.error("Error during initApplication:", e);
       // Fallback: cerrar splash para no bloquear al usuario
       setTimeout(() => invoke("close_splash"), 3000);
+    }
+  }
+
+  async handleGlobalLogout() {
+    this.exitModal = { show: true, closing: false };
+  }
+
+  async confirmExit() {
+    this.exitModal.closing = true;
+
+    try {
+      // 1. Notificar Desconexión (Clean socket closure)
+      if (this.activeConnection) {
+        console.log("🔌 Reportando cierre a Sandra Server...");
+        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+      }
+
+      // 2. Apagado total: 3.5 segundos de gracia para ver la animación
+      setTimeout(async () => {
+        this.isExitConfirmed = true;
+        console.log("🚀 [System] Ejecutando exit_app...");
+        await invoke("exit_app");
+      }, 3500);
+
+    } catch (e) {
+      console.error("Error al cerrar sesión durante salida:", e);
+      this.isExitConfirmed = true;
+      await invoke("exit_app");
     }
   }
 
@@ -398,11 +458,10 @@ export class AppComponent implements OnInit {
         is_connected: false // Se activará ahora
       };
 
-      await invoke("save_connection", { connData });
+      const connId = await invoke<number>("save_connection", { connData });
+      (connData as any).id = connId;
 
       // 3. Activar Conexión Inmediatamente
-      // Necesitamos cargarla de nuevo para que tenga ID (o el backend puede retornar el ID)
-      // Pero connect_to_server acepta el objeto directamente.
       await this.sdcService.connectToServer(connData, this.clientId);
 
       this.showModal("Configuración Finalizada", `Tu terminal '${data.name}' ha sido registrado y conectado exitosamente.`);

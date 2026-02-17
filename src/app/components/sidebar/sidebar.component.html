@@ -34,8 +34,15 @@
         <div class="nav-item" [class.active]="(activeTab$ | async) === 'secure-viewer'" (click)="setActive('secure-viewer')">
             <i class="fas fa-file-shield"></i> <span>Visor Seguro</span>
         </div>
+        
+        <div class="nav-item help-item" [class.active]="(activeTab$ | async) === 'wiki-help'" (click)="openWikiHelp()">
+            <i class="fas fa-book"></i> <span>Ayuda Wiki</span>
+        </div>
         <div class="nav-item settings" (click)="toggleConfig()">
             <i class="fas fa-sliders-h"></i> <span>Configuración</span>
+        </div>
+        <div class="nav-item logout" (click)="logout()">
+            <i class="fas fa-sign-out-alt"></i> <span>Cerrar Sesión</span>
         </div>
     </nav>
 </aside>

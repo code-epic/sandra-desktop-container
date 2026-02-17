@@ -260,34 +260,26 @@
       <!-- New Route Card -->
       <div class="glass-card add-route-panel">
         <div class="panel-header">
-            <h3><i class="fas" [class.fa-route]="!isEditing" [class.fa-edit]="isEditing"></i> {{ isEditing ? 'Modificar Ruta' : 'Configurar Nueva Ruta' }}</h3>
+            <div class="header-left">
+                <h3><i class="fas" [class.fa-route]="!isEditing" [class.fa-edit]="isEditing"></i> {{ isEditing ? 'Modificar Ruta' : 'Configurar Nueva Ruta' }}</h3>
+                <p class="subtitle">Defina puntos de acceso seguros y políticas de retención de datos.</p>
+            </div>
             <span class="badge" [class.info]="!isEditing" [class.warning]="isEditing">{{ isEditing ? 'Modo Edición' : 'Interconexión Segura' }}</span>
         </div>
         
-        <div class="form-grid compact-grid">
+        <div class="form-grid compact-grid proxy-grid-layout">
             <!-- Ruta -->
-            <div class="form-group icon-input-group">
+            <div class="form-group icon-input-group route-field">
                 <label>Ruta del Recurso <span class="required">*</span></label>
                 <div class="input-wrapper">
                     <i class="fas fa-link input-icon"></i>
                     <input [(ngModel)]="newRoute.route_path" placeholder="/api/v1/resource" class="input-dark pl-icon">
                 </div>
-                <small class="helper-text">Ej: /external-proxy/app-id</small>
-            </div>
-
-            <!-- Salvar Datos Local -->
-            <div class="form-group icon-input-group">
-                <label>Salvar Datos Local</label>
-                <div class="input-wrapper">
-                    <select [(ngModel)]="newRoute.target_database" class="input-dark">
-                        <option value="NO">NO</option>
-                        <option value="SI">SI</option>
-                    </select>
-                </div>
+                <!-- <small class="helper-text">Ej: /external-proxy/app-id</small> -->
             </div>
 
             <!-- Código -->
-            <div class="form-group icon-input-group">
+            <div class="form-group icon-input-group code-field">
                 <label>Código/ID</label>
                 <div class="input-wrapper">
                     <i class="fas fa-tag input-icon"></i>
@@ -295,8 +287,21 @@
                 </div>
             </div>
 
+            <!-- Salvar Datos Local (Switch) -->
+            <div class="form-group switch-group">
+                <label>Salvar Datos Local</label>
+                <div class="switch-wrapper">
+                     <label class="switch">
+                        <input type="checkbox" [checked]="newRoute.target_database === 'SI'" (change)="newRoute.target_database = $event.target.checked ? 'SI' : 'NO'">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">{{ newRoute.target_database === 'SI' ? 'Activado' : 'Desactivado' }}</span>
+                </div>
+                <small class="helper-text">Persistir tráfico en base de datos local SQLite.</small>
+            </div>
+
             <!-- Descripción -->
-            <div class="form-group full-width icon-input-group">
+            <div class="form-group full-width icon-input-group desc-field">
                 <label>Descripción</label>
                 <div class="input-wrapper">
                     <i class="fas fa-align-left input-icon"></i>
@@ -319,23 +324,34 @@
         <table class="proxy-table">
             <thead>
             <tr>
-                <th>Ruta</th>
-                <th>BD Destino</th>
-                <th>Código</th>
-                <th>Descripción</th>
-                <th>Estado</th>
-                <th>Acciones</th>
+                <th width="30%">Ruta del Recurso</th>
+                <th width="15%">Código/ID</th>
+                <th width="25%">Descripción</th>
+                <th width="20%">Estado / Persistencia</th>
+                <th width="10%">Acciones</th>
             </tr>
             </thead>
             <tbody>
             <tr *ngFor="let route of proxyRoutes">
-                <td class="font-mono">{{ route.route_path }}</td>
-                <td>{{ route.target_database }}</td>
-                <td><span class="badge">{{ route.code }}</span></td>
-                <td>{{ route.description }}</td>
                 <td>
-                    <span class="status-dot" [class.active]="route.is_active"></span>
-                    {{ route.is_active ? 'Activo' : 'Inactivo' }}
+                    <div class="font-mono">{{ route.route_path }}</div>
+                </td>
+                <td>
+                    <span class="code-badge no-wrap">{{ route.code }}</span>
+                </td>
+                <td class="desc-cell">
+                    <div class="truncate-text" title="{{ route.description }}">{{ route.description || 'Sin descripción' }}</div>
+                </td>
+                <td>
+                    <div class="status-combo">
+                        <span class="status-pill" [class.active]="route.is_active" [class.inactive]="!route.is_active">
+                            <span class="status-pulse"></span>
+                            {{ route.is_active ? 'OPERATIVO' : 'DETENIDO' }}
+                        </span>
+                        <span class="mini-db-tag" *ngIf="route.target_database === 'SI'" title="Persistencia Activa">
+                            <i class="fas fa-database"></i> SAVE
+                        </span>
+                    </div>
                 </td>
                 <td>
                     <div class="table-action-hub">

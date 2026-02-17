@@ -25,3 +25,8 @@ pub async fn close_splash(app_handle: AppHandle) {
 pub fn emit_splash_status(app_handle: AppHandle, message: String) {
     let _ = app_handle.emit("splash-status", message);
 }
+
+#[tauri::command]
+pub fn exit_app(app_handle: AppHandle) {
+    app_handle.exit(0);
+}

@@ -81,6 +81,7 @@ pub fn run() {
             commands::connections::disconnect_from_server,
             commands::window::close_splash,
             commands::window::emit_splash_status,
+            commands::window::exit_app,
             commands::pdf::save_protected_pdf,
             commands::pdf::load_sse_document,
             commands::pdf::print_pdf_direct,

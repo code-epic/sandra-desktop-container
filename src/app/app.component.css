@@ -1244,3 +1244,85 @@ iframe {
       opacity: 1; 
   }
 }
+/* EXIT MODAL STYLES */
+.exit-card {
+    border-top: 4px solid #ef5350;
+    text-align: center;
+    padding: 40px;
+    max-width: 420px;
+}
+
+.exit-icon-container {
+    width: 80px;
+    height: 80px;
+    background: #fff5f5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    position: relative;
+    color: #ef5350;
+    font-size: 2rem;
+}
+
+.exit-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #ef5350;
+    border-radius: 50%;
+    animation: exit-pulse 2s infinite;
+}
+
+@keyframes exit-pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+
+.exit-btn {
+    background: #B03A2E !important;
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+.exit-btn:hover {
+    background: #943126 !important;
+}
+
+.exit-card.closing {
+    border-top-color: var(--accent-purple);
+}
+
+.exit-card.closing .exit-icon-container {
+    color: var(--accent-purple);
+    background: var(--pastel-green-bg);
+}
+
+.exit-card.closing .exit-ring {
+    border-color: var(--accent-purple);
+}
+
+.exit-loader {
+    width: 100%;
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    margin-top: 25px;
+    overflow: hidden;
+    position: relative;
+}
+
+.exit-loader-bar {
+    position: absolute;
+    height: 100%;
+    width: 40%;
+    background: var(--accent-purple);
+    border-radius: 10px;
+    animation: exit-loading 1.2s infinite ease-in-out;
+}
+
+@keyframes exit-loading {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}

@@ -81,10 +81,10 @@ pub async fn verify_connection_status(ip: String, port: u16) -> Result<bool, Str
 pub async fn save_connection(
     state: tauri::State<'_, DbState>,
     conn_data: Connection,
-) -> Result<(), String> {
+) -> Result<i32, String> {
     let conn = state.0.lock().unwrap();
 
-    let existing_id: Option<i32> = conn
+    let existing_id_by_name: Option<i32> = conn
         .query_row(
             "SELECT id FROM connections WHERE name = ?1",
             [&conn_data.name],
@@ -93,13 +93,14 @@ pub async fn save_connection(
         .optional()
         .map_err(|e| e.to_string())?;
 
-    if let Some(exist_id) = existing_id {
+    if let Some(exist_id) = existing_id_by_name {
         if let Some(current_id) = conn_data.id {
             if exist_id != current_id {
                 return Err(format!("El perfil '{}' ya existe.", conn_data.name));
             }
         } else {
-            return Err(format!("El perfil '{}' ya existe.", conn_data.name));
+            // Si estamos insertando sin ID pero el nombre ya existe, asumimos que es un update de ese registro
+            // o lanzamos error. Por ahora actualizaremos ese registro.
         }
     }
 
@@ -114,13 +115,22 @@ pub async fn save_connection(
             "UPDATE connections SET name=?1, ip_address=?2, port=?3, username=?4, password=?5, wss_host=?6, wss_port=?7, is_connected=?8 WHERE id=?9",
             rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int, id],
         ).map_err(|e| e.to_string())?;
+        Ok(id)
+    } else if let Some(id) = existing_id_by_name {
+        // Caso de "save" sin ID pero con nombre coincidente
+        conn.execute(
+            "UPDATE connections SET name=?1, ip_address=?2, port=?3, username=?4, password=?5, wss_host=?6, wss_port=?7, is_connected=?8 WHERE id=?9",
+            rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int, id],
+        ).map_err(|e| e.to_string())?;
+        Ok(id)
     } else {
         conn.execute(
             "INSERT INTO connections (name, ip_address, port, username, password, wss_host, wss_port, is_connected) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int],
         ).map_err(|e| e.to_string())?;
+        let new_id = conn.last_insert_rowid() as i32;
+        Ok(new_id)
     }
-    Ok(())
 }
 
 #[tauri::command]

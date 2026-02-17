@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
 import { AppStateService } from '../../core/services/app-state.service';
 import { Observable } from 'rxjs';
 
@@ -11,6 +12,8 @@ import { Observable } from 'rxjs';
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent implements OnInit, OnDestroy {
+  @Output() onLogout = new EventEmitter<void>();
+
   // Observables del estado global
   isOpen$: Observable<boolean>;
   activeTab$: Observable<string>;
@@ -19,7 +22,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
   currentTimeStr: string = '';
   private timerId: any;
 
-  constructor(public appState: AppStateService) {
+  constructor(
+    public appState: AppStateService,
+    private sanitizer: DomSanitizer
+  ) {
     this.isOpen$ = this.appState.leftSidebarOpen$;
     this.activeTab$ = this.appState.activeTabId$;
   }
@@ -60,5 +66,23 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   toggleConfig() {
     this.appState.onConfigToggle.emit();
+  }
+
+  logout() {
+    this.onLogout.emit();
+  }
+
+  openWikiHelp() {
+    const url = this.sanitizer.bypassSecurityTrustResourceUrl('https://code-epic.com/wiki');
+    this.appState.addTab({
+      id: 'wiki-help',
+      name: 'Ayuda Wiki',
+      icon: 'fas fa-book',
+      // @ts-ignore
+      url: url,
+      type: 'iframe',
+      isProxyRequired: false,
+      isExternal: true
+    });
   }
 }

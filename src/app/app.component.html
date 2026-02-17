@@ -1,6 +1,6 @@
 <div class="sdc-container">
   <!-- Componente Sidebar Modular -->
-  <app-sidebar></app-sidebar>
+  <app-sidebar (onLogout)="handleGlobalLogout()"></app-sidebar>
 
   <main class="main-stage">
     <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'">
@@ -222,6 +222,30 @@
                   <button class="btn-modal-cancel" (click)="cancelTabUnlock()">Cancelar</button>
                   <button class="btn-modal-confirm" (click)="submitTabUnlock()">Desbloquear</button>
               </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- EXIT APPLICATION MODAL -->
+  <div class="modal-overlay" *ngIf="exitModal.show">
+      <div class="modal-card exit-card" [class.closing]="exitModal.closing">
+          <div class="exit-icon-container">
+              <div class="exit-ring"></div>
+              <i class="fas" [class.fa-power-off]="!exitModal.closing" [class.fa-circle-notch]="exitModal.closing" [class.fa-spin]="exitModal.closing"></i>
+          </div>
+          
+          <h2 class="modal-title">{{ exitModal.closing ? 'Cerrando Sistema' : '¿Deseas Salir?' }}</h2>
+          <p class="modal-message">
+              {{ exitModal.closing ? 'Cerrando conexión segura con Sandra Server...' : 'Se finalizarán todas las tareas y sesiones activas del terminal.' }}
+          </p>
+
+          <div class="exit-loader" *ngIf="exitModal.closing">
+              <div class="exit-loader-bar"></div>
+          </div>
+
+          <div class="modal-actions" *ngIf="!exitModal.closing">
+              <button class="btn-modal-cancel" (click)="exitModal.show = false">Permanecer</button>
+              <button class="btn-modal-confirm exit-btn" (click)="confirmExit()">Salir de SandraDC</button>
           </div>
       </div>
   </div>

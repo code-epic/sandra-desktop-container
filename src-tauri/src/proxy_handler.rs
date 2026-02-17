@@ -272,14 +272,14 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
     let state = app_handle.state::<DbState>();
     let conn_guard = state.0.lock().ok()?; // Handle lock error gracefully
 
-    let result = conn_guard.query_row(
-        "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected FROM connections WHERE is_connected = 1",
-        [],
-        |row| {
-             let is_connected_val: Option<i32> = row.get(9).ok();
-             let is_connected = matches!(is_connected_val, Some(1));
-             // println!("DB Check: {} (is_connected: {})", row.get::<_, String>(1).unwrap_or_default(), is_connected);
-             Ok(Connection {
+    // 1. Try to find explicitly connected
+    let mut query = "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected FROM connections WHERE is_connected = 1 LIMIT 1";
+
+    let mut result = conn_guard
+        .query_row(query, [], |row| {
+            let is_connected_val: Option<i32> = row.get(9).ok();
+            let is_connected = matches!(is_connected_val, Some(1));
+            Ok(Connection {
                 id: Some(row.get(0)?),
                 name: row.get(1)?,
                 ip_address: row.get(2)?,
@@ -291,16 +291,46 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
                 wss_port: row.get(8).ok(),
                 is_connected: Some(is_connected),
             })
-        }
-    ).optional().unwrap_or(None);
+        })
+        .optional()
+        .unwrap_or(None);
+
+    // 2. Fallback: If no active connection found, verify if there is ANY connection to use as default helper
+    // This allows the proxy to work even if the UI state desynced, acting as a "Best Effort" gateway.
+    if result.is_none() {
+        println!("⚠️ [Proxy] No active connection marked in DB. Attempting fallback to first available...");
+        query = "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected FROM connections LIMIT 1";
+
+        result = conn_guard
+            .query_row(query, [], |row| {
+                // Even if DB says 0, we treat it as potential candidate for proxying
+                let is_connected_val: Option<i32> = row.get(9).ok();
+                let is_connected = matches!(is_connected_val, Some(1));
+                Ok(Connection {
+                    id: Some(row.get(0)?),
+                    name: row.get(1)?,
+                    ip_address: row.get(2)?,
+                    port: row.get(3)?,
+                    username: row.get(4)?,
+                    password: row.get(5)?,
+                    last_connected: row.get(6)?,
+                    wss_host: row.get(7).ok(),
+                    wss_port: row.get(8).ok(),
+                    // We conceptually treat is as connected for the proxy attempt
+                    is_connected: Some(is_connected),
+                })
+            })
+            .optional()
+            .unwrap_or(None);
+    }
 
     if let Some(ref conn) = result {
         println!(
-            "✅ [Proxy] Active Connection Found: {} ({}:{})",
+            "✅ [Proxy] Routing via: {} ({}:{})",
             conn.name, conn.ip_address, conn.port
         );
     } else {
-        println!("🚫 [Proxy] No Active Connection found in DB.");
+        println!("🚫 [Proxy] CRITICAL: No Connections configured in Database.");
     }
 
     result
