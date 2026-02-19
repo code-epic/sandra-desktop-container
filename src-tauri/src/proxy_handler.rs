@@ -702,22 +702,45 @@ fn proxy_arbitrary_url(
             let script = r#"
 <script>
 (function(){
-  // SDC Patch: Prevent WebSocket crash on sandra-app:// schema
+  // SDC Patch: Intelligent WebSocket Handling for sandra-app:// & Dev Servers
   var StdWS = window.WebSocket;
   window.WebSocket = function(url, proto){
     try {
         var u = url ? url.toString() : "";
-        if(u.indexOf('sandra-app:') >= 0) {
-            console.warn('[SDC] Patch: Blocking invalid WebSocket URL:', u);
-            return { 
-                close: function(){}, 
-                send: function(){}, 
-                addEventListener: function(e,cb){}, 
-                removeEventListener: function(e,cb){},
-                readyState: 3 
-            };
+        var original = u;
+        var modified = false;
+        
+        // PHASE 1: Protocol Normalization (sandra-app: -> ws:)
+        if(u.indexOf('sandra-app:') === 0) {
+             // Only allow dev server related paths/ports to be rewritten
+             if (u.includes(':4200') || u.includes('/ng-cli-ws') || u.includes('/sockjs-node') || u.includes('/ws')) {
+                u = u.replace(/^sandra-app:/, 'ws:');
+                modified = true;
+             } else {
+                console.warn('[SDC] Patch: Blocking invalid WebSocket URL:', u);
+                return { close: function(){}, send: function(){}, addEventListener: function(){}, removeEventListener: function(){}, readyState: 3 };
+             }
         }
-        return new StdWS(url, proto);
+
+        // PHASE 2: Host Correction (0.0.0.0 -> localhost)
+        // Browsers reject 0.0.0.0 as a target address.
+        if (u.indexOf('//0.0.0.0') !== -1) {
+             u = u.replace('//0.0.0.0', '//localhost');
+             modified = true;
+        }
+
+        // PHASE 3: Port Safety (Ensure :4200 for ng-cli-ws if missing)
+        // Sometimes the URL becomes ws://localhost/ng-cli-ws without port
+        if ((u.includes('ng-cli-ws') || u.includes('sockjs-node')) && !u.match(/:[0-9]+/)) {
+             u = u.replace('//localhost', '//localhost:4200');
+             modified = true;
+        }
+
+        if (modified) {
+            console.warn('[SDC] Patch: WS Rewrite:', original, '->', u);
+        }
+
+        return new StdWS(u, proto);
     } catch(e) {
         console.error('[SDC] WS Error:', e);
         return new StdWS(url, proto);

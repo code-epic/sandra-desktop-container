@@ -1,7 +1,4 @@
 <div class="dashboard-container fade-in">
-    <!-- Header estilo Web Sobrio -->
-    <!-- Header Moderno y Elegante -->
-    <!-- Header Moderno y Elegante (CSS Class Based) -->
     <div class="system-web-header" *ngIf="stats">
         
         <!-- IZQUIERDA: Identidad Visual y Plataforma -->
@@ -54,8 +51,13 @@
         <div class="app-tile" *ngFor="let app of apps" (click)="!app.installed && onInstall.emit(app)">
             
             <!-- Proxy Indicator (Fixed Position) -->
-            <div class="proxy-badge" *ngIf="app.is_proxy_required" title="Proxy Activo">
+            <div class="proxy-badge" *ngIf="app.is_proxy_required && !app.is_external_browser" title="Proxy Activo">
                 <i class="fas fa-shield-alt"></i>
+            </div>
+
+            <!-- External/Free Mode Indicator -->
+            <div class="proxy-badge external-mode-badge" *ngIf="app.is_external_browser" title="Navegación Libre (Sin Proxy)">
+                <i class="fas fa-globe-americas"></i>
             </div>
 
             <!-- Main Content Layer -->

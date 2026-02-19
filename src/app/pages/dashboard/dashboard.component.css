@@ -503,16 +503,51 @@
 .proxy-badge {
   position: absolute;
   top: 10px;
-  right: 12px;
-  color: #66bb6a; /* Verde ligeramente más intenso */
-  font-size: 18px; /* Tamaño aumentado */
-  opacity: 1; /* Opacidad completa para destacar */
+  left: 12px; /* Alineado a la izquierda */
+  right: auto;
+  color: #66bb6a; 
+  font-size: 18px; 
+  opacity: 1; 
   pointer-events: none;
-  z-index: 20; /* Encima de todo */
+  z-index: 20; 
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
   transition: opacity 0.3s;
 }
 
+/* External Mode Badge */
+.external-mode-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px; /* Alineado a la derecha */
+  color: #29b6f6;
+  font-size: 18px;
+  opacity: 1;
+  pointer-events: none;
+  z-index: 20;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+
 .app-tile:hover .proxy-badge {
-  color: #81c784; /* Click effect or hover tweak if needed */
+  color: #81c784; 
+}
+
+/* --- Status Badges (Right Aligned) --- */
+
+.proxy-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px; /* Set to Right */
+  left: auto;
+  color: #66bb6a;
+  font-size: 18px; 
+  opacity: 1;
+  pointer-events: none;
+  z-index: 20; 
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+
+.external-mode-badge {
+  right: 12px; /* Ensure Right */
+  left: auto;
+  color: #29b6f6;
 }

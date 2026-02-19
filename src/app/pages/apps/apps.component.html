@@ -1,9 +1,15 @@
 <div class="apps-container fade-in">
-    <div class="header">
-        <h2>Gestión de Aplicaciones</h2>
-        <button class="btn-modal-primary" (click)="openAddModal()">
-            <i class="fas fa-plus"></i> Nueva App
-        </button>
+    <div class="system-web-header">
+        <div class="header-brand">
+            <h1 class="page-title">
+                <span class="brand-main">Aplicaciones</span> <span class="brand-sub">Gestión</span>
+            </h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn-header-action" (click)="openAddModal()">
+                <i class="fas fa-plus"></i> Nueva App
+            </button>
+        </div>
     </div>
 
     <!-- Lista vacía -->
@@ -16,9 +22,14 @@
     <div class="apps-grid" *ngIf="apps.length > 0">
         <div class="app-tile" *ngFor="let app of apps">
             
-            <!-- Proxy Indicator (Fixed Position) -->
-            <div class="proxy-badge" *ngIf="app.is_proxy_required" title="Proxy Activo">
+            <!-- Proxy Indicator (Fixed Position: Top Left) -->
+            <div class="proxy-badge" *ngIf="app.is_proxy_required && !app.is_external_browser" title="Proxy Seguro Activo">
                 <i class="fas fa-shield-alt"></i>
+            </div>
+            
+            <!-- External/Free Mode Indicator (Fixed Position: Top Right) -->
+            <div class="proxy-badge external-mode-badge" *ngIf="app.is_external_browser" title="Navegación Libre (Sin Proxy)">
+                <i class="fas fa-globe-americas"></i>
             </div>
 
             <!-- Main Content Layer -->
@@ -59,125 +70,155 @@
     <div class="modal-card wide-modal">
         <h3 class="modal-title">{{ isEditing ? 'Editar Aplicación' : 'Nueva Aplicación' }}</h3>
         
-        <div class="modal-body">
-            <!-- Row 1: ID & Name -->
-            <div class="form-row">
-                <div class="form-group half-width">
-                    <label>ID Único</label>
-                    <div class="icon-input-group">
-                        <i class="fas fa-fingerprint input-icon"></i>
-                        <input type="text" [(ngModel)]="currentApp.app_id" [disabled]="isEditing" placeholder="ej: my-app" class="input-modern with-icon">
+        <div class="modal-body scrollable-y">
+            
+            <!-- HERO: APP IDENTITY (REFINED) -->
+            <div class="app-hero">
+                <!-- Icono con Selector Desplegable -->
+                <div class="hero-icon-wrapper" (click)="showIconPicker = !showIconPicker" [class.picking]="showIconPicker" title="Click para cambiar icono">
+                    <div class="hero-icon-surface">
+                        <i [class]="currentApp.icon || 'fas fa-cube'"></i>
+                    </div>
+                    <div class="edit-hint"><i class="fas fa-pencil-alt"></i></div>
+                    
+                    <!-- ICON PICKER DROPDOWN (Pastel) -->
+                    <div class="icon-picker-dropdown fade-in" *ngIf="showIconPicker" (click)="$event.stopPropagation()">
+                         <div class="picker-header">Elige un Icono</div>
+                         <div class="icons-grid">
+                            <div class="icon-opt" *ngFor="let icon of availableIcons" 
+                                 (click)="selectIcon(icon)" 
+                                 [class.selected]="currentApp.icon === icon">
+                                <i [class]="icon"></i>
+                            </div>
+                         </div>
                     </div>
                 </div>
-                <div class="form-group half-width">
-                    <label>Nombre</label>
-                    <div class="icon-input-group">
-                        <i class="fas fa-tag input-icon"></i>
-                        <input type="text" [(ngModel)]="currentApp.name" placeholder="Ej: Gestión Doc." class="input-modern with-icon">
-                    </div>
+                
+                <div class="hero-details">
+                    <!-- Fila Unificada: Nombre e ID -->
+                   <div class="row-grid-2">
+                       <!-- Nombre (Título) -->
+                       <div class="input-card">
+                            <div class="input-label"><i class="fas fa-tag"></i> Nombre de la Aplicación</div>
+                            <input type="text" [(ngModel)]="currentApp.name" placeholder="Ej: Gestión Documentos" class="input-field-clean" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                       </div>
+    
+                       <!-- ID -->
+                       <div class="input-card">
+                            <div class="input-label"><i class="fas fa-fingerprint"></i> Identificador de Sistema (ID)</div>
+                            <input type="text" [(ngModel)]="currentApp.app_id" [disabled]="isEditing" placeholder="sandra.app.gdoc" class="input-field-clean monospace" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                       </div>
+                   </div>
                 </div>
             </div>
 
-            <!-- Row 2: Icon & Repo -->
-            <div class="form-row">
-                <div class="form-group half-width">
-                    <label>Icono (FontAwesome)</label>
-                    <div class="icon-input-group">
-                        <div class="icon-preview"><i [class]="currentApp.icon"></i></div>
-                        <input type="text" [(ngModel)]="currentApp.icon" placeholder="fas fa-cube" class="input-modern">
-                    </div>
-                </div>
-                <div class="form-group half-width">
-                    <label>Repositorio Git</label>
-                    <div class="icon-input-group">
-                        <i class="fab fa-git-alt input-icon"></i>
-                        <input type="text" [(ngModel)]="currentApp.repo" placeholder="https://github.com/usuario/repo.git" class="input-modern with-icon">
-                    </div>
-                </div>
+            <!-- DESCRIPTION ROW -->
+            <div class="description-row">
+                <textarea [(ngModel)]="currentApp.description" placeholder="Escribe una breve descripción para identificar esta aplicación..." class="hero-textarea"></textarea>
             </div>
 
-            <!-- Row 3: Description -->
-            <div class="form-group">
-                <label>Descripción</label>
-                <textarea [(ngModel)]="currentApp.description" placeholder="Breve descripción de la aplicación..." class="input-modern"></textarea>
-            </div>
 
-            <!-- Row 4: External URL -->
-             <div class="form-group">
-                <label>URL Externa (Web/127.0.0.1)</label>
-                <div class="icon-input-group">
-                    <i class="fas fa-link input-icon"></i>
-                    <input type="text" [(ngModel)]="currentApp.external_url" placeholder="http://localhost:4200" class="input-modern with-icon">
-                </div>
-            </div>
-
-            <!-- Divider -->
-            <div class="form-divider">
-                <span>Configuración de Autenticación (Opcional)</span>
-            </div>
-
-            <!-- Row 5: Auth Fields -->
-            <div class="form-row">
-                <div class="form-group third-width">
-                    <label>Usuario</label>
-                    <div class="icon-input-group">
-                        <i class="fas fa-user input-icon"></i>
-                        <input type="text" [(ngModel)]="currentApp.username" placeholder="admin" class="input-modern with-icon">
+            <!-- NEW LAYOUT: ROWS INSTEAD OF COLUMNS -->
+            
+            <!-- ROW 1: CONNECTIVITY -->
+            <div class="section-row">
+                <h5 class="col-header">Conexión y Origen</h5>
+                <div class="row-grid-2">
+                    <!-- URL Input Card -->
+                    <div class="input-card">
+                        <div class="input-label"><i class="fas fa-link"></i> URL Destino / Endpoint</div>
+                        <input type="text" [(ngModel)]="currentApp.external_url" placeholder="http://localhost:4200" class="input-field-clean" autocomplete="off" autocapitalize="off">
                     </div>
-                </div>
-                <div class="form-group third-width">
-                    <label>Contraseña</label>
-                    <div class="icon-input-group">
-                        <i class="fas fa-key input-icon"></i>
-                        <input type="password" [(ngModel)]="currentApp.password" placeholder="••••••" class="input-modern with-icon">
-                    </div>
-                </div>
-                <div class="form-group third-width">
-                    <label>Token / API Key</label>
-                    <div class="icon-input-group">
-                        <i class="fas fa-shield-alt input-icon"></i>
-                        <input type="text" [(ngModel)]="currentApp.token" placeholder="Bearer..." class="input-modern with-icon">
+
+                    <!-- Repo Input Card -->
+                    <div class="input-card">
+                        <div class="input-label"><i class="fab fa-git-alt"></i> Repositorio Fuente</div>
+                        <input type="text" [(ngModel)]="currentApp.repo" placeholder="git@github.com:..." class="input-field-clean" autocomplete="off" autocapitalize="off">
                     </div>
                 </div>
             </div>
 
-            <!-- Divider -->
-             <div class="form-divider">
-                <span>Opciones de Estado</span>
+            <!-- ROW 2: OPERATION MODES -->
+            <div class="section-row">
+                <h5 class="col-header">Modo de Ejecución</h5>
+                <div class="row-grid-2">
+                    <!-- Proxy Switch -->
+                    <div class="setting-card" [class.active-green]="currentApp.is_proxy_required">
+                        <div class="card-icon-box green">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="card-text">
+                            <div class="card-title">Proxy Seguro</div>
+                            <div class="card-desc">Red interna protegida</div>
+                        </div>
+                        <label class="switch-mini">
+                            <input type="checkbox" [(ngModel)]="currentApp.is_proxy_required" (change)="toggleProxy()">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <!-- External Switch -->
+                    <div class="setting-card" [class.active-blue]="currentApp.is_external_browser">
+                        <div class="card-icon-box blue">
+                            <i class="fas fa-globe-americas"></i>
+                        </div>
+                        <div class="card-text">
+                            <div class="card-title">Navegación Libre</div>
+                            <div class="card-desc">Acceso directo web</div>
+                        </div>
+                        <label class="switch-mini">
+                            <input type="checkbox" [(ngModel)]="currentApp.is_external_browser" (change)="toggleExternal()">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
-            <!-- Row 6: Switches -->
-            <div class="form-row switches-row">
-                 <div class="switch-group">
-                    <label class="switch">
-                        <input type="checkbox" [(ngModel)]="currentApp.is_favorite">
-                        <span class="slider round"></span>
-                    </label>
-                    <span class="switch-label">Favorito</span>
-                 </div>
+           
 
-                 <div class="switch-group">
-                    <label class="switch">
+            <!-- AUTH VAULT (Pastel Mint Theme) -->
+            <div class="credentials-vault pastel-mint">
+                <div class="vault-header">
+                    <i class="fas fa-key"></i> Credenciales de Acceso <span class="optional">(Opcional)</span>
+                </div>
+                <div class="vault-body">
+                    <div class="vault-field">
+                        <i class="fas fa-user"></i>
+                        <input type="text" [(ngModel)]="currentApp.username" placeholder="Usuario" autocomplete="off" autocapitalize="off">
+                    </div>
+                    <div class="vault-sep"></div>
+                    <div class="vault-field">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" [(ngModel)]="currentApp.password" placeholder="Contraseña" autocomplete="off">
+                    </div>
+                    <div class="vault-sep"></div>
+                    <div class="vault-field">
+                        <i class="fas fa-fingerprint"></i>
+                        <input type="text" [(ngModel)]="currentApp.token" placeholder="API Token" autocomplete="off" autocapitalize="off">
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER STATUS & ACTIONS (Pastel Buttons) -->
+            <div class="status-footer">
+                <div class="status-toggles">
+                    <label class="status-toggle" [class.on]="currentApp.is_installed">
                         <input type="checkbox" [(ngModel)]="currentApp.is_installed">
-                        <span class="slider round"></span>
+                        <i class="fas fa-check-circle"></i> Instalada
                     </label>
-                    <span class="switch-label">Instalada</span>
-                 </div>
 
-                 <div class="switch-group">
-                    <label class="switch">
-                        <input type="checkbox" [(ngModel)]="currentApp.is_proxy_required">
-                        <span class="slider round"></span>
+                    <label class="status-toggle" [class.on]="currentApp.is_favorite">
+                        <input type="checkbox" [(ngModel)]="currentApp.is_favorite">
+                        <i class="fas fa-star"></i> Favorito
                     </label>
-                    <div class="switch-label-container">
-                        <span class="switch-label">Usar Proxy</span>
-                    </div>
-                 </div>
-            </div>
+                </div>
 
-            <div class="modal-actions">
-                <button class="btn-modal-confirm" (click)="closeModal()">Cancelar</button>
-                <button class="btn-modal-acept" (click)="saveApp()">{{ isEditing ? 'Guardar Cambios' : 'Crear Aplicación' }}</button>
+                <div class="modal-actions-fresh">
+                    <button class="btn-setup-back" (click)="closeModal()">Cancelar</button>
+                    <button class="btn-setup-next" (click)="saveApp()">
+                        {{ isEditing ? 'Guardar Cambios' : 'Crear Aplicación' }}
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -195,6 +236,22 @@
             <div class="modal-actions">
                 <button class="btn-modal-cancel" (click)="cancelDelete()">Cancelar</button>
                 <button class="btn-modal-confirm btn-modal-delete" (click)="confirmDelete()">Quitar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" *ngIf="showSuccessModal">
+    <div class="modal-card">
+        <div style="text-align: center; margin-bottom: 10px;">
+            <i class="fas fa-check-circle" style="font-size: 40px; color: #4caf50;"></i>
+        </div>
+        <h3 class="modal-title" style="text-align: center;">Operación Exitosa</h3>
+        <div class="modal-body">
+            <p class="modal-message" style="text-align: center;">{{ successMessage }}</p>
+            <div class="modal-actions" style="justify-content: center;">
+                <button class="btn-setup-next" (click)="closeSuccessModal()">Entendido</button>
             </div>
         </div>
     </div>

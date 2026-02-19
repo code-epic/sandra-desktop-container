@@ -258,6 +258,7 @@ export class AppComponent implements OnInit {
         _dbId: a.id,
         _original: a,
         is_proxy_required: a.is_proxy_required, // Ensure this property is mapped!
+        is_external_browser: a.is_external_browser, // New Free Browser Mode
       }));
     } catch (e) {
       console.error("Error loading apps", e);
@@ -477,15 +478,24 @@ export class AppComponent implements OnInit {
   }
 
   openApp(app: any) {
+    console.log(app)
     let rawUrl = "";
+    let isExternalMode = false;
 
     // Lógica inteligente de URL:
+    // 0. Modo "Navegador Libre" (Bypass total de seguridad SDC)
+    if (app.is_external_browser) {
+      if (!app.externalUrl) {
+        this.showModal("Error de Configuración", "La aplicación está marcada como 'Externa' pero no tiene URL definida.");
+        return;
+      }
+      rawUrl = app.externalUrl;
+      isExternalMode = true;
+      console.log(`🌐 [Free Browser Mode] Opening ${app.name} -> ${rawUrl}`);
+    }
     // 1. Si la App requiere Proxy -> Forzar sandra-app:// (incluso si es externa) para interceptar tráfico
-    // 2. Si es Externa y NO requiere Proxy -> Usar URL directa (Navegador maneja)
-    // 3. Si es Local -> Usar sandra-app:// estándar
-
-    if (app.externalUrl && !app.is_proxy_required) {
-      // Caso 2: Externa Directa
+    else if (app.externalUrl && !app.is_proxy_required) {
+      // Caso 2: Externa Directa (Legacy pero restringida)
       rawUrl = app.externalUrl;
       console.log(
         `🌍 [External Nav] Direct (No Proxy) ${app.name} -> ${rawUrl}`,
@@ -515,6 +525,7 @@ export class AppComponent implements OnInit {
       url: safeUrl,
       isProxyRequired: app.is_proxy_required,
       isExternal: !app.externalUrl,
+      isExternalMode: isExternalMode // Nuevo flag para el template
     });
   }
 
@@ -1215,6 +1226,11 @@ export class AppComponent implements OnInit {
       }
       this.appState.closeTab(this.tabIdToClose);
     }
+    this.showSaveLogModal = false;
+    this.tabIdToClose = null;
+  }
+
+  cancelCloseTab() {
     this.showSaveLogModal = false;
     this.tabIdToClose = null;
   }

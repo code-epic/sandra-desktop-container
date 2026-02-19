@@ -20,6 +20,7 @@ export interface Tab {
   isExternal?: boolean;           // If true, external URL
   isLocked?: boolean;             // New: If true, show unlock UI
   hiddenContent?: string;         // New: Base64 of hidden content (Pages 2+)
+  isExternalMode?: boolean;       // If true, use permissive iframe for external browsing
 }
 
 @Injectable({

@@ -16,6 +16,7 @@ export interface DesktopApp {
   password?: string;
   token?: string;
   is_proxy_required?: boolean;
+  is_external_browser?: boolean; // New attribute for Free Browser Mode
   action?: string; // Optional for mapped actions like 'toggleCP'
 }
 

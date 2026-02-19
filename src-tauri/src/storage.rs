@@ -132,6 +132,10 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         "ALTER TABLE desktop_apps ADD COLUMN is_proxy_required BOOLEAN DEFAULT 0",
         [],
     );
+    let _ = conn.execute(
+        "ALTER TABLE desktop_apps ADD COLUMN is_external_browser BOOLEAN DEFAULT 0",
+        [],
+    );
 
     // Tabla Historial de Documentos Seguros
     conn.execute(

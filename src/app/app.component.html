@@ -76,10 +76,26 @@
             <span class="proxy-label">Conectado vía</span>
             <span style="font-weight: 700; color: #455A64;">{{ activeConnection.name }}</span>
         </div>
-        <iframe *ngIf="!tab.type || tab.type === 'iframe'" 
+
+        <!-- NAVEGACION LIBRE ACTIVE INDICATOR -->
+        <div class="proxy-glass-bar external-mode-bar" *ngIf="tab.isExternalMode">
+            <i class="fas fa-globe-americas"></i>
+            <span class="proxy-label">Modo Libre</span>
+            <span style="font-weight: 700; color: #0288d1;">Conexión Directa</span>
+        </div>
+        <!-- IFRAME ESTÁNDAR (SANDBOX RESTRICTIVO) -->
+        <iframe *ngIf="(!tab.type || tab.type === 'iframe') && !tab.isExternalMode" 
           [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0" 
           allow="activestate"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads" 
+          (load)="onIframeLoad(tab.id)">
+        </iframe>
+
+        <!-- IFRAME MODO LIBRE (SANDBOX PERMISIVO) -->
+        <iframe *ngIf="(!tab.type || tab.type === 'iframe') && tab.isExternalMode" 
+          [id]="'iframe-ext-' + tab.id" [src]="tab.url" frameborder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modal allow-presentation allow-top-navigation-by-user-activation allow-downloads" 
           (load)="onIframeLoad(tab.id)">
         </iframe>
         <div *ngIf="tab.type === 'pdf-viewer'" class="pdf-tab-container" style="width:100%; height:100%; background:#525659; position: relative;">
@@ -150,16 +166,37 @@
     </div>
   </div>
 
+  <!-- Modal Monitor de Actividad (Rediseñado) -->
   <div class="modal-overlay" *ngIf="showSaveLogModal">
-    <div class="modal-card">
-      <h3 class="modal-title">Monitor de Actividad</h3>
-      <div class="modal-body">
-        <p class="modal-message">Hemos detectado tráfico de red en esta sesión. <br>¿Deseas guardar el registro antes de cerrar?</p>
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" (click)="confirmCloseTab(false)">No guardar</button>
-          <button class="btn-modal-save" (click)="confirmCloseTab(true)">Guardar Log</button>
+    <div class="modal-card activity-modal fade-in-up">
+        <!-- Close Button (X) - Cancels Close Action -->
+        <button class="btn-close-modal-x" (click)="cancelCloseTab()">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div class="modal-body-clean">
+            <div class="modal-visual-header">
+                 <div class="icon-pulse-wrapper">
+                     <i class="fas fa-network-wired"></i>
+                 </div>
+            </div>
+            
+            <h3 class="modal-title-clean">Registro de Actividad</h3>
+            
+            <p class="modal-msg-clean">
+                Hemos detectado tráfico de red en esta sesión.
+                <span class="sub-text">¿Deseas guardar el registro de conexiones antes de cerrar la pestaña?</span>
+            </p>
+            
+            <div class="modal-actions-spread">
+                <button class="btn-modal-confirm" (click)="confirmCloseTab(true)">
+                    Guardar log y cerrar
+                </button>
+                <button class="btn-modal-cancel" (click)="confirmCloseTab(false)">
+                    Cerrar sin guardar
+                </button>
+            </div>
         </div>
-      </div>
     </div>
   </div>
 
