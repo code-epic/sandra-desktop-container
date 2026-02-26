@@ -1,6 +1,8 @@
 use crate::storage::DbState;
 use rusqlite::params;
-use tauri::{command, State};
+use std::fs;
+use tauri::{command, AppHandle, Manager, State};
+use uuid::Uuid;
 
 #[derive(serde::Serialize)]
 pub struct DocumentHistoryItem {
@@ -12,15 +14,50 @@ pub struct DocumentHistoryItem {
 
 #[command]
 pub fn add_document_history(
+    app: AppHandle,
     db_state: State<DbState>,
     file_name: String,
     file_path: String,
 ) -> Result<(), String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
+    let vault_dir = app
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+        .join("sandra_vault");
+
+    if !vault_dir.exists() {
+        fs::create_dir_all(&vault_dir).unwrap_or_default();
+    }
+
+    let ext = std::path::Path::new(&file_name)
+        .extension()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    let unique_id = Uuid::new_v4().to_string();
+    let obfuscated_name = if ext.is_empty() {
+        unique_id
+    } else {
+        format!("{}.{}", unique_id, ext)
+    };
+
+    let target_path = vault_dir.join(&obfuscated_name);
+
+    let final_path = if !file_path.contains("sandra_vault") && fs::metadata(&file_path).is_ok() {
+        if let Err(_e) = fs::copy(&file_path, &target_path) {
+            file_path.clone()
+        } else {
+            target_path.to_string_lossy().to_string()
+        }
+    } else {
+        file_path.clone()
+    };
+
     conn.execute(
         "INSERT INTO document_history (file_name, file_path) VALUES (?1, ?2)",
-        params![file_name, file_path],
+        params![file_name, final_path],
     )
     .map_err(|e| e.to_string())?;
 

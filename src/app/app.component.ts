@@ -907,21 +907,30 @@ export class AppComponent implements OnInit {
 
     switch (type) {
       case "DOWNLOAD_PDF":
+      case "DOWNLOAD_FILE":
+      case "DOWNLOAD_EXCEL":
+      case "DOWNLOAD_CSV":
+      case "DOWNLOAD_TXT":
+      case "DOWNLOAD_IMG":
+      case "DOWNLOAD_PNG":
         await this.handleIframeDownload(payload.fileName, payload.data);
         break;
 
       case "OPEN_PDF":
       case "OPEN_PDF_SECURITY":
-        await this.handleIframeOpen(payload.fileName, payload.data, false);
+        await this.handleIframeOpen(payload.fileName, payload.data, false, false, 'pdf-viewer');
         break;
 
-      case "DOWNLOAD_SSE":
-        await this.handleSSEDownload(payload.fileName, payload.data);
+      case "OPEN_CSV":
+      case "OPEN_TXT":
+      case "OPEN_IMG":
+      case "OPEN_PNG":
+        await this.handleIframeOpen(payload.fileName, payload.data, false, false, 'file-viewer');
         break;
 
       case "OPEN_SSE":
       case "OPEN_SSE_SECURITY":
-        await this.handleIframeOpen(payload.fileName, payload.data, true, payload.isSaved || false);
+        await this.handleIframeOpen(payload.fileName, payload.data, true, payload.isSaved || false, 'pdf-viewer');
         break;
 
       case "OPEN_PDF_HACK":
@@ -933,7 +942,7 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async handleIframeOpen(fileName: string, dataUri: string, isProtected: boolean, isSaved: boolean = false) {
+  async handleIframeOpen(fileName: string, dataUri: string, isProtected: boolean, isSaved: boolean = false, viewerType: 'pdf-viewer' | 'file-viewer' = 'pdf-viewer') {
     // --- Secure Viewer Logic (Intercept Protected Docs) ---
     if (isProtected) {
       try {
@@ -989,12 +998,19 @@ export class AppComponent implements OnInit {
       const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
 
       const tabId = 'doc-view-' + Date.now();
+      const ext = fileName.split('.').pop()?.toLowerCase();
+
+      let icon = 'fas fa-file-pdf';
+      if (ext === 'csv') icon = 'fas fa-file-csv';
+      else if (ext === 'txt') icon = 'fas fa-file-alt';
+      else if (ext === 'xlsx' || ext === 'xls') icon = 'fas fa-file-excel';
+      else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext || '')) icon = 'fas fa-file-image';
 
       this.appState.addTab({
         id: tabId,
         name: isProtected ? fileName.replace(/\.pdf$/i, '.sse') : fileName,
-        icon: isProtected ? 'fas fa-file-shield' : 'fas fa-file-pdf',
-        type: 'pdf-viewer',
+        icon: isProtected ? 'fas fa-file-shield' : icon,
+        type: viewerType,
         content: safeUrl,
         url: safeUrl,
         blobData: dataUri,       // Save raw data for later actions (Save/History)
@@ -1002,10 +1018,11 @@ export class AppComponent implements OnInit {
         isProtected: isProtected, // Pass protection status
         isSavedToHistory: isSaved, // Control History Button
         showToolbar: true,        // ENABLE Toolbar for API calls
-        zoomLevel: 1.0           // Init Zoom
+        zoomLevel: 1.0,           // Init Zoom
+        mimeType: blob.type      // Guardar mimeType para el visor
       });
     } catch (e) {
-      console.error("Error opening PDF tab:", e);
+      console.error("Error opening document tab:", e);
     }
   }
 
@@ -1253,14 +1270,15 @@ export class AppComponent implements OnInit {
   reloadActiveIframe() {
     if (this.currentTabId === "dashboard") return;
     const iframeId = "iframe-" + this.currentTabId;
-    const iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+    const iframeExtId = "iframe-ext-" + this.currentTabId;
+    const iframe = (document.getElementById(iframeId) || document.getElementById(iframeExtId)) as HTMLIFrameElement;
 
     if (iframe) {
-      console.log(`Reloading iframe: ${iframeId}`);
+      console.log(`Reloading iframe: ${iframe.id}`);
       const currentSrc = iframe.src;
       iframe.src = currentSrc;
     } else {
-      console.warn(`Iframe not found for reloading: ${iframeId}`);
+      console.warn(`Iframe not found for reloading: ${iframeId} or ${iframeExtId}`);
     }
   }
 
@@ -1271,7 +1289,8 @@ export class AppComponent implements OnInit {
 
   sendContextToIframe(tabId: string) {
     const iframeId = "iframe-" + tabId;
-    const iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+    const iframeExtId = "iframe-ext-" + tabId;
+    const iframe = (document.getElementById(iframeId) || document.getElementById(iframeExtId)) as HTMLIFrameElement;
 
     if (iframe && iframe.contentWindow) {
       const contextPayload = {

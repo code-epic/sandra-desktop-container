@@ -191,6 +191,19 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
     // 2. API PROXY (Only if path contains "v1")
     // Todo lo que contenga "v1" es tráfico de Backend -> Proxy Remoto (si la App lo requiere y hay conexión)
     if path.contains("v1") {
+        // 🚀 CRÍTICO: Manejo de CORS Pre-flight (OPTIONS)
+        // El navegador envía esto antes de un POST/PUT para validar permisos.
+        if request.method().as_str() == "OPTIONS" {
+            return Response::builder()
+                .status(200)
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+                .header("Access-Control-Allow-Headers", "*")
+                .header("Access-Control-Max-Age", "86400")
+                .body(Vec::new())
+                .unwrap();
+        }
+
         // Intentar extraer App ID del Referer para saber si requiere proxy
         let referer_opt = request
             .headers()
@@ -520,19 +533,25 @@ fn proxy_to_remote(
     // Preparar cliente con timeout y sin cert check (entorno desarrollo/interno)
     let client = reqwest::blocking::Client::builder()
         .danger_accept_invalid_certs(true)
-        .timeout(std::time::Duration::from_secs(15))
+        .timeout(std::time::Duration::from_secs(60)) // Aumentado para soportar archivos grandes
         .build()?;
 
     let mut req_builder = client.request(method, &remote_url);
 
-    // Forward Headers (Critical: Authorization, Content-Type)
-    if let Some(ct) = request.headers().get("content-type") {
-        req_builder = req_builder.header("Content-Type", ct);
-    }
-    if let Some(auth) = request.headers().get("authorization") {
-        req_builder = req_builder.header("Authorization", auth);
+    // 🚀 MEJORA: Reenviar TODAS las cabeceras originales del cliente
+    // Esto es crítico para que las acciones, sesiones (cookies) y tokens funcionen.
+    for (name, value) in request.headers().iter() {
+        let name_str = name.as_str().to_lowercase();
+        // Omitimos Host porque reqwest lo genera automáticamente según la remote_url
+        if name_str != "host" {
+            req_builder = req_builder.header(name, value);
+        }
     }
 
+    // Asegurar Origin y Referer consistentes con el destino remoto para evitar bloqueos CORS
+    let target_origin = format!("https://{}:{}", remote_ip, remote_port);
+    req_builder = req_builder.header("Origin", &target_origin);
+    
     // Forward Body
     let body_bytes = request.body().clone();
     if !body_bytes.is_empty() {
@@ -569,11 +588,13 @@ fn proxy_to_remote(
     // 3. Inyectar nuestros headers permisivos ("Engaño" al navegador)
     Ok(response_builder
         .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+        .header("Access-Control-Allow-Headers", "*")
         .header("X-Frame-Options", "ALLOWALL")
         .header("Referrer-Policy", "unsafe-url") // 🚀 IMPORTANTE: Forzar al navegador a enviar el Referer completo siempre
         .header(
             "Content-Security-Policy",
-            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;",
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: http: https: ws: wss:;",
         ) // Muy permisivo para sandbox
         .body(body)?)
 }

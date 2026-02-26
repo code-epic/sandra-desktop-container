@@ -7,7 +7,7 @@ export interface Tab {
   name: string;
   icon: string;
   url?: SafeResourceUrl;
-  type?: 'iframe' | 'pdf-viewer'; // New field for Secure Viewer tabs
+  type?: 'iframe' | 'pdf-viewer' | 'file-viewer'; // Separate viewers for PDF and general Files
   content?: SafeResourceUrl;      // Content for internal viewers
   blobData?: string;              // Raw Base64/DataUri for saving later
   originalName?: string;          // Filename for saving
@@ -21,6 +21,8 @@ export interface Tab {
   isLocked?: boolean;             // New: If true, show unlock UI
   hiddenContent?: string;         // New: Base64 of hidden content (Pages 2+)
   isExternalMode?: boolean;       // If true, use permissive iframe for external browsing
+  mimeType?: string;              // Mime type for document viewer
+  blobUrl?: string;               // New: URL object for cleaner memory management
 }
 
 @Injectable({

@@ -1,5 +1,6 @@
 pub mod apps;
 pub mod connections;
+pub mod gpg;
 pub mod handler_error;
 pub mod history;
 pub mod monitor;

@@ -59,11 +59,11 @@
                 <div class="info-secondary">
                    <!-- AUTHOR & PATH GROUP -->
                    <div class="meta-group">
-                       <i class="fas fa-user-circle"></i> <span>Sandra System</span>
+                       <i class="fas fa-shield-alt"></i> <span>Sandra System</span>
                    </div>
                    <div class="dot-separator">•</div>
-                   <div class="meta-group path-group" title="{{ item.file_path }}">
-                       <i class="far fa-folder"></i> <span class="path-text">{{ item.file_path }}</span>
+                   <div class="meta-group path-group" title="Ubicación Protegida">
+                       <i class="fas fa-hard-drive"></i> <span class="path-text">Local File</span>
                    </div>
                 </div>
             </div>
@@ -160,6 +160,13 @@
                         <span class="opt-desc">Proteger con contraseña privada.</span>
                     </div>
                 </button>
+                <button class="export-option-btn" (click)="EncryptionGpgConfig()">
+                    <i class="fas fa-key"></i>
+                    <div class="opt-text">
+                        <span class="opt-title">Cifrado GPG Simétrico</span>
+                        <span class="opt-desc">Añadir capa GPG con contraseña.</span>
+                    </div>
+                </button>
             </div>
             <div class="modal-actions" style="justify-content: center; margin-top: 15px;">
                 <button class="btn-modal-cancel" (click)="cancelExport()">Cancelar</button>
@@ -191,6 +198,66 @@
                 <button class="btn-modal-primary" (click)="confirmEncryption()">
                     <span *ngIf="!isEncrypting">Cifrar y Guardar</span>
                     <span *ngIf="isEncrypting"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GPG ENCRYPTION MODAL -->
+<div class="modal-overlay" *ngIf="showGpgEncryptionModal">
+    <div class="modal-card">
+        <h3 class="modal-title">Cifrado GPG Simétrico</h3>
+        <p class="modal-subtitle">Configure la contraseña para <b>{{ itemToExport?.file_name }}</b></p>
+        
+        <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom:5px; font-weight:500;">Contraseña de Cifrado (Passphrase)</label>
+                <div style="position: relative; display: flex; align-items: center;">
+                    <input [type]="showGpgPassword ? 'text' : 'password'" [(ngModel)]="gpgData.passphrase" placeholder="Ingrese su contraseña" class="input-text" style="width:100%; padding:8px; padding-right:35px; border:1px solid #ddd; border-radius:4px;">
+                    <i class="fas" [ngClass]="showGpgPassword ? 'fa-eye-slash' : 'fa-eye'" (click)="showGpgPassword = !showGpgPassword" style="position: absolute; right: 10px; cursor: pointer; color: #666;"></i>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom:5px; font-weight:500;">Confirmar Contraseña</label>
+                <div style="position: relative; display: flex; align-items: center;">
+                    <input [type]="showGpgPassword ? 'text' : 'password'" [(ngModel)]="gpgData.confirmPassphrase" placeholder="Repita la contraseña" class="input-text" style="width:100%; padding:8px; padding-right:35px; border:1px solid #ddd; border-radius:4px;" [ngStyle]="{'border-color': (gpgData.passphrase && gpgData.confirmPassphrase && gpgData.passphrase !== gpgData.confirmPassphrase) ? '#ef5350' : '#ddd'}">
+                </div>
+                <small style="color:#ef5350; font-size:11px; display:block; margin-top:5px;" *ngIf="gpgData.passphrase && gpgData.confirmPassphrase && gpgData.passphrase !== gpgData.confirmPassphrase">Las contraseñas no coinciden.</small>
+                <small style="color:#666; font-size:11px; display:block; margin-top:5px;" *ngIf="!(gpgData.passphrase && gpgData.confirmPassphrase && gpgData.passphrase !== gpgData.confirmPassphrase)">Esta contraseña será necesaria para desencriptar el archivo.</small>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" (click)="cancelGpgEncryption()">Cancelar</button>
+                <button class="btn-modal-primary" (click)="confirmGpgEncryption()" [disabled]="!gpgData.passphrase || gpgData.passphrase !== gpgData.confirmPassphrase">
+                    <span *ngIf="!isGpgEncrypting">Cifrar como .gpg</span>
+                    <span *ngIf="isGpgEncrypting"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GPG UNLOCK MODAL -->
+<div class="modal-overlay" *ngIf="showGpgUnlockModal">
+    <div class="modal-card">
+        <div class="lock-icon-circle">
+            <i class="fas fa-key"></i>
+        </div>
+        <h3 class="modal-title">Documento GPG</h3>
+        <p class="modal-subtitle">Este archivo está cifrado. Ingrese su passphrase.</p>
+        
+        <div class="modal-body">
+            <div class="pin-input-group" style="position: relative; display: flex; align-items: center;">
+                <input [type]="showGpgUnlockPassword ? 'text' : 'password'" [(ngModel)]="gpgUnlockPassphrase" placeholder="Contraseña GPG" (keyup.enter)="submitGpgUnlock()" autofocus class="input-pin" style="width:100%; padding-right:35px;">
+                <i class="fas" [ngClass]="showGpgUnlockPassword ? 'fa-eye-slash' : 'fa-eye'" (click)="showGpgUnlockPassword = !showGpgUnlockPassword" style="position: absolute; right: 15px; cursor: pointer; color: #666; font-size: 16px;"></i>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn-modal-cancel" (click)="cancelGpgUnlock()">Cancelar</button>
+                <button class="btn-modal-primary" (click)="submitGpgUnlock()">
+                    <span *ngIf="!isLoading">Desbloquear</span>
+                    <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin"></i> Abriendo...</span>
                 </button>
             </div>
         </div>

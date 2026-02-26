@@ -65,13 +65,20 @@ export class SecureViewerComponent {
                 multiple: false,
                 filters: [{
                     name: 'Bunker Documents',
-                    extensions: ['sse', 'pdf']
+                    extensions: ['sse', 'pdf', 'gpg', 'pgp', 'csv', 'txt', 'xlsx', 'xls', 'png', 'jpg', 'jpeg']
                 }]
             });
 
             if (selected && typeof selected === 'string') {
                 this.fileName = selected.split(/[\\/]/).pop() || selected;
-                await this.loadSecureDoc(selected, true);
+                if (selected.toLowerCase().endsWith('.gpg') || selected.toLowerCase().endsWith('.pgp')) {
+                    this.isLoading = false;
+                    this.gpgUnlockFilePath = selected;
+                    this.gpgUnlockFileName = this.fileName;
+                    this.showGpgUnlockModal = true;
+                } else {
+                    await this.loadSecureDoc(selected, true);
+                }
             } else {
                 this.isLoading = false;
             }
@@ -85,7 +92,14 @@ export class SecureViewerComponent {
     async openFromHistory(item: any) {
         this.fileName = item.file_name;
         // item.file_path comes from DB
-        await this.loadSecureDoc(item.file_path, false);
+        if (item.file_name.toLowerCase().endsWith('.gpg') || item.file_name.toLowerCase().endsWith('.pgp')) {
+            this.isLoading = false;
+            this.gpgUnlockFilePath = item.file_path;
+            this.gpgUnlockFileName = this.fileName;
+            this.showGpgUnlockModal = true;
+        } else {
+            await this.loadSecureDoc(item.file_path, false);
+        }
     }
 
 
@@ -262,6 +276,184 @@ export class SecureViewerComponent {
     showEncryptionModal = false;
     isEncrypting = false;
 
+    // --- GPG Logic ---
+    showGpgEncryptionModal = false;
+    isGpgEncrypting = false;
+    gpgData = { passphrase: '', confirmPassphrase: '' };
+    showGpgPassword = false;
+
+    showGpgUnlockModal = false;
+    gpgUnlockPassphrase = '';
+    gpgUnlockFilePath = '';
+    gpgUnlockFileName = '';
+    showGpgUnlockPassword = false;
+
+    EncryptionGpgConfig() {
+        this.showExportModal = false;
+        this.gpgData = { passphrase: '', confirmPassphrase: '' };
+        this.showGpgPassword = false;
+        this.showGpgEncryptionModal = true;
+    }
+
+    cancelGpgEncryption() {
+        this.showGpgEncryptionModal = false;
+        this.gpgData = { passphrase: '', confirmPassphrase: '' };
+        this.showGpgPassword = false;
+    }
+
+    async confirmGpgEncryption() {
+        if (!this.itemToExport || !this.gpgData.passphrase) return;
+        if (this.gpgData.passphrase !== this.gpgData.confirmPassphrase) return;
+
+        this.isGpgEncrypting = true;
+        try {
+            // First, load the document content as Base64 (unlocked if SSE, pure if PDF)
+            const base64Data = await invoke<string>('load_sse_document', {
+                filePath: this.itemToExport.file_path,
+                unlockPin: null
+            });
+
+            // Send to Rust to encrypt
+            const gpgBase64 = await invoke<string>('encrypt_gpg_symmetric_base64', {
+                base64Input: base64Data,
+                passphrase: this.gpgData.passphrase
+            });
+
+            const byteCharacters = atob(gpgBase64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+
+            this.showGpgEncryptionModal = false;
+            const { save } = await import('@tauri-apps/plugin-dialog');
+            let baseName = this.itemToExport.file_name;
+            // Quitamos la extension para no dejar basura como .pdf.gpg si el usuario lo desea.
+            // Aunque si tenia .txt o .csv podemos dejarlo, pero según la lógica Magic Bytes ya no es necesario.
+            baseName = baseName.replace(/\.[^/.]+$/, "");
+
+            const savePath = await save({
+                defaultPath: `${baseName}.gpg`,
+                filters: [{ name: 'GPG Document', extensions: ['gpg', 'pgp'] }]
+            });
+
+            if (savePath) {
+                const { writeFile } = await import('@tauri-apps/plugin-fs');
+                await writeFile(savePath, byteArray);
+                this.resultModal = {
+                    show: true,
+                    title: 'Documento Cifrado Exitosamente',
+                    message: `El archivo ha sido protegido con GPG y guardado.`,
+                    isError: false
+                };
+            }
+        } catch (e: any) {
+            console.error("GPG Encryption Failed:", e);
+            this.showGpgEncryptionModal = false;
+            this.resultModal = { show: true, title: 'Error de Cifrado', message: e.toString(), isError: true };
+        } finally {
+            this.isGpgEncrypting = false;
+        }
+    }
+
+    cancelGpgUnlock() {
+        this.showGpgUnlockModal = false;
+        this.gpgUnlockPassphrase = '';
+        this.gpgUnlockFilePath = '';
+        this.isLoading = false;
+    }
+
+    async submitGpgUnlock() {
+        if (!this.gpgUnlockPassphrase) return;
+        this.isLoading = true;
+        try {
+            const base64Data = await invoke<string>('decrypt_gpg_symmetric_file', {
+                filePath: this.gpgUnlockFilePath,
+                passphrase: this.gpgUnlockPassphrase
+            });
+
+            this.showGpgUnlockModal = false;
+            this.gpgUnlockPassphrase = '';
+
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+
+            // MAGIC BYTES DETECTION
+            let mimeType = 'application/octet-stream';
+            let viewerType: any = 'file-viewer';
+            let ext = '.bin';
+
+            if (byteArray.length >= 4 && byteArray[0] === 0x25 && byteArray[1] === 0x50 && byteArray[2] === 0x44 && byteArray[3] === 0x46) {
+                mimeType = 'application/pdf'; ext = '.pdf'; viewerType = 'pdf-viewer';
+            } else if (byteArray.length >= 8 && byteArray[0] === 0x89 && byteArray[1] === 0x50 && byteArray[2] === 0x4E && byteArray[3] === 0x47) {
+                mimeType = 'image/png'; ext = '.png';
+            } else if (byteArray.length >= 3 && byteArray[0] === 0xFF && byteArray[1] === 0xD8 && byteArray[2] === 0xFF) {
+                mimeType = 'image/jpeg'; ext = '.jpg';
+            } else if (byteArray.length >= 4 && byteArray[0] === 0x50 && byteArray[1] === 0x4B && byteArray[2] === 0x03 && byteArray[3] === 0x04) {
+                mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; ext = '.xlsx';
+            } else {
+                let isBinary = false;
+                let hasComma = false;
+                for (let i = 0; i < Math.min(byteArray.length, 500); i++) {
+                    if (byteArray[i] === 0) { isBinary = true; break; }
+                    if (byteArray[i] === 0x2C) hasComma = true;
+                }
+                if (!isBinary) {
+                    if (hasComma) { mimeType = 'text/csv'; ext = '.csv'; }
+                    else { mimeType = 'text/plain'; ext = '.txt'; }
+                }
+            }
+
+            let cleanNameOriginal = this.gpgUnlockFileName.replace(/\.gpg$/i, '').replace(/\.pgp$/i, '');
+            // Append the proper extension if it was lost
+            if (!cleanNameOriginal.toLowerCase().endsWith(ext)) {
+                cleanNameOriginal += ext;
+            }
+
+            const blob = new Blob([byteArray], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+
+            const tabId = 'doc-' + Date.now();
+            let dataUriPrefix = `data:${mimeType};base64,`;
+            const dataUri = base64Data.startsWith('data:') ? base64Data : `${dataUriPrefix}${base64Data}`;
+
+            this.appState.addTab({
+                id: tabId,
+                name: cleanNameOriginal,
+                icon: 'fas fa-key',
+                type: viewerType,
+                content: safeUrl,
+                url: safeUrl,
+                blobData: dataUri,
+                originalName: cleanNameOriginal,
+                filePath: this.gpgUnlockFilePath,
+                isProtected: false,
+                isSavedToHistory: true,
+                showToolbar: true,
+                zoomLevel: 1.0,
+                mimeType: mimeType
+            });
+
+            invoke('add_document_history', { fileName: this.gpgUnlockFileName, filePath: this.gpgUnlockFilePath })
+                .then(() => this.loadHistory())
+                .catch(err => console.error("Error saving history:", err));
+
+        } catch (e: any) {
+            console.error("GPG Unlock Error:", e);
+            this.resultModal = { show: true, title: 'Error GPG', message: 'Contraseña incorrecta o archivo inválido.', isError: true };
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    // --- End GPG Logic ---
+
     EncryptionConfig() {
         this.showExportModal = false;
         this.encryptionData = { pin: '', watermark: '', serviceUrl: '' };
@@ -422,36 +614,42 @@ export class SecureViewerComponent {
                 unlockPin: null // Explicitly null
             });
 
-            // 2. Base64 -> Blob URL
+            const cleanName = path.toLowerCase();
+            let mimeType = 'application/pdf';
+            let viewerType: any = 'pdf-viewer';
+            let dataUriPrefix = 'data:application/pdf;base64,';
+            let iconClass = 'fas fa-file-pdf';
+
+            if (cleanName.endsWith('.csv')) { mimeType = 'text/csv'; viewerType = 'file-viewer'; dataUriPrefix = 'data:text/csv;base64,'; iconClass = 'fas fa-file-csv'; }
+            else if (cleanName.endsWith('.txt')) { mimeType = 'text/plain'; viewerType = 'file-viewer'; dataUriPrefix = 'data:text/plain;base64,'; iconClass = 'fas fa-file-alt'; }
+            else if (cleanName.endsWith('.png')) { mimeType = 'image/png'; viewerType = 'file-viewer'; dataUriPrefix = 'data:image/png;base64,'; iconClass = 'fas fa-file-image'; }
+            else if (cleanName.endsWith('.jpg') || cleanName.endsWith('.jpeg')) { mimeType = 'image/jpeg'; viewerType = 'file-viewer'; dataUriPrefix = 'data:image/jpeg;base64,'; iconClass = 'fas fa-file-image'; }
+            else if (cleanName.endsWith('.xlsx') || cleanName.endsWith('.xls')) { mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; viewerType = 'file-viewer'; dataUriPrefix = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'; iconClass = 'fas fa-file-excel'; }
+
             const byteCharacters = atob(base64Data);
             const byteNumbers = new Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
                 byteNumbers[i] = byteCharacters.charCodeAt(i);
             }
             const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            const blob = new Blob([byteArray], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
 
-            // Determine if it is a PDF or SSE for icon
-            // Check extension
-            const isPdf = path.toLowerCase().endsWith('.pdf');
-            const isSse = path.toLowerCase().endsWith('.sse');
-            const iconClass = isPdf ? 'fas fa-file-pdf' : 'fas fa-file-shield';
+            const isSse = cleanName.endsWith('.sse');
+            if (isSse || cleanName.endsWith('.pdf')) {
+                iconClass = isSse ? 'fas fa-file-shield' : 'fas fa-file-pdf';
+                viewerType = 'pdf-viewer';
+            }
 
-            // 3. Open Logic
             const tabId = 'doc-' + Date.now();
-
-            // Ensure Data URI format for download service
-            const dataUri = base64Data.startsWith('data:')
-                ? base64Data
-                : `data:application/pdf;base64,${base64Data}`;
+            const dataUri = base64Data.startsWith('data:') ? base64Data : `${dataUriPrefix}${base64Data}`;
 
             this.appState.addTab({
                 id: tabId,
                 name: this.fileName,
                 icon: iconClass,
-                type: 'pdf-viewer',
+                type: viewerType,
                 content: safeUrl,
                 url: safeUrl,
                 blobData: dataUri,
@@ -460,7 +658,8 @@ export class SecureViewerComponent {
                 isProtected: isSse, // Only secure if extension is .sse
                 isSavedToHistory: !saveToHistory,
                 showToolbar: true,
-                zoomLevel: 1.0
+                zoomLevel: 1.0,
+                mimeType: mimeType
             });
 
             // 4. Save to History (Async)
