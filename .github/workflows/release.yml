@@ -58,3 +58,83 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }}
+
+      - name: Generate and upload Source RPM (Ubuntu only)
+        if: matrix.platform == 'ubuntu-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Obtener la version del tauri.conf.json
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          PKG_NAME="SandraDC"
+          TAR_NAME="${PKG_NAME}-${VERSION}"
+
+          # 2. Empaquetar el código fuente en un .tar.gz (excluyendo carpetas pesadas/innecesarias)
+          echo "Creando empaquetado fuente ${TAR_NAME}.tar.gz ..."
+          git archive --format=tar.gz --prefix="${TAR_NAME}/" -o "${TAR_NAME}.tar.gz" HEAD
+
+          # 3. Preparar el entorno rpmbuild
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          cp "${TAR_NAME}.tar.gz" ~/rpmbuild/SOURCES/
+
+          # 4. Crear el archivo .spec dinámico
+          cat <<EOF > ~/rpmbuild/SPECS/${PKG_NAME}.spec
+          Name:           ${PKG_NAME}
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        Sandra Desktop Container
+
+          License:        MIT
+          URL:            https://github.com/${{ github.repository }}
+          Source0:        %{name}-%{version}.tar.gz
+
+          BuildRequires:  nodejs
+          BuildRequires:  cargo
+          BuildRequires:  rust
+          BuildRequires:  webkit2gtk4.1-devel
+          BuildRequires:  gtk3-devel
+          BuildRequires:  librsvg2-devel
+          BuildRequires:  openssl-devel
+          BuildRequires:  glib2-devel
+
+          %description
+          Sandra Desktop Container Copr package.
+
+          %prep
+          %setup -q
+
+          %build
+          # Habilitar red obligatoria en COPR para dependencias NPM/Cargo
+          npm install
+          npm run build
+          cd src-tauri
+          cargo build --release
+
+          %install
+          rm -rf %{buildroot}
+          mkdir -p %{buildroot}%{_bindir}
+          # Movemos el binario compilado al directorio bin de linux
+          install -m 755 src-tauri/target/release/sandra-desktop-container %{buildroot}%{_bindir}/${PKG_NAME}
+
+          %files
+          %{_bindir}/${PKG_NAME}
+
+          %changelog
+          * $(date "+%a %b %d %Y") GitHub Actions <actions@github.com> - ${VERSION}-1
+          - Automated src.rpm build for COPR
+          EOF
+
+          # 5. Configurar rpm para ignorar build missing (por ser un .src.rpm solo empaquetará las sources)
+          echo "Generando .src.rpm..."
+          rpmbuild -bs ~/rpmbuild/SPECS/${PKG_NAME}.spec
+
+          # 6. Mover el archivo generado al directorio de trabajo
+          find ~/rpmbuild/SRPMS/ -name "*.src.rpm" -exec cp {} . \;
+
+          # 7. Subir todo al Release usando el CLI de GitHub (esperamos a que el paso anterior termine el release)
+          # Esperar unos segundos para asegurar que tauri-action ya publicó el release (que fue lanzado por el tag actual)
+          # GitHub action expone GITHUB_REF cuando se triggerea por un tag (ej. refs/tags/v0.1.2)
+          TAG_NAME=\${GITHUB_REF#refs/tags/}
+
+          echo "Subiendo assets a release \$TAG_NAME ..."
+          gh release upload "\$TAG_NAME" *.src.rpm "${TAR_NAME}.tar.gz" --clobber
