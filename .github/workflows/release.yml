@@ -132,9 +132,11 @@ jobs:
           find ~/rpmbuild/SRPMS/ -name "*.src.rpm" -exec cp {} . \;
 
           # 7. Subir todo al Release usando el CLI de GitHub (esperamos a que el paso anterior termine el release)
-          # Esperar unos segundos para asegurar que tauri-action ya publicó el release (que fue lanzado por el tag actual)
-          # GitHub action expone GITHUB_REF cuando se triggerea por un tag (ej. refs/tags/v0.1.2)
-          TAG_NAME=\${GITHUB_REF#refs/tags/}
+          # Tauri action crea un release con el formato "app-vX.Y.Z". Construimos ese tag dinámicamente:
+          TAG_NAME="app-v${VERSION}"
 
-          echo "Subiendo assets a release \$TAG_NAME ..."
-          gh release upload "\$TAG_NAME" *.src.rpm "${TAR_NAME}.tar.gz" --clobber
+          # Esperar unos segundos para asegurar que tauri-action ya publicó el release (que fue lanzado por el tag actual)
+          sleep 10
+
+          echo "Subiendo assets a release ${TAG_NAME} ..."
+          gh release upload "${TAG_NAME}" *.src.rpm "${TAR_NAME}.tar.gz" --clobber
