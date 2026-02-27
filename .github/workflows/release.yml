@@ -25,7 +25,7 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf rpm
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf rpm dpkg-sig
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,6 +40,13 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Import GPG key (Ubuntu only)
+        if: matrix.platform == 'ubuntu-latest'
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Build and upload artifacts
         uses: tauri-apps/tauri-action@v0
@@ -63,6 +70,8 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           # 1. Obtener la version del tauri.conf.json
           VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
@@ -96,6 +105,11 @@ jobs:
           BuildRequires:  librsvg2-devel
           BuildRequires:  openssl-devel
           BuildRequires:  glib2-devel
+          BuildRequires:  libappindicator-gtk3-devel
+          BuildRequires:  curl
+          BuildRequires:  wget
+          BuildRequires:  file
+          BuildRequires:  gcc-c++
 
           %description
           Sandra Desktop Container Copr package.
@@ -112,12 +126,29 @@ jobs:
 
           %install
           rm -rf %{buildroot}
+
+          # 1. Instalar Binario
           mkdir -p %{buildroot}%{_bindir}
-          # Movemos el binario compilado al directorio bin de linux
-          install -m 755 src-tauri/target/release/sandra-desktop-container %{buildroot}%{_bindir}/${PKG_NAME}
+          install -m 755 src-tauri/target/release/sandra-desktop-container %{buildroot}%{_bindir}/%{name}
+
+          # 2. Instalar el Acceso Directo (.desktop)
+          mkdir -p %{buildroot}%{_datadir}/applications
+          echo "[Desktop Entry]" > %{buildroot}%{_datadir}/applications/%{name}.desktop
+          echo "Name=Sandra Desktop Container" >> %{buildroot}%{_datadir}/applications/%{name}.desktop
+          echo "Exec=%{name}" >> %{buildroot}%{_datadir}/applications/%{name}.desktop
+          echo "Icon=%{name}" >> %{buildroot}%{_datadir}/applications/%{name}.desktop
+          echo "Type=Application" >> %{buildroot}%{_datadir}/applications/%{name}.desktop
+          echo "Terminal=false" >> %{buildroot}%{_datadir}/applications/%{name}.desktop
+          echo "Categories=Utility;" >> %{buildroot}%{_datadir}/applications/%{name}.desktop
+
+          # 3. Instalar el Icono
+          mkdir -p %{buildroot}%{_datadir}/icons/hicolor/128x128/apps
+          install -m 644 src-tauri/icons/128x128.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/%{name}.png
 
           %files
-          %{_bindir}/${PKG_NAME}
+          %{_bindir}/%{name}
+          %{_datadir}/applications/%{name}.desktop
+          %{_datadir}/icons/hicolor/128x128/apps/%{name}.png
 
           %changelog
           * $(date "+%a %b %d %Y") GitHub Actions <actions@github.com> - ${VERSION}-1
@@ -128,15 +159,41 @@ jobs:
           echo "Generando .src.rpm..."
           rpmbuild -bs ~/rpmbuild/SPECS/${PKG_NAME}.spec
 
-          # 6. Mover el archivo generado al directorio de trabajo
+          # 6. Configurar y firmar los paquetes RPM y DEB generados
+          if [ -n "$GPG_PASSPHRASE" ]; then
+            echo "Configurando RPM macros para la firma..."
+            GPG_KEY_ID=$(gpg --list-keys --with-colons | grep "^pub" | head -n1 | cut -d":" -f5)
+            
+            cat <<EOF > ~/.rpmmacros
+          %_signature gpg
+          %_gpg_path /home/runner/.gnupg
+          %_gpg_name ${GPG_KEY_ID}
+          %__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" -u "%{_gpg_name}" -sbo %{__signature_filename} --digest-algo sha256 %{__plaintext_filename}
+          EOF
+
+            echo "Firmando .src.rpm con GPG..."
+            find ~/rpmbuild/SRPMS/ -name "*.src.rpm" -exec rpm --addsign {} \;
+            
+            echo "Firmando paquetes RPM binarios generados por Tauri..."
+            find src-tauri/target/release/bundle/rpm/ -name "*.rpm" -exec rpm --addsign {} \;
+            
+            echo "Firmando paquetes DEB binarios generados por Tauri..."
+            for file in src-tauri/target/release/bundle/deb/*.deb; do
+              if [ -f "$file" ]; then
+                dpkg-sig --sign builder "$file"
+              fi
+            done
+          fi
+
+          # 7. Mover el archivo generado al directorio de trabajo
           find ~/rpmbuild/SRPMS/ -name "*.src.rpm" -exec cp {} . \;
 
-          # 7. Subir todo al Release usando el CLI de GitHub (esperamos a que el paso anterior termine el release)
+          # 8. Subir todo al Release usando el CLI de GitHub (esperamos a que el paso anterior termine el release)
           # Tauri action crea un release con el formato "app-vX.Y.Z". Construimos ese tag dinámicamente:
           TAG_NAME="app-v${VERSION}"
 
           # Esperar unos segundos para asegurar que tauri-action ya publicó el release (que fue lanzado por el tag actual)
           sleep 10
 
-          echo "Subiendo assets a release ${TAG_NAME} ..."
-          gh release upload "${TAG_NAME}" *.src.rpm "${TAR_NAME}.tar.gz" --clobber
+          echo "Subiendo assets firmados a release ${TAG_NAME} ..."
+          gh release upload "${TAG_NAME}" *.src.rpm "${TAR_NAME}.tar.gz" src-tauri/target/release/bundle/rpm/*.rpm src-tauri/target/release/bundle/deb/*.deb --clobber
