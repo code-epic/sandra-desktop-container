@@ -1,6 +1,6 @@
 [package]
 name = "sandra-desktop-container"
-version = "0.1.0"
+version = "0.1.3"
 description = "Contenedor de Escritorio Sandra"
 authors = ["Carlos E. Peña A."]
 edition = "2021"
