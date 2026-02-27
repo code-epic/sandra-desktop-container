@@ -25,7 +25,7 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf rpm dpkg-sig
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf rpm debsigs
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -180,7 +180,8 @@ jobs:
             echo "Firmando paquetes DEB binarios generados por Tauri..."
             for file in src-tauri/target/release/bundle/deb/*.deb; do
               if [ -f "$file" ]; then
-                dpkg-sig --sign builder "$file"
+                # debsigs usa la llave importada en el agente de GPG
+                debsigs --sign=origin -k ${GPG_KEY_ID} "$file"
               fi
             done
           fi
