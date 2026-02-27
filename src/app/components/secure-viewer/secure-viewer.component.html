@@ -139,28 +139,35 @@
         
         <div class="modal-body">
             <div class="export-options">
-                <button class="export-option-btn" (click)="confirmExport(true)" *ngIf="itemToExport && !itemToExport.file_name.toLowerCase().endsWith('.pdf')">
+                <button class="export-option-btn" (click)="confirmExport(true)" *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.sse')">
                     <i class="fas fa-shield-alt"></i>
                     <div class="opt-text">
                         <span class="opt-title">Mantener Protección</span>
                         <span class="opt-desc">Conserva encriptación (Solo Sandra).</span>
                     </div>
                 </button>
-                <button class="export-option-btn" (click)="confirmExport(false)" *ngIf="itemToExport && !itemToExport.file_name.toLowerCase().endsWith('.pdf')">
+                <button class="export-option-btn" (click)="confirmExport(false)" *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.sse')">
                     <i class="fas fa-unlock-alt"></i>
                     <div class="opt-text">
                         <span class="opt-title">Desbloquear</span>
                         <span class="opt-desc">Exportar como PDF estándar.</span>
                     </div>
                 </button>
-                 <button class="export-option-btn" (click)="EncryptionConfig()">
+                 <button class="export-option-btn" (click)="unlockGpgExport()" *ngIf="itemToExport && (itemToExport.file_name.toLowerCase().endsWith('.gpg') || itemToExport.file_name.toLowerCase().endsWith('.pgp'))">
+                    <i class="fas fa-unlock-alt"></i>
+                    <div class="opt-text">
+                        <span class="opt-title">Desbloquear</span>
+                        <span class="opt-desc">Descifrar y ver contenido.</span>
+                    </div>
+                </button>
+                 <button class="export-option-btn" (click)="EncryptionConfig()" *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.pdf')">
                     <i class="fas fa-file-contract"></i>
                     <div class="opt-text">
                         <span class="opt-title">Cifrar Documento</span>
                         <span class="opt-desc">Proteger con contraseña privada.</span>
                     </div>
                 </button>
-                <button class="export-option-btn" (click)="EncryptionGpgConfig()">
+                <button class="export-option-btn" (click)="EncryptionGpgConfig()" *ngIf="itemToExport && !itemToExport.file_name.toLowerCase().endsWith('.gpg') && !itemToExport.file_name.toLowerCase().endsWith('.pgp')">
                     <i class="fas fa-key"></i>
                     <div class="opt-text">
                         <span class="opt-title">Cifrado GPG Simétrico</span>

@@ -43,8 +43,16 @@ export class AppStateService {
   private openTabsSubject = new BehaviorSubject<Tab[]>([]);
   openTabs$ = this.openTabsSubject.asObservable();
 
+  // Estado Global de Carga
+  private globalLoadingSubject = new BehaviorSubject<{ isLoading: boolean, message: string }>({ isLoading: false, message: '' });
+  globalLoading$ = this.globalLoadingSubject.asObservable();
+
   // Eventos
   public onConfigToggle = new EventEmitter<void>();
+
+  setGlobalLoading(isLoading: boolean, message: string = 'Procesando...') {
+    this.globalLoadingSubject.next({ isLoading, message });
+  }
 
   toggleLeftSidebar() {
     this.leftSidebarOpenSubject.next(!this.leftSidebarOpenSubject.value);

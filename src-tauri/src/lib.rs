@@ -101,8 +101,8 @@ pub fn run() {
             commands::security::sha256_hash,
             commands::security::hmac_sha256,
             commands::security::encrypt_device_context,
-            commands::gpg::encrypt_gpg_symmetric_base64,
-            commands::gpg::decrypt_gpg_symmetric_file
+            commands::gpg::encrypt_gpg_symmetric_raw,
+            commands::gpg::decrypt_gpg_symmetric_file_raw
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

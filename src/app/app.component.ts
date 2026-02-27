@@ -139,6 +139,7 @@ export class AppComponent implements OnInit {
   exitModal = { show: false, closing: false };
   isExitConfirmed = false;
 
+  globalLoading$!: Observable<{ isLoading: boolean, message: string }>;
 
   constructor(
     public appState: AppStateService,
@@ -158,6 +159,7 @@ export class AppComponent implements OnInit {
 
     this.activeTabId$ = this.appState.activeTabId$;
     this.openTabs$ = this.appState.openTabs$;
+    this.globalLoading$ = this.appState.globalLoading$;
     this.rightSidebarOpen$ = this.appState.rightSidebarOpen$;
     this.leftSidebarOpen$ = this.appState.leftSidebarOpen$;
 

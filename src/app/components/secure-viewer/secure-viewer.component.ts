@@ -75,6 +75,7 @@ export class SecureViewerComponent {
                     this.isLoading = false;
                     this.gpgUnlockFilePath = selected;
                     this.gpgUnlockFileName = this.fileName;
+                    this.gpgUnlockSaveToHistory = true;
                     this.showGpgUnlockModal = true;
                 } else {
                     await this.loadSecureDoc(selected, true);
@@ -96,6 +97,7 @@ export class SecureViewerComponent {
             this.isLoading = false;
             this.gpgUnlockFilePath = item.file_path;
             this.gpgUnlockFileName = this.fileName;
+            this.gpgUnlockSaveToHistory = false;
             this.showGpgUnlockModal = true;
         } else {
             await this.loadSecureDoc(item.file_path, false);
@@ -114,6 +116,7 @@ export class SecureViewerComponent {
     itemToExport: any = null;
     unlockPin: string = '';
     isExportingUnlocked = false; // logic flag
+    gpgUnlockSaveToHistory: boolean = true;
 
     // --- Export Logic ---
     promptExport(item: any, event: Event) {
@@ -138,6 +141,12 @@ export class SecureViewerComponent {
             this.unlockPin = '';
             this.showUnlockModal = true;
         }
+    }
+
+    unlockGpgExport() {
+        this.showExportModal = false;
+        // Re-use logic: act as if they clicked to open it from history (won't duplicate history)
+        this.openFromHistory(this.itemToExport);
     }
 
     cancelUnlock() {
@@ -306,6 +315,8 @@ export class SecureViewerComponent {
         if (this.gpgData.passphrase !== this.gpgData.confirmPassphrase) return;
 
         this.isGpgEncrypting = true;
+        this.appState.setGlobalLoading(true, 'Cifrando GPG, por favor espere...');
+
         try {
             // First, load the document content as Base64 (unlocked if SSE, pure if PDF)
             const base64Data = await invoke<string>('load_sse_document', {
@@ -313,18 +324,20 @@ export class SecureViewerComponent {
                 unlockPin: null
             });
 
-            // Send to Rust to encrypt
-            const gpgBase64 = await invoke<string>('encrypt_gpg_symmetric_base64', {
-                base64Input: base64Data,
+            const rawByteCharacters = atob(base64Data);
+            const rawByteNumbers = new Array(rawByteCharacters.length);
+            for (let i = 0; i < rawByteCharacters.length; i++) {
+                rawByteNumbers[i] = rawByteCharacters.charCodeAt(i);
+            }
+            const inputByteArray = new Uint8Array(rawByteNumbers);
+
+            // Send to Rust to encrypt using native binary array
+            const gpgArray = await invoke<number[]>('encrypt_gpg_symmetric_raw', {
+                inputData: Array.from(inputByteArray),
                 passphrase: this.gpgData.passphrase
             });
 
-            const byteCharacters = atob(gpgBase64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
+            const byteArray = new Uint8Array(gpgArray);
 
             this.showGpgEncryptionModal = false;
             const { save } = await import('@tauri-apps/plugin-dialog');
@@ -354,6 +367,7 @@ export class SecureViewerComponent {
             this.resultModal = { show: true, title: 'Error de Cifrado', message: e.toString(), isError: true };
         } finally {
             this.isGpgEncrypting = false;
+            this.appState.setGlobalLoading(false);
         }
     }
 
@@ -368,7 +382,7 @@ export class SecureViewerComponent {
         if (!this.gpgUnlockPassphrase) return;
         this.isLoading = true;
         try {
-            const base64Data = await invoke<string>('decrypt_gpg_symmetric_file', {
+            const rawArray = await invoke<number[]>('decrypt_gpg_symmetric_file_raw', {
                 filePath: this.gpgUnlockFilePath,
                 passphrase: this.gpgUnlockPassphrase
             });
@@ -376,12 +390,21 @@ export class SecureViewerComponent {
             this.showGpgUnlockModal = false;
             this.gpgUnlockPassphrase = '';
 
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            const byteArray = new Uint8Array(rawArray);
+
+            // Base64 conversion needed for blobData prefix if used inside history saving
+            let binaryString = '';
+            for (let i = 0; i < Math.min(byteArray.byteLength, 100000); i++) {
+                binaryString += String.fromCharCode(byteArray[i]);
             }
-            const byteArray = new Uint8Array(byteNumbers);
+            // For huge files, btoa on a giant string can crash the V8 engine, but we only strictly need it for `blobData` dataUri.
+            // A more robust way:
+            const base64Data = btoa(
+                new Uint8Array(byteArray).reduce(
+                    (data, byte) => data + String.fromCharCode(byte),
+                    ''
+                )
+            );
 
             // MAGIC BYTES DETECTION
             let mimeType = 'application/octet-stream';
@@ -440,9 +463,11 @@ export class SecureViewerComponent {
                 mimeType: mimeType
             });
 
-            invoke('add_document_history', { fileName: this.gpgUnlockFileName, filePath: this.gpgUnlockFilePath })
-                .then(() => this.loadHistory())
-                .catch(err => console.error("Error saving history:", err));
+            if (this.gpgUnlockSaveToHistory) {
+                invoke('add_document_history', { fileName: this.gpgUnlockFileName, filePath: this.gpgUnlockFilePath })
+                    .then(() => this.loadHistory())
+                    .catch(err => console.error("Error saving history:", err));
+            }
 
         } catch (e: any) {
             console.error("GPG Unlock Error:", e);
@@ -469,6 +494,8 @@ export class SecureViewerComponent {
         if (!this.itemToExport) return;
 
         this.isEncrypting = true;
+        this.appState.setGlobalLoading(true, 'Empaquetando en bóveda segura...');
+
         try {
             // 1. Get Active Connection Base URL
             let baseUrl = 'https://127.0.0.1';
@@ -558,6 +585,7 @@ export class SecureViewerComponent {
             };
         } finally {
             this.isEncrypting = false;
+            this.appState.setGlobalLoading(false);
         }
     }
 

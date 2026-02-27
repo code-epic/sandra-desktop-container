@@ -1,27 +1,31 @@
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use openpgp::parse::{stream::*, Parse};
 use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::Message;
 use sequoia_openpgp as openpgp;
-use std::io::Write;
+use std::fs::File;
+use std::io::{BufReader, Cursor, Read, Write};
 use tauri::command;
 
-// --- GPG Core Logic ---
+pub fn encrypt_symmetric_stream<R: Read + Send + Sync, W: Write + Send + Sync>(
+    mut source: R,
+    sink: W,
+    password: &str,
+) -> anyhow::Result<()> {
+    let message = Message::new(sink);
+    let encryptor = openpgp::serialize::stream::Encryptor2::with_passwords(
+        message,
+        vec![openpgp::crypto::Password::from(password)],
+    )
+    .build()?;
 
-pub fn encrypt_symmetric(plaintext: &[u8], password: &str) -> anyhow::Result<Vec<u8>> {
-    let mut sink = Vec::new();
-    {
-        let message = Message::new(&mut sink);
-        let encryptor = openpgp::serialize::stream::Encryptor2::with_passwords(
-            message,
-            vec![openpgp::crypto::Password::from(password)],
-        )
+    let compressor = openpgp::serialize::stream::Compressor::new(encryptor)
+        .algo(openpgp::types::CompressionAlgorithm::Uncompressed)
         .build()?;
-        let mut literal = openpgp::serialize::stream::LiteralWriter::new(encryptor).build()?;
-        literal.write_all(plaintext)?;
-        literal.finalize()?;
-    }
-    Ok(sink)
+
+    let mut literal = openpgp::serialize::stream::LiteralWriter::new(compressor).build()?;
+    std::io::copy(&mut source, &mut literal)?;
+    literal.finalize()?;
+    Ok(())
 }
 
 struct SymmetricHelper<'a> {
@@ -60,49 +64,47 @@ impl<'a> DecryptionHelper for SymmetricHelper<'a> {
     }
 }
 
-pub fn decrypt_symmetric(ciphertext: &[u8], password: &str) -> anyhow::Result<Vec<u8>> {
+pub fn decrypt_symmetric_stream<R: Read + Send + Sync, W: Write + Send + Sync>(
+    mut source: R,
+    mut sink: W,
+    password: &str,
+) -> anyhow::Result<()> {
     let policy = StandardPolicy::new();
     let helper = SymmetricHelper { password };
     let mut decryptor =
-        DecryptorBuilder::from_bytes(ciphertext)?.with_policy(&policy, None, helper)?;
+        DecryptorBuilder::from_reader(source)?.with_policy(&policy, None, helper)?;
 
-    let mut plaintext = Vec::new();
-    std::io::copy(&mut decryptor, &mut plaintext)?;
-    Ok(plaintext)
+    std::io::copy(&mut decryptor, &mut sink)?;
+    Ok(())
 }
 
 // --- Tauri Commands ---
 
 #[command]
-pub async fn encrypt_gpg_symmetric_base64(
-    base64_input: String,
+pub async fn encrypt_gpg_symmetric_raw(
+    input_data: Vec<u8>,
     passphrase: String,
-) -> Result<String, String> {
-    let prefix = "data:application/pdf;base64,";
-    let input_clean = if base64_input.starts_with(prefix) {
-        base64_input.trim_start_matches(prefix)
-    } else {
-        &base64_input
-    };
+) -> Result<Vec<u8>, String> {
+    let mut sink = Vec::new();
+    let source = Cursor::new(input_data);
 
-    let decoded = BASE64.decode(input_clean).map_err(|e| e.to_string())?;
-
-    let encrypted = encrypt_symmetric(&decoded, &passphrase)
+    encrypt_symmetric_stream(source, &mut sink, &passphrase)
         .map_err(|e| format!("Error cifrando GPG: {}", e))?;
 
-    Ok(BASE64.encode(encrypted))
+    Ok(sink)
 }
 
 #[command]
-pub async fn decrypt_gpg_symmetric_file(
+pub async fn decrypt_gpg_symmetric_file_raw(
     file_path: String,
     passphrase: String,
-) -> Result<String, String> {
-    let encrypted =
-        std::fs::read(&file_path).map_err(|e| format!("Error leyendo archivo GPG: {}", e))?;
+) -> Result<Vec<u8>, String> {
+    let file = File::open(&file_path).map_err(|e| format!("Error abriendo archivo GPG: {}", e))?;
+    let mut reader = BufReader::new(file);
+    let mut plaintext = Vec::new();
 
-    let plaintext = decrypt_symmetric(&encrypted, &passphrase)
+    decrypt_symmetric_stream(&mut reader, &mut plaintext, &passphrase)
         .map_err(|e| format!("Error descifrando GPG: {:?}", e))?;
 
-    Ok(BASE64.encode(plaintext))
+    Ok(plaintext)
 }
