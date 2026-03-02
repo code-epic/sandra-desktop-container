@@ -112,7 +112,14 @@ jobs:
           # If API Key is present, push the package to Chocolatey
           if ($env:CHOCOLATEY_API_KEY) {
             choco apikey --key $env:CHOCOLATEY_API_KEY --source https://push.chocolatey.org/
-            choco push sandradc*.nupkg --source https://push.chocolatey.org/
+            $nupkg = Get-ChildItem "sandradc*.nupkg" | Select-Object -First 1
+            if ($nupkg) {
+              Write-Host "Pushing $($nupkg.Name) to Chocolatey..."
+              choco push $nupkg.FullName --source https://push.chocolatey.org/
+            } else {
+              Write-Error "Could not find a .nupkg file to push."
+              exit 1
+            }
           } else {
             Write-Warning "CHOCOLATEY_API_KEY secret is not set. Skipping push."
           }
