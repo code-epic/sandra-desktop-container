@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>sandradc</id>
+    <version>0.1.3</version>
+    <packageSourceUrl>https://github.com/carlospena/sandra-desktop-container</packageSourceUrl>
+    <owners>carlospena</owners>
+    
+    <title>Sandra Desktop Container (Install)</title>
+    <authors>Carlos Peña</authors>
+    <projectUrl>https://github.com/carlospena/sandra-desktop-container</projectUrl>
+    <copyright>2026 Carlos Peña</copyright>
+    <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>sandradc desktop container</tags>
+    <summary>Sandra Desktop Container</summary>
+    <description>Sandra Desktop Container allows secure consumption of digital assets.</description>
+    <releaseNotes>https://github.com/carlospena/sandra-desktop-container/releases</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

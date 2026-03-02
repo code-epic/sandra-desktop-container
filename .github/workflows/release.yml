@@ -66,6 +66,37 @@ jobs:
           prerelease: false
           args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }}
 
+      - name: Build and Publish Chocolatey Package (Windows only)
+        if: matrix.platform == 'windows-latest'
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: |
+          # Get version from tauri.conf.json
+          $config = Get-Content -Raw -Path "src-tauri\tauri.conf.json" | ConvertFrom-Json
+          $version = $config.version
+          Write-Host "Detected version: $version"
+
+          # Update the nuspec version
+          $nuspecPath = "chocolatey\sandradc.nuspec"
+          [xml]$nuspec = Get-Content $nuspecPath
+          $nuspec.package.metadata.version = $version
+          $nuspec.Save((Resolve-Path .\).Path + "\$nuspecPath")
+
+          # Copy the generated NSIS installer to the tools folder
+          Copy-Item "src-tauri\target\release\bundle\nsis\*.exe" -Destination "chocolatey\tools\"
+          
+          # Pack the Chocolatey package
+          cd chocolatey
+          choco pack sandradc.nuspec
+          
+          # If API Key is present, push the package to Chocolatey
+          if ($env:CHOCOLATEY_API_KEY) {
+            choco apikey --key $env:CHOCOLATEY_API_KEY --source https://push.chocolatey.org/
+            choco push sandradc*.nupkg --source https://push.chocolatey.org/
+          } else {
+            Write-Warning "CHOCOLATEY_API_KEY secret is not set. Skipping push."
+          }
+
       - name: Generate and upload Source RPM (Ubuntu only)
         if: matrix.platform == 'ubuntu-latest'
         env:
