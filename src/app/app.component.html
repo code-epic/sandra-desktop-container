@@ -9,24 +9,26 @@
           <i class="fas fa-bars"></i>
         </button>
         <!-- Refresh Button (Only active for active iframes) -->
-        <button class="icon-btn toggle-btn" 
-                *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor'  && (activeTabId$ | async) !== 'apps' && (activeTabId$ | async) !== 'security' && (activeTabId$ | async) !== 'secure-viewer'" 
-                (click)="reloadActiveIframe()" 
-                title="Actualizar Aplicación">
-           <i class="fas fa-redo-alt"></i>
+        <button class="icon-btn toggle-btn"
+          *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor'  && (activeTabId$ | async) !== 'apps' && (activeTabId$ | async) !== 'security' && (activeTabId$ | async) !== 'secure-viewer'"
+          (click)="reloadActiveIframe()" title="Actualizar Aplicación">
+          <i class="fas fa-redo-alt"></i>
         </button>
 
         <nav class="compass-tab-bar" *ngIf="(openTabs$ | async) as tabs">
-          <div class="compass-tab" [class.active]="(activeTabId$ | async) === 'dashboard'" (click)="switchToDashboard()">
-            <i class="fas fa-th-large"></i> <span *ngIf="tabs.length <= 3 || (activeTabId$ | async) === 'dashboard'" class="tab-label fade-in">Dashboard</span>
+          <div class="compass-tab" [class.active]="(activeTabId$ | async) === 'dashboard'"
+            (click)="switchToDashboard()">
+            <i class="fas fa-th-large"></i> <span *ngIf="tabs.length <= 3 || (activeTabId$ | async) === 'dashboard'"
+              class="tab-label fade-in">Dashboard</span>
           </div>
 
           <div class="compass-tab" *ngFor="let tab of tabs" [class.active]="(activeTabId$ | async) === tab.id"
             (click)="selectTab(tab.id)">
             <i [class]="tab.icon"></i>
-            <span *ngIf="tabs.length <= 2 || (activeTabId$ | async) === tab.id" class="tab-label fade-in">{{ tab.name }}</span>
+            <span *ngIf="tabs.length <= 2 || (activeTabId$ | async) === tab.id" class="tab-label fade-in">{{ tab.name
+              }}</span>
             <span class="tab-close-hitbox" (click)="closeTab(tab.id, $event)">
-               <i class="fas fa-times"></i>
+              <i class="fas fa-times"></i>
             </span>
           </div>
         </nav>
@@ -42,24 +44,13 @@
       </div>
     </header>
 
-    <section class="content-area" 
-      [class.sidebar-left-open]="leftSidebarOpen$ | async"
+    <section class="content-area" [class.sidebar-left-open]="leftSidebarOpen$ | async"
       [class.inspector-open]="rightSidebarOpen$ | async">
       <!-- Página Dashboard Modular -->
-      <app-dashboard 
-        *ngIf="(activeTabId$ | async) === 'dashboard'"
-        [stats]="stats"
-        [networkInfo]="networkInfo"
-        [apps]="apps"
-        [dbStats]="dbStats"
-        (onInstall)="DownloadAppRepo($event)"
-        (onOpen)="openApp($event)"
-        (onUpdate)="updateApp($event)"
-        (onDelete)="deleteApp($event)"
-        (onDbClick)="showDbModal = true"
-        (onIpClick)="showIpInfo()"
-        (onMacClick)="showMacInfo()"
-      ></app-dashboard>
+      <app-dashboard *ngIf="(activeTabId$ | async) === 'dashboard'" [stats]="stats" [networkInfo]="networkInfo"
+        [apps]="apps" [dbStats]="dbStats" (onInstall)="DownloadAppRepo($event)" (onOpen)="openApp($event)"
+        (onUpdate)="updateApp($event)" (onDelete)="deleteApp($event)" (onDbClick)="showDbModal = true"
+        (onIpClick)="showIpInfo()" (onMacClick)="showMacInfo()"></app-dashboard>
 
       <app-connections *ngIf="(activeTabId$ | async) === 'connections'"></app-connections>
       <app-security *ngIf="(activeTabId$ | async) === 'security'"></app-security>
@@ -68,108 +59,118 @@
       <app-secure-viewer *ngIf="(activeTabId$ | async) === 'secure-viewer'"></app-secure-viewer>
 
       <!-- Container Dinámico de Pestañas (Apps & Docs) -->
-      <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)" [hidden]="(activeTabId$ | async) !== tab.id">
-        
+      <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)"
+        [hidden]="(activeTabId$ | async) !== tab.id">
+
         <!-- PROXY ACTIVE INDICATOR -->
         <div class="proxy-glass-bar" *ngIf="tab.isProxyRequired && activeConnection">
-            <i class="fas fa-network-wired"></i>
-            <span class="proxy-label">Conectado vía</span>
-            <span style="font-weight: 700; color: #455A64;">{{ activeConnection.name }}</span>
+          <i class="fas fa-network-wired"></i>
+          <span class="proxy-label">Conectado vía</span>
+          <span style="font-weight: 700; color: #455A64;">{{ activeConnection.name }}</span>
         </div>
 
         <!-- NAVEGACION LIBRE ACTIVE INDICATOR -->
         <div class="proxy-glass-bar external-mode-bar" *ngIf="tab.isExternalMode">
-            <i class="fas fa-globe-americas"></i>
-            <span class="proxy-label">Modo Libre</span>
-            <span style="font-weight: 700; color: #0288d1;">Conexión Directa</span>
+          <i class="fas fa-globe-americas"></i>
+          <span class="proxy-label">Modo Libre</span>
+          <span style="font-weight: 700; color: #0288d1;">Conexión Directa</span>
         </div>
         <!-- IFRAME ESTÁNDAR (SANDBOX RESTRICTIVO) -->
-        <iframe *ngIf="(!tab.type || tab.type === 'iframe') && !tab.isExternalMode" 
-          [id]="'iframe-' + tab.id" [src]="tab.url" frameborder="0" 
+        <iframe *ngIf="(!tab.type || tab.type === 'iframe') && !tab.isExternalMode" [id]="'iframe-' + tab.id"
+          [src]="tab.url" frameborder="0"
           allow="autoplay; camera; microphone; clipboard-read; clipboard-write; display-capture; geolocation; gamepad; accelerometer; gyroscope; magnetometer; payment; usb; vr; xr-spatial-tracking"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-downloads-without-user-activation allow-modals allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-storage-access-by-user-activation allow-pointer-lock allow-orientation-lock" 
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-downloads-without-user-activation allow-modals allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-storage-access-by-user-activation allow-pointer-lock allow-orientation-lock"
           (load)="onIframeLoad(tab.id)">
         </iframe>
 
         <!-- IFRAME MODO LIBRE (SANDBOX PERMISIVO) -->
-        <iframe *ngIf="(!tab.type || tab.type === 'iframe') && tab.isExternalMode" 
-          [id]="'iframe-ext-' + tab.id" [src]="tab.url" frameborder="0" 
+        <iframe *ngIf="(!tab.type || tab.type === 'iframe') && tab.isExternalMode" [id]="'iframe-ext-' + tab.id"
+          [src]="tab.url" frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; clipboard-read; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation allow-top-navigation-by-user-activation allow-downloads allow-downloads-without-user-activation allow-popups-to-escape-sandbox allow-top-navigation" 
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation allow-top-navigation-by-user-activation allow-downloads allow-downloads-without-user-activation allow-popups-to-escape-sandbox allow-top-navigation"
           (load)="onIframeLoad(tab.id)">
         </iframe>
         <!-- PDF-VIEWER ORIGINAL (Para PDF y SSE) -->
-        <div *ngIf="tab.type === 'pdf-viewer'" class="pdf-tab-container" style="width:100%; height:100%; background:#525659; position: relative;">
-             <div class="pdf-overlay-bar">
-                 <span class="pdf-title">{{ tab.name }}</span>
-                  <div class="pdf-actions" *ngIf="tab.showToolbar">
-                    
-                    <button class="btn-pdf-action" *ngIf="!tab.isProtected" (click)="printPdf(tab)" title="Imprimir Documento">
-                        <i class="fas fa-print"></i>
-                    </button>
-                    <button class="btn-pdf-action" *ngIf="tab.isProtected" (click)="unlockTab(tab)" title="Desbloquear para Ver">
-                        <i class="fas fa-key"></i> Desbloquear
-                    </button>
+        <div *ngIf="tab.type === 'pdf-viewer'" class="pdf-tab-container"
+          style="width:100%; height:100%; background:#525659; position: relative;">
+          <div class="pdf-overlay-bar">
+            <span class="pdf-title">{{ tab.name }}</span>
+            <div class="pdf-actions" *ngIf="tab.showToolbar">
 
-                    <div class="nav-divider-vertical" style="width:1px; background:rgba(255,255,255,0.2); height:20px; margin:0 5px;"></div>
+              <button class="btn-pdf-action" *ngIf="!tab.isProtected" (click)="printPdf(tab)"
+                title="Imprimir Documento">
+                <i class="fas fa-print"></i>
+              </button>
+              <button class="btn-pdf-action" *ngIf="tab.isProtected" (click)="unlockTab(tab)"
+                title="Desbloquear para Ver">
+                <i class="fas fa-key"></i> Desbloquear
+              </button>
 
-                    <button class="btn-pdf-action" *ngIf="!tab.isSavedToHistory" (click)="savePdfToHistory(tab)" title="Guardar en Historial">
-                        <i class="fas fa-history"></i> Historial
-                    </button>
-                    <button class="btn-pdf-action" *ngIf="!tab.isProtected" (click)="downloadPdfFromTab(tab)" title="Descargar">
-                        <i class="fas fa-download"></i> Descargar
-                    </button>
-                 </div>
-             </div>
-             <div class="pdf-wrapper" style="width: 100%; height: 100%; overflow: hidden; background: #525659; position: relative;">
-                <iframe [id]="'pdf-frame-' + tab.id" [src]="tab.content" type="application/pdf"
-                   style="border:none; width: 100%; height: 100%; display: block;">
-                </iframe>
-             </div>
+              <div class="nav-divider-vertical"
+                style="width:1px; background:rgba(255,255,255,0.2); height:20px; margin:0 5px;"></div>
+
+              <button class="btn-pdf-action" *ngIf="!tab.isSavedToHistory" (click)="savePdfToHistory(tab)"
+                title="Guardar en Historial">
+                <i class="fas fa-history"></i> Historial
+              </button>
+              <button class="btn-pdf-action" *ngIf="!tab.isProtected" (click)="downloadPdfFromTab(tab)"
+                title="Descargar">
+                <i class="fas fa-download"></i> Descargar
+              </button>
+            </div>
+          </div>
+          <div class="pdf-wrapper"
+            style="width: 100%; height: 100%; overflow: hidden; background: #525659; position: relative;">
+            <iframe [id]="'pdf-frame-' + tab.id" [src]="tab.content" type="application/pdf"
+              style="border:none; width: 100%; height: 100%; display: block;">
+            </iframe>
+          </div>
         </div>
 
         <!-- NUEVO FILE-VIEWER MODERNO (CSV, TXT, IMG, PNG) -->
         <div *ngIf="tab.type === 'file-viewer'" class="file-viewer-stage fade-in">
-             <div class="file-viewer-glass-header">
-                  <div class="fv-header-info">
-                      <div class="fv-icon-box">
-                          <i [class]="tab.icon"></i>
-                      </div>
-                      <div class="fv-text-details">
-                          <span class="fv-filename">{{ tab.name }}</span>
-                          <span class="fv-mimetype">{{ tab.mimeType || 'Archivo' }} • {{ tab.isProtected ? 'Protegido' : 'Documento' }}</span>
-                      </div>
-                  </div>
-                  <div class="fv-header-actions">
-                      <button class="fv-action-btn print" (click)="printPdf(tab)" title="Imprimir">
-                          <i class="fas fa-print"></i>
-                      </button>
-                      <button class="fv-action-btn save" (click)="savePdfToHistory(tab)" *ngIf="!tab.isSavedToHistory" title="Guardar">
-                          <i class="fas fa-history"></i>
-                      </button>
-                      <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" title="Descargar">
-                          <i class="fas fa-download"></i>
-                      </button>
-                      <div class="fv-divider"></div>
-                      <button class="fv-action-btn close" (click)="closeTab(tab.id, $event)" title="Cerrar Vista">
-                          <i class="fas fa-times"></i>
-                      </button>
-                  </div>
-             </div>
+          <div class="file-viewer-glass-header">
+            <div class="fv-header-info">
+              <div class="fv-icon-box">
+                <i [class]="tab.icon"></i>
+              </div>
+              <div class="fv-text-details">
+                <span class="fv-filename">{{ tab.name }}</span>
+                <span class="fv-mimetype">{{ tab.mimeType || 'Archivo' }} • {{ tab.isProtected ? 'Protegido' :
+                  'Documento' }}</span>
+              </div>
+            </div>
+            <div class="fv-header-actions">
+              <button class="fv-action-btn print" (click)="printPdf(tab)" title="Imprimir">
+                <i class="fas fa-print"></i>
+              </button>
+              <button class="fv-action-btn save" (click)="savePdfToHistory(tab)" *ngIf="!tab.isSavedToHistory"
+                title="Guardar">
+                <i class="fas fa-history"></i>
+              </button>
+              <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" title="Descargar">
+                <i class="fas fa-download"></i>
+              </button>
+              <div class="fv-divider"></div>
+              <button class="fv-action-btn close" (click)="closeTab(tab.id, $event)" title="Cerrar Vista">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
 
-             <div class="file-content-canvas">
-                <!-- VISTA IMAGEN -->
-                <div *ngIf="tab.mimeType?.startsWith('image/')" class="fv-image-container fade-in-up">
-                    <img [src]="tab.content" class="fv-preview-img shadow-premium">
-                </div>
-                
-                <!-- VISTA TEXTO / CSV -->
-                <div *ngIf="!tab.mimeType?.startsWith('image/')" class="fv-text-container fade-in-up">
-                    <iframe [id]="'file-frame-' + tab.id" [src]="tab.content" 
-                       style="border:none; width: 100%; height: 100%; border-radius: 12px; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
-                    </iframe>
-                </div>
-             </div>
+          <div class="file-content-canvas">
+            <!-- VISTA IMAGEN -->
+            <div *ngIf="tab.mimeType?.startsWith('image/')" class="fv-image-container fade-in-up">
+              <img [src]="tab.content" class="fv-preview-img shadow-premium">
+            </div>
+
+            <!-- VISTA TEXTO / CSV -->
+            <div *ngIf="!tab.mimeType?.startsWith('image/')" class="fv-text-container fade-in-up">
+              <iframe [id]="'file-frame-' + tab.id" [src]="tab.content"
+                style="border:none; width: 100%; height: 100%; border-radius: 12px; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
+              </iframe>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -212,34 +213,34 @@
   <!-- Modal Monitor de Actividad (Rediseñado) -->
   <div class="modal-overlay" *ngIf="showSaveLogModal">
     <div class="modal-card activity-modal fade-in-up">
-        <!-- Close Button (X) - Cancels Close Action -->
-        <button class="btn-close-modal-x" (click)="cancelCloseTab()">
-            <i class="fas fa-times"></i>
-        </button>
+      <!-- Close Button (X) - Cancels Close Action -->
+      <button class="btn-close-modal-x" (click)="cancelCloseTab()">
+        <i class="fas fa-times"></i>
+      </button>
 
-        <div class="modal-body-clean">
-            <div class="modal-visual-header">
-                 <div class="icon-pulse-wrapper">
-                     <i class="fas fa-network-wired"></i>
-                 </div>
-            </div>
-            
-            <h3 class="modal-title-clean">Registro de Actividad</h3>
-            
-            <p class="modal-msg-clean">
-                Hemos detectado tráfico de red en esta sesión.
-                <span class="sub-text">¿Deseas guardar el registro de conexiones antes de cerrar la pestaña?</span>
-            </p>
-            
-            <div class="modal-actions-spread">
-                <button class="btn-modal-confirm" (click)="confirmCloseTab(true)">
-                    Guardar log y cerrar
-                </button>
-                <button class="btn-modal-cancel" (click)="confirmCloseTab(false)">
-                    Cerrar sin guardar
-                </button>
-            </div>
+      <div class="modal-body-clean">
+        <div class="modal-visual-header">
+          <div class="icon-pulse-wrapper">
+            <i class="fas fa-network-wired"></i>
+          </div>
         </div>
+
+        <h3 class="modal-title-clean">Registro de Actividad</h3>
+
+        <p class="modal-msg-clean">
+          Hemos detectado tráfico de red en esta sesión.
+          <span class="sub-text">¿Deseas guardar el registro de conexiones antes de cerrar la pestaña?</span>
+        </p>
+
+        <div class="modal-actions-spread">
+          <button class="btn-modal-confirm" (click)="confirmCloseTab(true)">
+            Guardar log y cerrar
+          </button>
+          <button class="btn-modal-cancel" (click)="confirmCloseTab(false)">
+            Cerrar sin guardar
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -263,70 +264,65 @@
 
 
   <!-- Modal de Configuración Avanzada -->
-  <app-config 
-    *ngIf="showControlPanel"
-    [config]="config" 
-    [networkInfo]="networkInfo"
-    [availableConnections]="availableConnections"
-    [activeConnection]="activeConnection"
-    (onSave)="saveConfig()"
-    (onActivateConnection)="activateConnectionGlobal($event)"
-    (onDisconnect)="disconnectConnection($event)"
+  <app-config *ngIf="showControlPanel" [config]="config" [networkInfo]="networkInfo"
+    [availableConnections]="availableConnections" [activeConnection]="activeConnection" (onSave)="saveConfig()"
+    (onActivateConnection)="activateConnectionGlobal($event)" (onDisconnect)="disconnectConnection($event)"
     (close)="showControlPanel = false">
   </app-config>
 
   <app-chat [wsStatus]="wsStatus"></app-chat>
 
   <!-- SETUP WIZARD OVERLAY -->
-  <app-setup-wizard 
-    *ngIf="showSetupWizard" 
-    [stats]="stats" 
-    [networkInfo]="networkInfo"
+  <app-setup-wizard *ngIf="showSetupWizard" [stats]="stats" [networkInfo]="networkInfo"
     (onComplete)="handleSetupComplete($event)">
   </app-setup-wizard>
 
   <!-- UNLOCK TAB MODAL -->
   <div class="modal-overlay" *ngIf="showUnlockTabModal">
-      <div class="modal-card">
-          <div class="lock-icon-modal">
-              <i class="fas fa-lock"></i>
-          </div>
-          <h3 class="modal-title">Documento Protegido</h3>
-          <p class="modal-message" style="margin-bottom: 5px; font-size: 13px; color: #78909c;">Este archivo está bloqueado para visualización.</p>
-          
-          <div class="modal-body">
-              <div style="margin: 20px 0; display: flex; justify-content: center;">
-                  <input type="password" [(ngModel)]="unlockTabPin" placeholder="PIN de Acceso" (keyup.enter)="submitTabUnlock()" autofocus class="pin-input-field">
-              </div>
-              <div class="modal-actions">
-                  <button class="btn-modal-cancel" (click)="cancelTabUnlock()">Cancelar</button>
-                  <button class="btn-modal-confirm" (click)="submitTabUnlock()">Desbloquear</button>
-              </div>
-          </div>
+    <div class="modal-card">
+      <div class="lock-icon-modal">
+        <i class="fas fa-lock"></i>
       </div>
+      <h3 class="modal-title">Documento Protegido</h3>
+      <p class="modal-message" style="margin-bottom: 5px; font-size: 13px; color: #78909c;">Este archivo está bloqueado
+        para visualización.</p>
+
+      <div class="modal-body">
+        <div style="margin: 20px 0; display: flex; justify-content: center;">
+          <input type="password" [(ngModel)]="unlockTabPin" placeholder="PIN de Acceso"
+            (keyup.enter)="submitTabUnlock()" autofocus class="pin-input-field">
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" (click)="cancelTabUnlock()">Cancelar</button>
+          <button class="btn-modal-confirm" (click)="submitTabUnlock()">Desbloquear</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- EXIT APPLICATION MODAL -->
-  <div class="modal-overlay" *ngIf="exitModal.show">
-      <div class="modal-card exit-card" [class.closing]="exitModal.closing">
-          <div class="exit-icon-container">
-              <div class="exit-ring"></div>
-              <i class="fas" [class.fa-power-off]="!exitModal.closing" [class.fa-circle-notch]="exitModal.closing" [class.fa-spin]="exitModal.closing"></i>
-          </div>
-          
-          <h2 class="modal-title">{{ exitModal.closing ? 'Cerrando Sistema' : '¿Deseas Salir?' }}</h2>
-          <p class="modal-message">
-              {{ exitModal.closing ? 'Cerrando conexión segura con Sandra Server...' : 'Se finalizarán todas las tareas y sesiones activas del terminal.' }}
-          </p>
-
-          <div class="exit-loader" *ngIf="exitModal.closing">
-              <div class="exit-loader-bar"></div>
-          </div>
-
-          <div class="modal-actions" *ngIf="!exitModal.closing">
-              <button class="btn-modal-cancel" (click)="exitModal.show = false">Permanecer</button>
-              <button class="btn-modal-confirm exit-btn" (click)="confirmExit()">Salir de SandraDC</button>
-          </div>
+  <div class="modal-overlay" *ngIf="exitModal.show" style="z-index: 99999;">
+    <div class="modal-card exit-card" [class.closing]="exitModal.closing">
+      <div class="exit-icon-container">
+        <div class="exit-ring"></div>
+        <i class="fas" [class.fa-power-off]="!exitModal.closing" [class.fa-circle-notch]="exitModal.closing"
+          [class.fa-spin]="exitModal.closing"></i>
       </div>
+
+      <h2 class="modal-title">{{ exitModal.closing ? 'Cerrando Sistema' : '¿Deseas Salir?' }}</h2>
+      <p class="modal-message">
+        {{ exitModal.closing ? 'Cerrando conexión segura con Sandra Server...' : 'Se finalizarán todas las tareas y
+        sesiones activas del terminal.' }}
+      </p>
+
+      <div class="exit-loader" *ngIf="exitModal.closing">
+        <div class="exit-loader-bar"></div>
+      </div>
+
+      <div class="modal-actions" *ngIf="!exitModal.closing">
+        <button class="btn-modal-cancel" (click)="exitModal.show = false">Permanecer</button>
+        <button class="btn-modal-confirm exit-btn" (click)="confirmExit()">Salir de SandraDC</button>
+      </div>
+    </div>
   </div>
 </div>

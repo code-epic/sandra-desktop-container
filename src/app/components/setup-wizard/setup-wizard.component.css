@@ -92,6 +92,8 @@
   font-size: 0.95rem;
   color: var(--text-main);
   transition: all 0.2s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .sdc-input:focus {

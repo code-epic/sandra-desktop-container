@@ -24,9 +24,9 @@ export class SetupWizardComponent implements OnInit {
         // Connection Data
         connName: 'Sandra Server Principal',
         ip_address: '',
-        port: 22,
+        port: 443,
         wss_host: '',
-        wss_port: 0
+        wss_port: 8443
     };
 
     verifyStatus: "idle" | "checking" | "success" | "error" = "idle";
