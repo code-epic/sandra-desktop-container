@@ -135,7 +135,7 @@ export class AppComponent implements OnInit {
 
   isInspectorOpen = false;
 
-  genericModal = { show: false, title: '', message: '' };
+  genericModal: { show: boolean, title: string, message: string, type: 'success' | 'error' | 'info' } = { show: false, title: '', message: '', type: 'info' };
   exitModal = { show: false, closing: false };
   isExitConfirmed = false;
 
@@ -1119,12 +1119,23 @@ export class AppComponent implements OnInit {
   }
 
   // Generic Modal Logic
-  showModal(title: string, message: string) {
-    this.genericModal = { show: true, title, message };
+  showModal(title: string, message: string, forceType?: 'success' | 'error' | 'info') {
+    let type: 'success' | 'error' | 'info' = 'info';
+    const t = title.toLowerCase();
+
+    if (forceType) {
+      type = forceType;
+    } else if (t.includes('error') || t.includes('falla') || t.includes('aviso')) {
+      type = 'error';
+    } else if (t.includes('finalizada') || t.includes('éxito') || t.includes('exito') || t.includes('actualizado')) {
+      type = 'success';
+    }
+
+    this.genericModal = { show: true, title, message, type };
   }
 
   closeGenericModal() {
-    this.genericModal = { show: false, title: '', message: '' };
+    this.genericModal = { show: false, title: '', message: '', type: 'info' };
   }
 
   async downloadPdfFromTab(tab: Tab) {
@@ -1186,6 +1197,20 @@ export class AppComponent implements OnInit {
   async handleKeyboardEvent(event: KeyboardEvent) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") {
       event.preventDefault();
+
+      // Desactivar el inspector (Ctrl+D / Cmd+D) en las páginas estáticas
+      const staticTabs = [
+        "dashboard",
+        "connections",
+        "apps",
+        "security",
+        "monitor",
+        "secure-viewer",
+      ];
+
+      if (staticTabs.includes(this.currentTabId)) {
+        return; // Ignorar el atajo en estas áreas
+      }
 
       const contextId = [
         "dashboard",

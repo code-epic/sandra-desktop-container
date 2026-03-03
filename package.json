@@ -1,6 +1,6 @@
 {
   "name": "sandra-desktop-container",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 1421",

@@ -54,6 +54,11 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-alpha);
   color: var(--text-main);
   overflow: hidden;

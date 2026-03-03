@@ -246,12 +246,34 @@
 
   <!-- Generic Modal (Info/Success/Error) -->
   <div class="modal-overlay" *ngIf="genericModal.show">
-    <div class="modal-card">
-      <h3 class="modal-title">{{ genericModal.title }}</h3>
-      <div class="modal-body">
-        <p class="modal-message">{{ genericModal.message }}</p>
-        <div class="modal-actions" style="justify-content: center;">
-          <button class="btn-modal-confirm" (click)="closeGenericModal()">Aceptar</button>
+    <div class="modal-card activity-modal fade-in-up">
+      <!-- Info Header -->
+      <div class="modal-visual-header info-header" *ngIf="genericModal.type === 'info'">
+        <div class="icon-pulse-wrapper info-pulse">
+          <i class="fas fa-info-circle"></i>
+        </div>
+      </div>
+      <!-- Error/Warning Header -->
+      <div class="modal-visual-header error-header" *ngIf="genericModal.type === 'error'">
+        <div class="icon-pulse-wrapper error-pulse">
+          <i class="fas fa-exclamation-circle"></i>
+        </div>
+      </div>
+      <!-- Success Header -->
+      <div class="modal-visual-header success-header" *ngIf="genericModal.type === 'success'">
+        <div class="icon-pulse-wrapper success-pulse">
+          <i class="fas fa-clipboard-check"></i>
+        </div>
+      </div>
+
+      <div class="modal-body-clean" style="padding: 0 25px 30px;">
+        <h3 class="modal-title-clean" style="text-align: center; margin-top: 20px;">{{ genericModal.title }}</h3>
+        <p class="modal-msg-clean" style="text-align: center; padding: 0 10px; margin-bottom: 25px;">{{
+          genericModal.message }}</p>
+        <div class="modal-actions-spread" style="padding: 0;">
+          <!-- Dynamically color the button depending on the type and ensure it is green/accept for success/info -->
+          <button [ngClass]="genericModal.type === 'error' ? 'btn-modal-confirm' : 'btn-modal-save'"
+            (click)="closeGenericModal()">Aceptar</button>
         </div>
       </div>
     </div>
