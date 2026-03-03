@@ -657,7 +657,7 @@ pub fn load_sse_document(file_path: String, unlock_pin: Option<String>) -> Resul
 }
 
 #[command]
-pub fn print_pdf_direct(pdf_base64: String, job_title: Option<String>) -> Result<(), String> {
+pub fn print_pdf_direct(pdf_base64: String, _job_title: Option<String>) -> Result<(), String> {
     // 1. Decode Base64
     let bytes = general_purpose::STANDARD
         .decode(&pdf_base64)
@@ -688,7 +688,7 @@ pub fn print_pdf_direct(pdf_base64: String, job_title: Option<String>) -> Result
         let mut cmd = Command::new("lp");
         cmd.arg(&path_str);
 
-        if let Some(ref title) = job_title {
+        if let Some(ref title) = _job_title {
             cmd.arg("-t").arg(title);
         }
 
@@ -701,7 +701,7 @@ pub fn print_pdf_direct(pdf_base64: String, job_title: Option<String>) -> Result
                 let mut cmd_lpr = Command::new("lpr");
                 cmd_lpr.arg(&path_str);
 
-                if let Some(title) = job_title {
+                if let Some(title) = _job_title {
                     cmd_lpr.arg("-T").arg(title);
                 }
 

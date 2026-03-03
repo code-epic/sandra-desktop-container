@@ -65,7 +65,7 @@ impl<'a> DecryptionHelper for SymmetricHelper<'a> {
 }
 
 pub fn decrypt_symmetric_stream<R: Read + Send + Sync, W: Write + Send + Sync>(
-    mut source: R,
+    source: R,
     mut sink: W,
     password: &str,
 ) -> anyhow::Result<()> {

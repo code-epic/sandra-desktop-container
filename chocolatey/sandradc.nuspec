@@ -4,19 +4,19 @@
   <metadata>
     <id>sandradc</id>
     <version>0.1.4</version>
-    <packageSourceUrl>https://github.com/carlospena/sandra-desktop-container</packageSourceUrl>
-    <owners>carlospena</owners>
+    <packageSourceUrl>https://github.com/code-epic/sandra-desktop-container</packageSourceUrl>
+    <owners>code-epic</owners>
     
     <title>Sandra Desktop Container (Install)</title>
     <authors>Carlos Peña</authors>
-    <projectUrl>https://github.com/carlospena/sandra-desktop-container</projectUrl>
+    <projectUrl>https://github.com/code-epic/sandra-desktop-container</projectUrl>
     <copyright>2026 Carlos Peña</copyright>
     <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <tags>sandradc desktop container</tags>
     <summary>Sandra Desktop Container</summary>
     <description>Sandra Desktop Container allows secure consumption of digital assets.</description>
-    <releaseNotes>https://github.com/carlospena/sandra-desktop-container/releases</releaseNotes>
+    <releaseNotes>https://github.com/code-epic/sandra-desktop-container/releases</releaseNotes>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />
