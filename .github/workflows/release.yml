@@ -115,7 +115,15 @@ jobs:
             $nupkg = Get-ChildItem "sandradc*.nupkg" | Select-Object -First 1
             if ($nupkg) {
               Write-Host "Pushing $($nupkg.Name) to Chocolatey..."
-              choco push $nupkg.FullName --source https://push.chocolatey.org/
+              try {
+                choco push $nupkg.FullName --source https://push.chocolatey.org/
+              } catch {
+                Write-Warning "Fallo al enviar a Chocolatey. Esto es normal si la versión anterior aún está pendiente de aprobación."
+              }
+              if ($LASTEXITCODE -ne 0) {
+                Write-Warning "La subida a Chocolatey devolvió un error (Probablemente por revisión pendiente). El flujo continuará."
+              }
+              exit 0
             } else {
               Write-Error "Could not find a .nupkg file to push."
               exit 1

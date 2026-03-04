@@ -1,0 +1,243 @@
+%======================================================================
+% MANUAL DE USUARIO - SANDRA DESKTOP CONTAINER (SDC)
+% Plataforma de Orquestación Segura para Aplicaciones Distribuidas
+% 
+% Autor: Carlos Peña
+% Empresa: Code Epic Technologies
+% Ubicación: Caracas, Venezuela
+% Versión: 2026.1 - Stable Build
+% Fecha: Marzo 2026
+%======================================================================
+
+\documentclass[
+    11pt,
+    oneside,
+    openright,
+    spanish,
+    a4paper
+]{book}
+
+%--------------------------------------------------------------------
+% PAQUETES BASE
+%--------------------------------------------------------------------
+\usepackage{iftex}
+\ifPDFTeX
+    \usepackage[utf8]{inputenc}
+    \usepackage[T1]{fontenc}
+    \usepackage{mathpazo}
+\else
+    \usepackage{fontspec}
+\fi
+
+\usepackage[
+    margin=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+]{geometry}
+
+\usepackage{graphicx}
+\usepackage{fontawesome5}
+\usepackage{wrapfig}
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{makeidx}
+\usepackage{setspace}
+\usepackage{multicol}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{lettrine}
+\usepackage{microtype}
+\usepackage{eso-pic}
+\usepackage{tikz}
+\usetikzlibrary{calc, shapes.geometric, backgrounds, shadows.blur, positioning, arrows.meta}
+
+%--------------------------------------------------------------------
+% CONFIGURACION DE COLORES - SANDRA TEAL SOFT
+%--------------------------------------------------------------------
+\definecolor{sandraDark}{HTML}{2D5A4A}
+\definecolor{sandraGreen}{HTML}{4CAF93}
+\definecolor{sandraLight}{HTML}{B2E0D0}
+\definecolor{sandraAccent}{HTML}{FFC107}
+\definecolor{sandraSoft}{HTML}{F5FAF8}
+\definecolor{sandraGray}{HTML}{616161}
+\definecolor{textDark}{HTML}{263238}
+\definecolor{textLight}{HTML}{78909C}
+\definecolor{primary}{HTML}{455A64}
+\definecolor{secondary}{HTML}{90A4AE}
+\definecolor{accent}{HTML}{66BB6A}
+
+%--------------------------------------------------------------------
+% CONFIGURACION DE FUENTES
+%--------------------------------------------------------------------
+\ifPDFTeX
+    % Usar fuentes del sistema para PDFTeX
+\else
+    \setmainfont{Helvetica Neue}[
+        UprightFont = *,
+        BoldFont = * Bold,
+        ItalicFont = * Italic,
+        BoldItalicFont = * Bold Italic
+    ]
+\fi
+
+%--------------------------------------------------------------------
+% HYPERREF CON METADATA
+%--------------------------------------------------------------------
+\usepackage[
+    spanish,
+    bookmarks=true,
+    colorlinks=true,
+    linkcolor=sandraDark,
+    citecolor=sandraDark,
+    urlcolor=sandraGreen,
+    pdftitle={Manual de Usuario - Sandra Desktop Container},
+    pdfauthor={Carlos Peña},
+    pdfsubject={Plataforma de Orquestación Segura para Aplicaciones Distribuidas},
+    pdfkeywords={SDC, Container, Security, Rust, Tauri, Angular, Venezuela, Caracas, Carlos Pena},
+    pdfcreator={LaTeX - Code Epic Technologies},
+    pdfproducer={XeLaTeX}
+]{hyperref}
+
+%--------------------------------------------------------------------
+% BABEL ESPAÑOL
+%--------------------------------------------------------------------
+\usepackage[spanish]{babel}
+
+%--------------------------------------------------------------------
+% CONFIGURACION DE PAGINAS
+%--------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\textcolor{sandraDark}{\small\nouppercase{\rightmark}}}
+\fancyhead[L]{\textcolor{sandraGray}{\small Manual SDC v2026.1}}
+\fancyfoot[C]{\textcolor{textLight}{\thepage}}
+\fancyfoot[R]{\textcolor{sandraGreen}{\textit{Sandra Desktop Container}}}
+
+\geometry{headsep=1cm, footskip=1.2cm, headheight=15pt}
+
+%--------------------------------------------------------------------
+% TITULOS
+%--------------------------------------------------------------------
+\titleformat{\chapter}[display]
+    {\normalfont\Large\bfseries\color{sandraDark}}
+    {\chaptertitlename\ \thechapter}{20pt}{\Huge}
+
+\titleformat{\section}
+    {\normalfont\large\bfseries\color{sandraDark}}
+    {\thesection}{15pt}{\large}
+
+\titleformat{\subsection}
+    {\normalfont\normalsize\bfseries\color{sandraGreen}}
+    {\thesubsection}{10pt}{\normalsize}
+
+%--------------------------------------------------------------------
+% LISTINGS
+%--------------------------------------------------------------------
+\lstset{
+    backgroundcolor=\color{sandraSoft},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{sandraDark},
+    stringstyle=\color{sandraGreen},
+    commentstyle=\color{textLight},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    frame=single,
+    framesep=2pt,
+    framerule=0.5pt,
+    rulecolor=\color{sandraGreen},
+    breaklines=true
+}
+
+%--------------------------------------------------------------------
+% COMANDOS PERSONALIZADOS
+%--------------------------------------------------------------------
+\newcommand{\sdc}{\textbf{Sandra Desktop Container}}
+\newcommand{\sdcore}{\textbf{SDC Core}}
+\newcommand{\sandraai}{\textit{Sandra AI}}
+\newcommand{\techref}[2]{\textcolor{sandraDark}{\textbf{#1}}}
+\newcommand{\keyconcept}[1]{\textbf{\color{sandraDark}#1}}
+
+%--------------------------------------------------------------------
+% CONFIGURACION DE ESPACIOS
+%--------------------------------------------------------------------
+\setstretch{1.4}
+\renewcommand{\arraystretch}{1.4}
+\setlength{\tabcolsep}{10pt}
+
+%--------------------------------------------------------------------
+% INDICE
+%--------------------------------------------------------------------
+\makeindex
+
+%======================================================================
+% DOCUMENTO
+%======================================================================
+\begin{document}
+
+%--------------------------------------------------------------------
+% PORTADA
+%--------------------------------------------------------------------
+\input{portada}
+
+%--------------------------------------------------------------------
+% PRELIMINARES
+%--------------------------------------------------------------------
+\frontmatter
+\pagenumbering{roman}
+
+\input{preambulo/pagina_inicio}
+\input{preambulo/filosofia}
+\input{preambulo/glosario}
+
+%--------------------------------------------------------------------
+% INDICE
+%--------------------------------------------------------------------
+\tableofcontents
+\listoffigures
+\listoftables
+
+%--------------------------------------------------------------------
+% CONTENIDO PRINCIPAL
+%--------------------------------------------------------------------
+\mainmatter
+\pagenumbering{arabic}
+
+\part{Fundamentos y Primeros Pasos}
+\input{capitulos/capitulo01_onboarding}
+\input{capitulos/capitulo02_dashboard}
+
+\part{Gestión y Operaciones}
+\input{capitulos/capitulo03_gestion}
+\input{capitulos/capitulo04_seguridad}
+
+\part{Seguridad Avanzada}
+\input{capitulos/capitulo05_visor}
+
+%--------------------------------------------------------------------
+% ANEXOS
+%--------------------------------------------------------------------
+\appendix
+\part{Anexos Técnicos}
+\input{anexos/anexos}
+
+%--------------------------------------------------------------------
+% FIN
+%--------------------------------------------------------------------
+\backmatter
+\printindex
+
+\end{document}

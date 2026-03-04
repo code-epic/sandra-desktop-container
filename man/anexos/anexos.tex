@@ -1,0 +1,184 @@
+%======================================================================
+% ANEXOS TECNICOS - SANDRA DESKTOP CONTAINER
+%======================================================================
+
+\chapter{Anexos Tecnicos}
+\label{ch:anexos}
+
+Este apendice contiene informacion tecnica detallada sobre la arquitectura, flujos de datos y referencias de \textbf{Sandra Desktop Container}.
+
+\section{Arquitectura de Software SDC}
+\label{sec:arquitectura}
+
+La arquitectura de SDC esta organizada en capas:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4cm}p{5cm}p{5cm}}
+\toprule
+\textbf{Capa} & \textbf{Componentes} & \textbf{Tecnologia} \\
+\midrule
+Presentacion & Angular UI, Signals, SDC Services & Angular 15+ \\
+\midrule
+Puente & IPC Bridge, Commands API, Events API & Tauri 2.0 \\
+\midrule
+Core & Crypto, SQLite, WebSocket, Sandbox & Rust + Tokio \\
+\midrule
+Sistema & File System, Network, Process Mgmt & OS Nativo \\
+\bottomrule
+\end{tabular}
+\caption{Arquitectura multicapa de SDC}
+\label{tab:arquitectura-sdc}
+\end{table}
+
+\section{Ciclo de Vida de un Contenedor}
+\label{sec:ciclo-vida}
+
+Los contenedores en SDC siguen una maquina de estados:
+
+\begin{enumerate}
+    \item \textbf{CREADO}: El contenedor ha sido configurado pero no iniciado
+    \item \textbf{CONFIGURADO}: Parametros de ejecucion establecidos
+    \item \textbf{EJECUTANDO}: El contenedor esta activo y procesando
+    \item \textbf{PAUSADO}: Ejecucion temporalmente detenida
+    \item \textbf{DETENIDO}: Ejecucion finalizada, recursos liberados
+    \item \textbf{DESTRUIDO}: Contenedor eliminado permanentemente
+\end{enumerate}
+
+\section{Flujo de Cifrado de Datos}
+\label{sec:flujo-cifrado}
+
+El proceso de cifrado en SDC:
+
+\begin{enumerate}
+    \item \textbf{Datos en Texto Plano} ingresan al sistema
+    \item \textbf{Generacion de Clave}: Se crea una clave AES-256 unica
+    \item \textbf{Derivacion HKDF}: La clave se procesa mediante HKDF-SHA256
+    \item \textbf{Hash Argon2id}: Se aplica Argon2id para fortalecer la clave
+    \item \textbf{Cifrado AES-256-GCM}: Los datos se cifran con autenticacion
+    \item \textbf{Nonce}: Se genera un nonce de 96 bits unico por operacion
+    \item \textbf{Almacenamiento}: Datos cifrados persistidos de forma segura
+\end{enumerate}
+
+\section{Topologia de Red}
+\label{sec:topologia-red}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4cm}p{4cm}p{5cm}}
+\toprule
+\textbf{Componente} & \textbf{Conexion} & \textbf{Protocolo} \\
+\midrule
+Nodos Cliente (SDC) & Internet & TLS 1.3 \\
+\midrule
+Servidor Principal & Internet & WSS (Puerto 8443) \\
+\midrule
+Servidor Replica & Internet & WSS (Puerto 8443) \\
+\midrule
+Base de Datos & Servidores & AES-256 \\
+\bottomrule
+\end{tabular}
+\caption{Topologia de red del ecosistema SDC}
+\label{tab:topologia-red}
+\end{table}
+
+\section{Tablas de Referencia Rapida}
+\label{sec:tablas-ref}
+
+\subsection{Puertos y Protocolos}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2cm}p{3cm}p{4cm}p{4cm}}
+\toprule
+\textbf{Puerto} & \textbf{Protocolo} & \textbf{Uso} & \textbf{Seguridad} \\
+\midrule
+8443 & WSS & Comunicacion cliente-servidor & TLS 1.3 + Client Auth \\
+\midrule
+8080 & WS & Desarrollo local & Sin cifrado \\
+\midrule
+443 & HTTPS & API REST & TLS 1.3 \\
+\midrule
+3000 & HTTP & Desarrollo Angular & Solo localhost \\
+\bottomrule
+\end{tabular}
+\caption{Puertos y protocolos utilizados por SDC}
+\label{tab:puertos}
+\end{table}
+
+\subsection{Algoritmos Criptograficos}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4cm}p{4cm}p{5cm}}
+\toprule
+\textbf{Proposito} & \textbf{Algoritmo} & \textbf{Parametros} \\
+\midrule
+Cifrado Simetrico & AES-256-GCM & Clave: 256 bits, Nonce: 96 bits \\
+\midrule
+Hashing de Contrasenas & Argon2id & Memoria: 64MB, Iteraciones: 3 \\
+\midrule
+Derivacion de Claves & HKDF-SHA256 & Salt: 128 bits \\
+\midrule
+Cifrado Asimetrico & RSA-4096 & OAEP padding, SHA-256 \\
+\midrule
+Firma Digital & ECDSA P-256 & Curva secp256r1 \\
+\bottomrule
+\end{tabular}
+\caption{Algoritmos criptograficos implementados}
+\label{tab:crypto}
+\end{table}
+
+\subsection{Codigos de Error}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3cm}p{4cm}p{6cm}}
+\toprule
+\textbf{Codigo} & \textbf{Descripcion} & \textbf{Accion Recomendada} \\
+\midrule
+SDC-E001 & Fallo de autenticacion & Verificar credenciales y Client ID \\
+\midrule
+SDC-E002 & Conexion rechazada & Verificar red y estado del servidor \\
+\midrule
+SDC-E003 & Certificado invalido & Actualizar certificados CA del sistema \\
+\midrule
+SDC-E004 & Timeout agotado & Aumentar timeout o verificar latencia \\
+\midrule
+SDC-E005 & Violacion de seguridad & Contactar administrador inmediatamente \\
+\midrule
+SDC-E006 & Espacio insuficiente & Liberar espacio en disco \\
+\midrule
+SDC-E007 & Formato no soportado & Verificar compatibilidad del archivo \\
+\midrule
+SDC-E008 & Sesion expirada & Reiniciar sesion de autenticacion \\
+\bottomrule
+\end{tabular}
+\caption{Codigos de error estandar de SDC}
+\label{tab:errores}
+\end{table}
+
+\section{Glosario de Terminos Tecnicos Extendido}
+\label{sec:glosario-tecnico}
+
+\begin{description}[leftmargin=*, style=nextline]
+    \item[\textbf{AES-256-GCM}] Advanced Encryption Standard con clave de 256 bits en modo Galois/Counter Mode. Proporciona cifrado autenticado.
+    
+    \item[\textbf{Argon2id}] Variante del algoritmo Argon2 disenada para resistir ataques de canal lateral y GPU.
+    
+    \item[\textbf{Client ID}] Identificador unico criptografico asignado a cada nodo SDC.
+    
+    \item[\textbf{Defensa en Profundidad}] Estrategia de seguridad que implementa multiples capas de proteccion.
+    
+    \item[\textbf{HKDF}] HMAC-based Key Derivation Function. Algoritmo para derivar multiples claves criptograficas.
+    
+    \item[\textbf{IPC}] Inter-Process Communication. Mecanismo de comunicacion entre Angular y Rust.
+    
+    \item[\textbf{Ruta Proxy}] Punto de acceso configurado que actua como intermediario seguro.
+    
+    \item[\textbf{Sandbox}] Entorno de ejecucion aislado donde las micro-aplicaciones operan.
+    
+    \item[\textbf{SID}] Secure ID. Identificador unico trazable asignado a cada operacion.
+    
+    \item[\textbf{WSS}] WebSocket Secure. Protocolo de comunicacion bidireccional sobre TLS.
+\end{description}

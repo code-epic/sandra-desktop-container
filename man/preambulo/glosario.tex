@@ -1,0 +1,311 @@
+%======================================================================
+% GLOSARIO DE ICONOS - SANDRA DESKTOP CONTAINER
+% Basado en los iconos FontAwesome reales de la aplicacion
+% Usando paquete fontawesome5 de LaTeX
+%======================================================================
+
+\chapter*{Glosario de Iconos}
+\addcontentsline{toc}{chapter}{Glosario de Iconos}
+\markboth{Glosario de Iconos}{Glosario de Iconos}
+
+Este glosario presenta los iconos utilizados en la interfaz de \textbf{Sandra Desktop Container}, organizados por su funcion en la aplicacion.
+
+% Comando para iconos con color sandra, tamaño grande y centrado
+\newcommand{\iconocolor}{\color{sandraGreen}\Large}
+\newcommand{\iconocent}{\centering\arraybackslash}
+\newcommand{\iconocolortext}[1]{{\color{#1}\Large}}
+
+\section*{Iconos de Navegacion Principal}
+
+Iconos del menu lateral (sidebar) de la aplicacion:
+
+\begin{longtable}{>{\centering\arraybackslash}m{1.5cm}p{3.5cm}p{8cm}}
+\toprule
+\textbf{Icono} & \textbf{Nombre} & \textbf{Funcion} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Icono} & \textbf{Nombre} & \textbf{Funcion} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\iconocolor\faIcon{th-large} & \textbf{Dashboard} & Panel principal del sistema con metricas en tiempo real \\
+\midrule
+\iconocolor\faIcon{network-wired} & \textbf{Conexiones} & Gestion de perfiles de conexion a servidores remotos \\
+\midrule
+\iconocolor\faIcon{globe} & \textbf{Aplicaciones} & Catalogo y gestion de micro-aplicaciones desplegadas \\
+\midrule
+\iconocolor\faIcon{shield-alt} & \textbf{Seguridad} & Configuracion de politicas de seguridad y auditoria \\
+\midrule
+\iconocolor\faIcon{desktop} & \textbf{Monitor} & Visualizacion de metricas de sistema y rendimiento \\
+\midrule
+\iconocolor\faIcon{shield-alt} & \textbf{Visor Seguro} & Visualizacion protegida de documentos confidenciales \\
+\midrule
+\iconocolor\faIcon{book} & \textbf{Ayuda Wiki} & Documentacion y guia de usuario integrada \\
+\midrule
+\iconocolor\faIcon{sliders-h} & \textbf{Configuracion} & Ajustes y preferencias del sistema \\
+\midrule
+\iconocolor\faIcon{sign-out-alt} & \textbf{Cerrar Sesion} & Cierre seguro de la sesion de usuario \\
+
+\end{longtable}
+
+\section*{Iconos del Dashboard}
+
+Iconos de las tarjetas de metricas en el panel principal:
+
+\begin{longtable}{>{\centering\arraybackslash}m{1.5cm}p{2.5cm}p{9cm}}
+\toprule
+\textbf{Icono} & \textbf{Metrica} & \textbf{Descripcion} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Icono} & \textbf{Metrica} & \textbf{Descripcion} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\iconocolor\faIcon{network-wired} & \textbf{Red} & Estado de conexion local, direccion IP, latencia y throughput \\
+\midrule
+\iconocolor\faIcon{hdd} & \textbf{Espacio} & Capacidad disponible en disco para contenedores y datos \\
+\midrule
+\iconocolor\faIcon{database} & \textbf{Core DB} & Tamano y estado de la base de datos SQLite interna cifrada \\
+
+\end{longtable}
+
+\section*{Iconos de Estado}
+
+Iconos que indican el estado de elementos o alertas:
+
+\begin{longtable}{>{\centering\arraybackslash}m{1.5cm}p{3.5cm}p{7.5cm}}
+\toprule
+\textbf{Icono} & \textbf{Estado} & \textbf{Significado} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Icono} & \textbf{Estado} & \textbf{Significado} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+{\color{green}\faIcon{check-circle}} & \textbf{Exito} & Operacion completada correctamente, conexion estable \\
+\midrule
+{\color{red}\faIcon{times-circle}} & \textbf{Error} & Fallo en operacion, error critico o conexion rechazada \\
+\midrule
+{\color{orange}\faIcon{exclamation-triangle}} & \textbf{Advertencia} & Alerta que requiere atencion del usuario \\
+\midrule
+{\color{blue}\faIcon{info-circle}} & \textbf{Informacion} & Detalles adicionales o ayuda contextual \\
+\midrule
+\iconocolor\faIcon{globe-americas} & \textbf{Modo Libre} & Aplicacion en modo de navegacion directa sin proxy \\
+\midrule
+{\color{green}\faIcon{shield-alt}} & \textbf{Proxy Activo} & Conexion protegida mediante proxy seguro \\
+
+\end{longtable}
+
+\section*{Iconos de Accion}
+
+Iconos para botones de accion en la interfaz:
+
+\begin{longtable}{>{\centering\arraybackslash}m{1.5cm}p{4cm}p{7cm}}
+\toprule
+\textbf{Icono} & \textbf{Accion} & \textbf{Funcion} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Icono} & \textbf{Accion} & \textbf{Funcion} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\iconocolor\faIcon{plus} & \textbf{Nuevo/Agregar} & Crear nuevo elemento (conexion, aplicacion, etc.) \\
+\midrule
+\iconocolor\faIcon{minus} & \textbf{Quitar} & Eliminar elemento seleccionado de una lista \\
+\midrule
+\iconocolor\faIcon{edit} & \textbf{Editar} & Modificar configuracion o propiedades \\
+\midrule
+\iconocolor\faIcon{save} & \textbf{Guardar} & Persistir cambios en configuracion o datos \\
+\midrule
+\iconocolor\faIcon{trash} & \textbf{Eliminar} & Borrado seguro con confirmacion \\
+\midrule
+\iconocolor\faIcon{folder-minus} & \textbf{Desactivar} & Quitar aplicacion sin eliminar datos \\
+\midrule
+\iconocolor\faIcon{sync} & \textbf{Sincronizar} & Actualizar estado con servidor remoto \\
+\midrule
+\iconocolor\faIcon{sync-alt} & \textbf{Actualizar} & Buscar actualizaciones de aplicaciones \\
+\midrule
+\iconocolor\faIcon{redo-alt} & \textbf{Refrescar} & Recargar contenido actual \\
+\midrule
+\iconocolor\faIcon{search} & \textbf{Buscar} & Funcion de busqueda en documentos o registros \\
+\midrule
+\iconocolor\faIcon{filter} & \textbf{Filtrar} & Aplicar filtros a listas o resultados \\
+\midrule
+\iconocolor\faIcon{download} & \textbf{Descargar} & Recibir datos o archivos del servidor \\
+\midrule
+\iconocolor\faIcon{upload} & \textbf{Subir} & Enviar datos o archivos al servidor \\
+\midrule
+\iconocolor\faIcon{arrow-right} & \textbf{Abrir/Siguiente} & Abrir aplicacion o navegar adelante \\
+\midrule
+\iconocolor\faIcon{arrow-left} & \textbf{Anterior} & Navegar hacia atras o cancelar \\
+\midrule
+\iconocolor\faIcon{expand} & \textbf{Expandir} & Ampliar vista o mostrar detalles \\
+\midrule
+\iconocolor\faIcon{compress} & \textbf{Comprimir} & Reducir vista o colapsar panel \\
+\midrule
+\iconocolor\faIcon{power-off} & \textbf{Apagar} & Cierre seguro del sistema \\
+\midrule
+\iconocolor\faIcon{times} & \textbf{Cerrar} & Cerrar pestana o dialogo \\
+
+\end{longtable}
+
+\section*{Iconos de Seguridad}
+
+Iconos relacionados con seguridad y control de acceso:
+
+\begin{longtable}{>{\centering\arraybackslash}m{1.5cm}p{4cm}p{7cm}}
+\toprule
+\textbf{Icono} & \textbf{Elemento} & \textbf{Descripcion} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Icono} & \textbf{Elemento} & \textbf{Descripcion} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\iconocolor\faIcon{lock} & \textbf{Bloqueado} & Recurso protegido o documento encriptado \\
+\midrule
+\iconocolor\faIcon{unlock} & \textbf{Desbloqueado} & Acceso autorizado o documento desencriptado \\
+\midrule
+\iconocolor\faIcon{key} & \textbf{Cifrado} & Gestion de claves y configuracion criptografica \\
+\midrule
+\iconocolor\faIcon{fingerprint} & \textbf{Identidad} & Client ID unico del dispositivo vinculado \\
+\midrule
+\iconocolor\faIcon{user} & \textbf{Usuario} & Cuenta del operador actual \\
+\midrule
+\iconocolor\faIcon{users} & \textbf{Area/Departamento} & Unidad organizativa asignada \\
+\midrule
+\iconocolor\faIcon{link} & \textbf{Proxy/Ruta} & Punto de acceso seguro configurado \\
+\midrule
+\iconocolor\faIcon{server} & \textbf{Servidor} & Nodo servidor en el ecosistema SDC \\
+\midrule
+\iconocolor\faIcon{plug} & \textbf{Conexion} & Perfil de conexion activa o inactiva \\
+
+\end{longtable}
+
+\section*{Iconos de Hardware}
+
+Iconos de componentes hardware y recursos del sistema:
+
+\begin{longtable}{>{\centering\arraybackslash}m{1.5cm}p{3cm}p{8cm}}
+\toprule
+\textbf{Icono} & \textbf{Componente} & \textbf{Indicador} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Icono} & \textbf{Componente} & \textbf{Indicador} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\iconocolor\faIcon{microchip} & \textbf{CPU/Procesador} & Uso porcentual y nucleos activos \\
+\midrule
+\iconocolor\faIcon{memory} & \textbf{RAM/Memoria} & Memoria disponible y uso actual \\
+\midrule
+\iconocolor\faIcon{wifi} & \textbf{WiFi} & Conexion inalambrica activa \\
+\midrule
+\iconocolor\faIcon{ethernet} & \textbf{Ethernet} & Conexion cableada de red \\
+
+\end{longtable}
+
+\section*{Iconos de Contenido}
+
+Iconos para tipos de aplicaciones y asistentes:
+
+\begin{longtable}{>{\centering\arraybackslash}m{1.5cm}p{4cm}p{7cm}}
+\toprule
+\textbf{Icono} & \textbf{Tipo} & \textbf{Descripcion} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Icono} & \textbf{Tipo} & \textbf{Descripcion} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+\iconocolor\faIcon{code} & \textbf{Aplicacion} & Micro-aplicacion o servicio web desplegado \\
+\midrule
+\iconocolor\faIcon{file-alt} & \textbf{Documento} & Archivo gestionado por el sistema \\
+\midrule
+\iconocolor\faIcon{eye} & \textbf{Visor} & Modo de visualizacion segura de documentos \\
+\midrule
+\iconocolor\faIcon{robot} & \textbf{Sandra AI} & Asistente de inteligencia artificial integrado \\
+\midrule
+\iconocolor\faIcon{history} & \textbf{Historial} & Registro de auditoria y logs de actividad \\
+
+\end{longtable}
+
+\section*{Colores de Estado}
+
+La interfaz utiliza el siguiente codigo de colores para indicar estados:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{>{\centering\arraybackslash}p{3cm}p{3cm}p{6cm}}
+\toprule
+\textbf{Color} & \textbf{Estado} & \textbf{Significado} \\
+\midrule
+\cellcolor{sandraGreen} & \textbf{Verde} & Operacion exitosa, conexion activa, sistema estable \\
+\midrule
+\cellcolor{sandraAccent} & \textbf{Ambar} & Advertencia, atencion requerida, proceso en curso \\
+\midrule
+\cellcolor{red!70} & \textbf{Rojo} & Error critico, conexion fallida, alerta de seguridad \\
+\midrule
+\cellcolor{blue!50} & \textbf{Azul} & Informacion, estado neutro, proceso activo \\
+\midrule
+\cellcolor{gray!50} & \textbf{Gris} & Deshabilitado, inactivo, no disponible \\
+\bottomrule
+\end{tabular}
+\caption{Codificacion de colores de estado en SDC}
+\label{tab:colores-estado}
+\end{table}
+
+\section*{Abreviaturas y Acronimos}
+
+\begin{longtable}{p{3cm}p{10cm}}
+\toprule
+\textbf{Acronimo} & \textbf{Significado} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Acronimo} & \textbf{Significado} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+SDC & Sandra Desktop Container \\
+SID & Secure ID (Identificador Seguro) \\
+IPC & Inter-Process Communication (Comunicacion entre procesos) \\
+WSS & WebSocket Secure (WebSocket con TLS) \\
+TLS & Transport Layer Security (Seguridad de capa de transporte) \\
+AES & Advanced Encryption Standard (Estandar de cifrado avanzado) \\
+GCM & Galois/Counter Mode (Modo de operacion de cifrado) \\
+GDPR & General Data Protection Regulation (Reglamento general de proteccion de datos) \\
+LOPD & Ley Organica de Proteccion de Datos \\
+CPU & Central Processing Unit (Unidad central de procesamiento) \\
+RAM & Random Access Memory (Memoria de acceso aleatorio) \\
+OS & Operating System (Sistema operativo) \\
+VPN & Virtual Private Network (Red privada virtual) \\
+PoLP & Principle of Least Privilege (Principio de minimo privilegio) \\
+ISO & International Organization for Standardization \\
+IEC & International Electrotechnical Commission \\
+NIST & National Institute of Standards and Technology \\
+
+\end{longtable}

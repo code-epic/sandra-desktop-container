@@ -1,0 +1,89 @@
+%======================================================================
+% PORTADA PROFESIONAL - SANDRA DESKTOP CONTAINER
+%======================================================================
+\thispagestyle{empty}
+\newgeometry{margin=0cm}
+
+\begin{tikzpicture}[remember picture, overlay]
+    % Fondo oscuro profundo
+    \fill[sandraDark] (current page.south west) rectangle (current page.north east);
+    
+    % Malla tecnica de fondo
+    \draw[step=0.5cm, sandraGreen, opacity=0.02] (current page.south west) grid (current page.north east);
+    \draw[step=2cm, sandraLight, opacity=0.04] (current page.south west) grid (current page.north east);
+    
+    % Olas ascendentes inferiores
+    \path[fill=sandraGreen, opacity=0.3] 
+        (current page.south west) .. controls ++(7cm, 8cm) and ++(-4cm, 3cm) .. 
+        ([yshift=12cm]current page.south east) -- (current page.south east) -- cycle;
+
+    \path[fill=sandraAccent, opacity=0.15] 
+        (current page.south west) .. controls ++(6cm, 10cm) and ++(-5cm, -3cm) .. 
+        ([yshift=15cm]current page.south east) -- (current page.south east) -- cycle;
+        
+    \path[fill=sandraLight, opacity=0.1] 
+        (current page.south west) .. controls ++(4cm, 12cm) and ++(-8cm, -1cm) .. 
+        ([yshift=18cm]current page.south east) -- (current page.south east) -- cycle;
+
+    % Olas descendentes superiores
+    \path[fill=sandraGreen, opacity=0.2] 
+        (current page.north west) .. controls ++(6cm, -3cm) and ++(-7cm, 2cm) .. 
+        ([yshift=-6cm]current page.north east) -- (current page.north east) -- cycle;
+
+    \path[fill=sandraLight, opacity=0.08] 
+        (current page.north west) .. controls ++(3cm, -5cm) and ++(-4cm, 1cm) .. 
+        ([yshift=-4cm]current page.north east) -- (current page.north east) -- cycle;
+\end{tikzpicture}
+
+\vspace*{1cm}
+
+\begin{center}
+    % Logo central
+    \begin{tikzpicture}
+        \node[circle, top color=white, bottom color=sandraLight, 
+              draw=sandraAccent, line width=1.5mm, inner sep=0.5cm, minimum size=5.5cm] (logo) {
+            \includegraphics[width=5cm]{../src/assets/sandra.png}
+        };
+        % Resplandores
+        \node[circle, draw=sandraAccent, opacity=0.25, line width=2mm, minimum size=7cm] at (logo) {};
+        \node[circle, draw=sandraLight, opacity=0.12, line width=4mm, minimum size=8cm] at (logo) {};
+    \end{tikzpicture}
+    
+    \vspace{1.5cm}
+    
+    {\fontsize{38}{46}\selectfont \textbf{\textcolor{white}{\textsc{Sandra Desktop Container}}}}\\[0.6em]
+    {\LARGE \textcolor{sandraAccent}{\textbf{ECOSISTEMA DE CONTENEDORES Y GESTIÓN DE DATOS SEGURO}}}
+    
+    \vspace{1.8cm}
+    
+    % Decorador
+    \begin{tikzpicture}
+        \fill[sandraLight, opacity=0.4] (-4cm, 0) rectangle (4cm, 0.03cm);
+        \node[shape=diamond, fill=sandraAccent, minimum size=0.5cm] at (0, 0.015cm) {};
+    \end{tikzpicture}
+    
+    \vspace{1.2cm}
+    
+    {\Large \textbf{\textcolor{white}{\uppercase{Manual de Usuario}}}}\\[1em]
+    {\large \textcolor{sandraLight}{\textbf{Versión 2026.1}} \ \textbar\ \textcolor{sandraLight}{Stable Build}}
+    
+\end{center}
+
+\vfill
+
+\begin{center}
+    \begin{tikzpicture}
+        \node[anchor=center, text width=0.8\textwidth, align=center, 
+              fill=sandraDark, draw=sandraGreen, line width=1pt, opacity=0.9, 
+              rounded corners=12pt, inner sep=15pt] at (0,0) {
+            {\normalsize \textcolor{sandraAccent}{\textsc{\textbf{Autor}}}}\\[0.4em]
+            {\Large \textbf{\textcolor{white}{Carlos Peña}}}\\[0.3em]
+            {\small \textcolor{sandraLight}{\textit{Code Epic Technologies}}}\\[0.5em]
+            {\small \textcolor{sandraAccent}{\uppercase{Caracas, Venezuela}}}
+        };
+    \end{tikzpicture}
+\end{center}
+
+\vspace*{0.8cm}
+\restoregeometry
+\newpage
