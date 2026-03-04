@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex 2025.3.8)  3 MAR 2026 23:37
+This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex 2025.3.8)  4 MAR 2026 14:11
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1253,13 +1253,21 @@ Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by
 
 ]
 
-LaTeX Info: Redefining \. on input line 63.
-LaTeX Info: Redefining \% on input line 63.
+LaTeX Info: Redefining \. on input line 65.
+LaTeX Info: Redefining \% on input line 65.
 
 Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
-(spanish)                faked small caps on input line 63.
+(spanish)                faked small caps on input line 65.
 
-[14])
+[14]
+
+LaTeX Info: Redefining \. on input line 98.
+LaTeX Info: Redefining \% on input line 98.
+
+Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
+(spanish)                faked small caps on input line 98.
+
+[15])
 \tf@toc=\write6
 \openout6 = `main.toc'.
 
@@ -1271,22 +1279,30 @@ LaTeX Info: Redefining \% on input line 210.
 Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
 (spanish)                faked small caps on input line 210.
 
-[15] (./main.lof
+[16] (./main.lof
 LaTeX Info: Redefining \. on input line 1.
 LaTeX Info: Redefining \% on input line 1.
-)
+
+
+
+Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
+(spanish)                faked small caps on input line 35.
+
+[17
+
+])
 \tf@lof=\write7
 \openout7 = `main.lof'.
 
 
 
+LaTeX Info: Redefining \. on input line 211.
+LaTeX Info: Redefining \% on input line 211.
 
 Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
 (spanish)                faked small caps on input line 211.
 
-[16
-
-] (./main.lot
+[18] (./main.lot
 LaTeX Info: Redefining \. on input line 1.
 LaTeX Info: Redefining \% on input line 1.
 
@@ -1297,19 +1313,27 @@ Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by
 Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
 (spanish)                faked small caps on input line 3.
 
-)
+
+
+
+Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
+(spanish)                faked small caps on input line 36.
+
+[19
+
+])
 \tf@lot=\write8
 \openout8 = `main.lot'.
 
 
 
+LaTeX Info: Redefining \. on input line 216.
+LaTeX Info: Redefining \% on input line 216.
 
 Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
 (spanish)                faked small caps on input line 216.
 
-[17
-
-]
+[20]
 
 [1
 
@@ -1450,35 +1474,42 @@ File: anexos/6 aplicaciones.png Graphic file (type bmp)
 <anexos/6 aplicaciones.png>
 
 
-LaTeX Info: Redefining \. on input line 68.
-LaTeX Info: Redefining \% on input line 68.
+LaTeX Info: Redefining \. on input line 73.
+LaTeX Info: Redefining \% on input line 73.
 [14]
+File: anexos/6 aplicaciones nueva.png Graphic file (type bmp)
+<anexos/6 aplicaciones nueva.png>
 
-LaTeX Info: Redefining \. on input line 85.
-LaTeX Info: Redefining \% on input line 85.
+
+LaTeX Info: Redefining \. on input line 104.
+LaTeX Info: Redefining \% on input line 104.
 [15]
+
+LaTeX Info: Redefining \. on input line 123.
+LaTeX Info: Redefining \% on input line 123.
+[16]
+
+LaTeX Info: Redefining \. on input line 154.
+LaTeX Info: Redefining \% on input line 154.
+[17]
 File: anexos/16 conexiones activas.png Graphic file (type bmp)
 <anexos/16 conexiones activas.png>
 
 
-LaTeX Info: Redefining \. on input line 119.
-LaTeX Info: Redefining \% on input line 119.
-[16]
+LaTeX Info: Redefining \. on input line 184.
+LaTeX Info: Redefining \% on input line 184.
+[18]
 File: anexos/10 monitor.png Graphic file (type bmp)
 <anexos/10 monitor.png>
 
 
-LaTeX Info: Redefining \. on input line 144.
-LaTeX Info: Redefining \% on input line 144.
-[17]
-
-LaTeX Info: Redefining \. on input line 172.
-LaTeX Info: Redefining \% on input line 172.
-[18]) (./capitulos/capitulo04_seguridad.tex
+LaTeX Info: Redefining \. on input line 217.
+LaTeX Info: Redefining \% on input line 217.
+[19]) (./capitulos/capitulo04_seguridad.tex
 
 LaTeX Info: Redefining \. on input line 5.
 LaTeX Info: Redefining \% on input line 5.
-[19]
+[20]
 Capítulo 4.
 File: anexos/7 seguridad.png Graphic file (type bmp)
 <anexos/7 seguridad.png>
@@ -1499,7 +1530,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 36--36
 
 
 
-[20
+[21
 
 ]
 File: anexos/8 politica.png Graphic file (type bmp)
@@ -1508,7 +1539,7 @@ File: anexos/8 politica.png Graphic file (type bmp)
 
 LaTeX Info: Redefining \. on input line 61.
 LaTeX Info: Redefining \% on input line 61.
-[21]
+[22]
 LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <7> on input line 65.
 LaTeX Font Info:    External font `cmex10' loaded for size
@@ -1519,11 +1550,11 @@ File: anexos/9 proxy.png Graphic file (type bmp)
 
 LaTeX Info: Redefining \. on input line 98.
 LaTeX Info: Redefining \% on input line 98.
-[22]
+[23]
 
 LaTeX Info: Redefining \. on input line 126.
 LaTeX Info: Redefining \% on input line 126.
-[23]
+[24]
 Underfull \hbox (badness 10000) in paragraph at lines 145--145
 []|\TU/HelveticaNeue(0)/m/sc/10.95 Todo trafico de red,
  []
@@ -1532,13 +1563,13 @@ Underfull \hbox (badness 10000) in paragraph at lines 145--145
 
 LaTeX Info: Redefining \. on input line 167.
 LaTeX Info: Redefining \% on input line 167.
-[24])
+[25])
 
 LaTeX Info: Redefining \. on input line 227.
 LaTeX Info: Redefining \% on input line 227.
-[25]
+[26]
 
-[26
+[27
 
 ] (./capitulos/capitulo05_visor.tex
 Capítulo 5.
@@ -1546,7 +1577,7 @@ File: anexos/11 visor.png Graphic file (type bmp)
 <anexos/11 visor.png>
 
 
-[27
+[28
 
 ]
 File: anexos/13 visor list.png Graphic file (type bmp)
@@ -1555,37 +1586,211 @@ File: anexos/13 visor list.png Graphic file (type bmp)
 
 LaTeX Info: Redefining \. on input line 80.
 LaTeX Info: Redefining \% on input line 80.
-[28]
+[29]
+File: anexos/11 visor encriptar.png Graphic file (type bmp)
+<anexos/11 visor encriptar.png>
+
+
+LaTeX Info: Redefining \. on input line 103.
+LaTeX Info: Redefining \% on input line 103.
+[30]
+Underfull \hbox (badness 10000) in paragraph at lines 125--127
+
+ []
+
 File: anexos/14 visor encriptado.png Graphic file (type bmp)
 <anexos/14 visor encriptado.png>
 
 
-LaTeX Info: Redefining \. on input line 106.
-LaTeX Info: Redefining \% on input line 106.
-[29]
-File: anexos/12 preview-file.png Graphic file (type bmp)
-<anexos/12 preview-file.png>
+LaTeX Info: Redefining \. on input line 142.
+LaTeX Info: Redefining \% on input line 142.
+[31]
+
+LaTeX Info: Redefining \. on input line 160.
+LaTeX Info: Redefining \% on input line 160.
+[32]
+File: anexos/11 visor exportar.png Graphic file (type bmp)
+<anexos/11 visor exportar.png>
+
+Overfull \hbox (3.09445pt too wide) in paragraph at lines 181--194
+ [][] 
+ []
+
+
+
+LaTeX Info: Redefining \. on input line 197.
+LaTeX Info: Redefining \% on input line 197.
+[33]
+File: anexos/12 preview-confidencial.png Graphic file (type bmp)
+<anexos/12 preview-confidencial.png>
+
+
+LaTeX Info: Redefining \. on input line 222.
+LaTeX Info: Redefining \% on input line 222.
+[34]
+File: anexos/12 preview-confidencial-clave.png Graphic file (type bmp)
+<anexos/12 preview-confidencial-clave.png>
+
+
+LaTeX Info: Redefining \. on input line 241.
+LaTeX Info: Redefining \% on input line 241.
+[35]
+File: anexos/12 preview-confidencial-desbloqueado.png Graphic file (type bmp)
+<anexos/12 preview-confidencial-desbloqueado.png>
+
+
+LaTeX Info: Redefining \. on input line 259.
+LaTeX Info: Redefining \% on input line 259.
+[36]
 File: anexos/15 configurador.png Graphic file (type bmp)
 <anexos/15 configurador.png>
 
 
-LaTeX Info: Redefining \. on input line 142.
-LaTeX Info: Redefining \% on input line 142.
-[30]
+LaTeX Info: Redefining \. on input line 291.
+LaTeX Info: Redefining \% on input line 291.
+[37]
 
-LaTeX Info: Redefining \. on input line 163.
-LaTeX Info: Redefining \% on input line 163.
-[31]
+LaTeX Info: Redefining \. on input line 313.
+LaTeX Info: Redefining \% on input line 313.
+[38]
 
-LaTeX Info: Redefining \. on input line 189.
-LaTeX Info: Redefining \% on input line 189.
-[32])
+LaTeX Info: Redefining \. on input line 339.
+LaTeX Info: Redefining \% on input line 339.
+[39])
 
-LaTeX Info: Redefining \. on input line 234.
-LaTeX Info: Redefining \% on input line 234.
-[33]
+LaTeX Info: Redefining \. on input line 230.
+LaTeX Info: Redefining \% on input line 230.
+[40]
 
-[34
+[41
+
+] (./capitulos/capitulo06_chat.tex
+Capítulo 6.
+File: anexos/chat.png Graphic file (type bmp)
+<anexos/chat.png>
+
+
+[42
+
+]
+Overfull \vbox (34.61525pt too high) has occurred while \output is active []
+
+
+
+LaTeX Info: Redefining \. on input line 21.
+LaTeX Info: Redefining \% on input line 21.
+[43]
+
+LaTeX Info: Redefining \. on input line 71.
+LaTeX Info: Redefining \% on input line 71.
+[44]
+
+LaTeX Info: Redefining \. on input line 122.
+LaTeX Info: Redefining \% on input line 122.
+[45])
+
+LaTeX Info: Redefining \. on input line 232.
+LaTeX Info: Redefining \% on input line 232.
+[46]
+
+LaTeX Info: Redefining \. on input line 233.
+LaTeX Info: Redefining \% on input line 233.
+[47]
+
+[48
+
+] (./capitulos/capitulo07_configuracion.tex
+Capítulo 7.
+File: anexos/17 temas.png Graphic file (type bmp)
+<anexos/17 temas.png>
+
+
+[49
+
+]
+Underfull \hbox (badness 1755) in paragraph at lines 30--30
+\TU/HelveticaNeue(0)/m/sc/10.95 ve, contraste modera-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--32
+[]|\TU/HelveticaNeue(0)/m/sc/10.95 Fondo oscuro, texto
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--32
+\TU/HelveticaNeue(0)/m/sc/10.95 claro, menos fatiga
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 36--36
+[]|\TU/HelveticaNeue(0)/m/sc/10.95 Elementos reducidos,
+ []
+
+
+Underfull \hbox (badness 5878) in paragraph at lines 36--37
+[]|\TU/HelveticaNeue(0)/m/sc/10.95 Pantallas pequenas, foco en
+ []
+
+File: anexos/18 red.png Graphic file (type bmp)
+<anexos/18 red.png>
+
+
+LaTeX Info: Redefining \. on input line 71.
+LaTeX Info: Redefining \% on input line 71.
+[50]
+
+LaTeX Info: Redefining \. on input line 100.
+LaTeX Info: Redefining \% on input line 100.
+[51]
+File: anexos/19 acceso.png Graphic file (type bmp)
+<anexos/19 acceso.png>
+
+Underfull \hbox (badness 1117) in paragraph at lines 133--134
+[]|\TU/HelveticaNeue(0)/m/sc/10.95 Acceso total: configuracion del sistema, ges
+tion de
+ []
+
+
+
+LaTeX Info: Redefining \. on input line 145.
+LaTeX Info: Redefining \% on input line 145.
+[52]
+File: anexos/20 updates.png Graphic file (type bmp)
+<anexos/20 updates.png>
+
+
+LaTeX Info: Redefining \. on input line 168.
+LaTeX Info: Redefining \% on input line 168.
+[53]
+
+LaTeX Info: Redefining \. on input line 197.
+LaTeX Info: Redefining \% on input line 197.
+[54]
+File: anexos/21 info.png Graphic file (type bmp)
+<anexos/21 info.png>
+
+
+LaTeX Info: Redefining \. on input line 238.
+LaTeX Info: Redefining \% on input line 238.
+[55]
+File: anexos/fin sistema.png Graphic file (type bmp)
+<anexos/fin sistema.png>
+
+
+LaTeX Info: Redefining \. on input line 267.
+LaTeX Info: Redefining \% on input line 267.
+[56]
+
+LaTeX Info: Redefining \. on input line 300.
+LaTeX Info: Redefining \% on input line 300.
+[57])
+
+LaTeX Info: Redefining \. on input line 240.
+LaTeX Info: Redefining \% on input line 240.
+[58]
+
+[59
 
 ] (./anexos/anexos.tex
 Apéndice A.
@@ -1601,7 +1806,7 @@ Overfull \hbox (3.09447pt too wide) in paragraph at lines 17--30
 
 
 
-[35
+[60
 
 ]
 Underfull \hbox (badness 6173) in paragraph at lines 96--96
@@ -1612,7 +1817,7 @@ Underfull \hbox (badness 6173) in paragraph at lines 96--96
 
 LaTeX Info: Redefining \. on input line 108.
 LaTeX Info: Redefining \% on input line 108.
-[36]
+[61]
 Underfull \hbox (badness 2142) in paragraph at lines 119--119
 []|\TU/HelveticaNeue(0)/m/sc/10.95 Hashing de Contrase-
  []
@@ -1621,15 +1826,15 @@ Underfull \hbox (badness 2142) in paragraph at lines 119--119
 
 LaTeX Info: Redefining \. on input line 160.
 LaTeX Info: Redefining \% on input line 160.
-[37]
+[62]
 
 LaTeX Info: Redefining \. on input line 175.
 LaTeX Info: Redefining \% on input line 175.
-[38])
+[63])
 
-LaTeX Info: Redefining \. on input line 240.
-LaTeX Info: Redefining \% on input line 240.
-[39]
+LaTeX Info: Redefining \. on input line 246.
+LaTeX Info: Redefining \% on input line 246.
+[64]
 No file main.ind.
 (./main.aux
 LaTeX Info: Redefining \. on input line 11.
@@ -1643,15 +1848,15 @@ L3 programming layer <2025-01-18>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 9C33E67A82BD637EE84ADD712000E2FB;14482.
+(rerunfilecheck)             Checksum: E8121FDF0EEC2271C3AED1BE34C6AACC;22532.
  ) 
 Here is how much of TeX's memory you used:
- 33028 strings out of 473832
- 657604 string characters out of 5729482
- 1374449 words of memory out of 5000000
- 55476 multiletter control sequences out of 15000+600000
+ 33215 strings out of 473832
+ 662480 string characters out of 5729482
+ 1376743 words of memory out of 5000000
+ 55645 multiletter control sequences out of 15000+600000
  562384 words of font info for 82 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  84i,13n,94p,1001b,2070s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (57 pages).
+Output written on main.pdf (85 pages).

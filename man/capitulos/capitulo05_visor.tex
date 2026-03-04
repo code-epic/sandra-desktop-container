@@ -85,53 +85,203 @@ Para cada documento se muestra:
     \item Etiquetas de clasificacion
 \end{itemize}
 
-\section{Encriptacion de Documentos}
-\label{sec:encriptacion}
+\section{Flujo de Encriptacion GPG}
+\label{sec:gpg}
+
+SDC implementa un sistema de encriptacion hibrido basado en \textbf{GPG} (GNU Privacy Guard), el estandar de facto para comunicaciones seguras.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{anexos/11 visor encriptar.png}
+\caption{Proceso de encriptacion de documento}
+\label{fig:visor-encriptar}
+\end{figure}
+
+\subsection{Historia y Contexto de GPG}
+
+GPG nacio en 1997 como implementacion libre del estandar \textbf{OpenPGP} (RFC 4880). Fue creado por Werner Koch como alternativa libre al software PGP (Pretty Good Privacy) de Phil Zimmermann, que en aquel entonces estaba sujeto a restricciones de exportacion de criptografia desde Estados Unidos.
+
+\begin{quote}
+\textbf{Relevancia Historica}\\
+GPG se ha convertido en el estandar de facto para:
+\begin{itemize}
+    \item Firma de codigo fuente en proyectos de software libre
+    \item Comunicaciones seguras en activismo y periodismo
+    \item Proteccion de datos en entornos empresariales
+    \item Verificacion de integridad en distribuciones de software
+\end{itemize}
+\end{quote}
+
+\subsection{Fundamentos Criptograficos}
+
+GPG utiliza un esquema hibrido que combina lo mejor de dos mundos:
+
+\begin{enumerate}
+    \item \textbf{Cifrado Simetrico (AES-256-GCM)}: Rapido y eficiente para grandes volumenes de datos
+    \item \textbf{Cifrado Asimetrico (RSA-4096)}: Seguro para intercambio de claves entre partes
+\end{enumerate}
+
+\begin{quote}
+\textbf{Ventajas del Esquema Hibrido}\\
+\begin{itemize}
+    \item \textbf{Velocidad}: El cifrado simetrico es miles de veces mas rapido que el asimetrico
+    \item \textbf{Seguridad}: Las claves asimetricas permiten compartir sin exponer el secreto
+    \item \textbf{Escalabilidad}: Documentos de cualquier tamano pueden protegerse eficientemente
+    \item \textbf{Autenticacion}: Las firmas digitales garantizan la identidad del emisor
+\end{itemize}
+\end{quote}
+
+\subsection{Proceso de Encriptacion en SDC}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.95\textwidth]{anexos/14 visor encriptado.png}
-\caption{Estado de documento encriptado}
+\caption{Documento en estado encriptado}
 \label{fig:visor-encriptado}
 \end{figure}
 
-\subsection{Esquema de Encriptacion}
-
-SDC utiliza SSE (Sandra Secure Encryption), un esquema hibrido:
-
-\begin{enumerate}
-    \item \textbf{Cifrado Simetrico}: AES-256-GCM para el contenido
-    \item \textbf{Cifrado Asimetrico}: RSA-4096 para proteger la clave AES
-    \item \textbf{Clave de Sesion}: Generada aleatoriamente para cada documento
-    \item \textbf{Derivacion}: HKDF-SHA256 para claves derivadas
-\end{enumerate}
-
-\subsection{Proceso de Cifrado}
+El proceso de encriptacion en SDC sigue estos pasos:
 
 \begin{enumerate}[leftmargin=*]
-    \item Generar clave AES-256 aleatoria (32 bytes)
-    \item Cifrar el documento con AES-256-GCM
-    \item Cifrar la clave AES con la clave publica RSA del destinatario
-    \item Empaquetar: documento cifrado + clave cifrada + metadatos
-    \item Firmar digitalmente el paquete con la clave privada del emisor
+    \item \textbf{Generacion de Clave de Sesion}: Se crea una clave AES-256 aleatoria (32 bytes) unica para este documento
+    \item \textbf{Cifrado del Contenido}: El documento se cifra usando AES-256-GCM con la clave de sesion
+    \item \textbf{Proteccion de Clave}: La clave de sesion se cifra con la clave publica RSA-4096 del destinatario
+    \item \textbf{Empaquetado}: Se combina el documento cifrado, la clave cifrada y los metadatos
+    \item \textbf{Firma Digital}: El paquete se firma con la clave privada del emisor para garantizar autenticidad
 \end{enumerate}
 
-\section{Previsualizacion de Archivos}
-\label{sec:preview}
+\subsection{Relevancia para SandraDC}
 
-El modo de previsualizacion permite obtener una vista rapida sin cargar el documento completo.
+La implementacion GPG en SDC proporciona:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Confidencialidad}: Solo el destinatario autorizado puede descifrar el contenido
+    \item \textbf{Integridad}: Cualquier modificacion del archivo invalida la firma digital
+    \item \textbf{Autenticidad}: La firma garantiza que el documento proviene del emisor declarado
+    \item \textbf{No repudio}: El emisor no puede negar haber enviado el documento firmado
+    \item \textbf{Interoperabilidad}: Los documentos pueden intercambiarse con otros sistemas GPG/PGP
+\end{itemize}
+
+\section{Exportacion y Compartir}
+\label{sec:exportar}
+
+SDC permite exportar documentos de forma segura para compartirlos con otros usuarios o sistemas.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{anexos/12 preview-file.png}
-\caption{Previsualizacion de archivo}
-\label{fig:preview}
+\includegraphics[width=0.95\textwidth]{anexos/11 visor exportar.png}
+\caption{Opciones de exportacion segura}
+\label{fig:visor-exportar}
 \end{figure}
+
+\subsection{Opciones de Exportacion}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4cm}p{4cm}p{6cm}}
+\toprule
+\textbf{Metodo} & \textbf{Formato} & \textbf{Uso Recomendado} \\
+\midrule
+Exportar Encriptado & .gpg / .pgp & Para transferencia segura \\
+\midrule
+Exportar Firmado & .sig adjunto & Para verificacion de integridad \\
+\midrule
+Exportar ZIP & .zip encriptado & Para multiples archivos \\
+\midrule
+Compartir Link & URL temporal & Para acceso controlado \\
+\bottomrule
+\end{tabular}
+\caption{Metodos de exportacion disponibles}
+\label{tab:exportar}
+\end{table}
+
+\begin{quote}
+\textbf{Enlaces Temporales}\\
+Al compartir mediante link, SDC genera una URL unica con:
+\begin{itemize}
+    \item Expiracion configurable (1 hora a 30 dias)
+    \item Limite de descargas
+    \item Registro de auditoria de accesos
+    \item Revocacion instantanea si es necesario
+\end{itemize}
+\end{quote}
+
+\section{Previsualizacion de Documentos}
+\label{sec:preview}
+
+El visor ofrece un sistema de previsualizacion que permite verificar el contenido antes de desbloquearlo completamente.
+
+\subsection{Documento Protegido}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{anexos/12 preview-confidencial.png}
+\caption{Vista previa de documento protegido}
+\label{fig:preview-protegido}
+\end{figure}
+
+Cuando un documento esta protegido, la previsualizacion muestra:
+
+\begin{itemize}[leftmargin=*]
+    \item Miniatura de baja resolucion de la primera pagina
+    \item Metadatos del archivo (tamano, fecha, autor)
+    \item Nivel de clasificacion y etiquetas de seguridad
+    \item Indicador de encriptacion activa
+    \item Requisitos de acceso (clave, permisos, etc.)
+\end{itemize}
+
+\subsection{Desbloqueo con Clave}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{anexos/12 preview-confidencial-clave.png}
+\caption{Panel de autenticacion para desbloqueo}
+\label{fig:preview-clave}
+\end{figure}
+
+Para acceder al documento completo, el usuario debe:
+
+\begin{enumerate}[leftmargin=*]
+    \item Ingresar la clave de desencriptacion o passphrase
+    \item Proporcionar credenciales de autenticacion (si aplica)
+    \item Confirmar su identidad mediante Client ID
+    \item Aceptar los terminos de confidencialidad
+\end{enumerate}
+
+\subsection{Vista Desbloqueada}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{anexos/12 preview-confidencial-desbloqueado.png}
+\caption{Documento en vista completa desbloqueada}
+\label{fig:preview-desbloqueado}
+\end{figure}
+
+Una vez desbloqueado, el documento se muestra con:
+
+\begin{itemize}[leftmargin=*]
+    \item Resolucion completa y nitidez total
+    \item Funciones de zoom, rotacion y navegacion
+    \item Capacidad de busqueda dentro del documento
+    \item Opciones de anotacion (si estan habilitadas)
+    \item Marcas de agua dinamicas con identificacion de sesion
+\end{itemize}
+
+\begin{quote}
+\textbf{Tiempo de Acceso}\\
+El acceso desbloqueado es temporal. El documento se bloquea automaticamente:
+\begin{itemize}
+    \item Al cerrar el visor
+    \item Despues del tiempo de inactividad configurado
+    \item Al bloquear la pantalla del sistema
+    \item Manualmente mediante el boton de bloqueo
+\end{itemize}
+\end{quote}
 
 \section{Configurador del Visor}
 \label{sec:configurador}
 
-El configurador permite ajustar el comportamiento del visor.
+El configurador permite ajustar el comportamiento del visor segun las necesidades de seguridad.
 
 \begin{figure}[H]
 \centering

@@ -54,19 +54,74 @@ Nombre & Produccion & Identificador del perfil \\
 Se recomienda utilizar siempre WSS (WebSocket Secure) en el puerto 8443 o superior. Las conexiones WS (sin cifrar) solo deben usarse en entornos de desarrollo controlados.
 \end{quote}
 
-\section{Despliegue de Aplicaciones}
+\section{Gestion de Aplicaciones}
 \label{sec:aplicaciones}
 
-Una de las caracteristicas distintivas de SDC es la capacidad de convertir servicios web en aplicaciones de escritorio independientes.
+SDC permite convertir servicios web en aplicaciones de escritorio independientes mediante el contenedor seguro. La gestion de aplicaciones se divide en dos vistas principales: la lista de aplicaciones y el formulario de configuracion.
+
+\subsection{Lista de Aplicaciones}
+\label{subsec:lista-apps}
+
+La vista principal muestra todas las aplicaciones disponibles y desplegadas en el sistema.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.95\textwidth]{anexos/6 aplicaciones.png}
-\caption{Formulario de creacion de nueva aplicacion}
-\label{fig:aplicaciones}
+\caption{Lista de aplicaciones disponibles e instaladas}
+\label{fig:lista-apps}
 \end{figure}
 
-\subsection{Modos de Despliegue}
+La interfaz de lista muestra:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Aplicaciones Instaladas}: Apps desplegadas y listas para usar
+    \item \textbf{Aplicaciones Disponibles}: Catalogo de apps que pueden instalarse
+    \item \textbf{Indicadores de Estado}: Iconos que muestran si esta activa, proxy requerido, o modo libre
+    \item \textbf{Acciones Rapidas}: Botones para abrir, actualizar o desactivar cada app
+\end{itemize}
+
+\begin{quote}
+\textbf{Indicadores Visuales}
+\begin{itemize}
+    \item Punto verde: Aplicacion instalada y activa
+    \item Punto gris: Aplicacion disponible pero no instalada
+    \item Icono \texttt{fa-shield-alt}: Requiere proxy seguro
+    \item Icono \texttt{fa-globe-americas}: Modo navegacion libre
+\end{itemize}
+\end{quote}
+
+\subsection{Formulario de Nueva Aplicacion}
+\label{subsec:formulario-apps}
+
+Al instalar o configurar una aplicacion, se accede al formulario completo de configuracion.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{anexos/6 aplicaciones nueva.png}
+\caption{Formulario completo de creacion de aplicacion}
+\label{fig:formulario-apps}
+\end{figure}
+
+\subsubsection{Campos de Configuracion}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4cm}p{3cm}p{6cm}}
+\toprule
+\textbf{Campo} & \textbf{Requerido} & \textbf{Descripcion} \\
+\midrule
+Nombre & Si & Identificador de la aplicacion \\
+URL & Si & Direccion del servicio web \\
+Modo de Proxy & Si & Seguro o Navegacion Libre \\
+Repositorio & No & URL de Git para actualizaciones \\
+Icono & No & Imagen personalizada (256x256) \\
+\bottomrule
+\end{tabular}
+\caption{Campos del formulario de aplicacion}
+\label{tab:campos-apps}
+\end{table}
+
+\subsubsection{Modos de Despliegue}
 
 \begin{table}[H]
 \centering
@@ -74,9 +129,9 @@ Una de las caracteristicas distintivas de SDC es la capacidad de convertir servi
 \toprule
 \textbf{Modo} & \textbf{Descripcion} \\
 \midrule
-Proxy Seguro & Enmascara la IP real del contenedor mediante tuneles cifrados. Ideal para aplicaciones criticas. \\
+\textbf{Proxy Seguro} & Enmascara la IP real mediante tuneles cifrados. Todo el trafico se enruta a traves de WSS con autenticacion de cliente. Ideal para aplicaciones criticas y datos sensibles. \\
 \midrule
-Navegacion Libre & Acceso directo sin tuneles de seguridad adicionales. Para aplicaciones internas de baja criticidad. \\
+\textbf{Navegacion Libre} & Acceso directo sin tuneles adicionales. El trafico fluye directamente entre cliente y servidor. Para aplicaciones internas de baja criticidad o desarrollo. \\
 \bottomrule
 \end{tabular}
 \caption{Modos de despliegue de aplicaciones}
@@ -85,7 +140,7 @@ Navegacion Libre & Acceso directo sin tuneles de seguridad adicionales. Para apl
 
 \subsection{Repositorio Fuente}
 
-SDC permite vincular aplicaciones a repositorios de codigo para habilitar despliegues automaticos:
+SDC permite vincular aplicaciones a repositorios de codigo:
 
 \begin{lstlisting}[language=bash, caption={Configuracion de Repositorio}]
 # Soporte para:
@@ -102,7 +157,7 @@ SDC permite vincular aplicaciones a repositorios de codigo para habilitar despli
 
 \begin{quote}
 \textbf{Despliegue Automatico}\\
-Cuando se activa el despliegue automatico, SDC verifica cambios en el repositorio cada 5 minutos y notifica al usuario cuando hay nueva version disponible.
+Cuando se activa, SDC verifica cambios cada 5 minutos y notifica al usuario cuando hay nueva version disponible.
 \end{quote}
 
 \section{Lista de Conexiones Activas}
@@ -130,7 +185,7 @@ Para cada conexion activa, el sistema muestra:
     \item Bytes transferidos
 \end{itemize}
 
-\section{Gestión del Monitor del Sistema}
+\section{Gestion del Monitor del Sistema}
 \label{sec:monitor}
 
 El modulo de monitoreo proporciona metricas detalladas de bajo nivel.
