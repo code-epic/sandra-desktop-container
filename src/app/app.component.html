@@ -1,6 +1,6 @@
 <div class="sdc-container">
   <!-- Componente Sidebar Modular -->
-  <app-sidebar (onLogout)="handleGlobalLogout()"></app-sidebar>
+  <app-sidebar (onLogout)="handleGlobalLogout()" (onNavigateRequest)="handleNavigationRequest($event)"></app-sidebar>
 
   <main class="main-stage">
     <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'">
@@ -319,16 +319,17 @@
         </div>
       </div>
 
-      <div class="modal-body-clean" style="padding: 0 25px 30px;">
+      <div class="modal-body-clean">
         <h3 class="modal-title-clean" style="text-align: center; margin-top: 20px;">{{ genericModal.title }}</h3>
         <p class="modal-msg-clean" style="text-align: center; padding: 0 10px; margin-bottom: 25px;">{{
           genericModal.message }}</p>
-        <div class="modal-actions-spread" style="padding: 0;">
+       
+      </div>
+       <div class="modal-actions-spread" >
           <!-- Dynamically color the button depending on the type and ensure it is green/accept for success/info -->
           <button [ngClass]="genericModal.type === 'error' ? 'btn-modal-confirm' : 'btn-modal-save'"
             (click)="closeGenericModal()">Aceptar</button>
         </div>
-      </div>
     </div>
   </div>
 
@@ -400,14 +401,90 @@
       </div>
     </div>
   </div>
+
+  <!-- MODAL DE PREGUNTA GENÉRICO (CUSTOM CONFIRM) -->
+  <div class="modal-overlay" *ngIf="questionModal.show" style="z-index: 99999;">
+    <div class="modal-card activity-modal fade-in-up">
+      <div class="modal-body-clean">
+        <div class="modal-visual-header info-header" style="justify-content: center;">
+          <div class="icon-pulse-wrapper info-pulse">
+            <i class="fas fa-question-circle"></i>
+          </div>
+        </div>
+        <h3 class="modal-title-clean" style="text-align: center;">{{ questionModal.title }}</h3>
+        <p class="modal-msg-clean" style="text-align: center; white-space: pre-wrap; margin-bottom: 25px;">{{ questionModal.message }}</p>
+        
+        <div class="modal-actions-spread">
+          <button class="btn-modal-save" (click)="questionModal.onConfirm()">{{ questionModal.confirmText }}</button>
+          <button class="btn-modal-cancel" (click)="questionModal.onCancel()">{{ questionModal.cancelText }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JWT SETUP MODAL (Initial Config) -->
+  <div class="modal-overlay" *ngIf="showJwtSetupModal" style="z-index: 100000;">
+    <div class="modal-card activity-modal fade-in-up">
+      <div class="modal-body-clean">
+        <div class="modal-visual-header info-header" style="justify-content: center;">
+          <div class="icon-pulse-wrapper info-pulse">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+        </div>
+        <h3 class="modal-title-clean" style="text-align: center;">Seguridad JWT</h3>
+        
+        <div class="jwt-description-box">
+          <i class="fas fa-info-circle jwt-desc-icon"></i>
+          <p class="jwt-description-text">
+            Configure la persistencia del token de seguridad. Esto permitirá que su sesión se mantenga activa según sus preferencias de privacidad.
+          </p>
+        </div>
+        
+        <div class="jwt-setup-group">
+          <label class="jwt-setup-label">Almacenamiento de Token</label>
+          <div class="jwt-input-wrapper">
+            <i class="fas fa-database jwt-input-icon"></i>
+            <select [(ngModel)]="config.access.jwtStorage">
+              <option value="sessionStorage">Session Storage (Recomendado)</option>
+              <option value="localStorage">Local Storage (Persistente)</option>
+            </select>
+            <i class="fas fa-chevron-down" style="color: #94a3b8; font-size: 0.8rem;"></i>
+          </div>
+        </div>
+
+        <div class="jwt-setup-group" style="margin-bottom: 30px;">
+          <label class="jwt-setup-label">Nombre de Variable (Key)</label>
+          <div class="jwt-input-wrapper">
+            <i class="fas fa-tag jwt-input-icon"></i>
+            <input type="text" [(ngModel)]="config.access.jwtVariableName" placeholder="Nombre de la clave (ej: token)">
+          </div>
+        </div>
+        
+        <div class="modal-actions-spread" style="padding: 0 30px 10px;">
+          <button class="btn-modal-save" (click)="confirmJwtSetup()" style="flex: 1.5;">Configurar y Activar</button>
+          <button class="btn-modal-cancel" (click)="showJwtSetupModal = false" style="flex: 1;">Luego</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- Background Watermark -->
   <div class="background-watermark">
     <i class="fas fa-shield-alt"></i>
   </div>
 
+  <!-- LOGIN MODAL (JWT Session) -->
+  <app-login-modal *ngIf="showLoginModal" 
+                   [ipAddress]="loginIpAddress" 
+                   [port]="loginPort" 
+                   [storageTarget]="config.access.jwtStorage" 
+                   [variableName]="config.access.jwtVariableName"
+                   (onClose)="showLoginModal = false"
+                   (onLoginSuccess)="handleLoginSuccess($event)">
+  </app-login-modal>
+
   <!-- Global Snap Message (Subtle Feedback at cursor) -->
   <div class="snap-message global-snap" *ngIf="showSnap && snapMessage" [style.top.px]="snapMessage.y - 30"
-    [style.left.px]="snapMessage.x + 10" [ngClass]="snapMessage.type || 'success'">
+    [style.left.px]="snapMessage.x - 15" [ngClass]="snapMessage.type || 'success'">
     <i class="fas" [class]="snapMessage.icon || 'fa-check-circle'"></i>
     {{ snapMessage.message }}
   </div>

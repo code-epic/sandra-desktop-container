@@ -1497,12 +1497,6 @@ iframe {
   color: #90a4ae;
 }
 
-.modal-actions-spread {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 30px;
-}
 
 .btn-primary-save {
   background: linear-gradient(135deg, #42a5f5, #1e88e5);
@@ -2166,25 +2160,108 @@ iframe {
 @keyframes snapFadeActive {
   0% {
     opacity: 0;
-    transform: translateY(15px) scale(0.9);
+    transform: translateX(-100%) translateY(15px) scale(0.9);
   }
 
   15% {
     opacity: 1;
-    transform: translateY(0) scale(1.03);
+    transform: translateX(-100%) translateY(0) scale(1.03);
   }
 
   30% {
-    transform: scale(1);
+    transform: translateX(-100%) scale(1);
   }
 
   70% {
     opacity: 1;
-    transform: translateY(-8px);
+    transform: translateX(-100%) translateY(-8px);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateX(-100%) translateY(-20px);
   }
+}
+
+/* --- JWT Setup Modal Styles --- */
+.jwt-setup-group {
+  margin-bottom: 20px;
+  text-align: left;
+  padding: 0 30px;
+}
+
+.jwt-setup-label {
+  color: #64748b;
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jwt-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.jwt-input-wrapper:focus-within {
+  border-color: #3b82f6;
+  background: #fff;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
+  transform: translateY(-1px);
+}
+
+.jwt-input-icon {
+  color: #64748b;
+  margin-right: 12px;
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.jwt-input-wrapper input,
+.jwt-input-wrapper select {
+  width: 100%;
+  border: none;
+  background: transparent !important;
+  outline: none;
+  font-size: 0.95rem;
+  color: #1e293b;
+  padding: 0;
+}
+
+.jwt-input-wrapper select {
+  cursor: pointer;
+  appearance: none;
+}
+
+.jwt-description-box {
+  background: rgba(59, 130, 246, 0.03);
+  border-left: 4px solid #3b82f6;
+  padding: 12px 18px;
+  margin: 0 30px 25px;
+  border-radius: 0 12px 12px 0;
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.jwt-desc-icon {
+  color: #3b82f6;
+  font-size: 1.1rem;
+  margin-top: 2px;
+}
+
+.jwt-description-text {
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
 }

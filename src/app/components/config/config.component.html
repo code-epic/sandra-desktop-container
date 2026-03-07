@@ -60,7 +60,6 @@
           </div>
         </div>
   
-        <!-- Sección Acceso -->
         <div *ngIf="activeConfigTab === 'access'" class="config-section">
           <h3>Control de Acceso</h3>
           <label class="toggle-row">
@@ -71,6 +70,22 @@
             <span>Emisión de mensajes en la red</span>
             <input type="checkbox" [(ngModel)]="config.access.networkBroadcast">
           </label>
+          <h4>Sesión JWT</h4>
+          <label class="toggle-row">
+            <span>Activar sesión JWT al inicio</span>
+            <input type="checkbox" [(ngModel)]="config.access.enableJwtSession">
+          </label>
+          <div class="config-group" style="margin-top:10px;" *ngIf="config.access.enableJwtSession">
+            <label>Almacenamiento de Token</label>
+            <select class="styled-select" [(ngModel)]="config.access.jwtStorage">
+              <option value="sessionStorage">Session Storage</option>
+              <option value="localStorage">Local Storage</option>
+            </select>
+          </div>
+          <div class="config-group" style="margin-top:10px;" *ngIf="config.access.enableJwtSession">
+            <label>Nombre de variable (Key)</label>
+            <input type="text" [(ngModel)]="config.access.jwtVariableName" placeholder="token">
+          </div>
         </div>
   
         <!-- Sección Actualizaciones -->

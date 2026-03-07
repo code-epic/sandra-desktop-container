@@ -1,0 +1,112 @@
+<!-- Modal Login (Elegante y Unificado) -->
+<div class="modal-overlay" *ngIf="showModal" (keydown.escape)="closeModal()">
+    
+    <!-- Toast de Error Independiente -->
+    <div class="internal-toast error-toast fade-in" *ngIf="errorMessage" style="position: absolute; top: 40px; left: 50%; transform: translateX(-50%); background: #ffebee; color: #d32f2f; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; z-index: 99999; box-shadow: 0 4px 15px rgba(239, 83, 80, 0.2); display: flex; align-items: center; gap: 8px; width: max-content; max-width: 90%; border: 1px solid #ffcdd2;">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ errorMessage }}
+    </div>
+
+    <div class="modal-card activity-modal fade-in-up" style="max-width: 450px;">
+        <div class="modal-body-clean">
+            <!-- Header Icon -->
+            <div class="modal-visual-header info-header" *ngIf="!showTotpSection">
+                <div class="icon-pulse-wrapper info-pulse" *ngIf="!verifying">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <!-- Verification / Success Pulse -->
+                <div class="icon-pulse-wrapper" [class.info-pulse]="verifying && !verified" [class.success-pulse]="verified" *ngIf="verifying">
+                    <i class="fas" [class.fa-circle-notch]="verifying && !verified" [class.fa-spin]="verifying && !verified" [class.fa-check]="verified"></i>
+                </div>
+            </div>
+
+            <h3 class="modal-title-clean" *ngIf="!showTotpSection" [class.text-success]="verified">
+                <ng-container *ngIf="!verifying">Acceso Requerido</ng-container>
+                <ng-container *ngIf="verifying && !verified">Autenticando...</ng-container>
+                <ng-container *ngIf="verified">Acceso Autorizado</ng-container>
+            </h3>
+
+            <p class="modal-msg-clean" *ngIf="!showTotpSection && !verifying">
+                Ingrese sus credenciales para habilitar la interfaz.
+                <br><span class="sub-text">Conexión a {{ ipAddress }} : {{ port }}</span>
+            </p>
+
+            <ng-container *ngIf="!showTotpSection && !verifying">
+                <form role="form" #form="ngForm" (ngSubmit)="login()" style="margin-top: 15px; padding: 0 50px;">
+                    <div class="input-group custom-input-group mb-4" style="padding: 10px 16px; border-radius: 12px;">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-user-shield"></i></span>
+                        </div>
+                        <input class="form-control" placeholder="Escriba su Usuario" name="usuario" type="text"
+                               [(ngModel)]="usuario" required autocomplete="off" style="width: 100%; border: none; background: transparent; outline: none; font-size: 0.95rem; box-shadow: none; padding: 0;">
+                    </div>
+
+                    <div class="input-group custom-input-group mb-4" style="display: flex; padding: 10px 16px; border-radius: 12px; position: relative;">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-key"></i></span>
+                        </div>
+                        <input class="form-control" placeholder="Escriba su Contraseña" name="clave" [type]="isHidden ? 'password' : 'text'"
+                               [(ngModel)]="clave" required autocomplete="current-password" style="flex: 1; border: none; background: transparent; outline: none; font-size: 0.95rem; box-shadow: none; padding: 0; padding-right: 35px;">
+                        <div class="password-eye-icon cursor-pointer" (click)="isHidden = !isHidden" style="position: absolute; right: 16px; display: flex; align-items: center; justify-content: center; height: 100%; top: 0; color: #64748b;">
+                            <i class="fas" [class.fa-eye-slash]="isHidden" [class.fa-eye]="!isHidden"></i>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-spread" style="margin-top: 40px; padding: 0;">
+                        <button type="submit" class="btn-modal-acept" [disabled]="loading || !form.valid" style="flex: 1; padding: 10px 20px; font-size: 0.9rem; border-radius: 10px;">
+                            <span *ngIf="!loading">Ingresar</span>
+                            <span *ngIf="loading"><i class="fas fa-spinner fa-spin"></i> Validando</span>
+                        </button>
+                        <button type="button" class="btn-modal-cancel" (click)="closeModal()" style="flex: 1; padding: 10px 20px; font-size: 0.9rem; border-radius: 10px;">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </ng-container>
+
+            <!-- Loading Template -->
+            <p class="modal-msg-clean" *ngIf="verifying && !showTotpSection">
+                <span class="sub-text">Validando identidad en servidor y sincronizando...</span>
+            </p>
+
+            <!-- TOTP Block -->
+            <ng-container *ngIf="showTotpSection">
+                <div class="modal-visual-header info-header">
+                    <div class="icon-pulse-wrapper info-pulse">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                </div>
+                
+                <h3 class="modal-title-clean">Verificación en 2 Pasos</h3>
+                <p class="modal-msg-clean">
+                    Hemos detectado 2FA activo en su perfil.
+                    <br><span class="sub-text">Ingrese el código de acceso dinámico (TOTP).</span>
+                </p>
+
+                <div class="otp-container mt-4" [class.shake]="isOtpInvalid">
+                    <div class="otp-wrapper" style="display: flex; justify-content: center; gap: 12px; margin: 35px 0 25px 0;">
+                        <input #otp0 type="tel" class="otp-box" maxlength="1" (input)="onInput($event, otp1)" (keydown)="onKeydown($event, null)" (paste)="onPaste($event)">
+                        <input #otp1 type="tel" class="otp-box" maxlength="1" (input)="onInput($event, otp2)" (keydown)="onKeydown($event, otp0)">
+                        <input #otp2 type="tel" class="otp-box" maxlength="1" (input)="onInput($event, otp3)" (keydown)="onKeydown($event, otp1)">
+                        <span class="otp-divider" style="align-self: center; color: #9E9E9E; font-weight: bold; font-size: 1.5rem;">-</span>
+                        <input #otp3 type="tel" class="otp-box" maxlength="1" (input)="onInput($event, otp4)" (keydown)="onKeydown($event, otp2)">
+                        <input #otp4 type="tel" class="otp-box" maxlength="1" (input)="onInput($event, otp5)" (keydown)="onKeydown($event, otp3)">
+                        <input #otp5 type="tel" class="otp-box" maxlength="1" (input)="onInput($event, null)" (keydown)="onKeydown($event, otp4)">
+                    </div>
+                    <small *ngIf="isOtpInvalid" class="text-danger mt-2 d-block" style="text-align: center; color: #ef5350; font-weight: 600;">Código inválido o expirado</small>
+                </div>
+
+                <div class="modal-actions-spread" style="margin-top: 40px; padding: 0 50px;">
+                    <button class="btn-modal-confirm" (click)="Continuar()" [disabled]="loading" style="flex: 1; padding: 12px 20px; font-size: 1.05rem; border-radius: 10px;">
+                        <span *ngIf="loading"><i class="fas fa-spinner fa-spin"></i> Validando</span>
+                        <span *ngIf="!loading">Verificar</span>
+                    </button>
+                    <button class="btn-modal-cancel" (click)="goBackToLogin()" [disabled]="loading" style="flex: 1; padding: 12px 20px; font-size: 1.05rem; border-radius: 10px;">
+                        Volver
+                    </button>
+                </div>
+            </ng-container>
+
+        </div>
+    </div>
+</div>

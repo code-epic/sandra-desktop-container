@@ -859,14 +859,14 @@ button:disabled {
 .tooltip-container:hover .tooltip-content {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 .cloud-tooltip {
   position: absolute;
   bottom: 155%;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
+  right: -10px;
+  transform: translateY(10px);
   background: white;
   border-radius: 12px;
   padding: 14px;
@@ -888,8 +888,7 @@ button:disabled {
   content: '';
   position: absolute;
   top: 100%;
-  left: 50%;
-  margin-left: -6px;
+  right: 15px;
   border-width: 6px;
   border-style: solid;
   border-color: white transparent transparent transparent;

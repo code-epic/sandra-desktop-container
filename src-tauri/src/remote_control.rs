@@ -23,15 +23,13 @@ struct ClientMessage {
     message: String,
 }
 
-// Clave fija para handshake (32 chars hex string)
-const HANDSHAKE_SECRET: &str = "dd17a4b17e60f28cc11d052a3c82556c";
-
 // Modified signature to take AppHandle for emitting events
 pub async fn start_remote_listener(
     ws_url: String,
     app_handle: AppHandle,
     connection_id: Option<i64>,
     client_id: String,
+    secret_hash: String,
 ) {
     let mut tls_builder = TlsConnector::builder();
     tls_builder.danger_accept_invalid_certs(true);
@@ -63,13 +61,14 @@ pub async fn start_remote_listener(
             "os_info": stats.os_info,
             "mac_address": stats.mac_address,
             "network": stats.local_ip,
+            "hash": secret_hash,
             "timestamp": chrono::Utc::now().to_rfc3339()
         });
 
         // 2. Cifrar el contexto usando el nuevo Sha256Service
-        // Se usa HANDSHAKE_SECRET como clave de cifrado
+        // Se usa secret_hash como clave de cifrado
         let encrypted_context =
-            crate::sha256::Sha256Service::encrypt_device_context(&context, HANDSHAKE_SECRET)
+            crate::sha256::Sha256Service::encrypt_device_context(&context, &secret_hash)
                 .unwrap_or_else(|_| "ENCRYPTION_ERROR".to_string());
 
         // 3. Preparar URL con initialMessage cifrado
@@ -77,9 +76,15 @@ pub async fn start_remote_listener(
         let encoded_msg = encode(&encrypted_context);
 
         if final_url.contains('?') {
-            final_url = format!("{}&initialMessage={}", final_url, encoded_msg);
+            final_url = format!(
+                "{}&initialMessage={}&hash={}",
+                final_url, encoded_msg, secret_hash
+            );
         } else {
-            final_url = format!("{}?initialMessage={}", final_url, encoded_msg);
+            final_url = format!(
+                "{}?initialMessage={}&hash={}",
+                final_url, encoded_msg, secret_hash
+            );
         }
 
         attempt_count += 1;
@@ -99,7 +104,7 @@ pub async fn start_remote_listener(
                 let stats = collect_system_stats();
 
                 if let Ok(json_stats) = serde_json::to_string(&stats) {
-                    match encrypt_string(&json_stats, HANDSHAKE_SECRET) {
+                    match encrypt_string(&json_stats, &secret_hash) {
                         Ok(encrypted_data) => {
                             let initial_payload = ClientMessage {
                                 id: client_id.clone(),

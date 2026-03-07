@@ -106,6 +106,26 @@
                     <input type="number" [(ngModel)]="form.wss_port" placeholder="8443">
                 </div>
 
+                <!-- Hash Readonly Field -->
+                <div class="form-group full-width">
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        Hash de Identidad (Conexión)
+                        <div class="tooltip-container" style="display:inline-flex; align-items:center;">
+                            <i class="fas fa-fingerprint" style="color:#90A4AE; cursor:help; font-size:1.1em;"></i>
+                            <div class="tooltip-content cloud-tooltip">Este Hash es el combinando de la MAC y cuenta, usado
+                                para firmar de manera única esta conexión con el servidor. Copialo si se requiere.</div>
+                        </div>
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-hashtag input-icon"></i>
+                        <input type="text" [value]="form.hash || 'Pendiente por generación...'" readonly maxlength="32"
+                            style="opacity: 0.8; font-family: monospace; background: rgba(0,0,0,0.05); color: #37474F;">
+                        <div class="verify-indicator">
+                            <i class="fas fa-copy copy-icon" (click)="copyToClipboard(form.hash, $event)" title="Copiar Hash"></i>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- JWT Readonly Field -->
                 <div class="form-group full-width">
                     <label style="display:flex; align-items:center; gap:8px;">
@@ -121,6 +141,9 @@
                         <i class="fas fa-key input-icon"></i>
                         <input type="text" [value]="form.jwt || 'Pendiente por autorización...'" readonly
                             style="opacity: 0.8; font-family: monospace; background: rgba(0,0,0,0.05); color: #37474F;">
+                        <div class="verify-indicator">
+                            <i class="fas fa-copy copy-icon" (click)="copyToClipboard(form.jwt, $event)" title="Copiar JWT"></i>
+                        </div>
                     </div>
                 </div>
             </div>

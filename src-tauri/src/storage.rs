@@ -83,7 +83,9 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
             wss_host TEXT,
             wss_port INTEGER,
             is_connected BOOLEAN DEFAULT 0,
-            last_connected DATETIME
+            last_connected DATETIME,
+            jwt TEXT,
+            hash CHAR(32)
         )",
         [],
     )
@@ -98,6 +100,7 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_host TEXT", []);
     let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_port INTEGER", []);
     let _ = conn.execute("ALTER TABLE connections ADD COLUMN jwt TEXT", []);
+    let _ = conn.execute("ALTER TABLE connections ADD COLUMN hash CHAR(32)", []);
 
     // Migración silenciosa: Estado de conexión activo (Para DBs antiguas)
     let _ = conn.execute(

@@ -25,6 +25,7 @@ interface Connection {
   wss_port?: number;
   is_connected?: boolean;
   jwt?: string;
+  hash?: string;
 }
 
 @Component({
@@ -62,7 +63,6 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
   connProgress: number = 0;
   connStatusMsg: string = "";
 
-
   // Confetti Modal
   showWelcomeModal: boolean = false;
 
@@ -88,8 +88,8 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
   constructor(
     private cdr: ChangeDetectorRef,
     private sdcService: SdcService,
-    private snapService: SnapService
-  ) { }
+    private snapService: SnapService,
+  ) {}
 
   requestConfirm(
     title: string,
@@ -127,9 +127,9 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
     this.loadSavedConnections();
 
     // Solicitar permisos de notificación nativa al inicio
-    if ('Notification' in window) {
-      Notification.requestPermission().then(status => {
-        console.log('NATIVE NOTIFICATION PERMISSION:', status);
+    if ("Notification" in window) {
+      Notification.requestPermission().then((status) => {
+        console.log("NATIVE NOTIFICATION PERMISSION:", status);
       });
     }
 
@@ -180,7 +180,11 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
           this.form.jwt = payload.jwt;
         }
         this.loadSavedConnections();
-        this.openFeedback("success", "Acceso Concedido", "Se han otorgado los permisos necesarios. JWT seguro almacenado.");
+        this.openFeedback(
+          "success",
+          "Acceso Concedido",
+          "Se han otorgado los permisos necesarios. JWT seguro almacenado.",
+        );
         this.cdr.detectChanges();
       }
     });
@@ -211,6 +215,12 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
   copyId(event: MouseEvent) {
     navigator.clipboard.writeText(this.clientId);
     this.snapService.show("ID Copiado", event);
+  }
+
+  copyToClipboard(text: string | undefined, event: MouseEvent) {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    this.snapService.show("Copiado al portapapeles", event);
   }
 
   async loadSavedConnections() {

@@ -36,8 +36,11 @@ impl Sha256Service {
     /// Cifra el contexto del dispositivo usando AES-256-GCM.
     /// Formato de salida: Base64(IV + Ciphertext + Tag)
     pub fn encrypt_device_context(context: &Value, secret_key: &str) -> Result<String, String> {
-        let data = serde_json::to_string(context)
-            .map_err(|e| format!("Error al serializar contexto: {}", e))?;
+        let data = match context {
+            Value::String(s) => s.clone(),
+            _ => serde_json::to_string(context)
+                .map_err(|e| format!("Error al serializar contexto: {}", e))?,
+        };
 
         // La clave debe ser de 32 bytes para AES-256
         let mut key_bytes = [0u8; 32];

@@ -17,7 +17,6 @@ import { Observable } from "rxjs";
 import { SnapService, SnapData } from "./core/services/snap.service";
 // import { PDFDocument, rgb, degrees } from 'pdf-lib'; // REMOVED: Now handled in DownloadService/ChildApp
 
-
 import { listen } from "@tauri-apps/api/event";
 import { SidebarComponent } from "./components/sidebar/sidebar.component";
 import { DashboardComponent } from "./pages/dashboard/dashboard.component";
@@ -32,6 +31,7 @@ import { DesktopAppsService } from "./core/services/desktop-apps.service";
 import { ChatComponent } from "./pages/chat/chat.component";
 import { SecureViewerComponent } from "./components/secure-viewer/secure-viewer.component";
 import { SetupWizardComponent } from "./components/setup-wizard/setup-wizard.component";
+import { LoginModalComponent } from "./components/login-modal/login-modal.component";
 
 type ConnectionStatus =
   | "Conectado"
@@ -66,7 +66,8 @@ interface DesktopApp {
     AppsComponent,
     ChatComponent,
     SecureViewerComponent,
-    SetupWizardComponent
+    SetupWizardComponent,
+    LoginModalComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
@@ -80,6 +81,10 @@ export class AppComponent implements OnInit {
   currentDateStr = "";
   currentTimeStr = "";
   showControlPanel = false;
+
+  showLoginModal = false;
+  loginIpAddress = "";
+  loginPort = 22;
 
   tasks = [
     { title: "Sincronización Nodos", time: "10:42 AM", status: "active" },
@@ -116,6 +121,9 @@ export class AppComponent implements OnInit {
     access: {
       remoteControl: true,
       networkBroadcast: false,
+      enableJwtSession: false,
+      jwtStorage: "localStorage",
+      jwtVariableName: "token",
     },
     updates: {
       autoUpdate: true,
@@ -137,15 +145,55 @@ export class AppComponent implements OnInit {
 
   isInspectorOpen = false;
 
-  genericModal: { show: boolean, title: string, message: string, type: 'success' | 'error' | 'info' } = { show: false, title: '', message: '', type: 'info' };
+  genericModal: {
+    show: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  } = { show: false, title: "", message: "", type: "info" };
   exitModal = { show: false, closing: false };
   isExitConfirmed = false;
 
-  globalLoading$!: Observable<{ isLoading: boolean, message: string }>;
+  globalLoading$!: Observable<{ isLoading: boolean; message: string }>;
 
   // Snap Message Global State
   snapMessage: SnapData | null = null;
   showSnap: boolean = false;
+
+  questionModal = {
+    show: false,
+    title: "",
+    message: "",
+    confirmText: "Aceptar",
+    cancelText: "Cancelar",
+    onConfirm: () => {},
+    onCancel: () => {},
+  };
+
+  showJwtSetupModal = false;
+
+  showQuestionModal(
+    title: string,
+    message: string,
+    confirmText: string,
+    cancelText: string,
+    onConfirm: () => void,
+    onCancel: () => void = () => {},
+  ) {
+    this.questionModal.title = title;
+    this.questionModal.message = message;
+    this.questionModal.confirmText = confirmText;
+    this.questionModal.cancelText = cancelText;
+    this.questionModal.onConfirm = () => {
+      this.questionModal.show = false;
+      onConfirm();
+    };
+    this.questionModal.onCancel = () => {
+      this.questionModal.show = false;
+      onCancel();
+    };
+    this.questionModal.show = true;
+  }
 
   constructor(
     public appState: AppStateService,
@@ -206,8 +254,7 @@ export class AppComponent implements OnInit {
   }
 
   async ngOnInit() {
-
-
+    this.loadConfig();
     this.loadApps(); // Load dynamic apps
     this.checkSidebarResponsive(window.innerWidth);
     this.refreshStats();
@@ -230,6 +277,7 @@ export class AppComponent implements OnInit {
         const s = event.payload as string;
         if (s === "connected") {
           this.wsStatus = "Conectado";
+          this.checkAndPromptJwt();
         } else if (s === "disconnected") {
           this.wsStatus = "Desconectado";
         } else if (s === "connecting") {
@@ -261,6 +309,99 @@ export class AppComponent implements OnInit {
         this.handleGlobalLogout();
       });
     });
+  }
+
+  getJwtToken(): string | null {
+    if (!this.config.access.enableJwtSession) return null;
+    const storage =
+      this.config.access.jwtStorage === "sessionStorage"
+        ? sessionStorage
+        : localStorage;
+    return storage.getItem(this.config.access.jwtVariableName);
+  }
+
+  checkAndPromptJwt() {
+    if (this.config.access.enableJwtSession && this.activeConnection) {
+      const token = this.getJwtToken();
+
+      if (!token) {
+        // Show login modal
+        this.loginIpAddress = this.activeConnection.ip_address;
+        this.loginPort = Number(this.activeConnection.port);
+        this.showLoginModal = true;
+      }
+    }
+  }
+
+  confirmJwtSetup() {
+    this.config.access.enableJwtSession = true;
+    this.saveConfig(true); // Silent save
+    this.showJwtSetupModal = false;
+    this.checkAndPromptJwt();
+    const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
+    this.snapService.show("Seguridad JWT Configurada", safeEvent as any);
+  }
+
+  handleLoginSuccess(token: string) {
+    console.log(
+      "JWT Login completado. Token almacenado:",
+      token.substring(0, 10) + "...",
+    );
+    this.showLoginModal = false;
+
+    // Si había una redirección pendiente
+    if (this.pendingNavTab) {
+      this.appState.setActiveTab(this.pendingNavTab);
+      this.pendingNavTab = null;
+    }
+  }
+
+  pendingNavTab: string | null = null;
+
+  handleNavigationRequest(tabId: string) {
+    const protectedTabs = ["security", "monitor"];
+
+    if (protectedTabs.includes(tabId)) {
+      // Check if JWT token exists
+      const storage =
+        this.config.access.jwtStorage === "sessionStorage"
+          ? sessionStorage
+          : localStorage;
+      const token = storage.getItem(this.config.access.jwtVariableName);
+
+      if (!token) {
+        if (!this.config.access.enableJwtSession) {
+          this.showModal(
+            "Acceso Restringido",
+            "Esta sección requiere un token JWT válido. Primero active la 'Sesión JWT' en Configuración.",
+          );
+          return;
+        }
+
+        if (!this.activeConnection) {
+          this.showModal(
+            "Sin Conexión Activa",
+            "Para autorizar el acceso a zonas protegidas y mostrar el Login, primero debe Conectar un servidor desde el Inicio.",
+          );
+          return;
+        }
+
+        // Si auto-jwt está activo y hay conexión: mostrar modal
+        this.pendingNavTab = tabId;
+        this.loginIpAddress = this.activeConnection.ip_address;
+        this.loginPort = Number(this.activeConnection.port);
+        this.showLoginModal = true;
+
+        // Use a safe mock event for the snap message
+        const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
+        this.snapService.show("Autenticación Requerida", safeEvent as any);
+
+        return;
+      }
+    }
+
+    // Si no está protegido o sí tiene token, navega normal
+    this.appState.setActiveTab(tabId);
   }
 
   async loadApps() {
@@ -368,11 +509,13 @@ export class AppComponent implements OnInit {
   async initApplication() {
     try {
       // 1. Huella Única del Terminal (Inmutable)
-      await invoke('emit_splash_status', { message: 'Iniciando Kernel Sandra...' });
+      await invoke("emit_splash_status", {
+        message: "Iniciando Kernel Sandra...",
+      });
       this.clientId = await this.sdcService.getClientId();
 
       // 2. Validar identidad
-      const setupStatus = await invoke<any>('get_setup_status');
+      const setupStatus = await invoke<any>("get_setup_status");
 
       // Cargar Identidad del Sistema (MAC, IP, SO) para el Wizard
       await this.refreshStats();
@@ -380,7 +523,9 @@ export class AppComponent implements OnInit {
 
       if (!setupStatus.is_done) {
         // No configurado -> Mostrar Wizard después de cerrar splash
-        await invoke('emit_splash_status', { message: 'Requiere Configuración' });
+        await invoke("emit_splash_status", {
+          message: "Requiere Configuración",
+        });
         setTimeout(async () => {
           await invoke("close_splash");
           this.zone.run(() => {
@@ -390,7 +535,9 @@ export class AppComponent implements OnInit {
         }, 2000);
       } else {
         // Configurado -> Intentar conexión
-        await invoke('emit_splash_status', { message: `Bienvenido, ${setupStatus.machine_name}` });
+        await invoke("emit_splash_status", {
+          message: `Bienvenido, ${setupStatus.machine_name}`,
+        });
 
         // Cargar conexiones existentes
         await this.loadConnections();
@@ -398,30 +545,47 @@ export class AppComponent implements OnInit {
         // Si no hay marcada como conectada, pero hay al menos una, tomamos la primera
         if (!this.activeConnection && this.availableConnections.length > 0) {
           this.activeConnection = this.availableConnections[0];
-          console.log("ℹ️ [Init] Usando perfil por defecto:", this.activeConnection.name);
+          console.log(
+            "ℹ️ [Init] Usando perfil por defecto:",
+            this.activeConnection.name,
+          );
         }
 
         if (this.activeConnection) {
-          console.log("🔌 [Init] Auto-conectando a:", this.activeConnection.name);
-          await invoke('emit_splash_status', { message: `Enlazando con ${this.activeConnection.name}...` });
+          console.log(
+            "🔌 [Init] Auto-conectando a:",
+            this.activeConnection.name,
+          );
+          await invoke("emit_splash_status", {
+            message: `Enlazando con ${this.activeConnection.name}...`,
+          });
 
           // Refreco proactivo: Limpieza de hilos y Apertura de Socket
           try {
-            await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
-          } catch (e) { }
+            await this.sdcService.disconnectFromServer(
+              this.activeConnection,
+              this.clientId,
+            );
+          } catch (e) {}
 
-          await this.sdcService.connectToServer(this.activeConnection, this.clientId);
-          await invoke('emit_splash_status', { message: 'Enlace Establecido' });
+          await this.sdcService.connectToServer(
+            this.activeConnection,
+            this.clientId,
+          );
+          await invoke("emit_splash_status", { message: "Enlace Establecido" });
         } else {
-          await invoke('emit_splash_status', { message: 'Sin Perfiles de Conexión' });
-          console.log("⚠️ [Init] No se encontró ninguna conexión para auto-consecución.");
+          await invoke("emit_splash_status", {
+            message: "Sin Perfiles de Conexión",
+          });
+          console.log(
+            "⚠️ [Init] No se encontró ninguna conexión para auto-consecución.",
+          );
         }
 
         setTimeout(async () => {
           await invoke("close_splash");
         }, 2000);
       }
-
     } catch (e) {
       console.error("Error during initApplication:", e);
       // Fallback: cerrar splash para no bloquear al usuario
@@ -440,7 +604,10 @@ export class AppComponent implements OnInit {
       // 1. Notificar Desconexión (Clean socket closure)
       if (this.activeConnection) {
         console.log("🔌 Reportando cierre a Sandra Server...");
-        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+        await this.sdcService.disconnectFromServer(
+          this.activeConnection,
+          this.clientId,
+        );
       }
 
       // 2. Apagado total: 3.5 segundos de gracia para ver la animación
@@ -449,7 +616,6 @@ export class AppComponent implements OnInit {
         console.log("🚀 [System] Ejecutando exit_app...");
         await invoke("exit_app");
       }, 3500);
-
     } catch (e) {
       console.error("Error al cerrar sesión durante salida:", e);
       this.isExitConfirmed = true;
@@ -460,13 +626,16 @@ export class AppComponent implements OnInit {
   async handleSetupComplete(data: any) {
     try {
       this.showSetupWizard = false;
-      this.showModal("Configurando", "Registrando identidad y enlace de red...");
+      this.showModal(
+        "Configurando",
+        "Registrando identidad y enlace de red...",
+      );
 
       // 1. Guardar Identidad en Rust
-      await invoke('save_setup_data', {
+      await invoke("save_setup_data", {
         name: data.name,
         description: data.description,
-        area: data.area
+        area: data.area,
       });
 
       // 2. Guardar Conexión Inicial
@@ -476,7 +645,7 @@ export class AppComponent implements OnInit {
         port: Number(data.port),
         wss_host: data.wss_host || null,
         wss_port: Number(data.wss_port) || null,
-        is_connected: false // Se activará ahora
+        is_connected: false, // Se activará ahora
       };
 
       const connId = await invoke<number>("save_connection", { connData });
@@ -485,12 +654,28 @@ export class AppComponent implements OnInit {
       // 3. Activar Conexión Inmediatamente
       await this.sdcService.connectToServer(connData, this.clientId);
 
-      this.showModal("Configuración Finalizada", `Tu terminal '${data.name}' ha sido registrado y conectado exitosamente.`);
+      this.showModal(
+        "Configuración Finalizada",
+        `Tu terminal '${data.name}' ha sido registrado y conectado exitosamente.`,
+      );
 
       // Recargar todo el estado
       await this.loadConnections();
       await this.refreshStats();
 
+      // Trigger Post-Setup JWT Prompt
+      setTimeout(() => {
+        this.showQuestionModal(
+          "Activar Seguridad JWT",
+          "¿Desea activar la protección por token JWT de Sandra-Security ahora?\n\nEsto habilitará servicios avanzados como notificación en tiempo real y protegerá secciones sensibles.",
+          "Sí, Activar JWT",
+          "No, Quizás Luego",
+          () => {
+            // Instead of direct activation, show the config modal
+            this.showJwtSetupModal = true;
+          },
+        );
+      }, 3500); // Dar algo de buffer después del Toast Finalizado
     } catch (e) {
       console.error("Error in setup complete:", e);
       this.showModal("Error", "No se pudo completar la configuración: " + e);
@@ -498,7 +683,7 @@ export class AppComponent implements OnInit {
   }
 
   openApp(app: any) {
-    console.log(app)
+    console.log(app);
     let rawUrl = "";
     let isExternalMode = false;
 
@@ -506,7 +691,10 @@ export class AppComponent implements OnInit {
     // 0. Modo "Navegador Libre" (Bypass total de seguridad SDC)
     if (app.is_external_browser) {
       if (!app.externalUrl) {
-        this.showModal("Error de Configuración", "La aplicación está marcada como 'Externa' pero no tiene URL definida.");
+        this.showModal(
+          "Error de Configuración",
+          "La aplicación está marcada como 'Externa' pero no tiene URL definida.",
+        );
         return;
       }
       rawUrl = app.externalUrl;
@@ -526,9 +714,7 @@ export class AppComponent implements OnInit {
       // Formato: sandra-app://localhost/external-proxy/{APP_ID}?target={URL}
       const target = encodeURIComponent(app.externalUrl);
       rawUrl = `sandra-app://localhost/external-proxy/${app.id}?target=${target}`;
-      console.log(
-        `🛡️ [Proxy Nav] Wrapping External ${app.name} -> ${rawUrl}`,
-      );
+      console.log(`🛡️ [Proxy Nav] Wrapping External ${app.name} -> ${rawUrl}`);
     } else {
       // Caso 3: Local (Proxied o No, siempre usa sandra-app)
       rawUrl = `sandra-app://localhost/${app.id}/`;
@@ -545,7 +731,7 @@ export class AppComponent implements OnInit {
       url: safeUrl,
       isProxyRequired: app.is_proxy_required,
       isExternal: !app.externalUrl,
-      isExternalMode: isExternalMode // Nuevo flag para el template
+      isExternalMode: isExternalMode, // Nuevo flag para el template
     });
   }
 
@@ -658,6 +844,31 @@ export class AppComponent implements OnInit {
 
   switchToDashboard() {
     this.appState.setActiveTab("dashboard");
+  }
+
+  loadConfig() {
+    const saved = localStorage.getItem("sdc_ui_config");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // recursively merge config or simple assign if structure matches
+        this.config = Object.assign(this.config, parsed);
+      } catch (e) {
+        console.error("Error loading config", e);
+      }
+    }
+  }
+
+  saveConfig(silent = false) {
+    localStorage.setItem("sdc_ui_config", JSON.stringify(this.config));
+    if (!silent) {
+      this.showModal(
+        "Configuración Guardada",
+        "Los ajustes se han persistido localmente.",
+        "success",
+      );
+    }
+    this.showControlPanel = false;
   }
 
   dbStats: any = null;
@@ -813,23 +1024,26 @@ export class AppComponent implements OnInit {
 
   // Unlock Tab State
   showUnlockTabModal = false;
-  unlockTabPin = '';
+  unlockTabPin = "";
   tabToUnlock: any = null;
 
   unlockTab(tab: any) {
     if (!tab.filePath && !tab.hiddenContent) {
-      this.showModal("Error", "No se puede determinar la ruta del archivo original. Asegúrate de abrirlo desde el Historial.");
+      this.showModal(
+        "Error",
+        "No se puede determinar la ruta del archivo original. Asegúrate de abrirlo desde el Historial.",
+      );
       return;
     }
     this.tabToUnlock = tab;
-    this.unlockTabPin = '';
+    this.unlockTabPin = "";
     this.showUnlockTabModal = true;
   }
 
   cancelTabUnlock() {
     this.showUnlockTabModal = false;
     this.tabToUnlock = null;
-    this.unlockTabPin = '';
+    this.unlockTabPin = "";
   }
 
   async submitTabUnlock() {
@@ -837,12 +1051,12 @@ export class AppComponent implements OnInit {
     this.showUnlockTabModal = false;
 
     try {
-      let base64Data = '';
+      let base64Data = "";
 
       // Opción A: Desbloqueo en Memoria (Recién abierto)
       if (this.tabToUnlock.hiddenContent) {
         // Validación simple de PIN (TODO: Mejorar seguridad en producción)
-        if (this.unlockTabPin !== '1234') {
+        if (this.unlockTabPin !== "1234") {
           throw "PIN Incorrecto";
         }
         base64Data = this.tabToUnlock.hiddenContent;
@@ -850,9 +1064,9 @@ export class AppComponent implements OnInit {
       }
       // Opción B: Desbloqueo desde Disco (Historial)
       else if (this.tabToUnlock.filePath) {
-        base64Data = await invoke<string>('load_sse_document', {
+        base64Data = await invoke<string>("load_sse_document", {
           filePath: this.tabToUnlock.filePath,
-          unlockPin: this.unlockTabPin
+          unlockPin: this.unlockTabPin,
         });
       } else {
         throw "No se encontró contenido para desbloquear.";
@@ -865,11 +1079,11 @@ export class AppComponent implements OnInit {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const blob = new Blob([byteArray], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
 
-      const dataUri = base64Data.startsWith('data:')
+      const dataUri = base64Data.startsWith("data:")
         ? base64Data
         : `data:application/pdf;base64,${base64Data}`;
 
@@ -879,22 +1093,19 @@ export class AppComponent implements OnInit {
       this.tabToUnlock.blobData = dataUri;
       this.tabToUnlock.isProtected = false; // Now it IS unlocked in view
       this.tabToUnlock.isLocked = false;
-
     } catch (e: any) {
       console.error(e);
-      if (e && typeof e === 'string' && e.includes("PIN Incorrecto")) {
+      if (e && typeof e === "string" && e.includes("PIN Incorrecto")) {
         this.showModal("Error de PIN", "El PIN es incorrecto.");
       } else {
-        const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
+        const msg = typeof e === "string" ? e : e.message || JSON.stringify(e);
         this.showModal("Error", "No se pudo desbloquear: " + msg);
       }
     } finally {
       this.tabToUnlock = null;
-      this.unlockTabPin = '';
+      this.unlockTabPin = "";
     }
   }
-
-
 
   showIpInfo() {
     if (this.networkInfo.length > 0) {
@@ -939,19 +1150,37 @@ export class AppComponent implements OnInit {
 
       case "OPEN_PDF":
       case "OPEN_PDF_SECURITY":
-        await this.handleIframeOpen(payload.fileName, payload.data, false, false, 'pdf-viewer');
+        await this.handleIframeOpen(
+          payload.fileName,
+          payload.data,
+          false,
+          false,
+          "pdf-viewer",
+        );
         break;
 
       case "OPEN_CSV":
       case "OPEN_TXT":
       case "OPEN_IMG":
       case "OPEN_PNG":
-        await this.handleIframeOpen(payload.fileName, payload.data, false, false, 'file-viewer');
+        await this.handleIframeOpen(
+          payload.fileName,
+          payload.data,
+          false,
+          false,
+          "file-viewer",
+        );
         break;
 
       case "OPEN_SSE":
       case "OPEN_SSE_SECURITY":
-        await this.handleIframeOpen(payload.fileName, payload.data, true, payload.isSaved || false, 'pdf-viewer');
+        await this.handleIframeOpen(
+          payload.fileName,
+          payload.data,
+          true,
+          payload.isSaved || false,
+          "pdf-viewer",
+        );
         break;
 
       case "OPEN_PDF_HACK":
@@ -963,13 +1192,24 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async handleIframeOpen(fileName: string, dataUri: string, isProtected: boolean, isSaved: boolean = false, viewerType: 'pdf-viewer' | 'file-viewer' = 'pdf-viewer') {
+  async handleIframeOpen(
+    fileName: string,
+    dataUri: string,
+    isProtected: boolean,
+    isSaved: boolean = false,
+    viewerType: "pdf-viewer" | "file-viewer" = "pdf-viewer",
+  ) {
     // --- Secure Viewer Logic (Intercept Protected Docs) ---
     if (isProtected) {
       try {
-        const base64 = dataUri.includes('base64,') ? dataUri.split('base64,')[1] : dataUri;
+        const base64 = dataUri.includes("base64,")
+          ? dataUri.split("base64,")[1]
+          : dataUri;
         // Call Rust to split PDF (Cover vs Content)
-        const res = await invoke<{ cover: string, content: string }>('prepare_sse_preview', { pdfBase64: base64 });
+        const res = await invoke<{ cover: string; content: string }>(
+          "prepare_sse_preview",
+          { pdfBase64: base64 },
+        );
 
         // Convert Cover to BlobUrl for View
         const byteCharacters = atob(res.cover);
@@ -978,35 +1218,37 @@ export class AppComponent implements OnInit {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
         const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const blob = new Blob([byteArray], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
         const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
 
-        const tabId = 'doc-view-' + Date.now();
+        const tabId = "doc-view-" + Date.now();
 
         this.appState.addTab({
           id: tabId,
-          name: fileName.replace(/\.pdf$/i, '.sse'),
-          icon: 'fas fa-file-shield',
-          type: 'pdf-viewer',
-          content: safeUrl,        // Visible: Cover Page (QR)
+          name: fileName.replace(/\.pdf$/i, ".sse"),
+          icon: "fas fa-file-shield",
+          type: "pdf-viewer",
+          content: safeUrl, // Visible: Cover Page (QR)
           url: safeUrl,
-          blobData: dataUri,       // Save/History: Original Full PDF
+          blobData: dataUri, // Save/History: Original Full PDF
           originalName: fileName,
           isProtected: true,
           isSavedToHistory: isSaved,
           showToolbar: true,
           zoomLevel: 1.0,
-          isLocked: true,          // Flag: Locked State
-          hiddenContent: res.content // Unlock Data: Content Pages
+          isLocked: true, // Flag: Locked State
+          hiddenContent: res.content, // Unlock Data: Content Pages
         });
 
         // Show unlock modal immediately if desired, or let user click button.
         // User requested: "queda habilitado el boton desbloquear". So we just open the tab locked.
         return;
-
       } catch (e) {
-        console.error("Error creating secure preview, falling back to standard view:", e);
+        console.error(
+          "Error creating secure preview, falling back to standard view:",
+          e,
+        );
         // Fallthrough to standard logic below
       }
     }
@@ -1018,29 +1260,30 @@ export class AppComponent implements OnInit {
       const url = URL.createObjectURL(blob);
       const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
 
-      const tabId = 'doc-view-' + Date.now();
-      const ext = fileName.split('.').pop()?.toLowerCase();
+      const tabId = "doc-view-" + Date.now();
+      const ext = fileName.split(".").pop()?.toLowerCase();
 
-      let icon = 'fas fa-file-pdf';
-      if (ext === 'csv') icon = 'fas fa-file-csv';
-      else if (ext === 'txt') icon = 'fas fa-file-alt';
-      else if (ext === 'xlsx' || ext === 'xls') icon = 'fas fa-file-excel';
-      else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext || '')) icon = 'fas fa-file-image';
+      let icon = "fas fa-file-pdf";
+      if (ext === "csv") icon = "fas fa-file-csv";
+      else if (ext === "txt") icon = "fas fa-file-alt";
+      else if (ext === "xlsx" || ext === "xls") icon = "fas fa-file-excel";
+      else if (["png", "jpg", "jpeg", "gif", "svg"].includes(ext || ""))
+        icon = "fas fa-file-image";
 
       this.appState.addTab({
         id: tabId,
-        name: isProtected ? fileName.replace(/\.pdf$/i, '.sse') : fileName,
-        icon: isProtected ? 'fas fa-file-shield' : icon,
+        name: isProtected ? fileName.replace(/\.pdf$/i, ".sse") : fileName,
+        icon: isProtected ? "fas fa-file-shield" : icon,
         type: viewerType,
         content: safeUrl,
         url: safeUrl,
-        blobData: dataUri,       // Save raw data for later actions (Save/History)
-        originalName: fileName,  // Save name
+        blobData: dataUri, // Save raw data for later actions (Save/History)
+        originalName: fileName, // Save name
         isProtected: isProtected, // Pass protection status
         isSavedToHistory: isSaved, // Control History Button
-        showToolbar: true,        // ENABLE Toolbar for API calls
-        zoomLevel: 1.0,           // Init Zoom
-        mimeType: blob.type      // Guardar mimeType para el visor
+        showToolbar: true, // ENABLE Toolbar for API calls
+        zoomLevel: 1.0, // Init Zoom
+        mimeType: blob.type, // Guardar mimeType para el visor
       });
     } catch (e) {
       console.error("Error opening document tab:", e);
@@ -1049,32 +1292,39 @@ export class AppComponent implements OnInit {
 
   async handleSSEDownload(fileName: string, dataUri: string) {
     try {
-      const base64 = dataUri.split(',')[1];
-      const finalName = fileName.replace(/\.pdf$/i, '') + '.sse';
+      const base64 = dataUri.split(",")[1];
+      const finalName = fileName.replace(/\.pdf$/i, "") + ".sse";
 
-      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { save } = await import("@tauri-apps/plugin-dialog");
       const path = await save({
         defaultPath: finalName,
-        filters: [{
-          name: 'Bunker Secure Document',
-          extensions: ['sse']
-        }]
+        filters: [
+          {
+            name: "Bunker Secure Document",
+            extensions: ["sse"],
+          },
+        ],
       });
 
       if (!path) return; // Cancelled
 
-      await invoke('save_protected_pdf', {
+      await invoke("save_protected_pdf", {
         pdfBase64: base64,
         filePath: path,
-        pin: '1234' // Default or Todo: Ask User
+        pin: "1234", // Default or Todo: Ask User
       });
 
-      await invoke('add_document_history', { fileName: finalName, filePath: path });
-      this.showModal("Descarga Completada", `Archivo protegido guardado en: ${path}`);
-
+      await invoke("add_document_history", {
+        fileName: finalName,
+        filePath: path,
+      });
+      this.showModal(
+        "Descarga Completada",
+        `Archivo protegido guardado en: ${path}`,
+      );
     } catch (e: any) {
       console.error("Error saving SSE:", e);
-      const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
+      const msg = typeof e === "string" ? e : e.message || JSON.stringify(e);
       this.showModal("Error de Descarga", msg);
     }
   }
@@ -1092,76 +1342,101 @@ export class AppComponent implements OnInit {
       return;
     }
     try {
-      const { tempDir, join } = await import('@tauri-apps/api/path');
+      const { tempDir, join } = await import("@tauri-apps/api/path");
       const tempPath = await tempDir();
 
-      const base64 = tab.blobData.split(',')[1];
+      const base64 = tab.blobData.split(",")[1];
 
-      let fullPath = '';
+      let fullPath = "";
       let savedName = tab.originalName;
 
       if (tab.isProtected) {
         // SSE Conversion Case
         // Change extension to .sse
-        savedName = tab.originalName.replace(/\.pdf$/i, '.sse');
+        savedName = tab.originalName.replace(/\.pdf$/i, ".sse");
         const tempName = `cached_${Date.now()}_${savedName}`;
         fullPath = await join(tempPath, tempName);
 
         // Use Rust command to save as SSE (Encrypted)
-        await invoke('save_protected_pdf', {
+        await invoke("save_protected_pdf", {
           pdfBase64: base64,
           filePath: fullPath,
-          pin: '1234'
+          pin: "1234",
         });
-
       } else {
         // Normal PDF Case
         const tempName = `cached_${Date.now()}_${tab.originalName}`;
         fullPath = await join(tempPath, tempName);
 
-        const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-        const { writeFile } = await import('@tauri-apps/plugin-fs');
+        const binaryData = Uint8Array.from(atob(base64), (c) =>
+          c.charCodeAt(0),
+        );
+        const { writeFile } = await import("@tauri-apps/plugin-fs");
         await writeFile(fullPath, binaryData);
       }
 
-      await invoke('add_document_history', { fileName: savedName, filePath: fullPath });
+      await invoke("add_document_history", {
+        fileName: savedName,
+        filePath: fullPath,
+      });
 
       // HIDE HISTORY BUTTON
       tab.isSavedToHistory = true;
 
-      this.showModal("Historial Actualizado", `El documento se ha guardado correctamente en el historial.`);
+      this.showModal(
+        "Historial Actualizado",
+        `El documento se ha guardado correctamente en el historial.`,
+      );
     } catch (e: any) {
       console.error("History save error:", e);
-      const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
+      const msg = typeof e === "string" ? e : e.message || JSON.stringify(e);
       this.showModal("Error de Guardado", msg);
     }
   }
 
   // Generic Modal Logic
-  showModal(title: string, message: string, forceType?: 'success' | 'error' | 'info') {
-    let type: 'success' | 'error' | 'info' = 'info';
+  showModal(
+    title: string,
+    message: string,
+    forceType?: "success" | "error" | "info",
+  ) {
+    let type: "success" | "error" | "info" = "info";
     const t = title.toLowerCase();
 
     if (forceType) {
       type = forceType;
-    } else if (t.includes('error') || t.includes('falla') || t.includes('aviso')) {
-      type = 'error';
-    } else if (t.includes('finalizada') || t.includes('éxito') || t.includes('exito') || t.includes('actualizado')) {
-      type = 'success';
+    } else if (
+      t.includes("error") ||
+      t.includes("falla") ||
+      t.includes("aviso")
+    ) {
+      type = "error";
+    } else if (
+      t.includes("finalizada") ||
+      t.includes("éxito") ||
+      t.includes("exito") ||
+      t.includes("actualizado")
+    ) {
+      type = "success";
     }
 
     this.genericModal = { show: true, title, message, type };
   }
 
   closeGenericModal() {
-    this.genericModal = { show: false, title: '', message: '', type: 'info' };
+    this.genericModal = { show: false, title: "", message: "", type: "info" };
   }
 
   async downloadPdfFromTab(tab: Tab) {
     if (!tab.blobData || !tab.originalName) return;
     // If Protected (SSE), forceSSE = true. Else false.
     const forceSSE = !!tab.isProtected;
-    await this.downloadService.handleDownload(tab.originalName, tab.blobData, "1234", forceSSE);
+    await this.downloadService.handleDownload(
+      tab.originalName,
+      tab.blobData,
+      "1234",
+      forceSSE,
+    );
   }
 
   zoomPdf(tab: Tab, delta: number) {
@@ -1178,28 +1453,37 @@ export class AppComponent implements OnInit {
 
     try {
       console.log("🖨️ Enviando documento a cola de impresión nativa...");
-      const base64Clean = tab.blobData.split(',')[1];
+      const base64Clean = tab.blobData.split(",")[1];
 
       // Invoke Rust Command
       // Signature: fn print_pdf_direct(pdf_base64: String, job_title: Option<String>)
-      await invoke('print_pdf_direct', {
+      await invoke("print_pdf_direct", {
         pdfBase64: base64Clean,
-        jobTitle: tab.name || "SandraDocument.pdf"
+        jobTitle: tab.name || "SandraDocument.pdf",
       });
 
-      this.showModal("Impresión Enviada", "El documento ha sido enviado a la impresora predeterminada del sistema.");
-
+      this.showModal(
+        "Impresión Enviada",
+        "El documento ha sido enviado a la impresora predeterminada del sistema.",
+      );
     } catch (e) {
       console.error("Print Error:", e);
       this.showModal("Error de Impresión", "" + e);
     }
   }
 
-
   async handleIframeDownload(fileName: string, dataUri: string) {
     try {
-      console.log("📥 [Bridge -> DownloadService] Delegando descarga:", fileName);
-      const success = await this.downloadService.handleDownload(fileName, dataUri, "1234", false);
+      console.log(
+        "📥 [Bridge -> DownloadService] Delegando descarga:",
+        fileName,
+      );
+      const success = await this.downloadService.handleDownload(
+        fileName,
+        dataUri,
+        "1234",
+        false,
+      );
 
       if (success) {
         console.log("✅ Descarga completada correctamente.");
@@ -1317,14 +1601,17 @@ export class AppComponent implements OnInit {
     if (this.currentTabId === "dashboard") return;
     const iframeId = "iframe-" + this.currentTabId;
     const iframeExtId = "iframe-ext-" + this.currentTabId;
-    const iframe = (document.getElementById(iframeId) || document.getElementById(iframeExtId)) as HTMLIFrameElement;
+    const iframe = (document.getElementById(iframeId) ||
+      document.getElementById(iframeExtId)) as HTMLIFrameElement;
 
     if (iframe) {
       console.log(`Reloading iframe: ${iframe.id}`);
       const currentSrc = iframe.src;
       iframe.src = currentSrc;
     } else {
-      console.warn(`Iframe not found for reloading: ${iframeId} or ${iframeExtId}`);
+      console.warn(
+        `Iframe not found for reloading: ${iframeId} or ${iframeExtId}`,
+      );
     }
   }
 
@@ -1336,28 +1623,43 @@ export class AppComponent implements OnInit {
   sendContextToIframe(tabId: string) {
     const iframeId = "iframe-" + tabId;
     const iframeExtId = "iframe-ext-" + tabId;
-    const iframe = (document.getElementById(iframeId) || document.getElementById(iframeExtId)) as HTMLIFrameElement;
+    const iframe = (document.getElementById(iframeId) ||
+      document.getElementById(iframeExtId)) as HTMLIFrameElement;
 
     if (iframe && iframe.contentWindow) {
+      const targetOrigin =
+        iframe.src && iframe.src.startsWith("http")
+          ? new URL(iframe.src).origin
+          : "*";
+
+      // 1. Enviar Contexto de Red y Sistema
       const contextPayload = {
         system: this.stats,
         network: { ips: this.networkInfo },
         config: { clientId: this.clientId },
         timestamp: new Date().toISOString(),
       };
-      // console.log(`[PostMessage] Sending NETWORK_CONTEXT to ${tabId}`, contextPayload);
+
       iframe.contentWindow.postMessage(
         {
           type: "NETWORK_CONTEXT",
           payload: contextPayload,
         },
-        "*",
+        targetOrigin,
       );
-    }
-  }
 
-  saveConfig() {
-    console.log("Config guardada:", this.config);
-    this.showControlPanel = false;
+      // 2. Enviar Sesión JWT (SET_SESSION) si está habilitada
+      const token = this.getJwtToken();
+      if (token) {
+        console.log(`[PostMessage] Enviando SET_SESSION a ${tabId}`);
+        iframe.contentWindow.postMessage(
+          {
+            type: "SET_SESSION",
+            token: token,
+          },
+          targetOrigin,
+        );
+      }
+    }
   }
 }
