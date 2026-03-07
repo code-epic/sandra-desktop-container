@@ -59,6 +59,10 @@ export class SecurityService {
         return invoke('update_mailbox_status', { id, status, trackingInfo });
     }
 
+    async deleteMailboxMessage(id: number) {
+        return invoke('delete_mailbox_message', { id });
+    }
+
     // --- Config ---
     async getSecurityConfig(): Promise<SecurityConfig> {
         return invoke('get_security_config');

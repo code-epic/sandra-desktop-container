@@ -1,11 +1,19 @@
 /* Dashboard Header Styles & Pastel Palette */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 
 .system-web-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   padding-bottom: 25px;
-  border-bottom: 1px solid #f8f9fa; /* Más sutil */
+  border-bottom: 1px solid #f8f9fa;
+  /* Más sutil */
   margin-bottom: 35px;
 }
 
@@ -20,7 +28,8 @@
   margin: 0;
   font-size: 1.8rem;
   letter-spacing: -0.5px;
-  color: #5d6d7e; /* Gris azulado suave */
+  color: #5d6d7e;
+  /* Gris azulado suave */
 }
 
 .brand-main {
@@ -29,7 +38,8 @@
 
 .brand-sub {
   font-weight: 300;
-  color: #b0bec5; /* Gris muy claro pastel */
+  color: #b0bec5;
+  /* Gris muy claro pastel */
 }
 
 .os-badge {
@@ -41,7 +51,8 @@
 }
 
 .os-icon-box {
-  background: #eff3f5; /* Gris casi blanco */
+  background: #eff3f5;
+  /* Gris casi blanco */
   padding: 4px 8px;
   border-radius: 6px;
   display: flex;
@@ -65,7 +76,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); /* Sombra muy suave y difusa */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  /* Sombra muy suave y difusa */
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   min-width: 140px;
 }
@@ -117,49 +129,85 @@
 
 /* Blue / Network: Airy Blue */
 .pill-network i {
-  background-color: #f4f8fb; /* Casi blanco azulado */
-  color: #90a4ae; /* Azul grisáceo sobrio */
+  background-color: #f4f8fb;
+  /* Casi blanco azulado */
+  color: #90a4ae;
+  /* Azul grisáceo sobrio */
 }
-.pill-network:hover { border-color: #cfd8dc; }
-.pill-network:hover i { color: #546e7a; background-color: #eceff1; }
+
+.pill-network:hover {
+  border-color: #cfd8dc;
+}
+
+.pill-network:hover i {
+  color: #546e7a;
+  background-color: #eceff1;
+}
 
 /* Purple / Identity: Soft Lavender */
 .pill-identity i {
-  background-color: #fcfbfd; /* Casi blanco violáceo */
-  color: #b39ddb; /* Lavanda suave */
+  background-color: #fcfbfd;
+  /* Casi blanco violáceo */
+  color: #b39ddb;
+  /* Lavanda suave */
 }
-.pill-identity:hover { border-color: #e1bee7; }
-.pill-identity:hover i { color: #9575cd; background-color: #f3e5f5; }
+
+.pill-identity:hover {
+  border-color: #e1bee7;
+}
+
+.pill-identity:hover i {
+  color: #9575cd;
+  background-color: #f3e5f5;
+}
 
 /* Orange / Storage: Pale Sand */
 .pill-storage i {
-  background-color: #fffbf9; /* Arena muy pálido */
-  color: #ffccbc; /* Durazno suave */
+  background-color: #fffbf9;
+  /* Arena muy pálido */
+  color: #ffccbc;
+  /* Durazno suave */
 }
-.pill-storage:hover { border-color: #ffe0b2; }
+
+.pill-storage:hover {
+  border-color: #ffe0b2;
+}
 
 /* Red-Pink / Database: Misty Rose */
 .pill-db i {
-  background-color: #fff9fa; /* Rosa bruma muy pálido */
-  color: #f48fb1; /* Rosa pastel suave */
+  background-color: #fff9fa;
+  /* Rosa bruma muy pálido */
+  color: #f48fb1;
+  /* Rosa pastel suave */
 }
-.pill-db:hover { border-color: #f8bbd0; }
-.pill-db:hover i { color: #f06292; background-color: #fce4ec; }
+
+.pill-db:hover {
+  border-color: #f8bbd0;
+}
+
+.pill-db:hover i {
+  color: #f06292;
+  background-color: #fce4ec;
+}
 
 /* Clickable Cursor */
 .clickable {
   cursor: pointer;
 }
+
 /* --- Smart Modern App Cards (Intelligent Design - Refined) --- */
 
 .apps-canvas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Más compactas y angostas */
-  gap: 16px; /* Gap reducido */
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  /* Más compactas y angostas */
+  gap: 16px;
+  /* Gap reducido */
 }
 
 .app-tile {
-  background: radial-gradient(circle at 10% 10%, #ffffff 0%, #fcfdfe 90%); /* Piel sutil "olas" de luz */
+  background: radial-gradient(circle at 10% 10%, #ffffff 0%, #fcfdfe 90%);
+  /* Piel sutil "olas" de luz */
   border-radius: 18px;
   padding: 0;
   display: flex;
@@ -168,15 +216,18 @@
   position: relative;
   overflow: hidden;
   border: 1px solid #f1f3f5;
-  height: 180px; /* Altura Aumentada */
+  height: 180px;
+  /* Altura Aumentada */
 }
 
 /* Hover Lift Effect */
 /* Hover Lift Effect + Smart Gestures */
 .app-tile:hover {
   transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 16px 36px rgba(46, 125, 50, 0.08); /* Sombra verde sutil */
-  border-color: #c8e6c9; /* Borde verde sutil al hover */
+  box-shadow: 0 16px 36px rgba(46, 125, 50, 0.08);
+  /* Sombra verde sutil */
+  border-color: #c8e6c9;
+  /* Borde verde sutil al hover */
   background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f8fb 100%);
 }
 
@@ -187,43 +238,50 @@
 
 /* Layout - Split View */
 .tile-body {
-  padding: 16px; /* Padding reducido */
+  padding: 16px;
+  /* Padding reducido */
   display: flex;
   align-items: center;
-  gap: 14px; /* Gap reducido */
+  gap: 14px;
+  /* Gap reducido */
   height: 100%;
   z-index: 2;
-  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1); /* Movimiento fluido */
+  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  /* Movimiento fluido */
   background: transparent;
 }
 
 /* Move Content Up on Hover (Smart Gesture) */
 .app-tile:hover .tile-body {
-  transform: translateY(-20px); /* Deja más espacio para el menú */
+  transform: translateY(-20px);
+  /* Deja más espacio para el menú */
 }
 
 /* Icon Design - Neumorphic Touch with Green Hint */
 .tile-icon {
-  width: 46px; /* Icono más pequeño */
+  width: 46px;
+  /* Icono más pequeño */
   height: 46px;
   background: transparent;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.7rem; /* Fuente ajustada */
+  font-size: 1.7rem;
+  /* Fuente ajustada */
   color: #90a4ae;
   border: 1px solid #c8e6c9;
   box-shadow: 0 4px 10px rgba(76, 175, 80, 0.1);
-  transition: all 0.3s ease; /* Fluid transition */
+  transition: all 0.3s ease;
+  /* Fluid transition */
 }
 
 /* Icon Animation on Card Hover */
 .app-tile:hover .tile-icon {
-    background: var(--accent-purple);
-    color: white;
-    transform: scale(1.1) rotate(-5deg);
-    border-color: transparent;
+  background: var(--accent-purple);
+  color: white;
+  transform: scale(1.1) rotate(-5deg);
+  border-color: transparent;
 }
 
 .tile-info {
@@ -234,7 +292,8 @@
 }
 
 .tile-info .name {
-  font-size: 0.95rem; /* Texto ajustado */
+  font-size: 0.95rem;
+  /* Texto ajustado */
   font-weight: 700;
   color: #37474f;
   letter-spacing: -0.3px;
@@ -255,17 +314,21 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 10px 16px; /* Padding equilibrado y más sustancial */
-  background: rgba(255, 255, 255, 0.92); /* Fondo blanco sutil para contraste */
+  padding: 10px 16px;
+  /* Padding equilibrado y más sustancial */
+  background: rgba(255, 255, 255, 0.92);
+  /* Fondo blanco sutil para contraste */
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-  border-top: 1px solid rgba(0,0,0,0.03); /* Borde casi invisible para definir el corte */
+  border-top: 1px solid rgba(0, 0, 0, 0.03);
+  /* Borde casi invisible para definir el corte */
   z-index: 10;
-  box-sizing: border-box; /* Asegura que el padding no sume al ancho */
+  box-sizing: border-box;
+  /* Asegura que el padding no sume al ancho */
 }
 
 .app-tile:hover .tile-overlay {
@@ -274,10 +337,14 @@
 
 /* Primary Action Button - Pastel Green (Small & Non-Aggressive) */
 .btn-smart {
-  background: #e8f5e9; /* Verde Pastel muy suave */
-  color: #2e7d32; /* Verde bosque para texto */
-  border: 1px solid #c8e6c9; /* Borde sutil */
-  padding: 6px 10px; /* Padding optimizado */
+  background: #e8f5e9;
+  /* Verde Pastel muy suave */
+  color: #2e7d32;
+  /* Verde bosque para texto */
+  border: 1px solid #c8e6c9;
+  /* Borde sutil */
+  padding: 6px 10px;
+  /* Padding optimizado */
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -285,13 +352,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  white-space: nowrap; /* Evita que el texto salte de línea */
+  white-space: nowrap;
+  /* Evita que el texto salte de línea */
   transition: all 0.2s;
   box-shadow: none;
 }
 
 .btn-smart:hover {
-  background: #c8e6c9; 
+  background: #c8e6c9;
   transform: translateY(-1px);
   box-shadow: 0 2px 5px rgba(46, 125, 50, 0.1);
 }
@@ -303,12 +371,15 @@
 
 .btn-smart-secondary {
   display: flex;
-  gap: 6px; /* Gap mínimo */
-  flex-shrink: 0; /* IMPEDIR que se encojan/oculten */
+  gap: 6px;
+  /* Gap mínimo */
+  flex-shrink: 0;
+  /* IMPEDIR que se encojan/oculten */
 }
 
 .icon-smart {
-  width: 30px; /* Reducido de 34px/32px para evitar desboredes */
+  width: 30px;
+  /* Reducido de 34px/32px para evitar desboredes */
   height: 30px;
   border-radius: 50%;
   background: #f1f2f6;
@@ -327,8 +398,10 @@
 }
 
 .icon-smart.delete:hover {
-  background: #fff3e0; /* Naranja muy pastel al hover */
-  color: #ffb74d; /* Naranja suave */
+  background: #fff3e0;
+  /* Naranja muy pastel al hover */
+  color: #ffb74d;
+  /* Naranja suave */
 }
 
 /* Status Dot */
@@ -343,7 +416,8 @@
 }
 
 .status-dot.active {
-  background: #26c6da; /* Cyan Pastel suave */
+  background: #26c6da;
+  /* Cyan Pastel suave */
   box-shadow: 0 0 6px rgba(38, 198, 218, 0.3);
 }
 
@@ -353,13 +427,15 @@
   right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.8rem; /* Más grande como pedido */
+  font-size: 1.8rem;
+  /* Más grande como pedido */
   color: #eceff1;
   transition: color 0.3s;
 }
 
 .app-tile:hover .download-area {
-  color: #90caf9; /* Soft blue */
+  color: #90caf9;
+  /* Soft blue */
 }
 
 
@@ -427,12 +503,14 @@
   border-radius: 10px;
   border: 1px solid #f1f3f5;
   color: #455a64;
-  font-family: 'Consolas', monospace; /* Monospace for IDs/IPs */
+  font-family: 'Consolas', monospace;
+  /* Monospace for IDs/IPs */
   font-size: 0.95rem;
 }
 
 .info-value.highlight {
-  background: #e8f5e9; /* Pastel Green bg */
+  background: #e8f5e9;
+  /* Pastel Green bg */
   border-color: #c8e6c9;
   color: #2e7d32;
   font-weight: 600;
@@ -488,29 +566,30 @@
 }
 
 .app-id-badge {
-    font-size: 0.65rem;
-    background: #eceff1;
-    color: #90a4ae;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 6px;
-    font-weight: 500;
-    font-family: 'Consolas', monospace;
-    vertical-align: middle;
+  font-size: 0.65rem;
+  background: #eceff1;
+  color: #90a4ae;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 500;
+  font-family: 'Consolas', monospace;
+  vertical-align: middle;
 }
 
 /* Proxy Badge */
 .proxy-badge {
   position: absolute;
   top: 10px;
-  left: 12px; /* Alineado a la izquierda */
+  left: 12px;
+  /* Alineado a la izquierda */
   right: auto;
-  color: #66bb6a; 
-  font-size: 18px; 
-  opacity: 1; 
+  color: #66bb6a;
+  font-size: 18px;
+  opacity: 1;
   pointer-events: none;
-  z-index: 20; 
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+  z-index: 20;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
   transition: opacity 0.3s;
 }
 
@@ -518,17 +597,18 @@
 .external-mode-badge {
   position: absolute;
   top: 10px;
-  right: 12px; /* Alineado a la derecha */
+  right: 12px;
+  /* Alineado a la derecha */
   color: #29b6f6;
   font-size: 18px;
   opacity: 1;
   pointer-events: none;
   z-index: 20;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
 }
 
 .app-tile:hover .proxy-badge {
-  color: #81c784; 
+  color: #81c784;
 }
 
 /* --- Status Badges (Right Aligned) --- */
@@ -536,18 +616,20 @@
 .proxy-badge {
   position: absolute;
   top: 10px;
-  right: 12px; /* Set to Right */
+  right: 12px;
+  /* Set to Right */
   left: auto;
   color: #66bb6a;
-  font-size: 18px; 
+  font-size: 18px;
   opacity: 1;
   pointer-events: none;
-  z-index: 20; 
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+  z-index: 20;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
 }
 
 .external-mode-badge {
-  right: 12px; /* Ensure Right */
+  right: 12px;
+  /* Ensure Right */
   left: auto;
   color: #29b6f6;
 }

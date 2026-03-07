@@ -21,6 +21,7 @@ pub struct Connection {
     pub wss_host: Option<String>,
     pub wss_port: Option<u16>,
     pub is_connected: Option<bool>,
+    pub jwt: Option<String>,
 }
 
 #[tauri::command]
@@ -112,21 +113,21 @@ pub async fn save_connection(
 
     if let Some(id) = conn_data.id {
         conn.execute(
-            "UPDATE connections SET name=?1, ip_address=?2, port=?3, username=?4, password=?5, wss_host=?6, wss_port=?7, is_connected=?8 WHERE id=?9",
-            rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int, id],
+            "UPDATE connections SET name=?1, ip_address=?2, port=?3, username=?4, password=?5, wss_host=?6, wss_port=?7, is_connected=?8, jwt=?9 WHERE id=?10",
+            rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int, conn_data.jwt, id],
         ).map_err(|e| e.to_string())?;
         Ok(id)
     } else if let Some(id) = existing_id_by_name {
         // Caso de "save" sin ID pero con nombre coincidente
         conn.execute(
-            "UPDATE connections SET name=?1, ip_address=?2, port=?3, username=?4, password=?5, wss_host=?6, wss_port=?7, is_connected=?8 WHERE id=?9",
-            rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int, id],
+            "UPDATE connections SET name=?1, ip_address=?2, port=?3, username=?4, password=?5, wss_host=?6, wss_port=?7, is_connected=?8, jwt=?9 WHERE id=?10",
+            rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int, conn_data.jwt, id],
         ).map_err(|e| e.to_string())?;
         Ok(id)
     } else {
         conn.execute(
-            "INSERT INTO connections (name, ip_address, port, username, password, wss_host, wss_port, is_connected) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int],
+            "INSERT INTO connections (name, ip_address, port, username, password, wss_host, wss_port, is_connected, jwt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            rusqlite::params![conn_data.name, conn_data.ip_address, conn_data.port, conn_data.username, conn_data.password, conn_data.wss_host, conn_data.wss_port, connected_int, conn_data.jwt],
         ).map_err(|e| e.to_string())?;
         let new_id = conn.last_insert_rowid() as i32;
         Ok(new_id)
@@ -136,7 +137,7 @@ pub async fn save_connection(
 #[tauri::command]
 pub async fn get_connections(state: tauri::State<'_, DbState>) -> Result<Vec<Connection>, String> {
     let conn = state.0.lock().unwrap();
-    let mut stmt = conn.prepare("SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected FROM connections ORDER BY id DESC").map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare("SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected, jwt FROM connections ORDER BY id DESC").map_err(|e| e.to_string())?;
 
     let rows = stmt
         .query_map([], |row| {
@@ -154,6 +155,7 @@ pub async fn get_connections(state: tauri::State<'_, DbState>) -> Result<Vec<Con
                 wss_host: row.get(7).ok(),
                 wss_port: row.get(8).ok(),
                 is_connected: Some(is_connected),
+                jwt: row.get(10).ok(),
             })
         })
         .map_err(|e| e.to_string())?;

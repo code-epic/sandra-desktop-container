@@ -544,3 +544,22 @@ textarea {
 .btn-modal-primary:hover {
   background: #455a64;
 }
+
+
+.modal-actions-spread {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 30px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-actions-spread button {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

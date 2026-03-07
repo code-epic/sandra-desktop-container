@@ -14,6 +14,7 @@ import { SystemStats } from "./core/models/telemetry.model";
 import { AppStateService, Tab } from "./core/services/app-state.service";
 import { DownloadService } from "./core/services/download.service";
 import { Observable } from "rxjs";
+import { SnapService, SnapData } from "./core/services/snap.service";
 // import { PDFDocument, rgb, degrees } from 'pdf-lib'; // REMOVED: Now handled in DownloadService/ChildApp
 
 
@@ -101,6 +102,7 @@ export class AppComponent implements OnInit {
     show: false,
     title: "",
     message: "",
+    appName: "",
     appToDelete: null as any,
   };
 
@@ -141,6 +143,10 @@ export class AppComponent implements OnInit {
 
   globalLoading$!: Observable<{ isLoading: boolean, message: string }>;
 
+  // Snap Message Global State
+  snapMessage: SnapData | null = null;
+  showSnap: boolean = false;
+
   constructor(
     public appState: AppStateService,
     private sdcService: SdcService,
@@ -150,6 +156,7 @@ export class AppComponent implements OnInit {
     private zone: NgZone,
     private sanitizer: DomSanitizer,
     private titleService: Title,
+    private snapService: SnapService,
   ) {
     // ... existing constructor logic ...
 
@@ -185,6 +192,17 @@ export class AppComponent implements OnInit {
       this.updateDateTime();
     }, 1000);
     this.updateDateTime();
+
+    // -- Global Snap Message Listener --
+    this.snapService.snap$.subscribe((data: SnapData) => {
+      this.zone.run(() => {
+        this.snapMessage = data;
+        this.showSnap = true;
+        setTimeout(() => {
+          this.showSnap = false;
+        }, 1200);
+      });
+    });
   }
 
   async ngOnInit() {
@@ -750,8 +768,9 @@ export class AppComponent implements OnInit {
   async deleteApp(app: any) {
     this.confirmModal = {
       show: true,
-      title: "Desinstalar",
+      title: "Confirmar Desinstalación",
       message: `¿Eliminar ${app.name}?`,
+      appName: app.name, // Añadido para el nuevo modal elegante
       appToDelete: app,
     };
   }

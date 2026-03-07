@@ -25,8 +25,8 @@
 \contentsline {subsection}{\numberline {2.2.3}Comandos Predefinidos}{9}{subsection.2.2.3}%
 \contentsline {section}{\numberline {2.3}Navegacion Principal}{10}{section.2.3}%
 \contentsline {subsection}{\numberline {2.3.1}Accesos Directos}{10}{subsection.2.3.1}%
-\contentsline {section}{\numberline {2.4}Personalizacion del Dashboard}{10}{section.2.4}%
-\contentsline {subsection}{\numberline {2.4.1}Temas de Color}{10}{subsection.2.4.1}%
+\contentsline {section}{\numberline {2.4}Personalizacion del Dashboard}{11}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Temas de Color}{11}{subsection.2.4.1}%
 \contentsline {part}{II\hspace {1em}Gestión y Operaciones}{12}{part.2}%
 \contentsline {chapter}{\numberline {3}Gestion de Conexiones y Aplicaciones}{13}{chapter.3}%
 \contentsline {section}{\numberline {3.1}Perfiles de Conexion}{13}{section.3.1}%
@@ -35,8 +35,8 @@
 \contentsline {section}{\numberline {3.2}Gestion de Aplicaciones}{14}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}Lista de Aplicaciones}{14}{subsection.3.2.1}%
 \contentsline {subsection}{\numberline {3.2.2}Formulario de Nueva Aplicacion}{15}{subsection.3.2.2}%
-\contentsline {subsubsection}{Campos de Configuracion}{17}{subsubsection*.24}%
-\contentsline {subsubsection}{Modos de Despliegue}{17}{subsubsection*.26}%
+\contentsline {subsubsection}{Campos de Configuracion}{17}{subsubsection*.25}%
+\contentsline {subsubsection}{Modos de Despliegue}{17}{subsubsection*.27}%
 \contentsline {subsection}{\numberline {3.2.3}Repositorio Fuente}{17}{subsection.3.2.3}%
 \contentsline {section}{\numberline {3.3}Lista de Conexiones Activas}{18}{section.3.3}%
 \contentsline {subsection}{\numberline {3.3.1}Informacion Visualizada}{18}{subsection.3.3.1}%
@@ -82,15 +82,15 @@
 \contentsline {part}{IV\hspace {1em}Inteligencia Artificial}{41}{part.4}%
 \contentsline {chapter}{\numberline {6}Chat de Sandra AI}{42}{chapter.6}%
 \contentsline {section}{\numberline {6.1}Interfaz de Conversacion}{42}{section.6.1}%
-\contentsline {subsection}{\numberline {6.1.1}Componentes de la Interfaz}{44}{subsection.6.1.1}%
-\contentsline {subsection}{\numberline {6.1.2}Historial de Conversaciones}{44}{subsection.6.1.2}%
-\contentsline {section}{\numberline {6.2}Comandos y Consultas}{44}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Consultas de Informacion}{44}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}Comandos Operativos}{45}{subsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.1.1}Componentes de la Interfaz}{42}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Historial de Conversaciones}{43}{subsection.6.1.2}%
+\contentsline {section}{\numberline {6.2}Comandos y Consultas}{43}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Consultas de Informacion}{43}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Comandos Operativos}{44}{subsection.6.2.2}%
 \contentsline {subsection}{\numberline {6.2.3}Asistencia Contextual}{45}{subsection.6.2.3}%
 \contentsline {section}{\numberline {6.3}Funciones Avanzadas}{45}{section.6.3}%
 \contentsline {subsection}{\numberline {6.3.1}Procesamiento de Lenguaje Natural}{45}{subsection.6.3.1}%
-\contentsline {subsection}{\numberline {6.3.2}Automatizacion de Tareas}{46}{subsection.6.3.2}%
+\contentsline {subsection}{\numberline {6.3.2}Automatizacion de Tareas}{45}{subsection.6.3.2}%
 \contentsline {subsection}{\numberline {6.3.3}Integracion con el Sistema}{46}{subsection.6.3.3}%
 \contentsline {section}{\numberline {6.4}Mejores Practicas}{46}{section.6.4}%
 \contentsline {section}{\numberline {6.5}Solucion de Problemas}{47}{section.6.5}%

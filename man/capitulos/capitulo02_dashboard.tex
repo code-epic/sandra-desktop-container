@@ -25,15 +25,15 @@ El dashboard presenta tres metricas fundamentales organizadas en tarjetas visual
 
 \begin{table}[H]
 \centering
-\begin{tabular}{p{4cm}p{3cm}p{8cm}}
+\begin{tabular}{>{\centering\arraybackslash}m{1.5cm}p{2.5cm}p{9cm}}
 \toprule
-\textbf{Icono FA} & \textbf{Metrica} & \textbf{Descripcion} \\
+\textbf{Icono} & \textbf{Metrica} & \textbf{Descripcion} \\
 \midrule
-\texttt{fa-network-wired} & RED & Estado de la conexion local, latencia y throughput \\
+{\color{sandraGreen}\Large\faIcon{network-wired}} & RED & Estado de la conexion local, latencia y throughput \\
 \midrule
-\texttt{fa-hdd} & ESPACIO & Capacidad disponible en disco para contenedores \\
+{\color{sandraGreen}\Large\faIcon{hdd}} & ESPACIO & Capacidad disponible en disco para contenedores \\
 \midrule
-\texttt{fa-database} & CORE DB & Base de datos SQLite interna cifrada \\
+{\color{sandraGreen}\Large\faIcon{database}} & CORE DB & Base de datos SQLite interna cifrada \\
 \bottomrule
 \end{tabular}
 \caption{Metricas principales del Dashboard}
@@ -84,7 +84,7 @@ El espacio disponible se calcula considerando:
 
 Para iniciar una conversacion:
 \begin{enumerate}[leftmargin=*]
-    \item Hacer clic en el icono (clase FA: \texttt{fa-robot}) en la esquina inferior derecha
+    \item Hacer clic en el icono {\color{sandraGreen}\faIcon{robot}} en la esquina inferior derecha
     \item Escribir la consulta en el campo de texto
     \item Presionar Enter
 \end{enumerate}
@@ -112,21 +112,34 @@ Diagnostico & Por que no puedo conectarme? & Analisis de logs \\
 
 \subsection{Comandos Predefinidos}
 
-\begin{lstlisting}[language=bash, caption={Comandos de Sandra AI}]
-# Gestionar conexiones
-- "nueva conexion"
-- "listar conexiones"
-- "eliminar conexion [nombre]"
+Sandra AI reconoce los siguientes comandos:
 
-# Gestionar aplicaciones
-- "nueva aplicacion"
-- "abrir aplicacion [nombre]"
-
-# Informacion del sistema
-- "estado del sistema"
-- "espacio disponible"
-- "logs de auditoria"
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{5cm}p{9cm}}
+\toprule
+\textbf{Comando} & \textbf{Accion} \\
+\midrule
+nueva conexion & Inicia asistente para crear conexion \\
+\midrule
+listar conexiones & Muestra todas las conexiones configuradas \\
+\midrule
+eliminar conexion [nombre] & Elimina la conexion especificada \\
+\midrule
+nueva aplicacion & Inicia formulario de nueva app \\
+\midrule
+abrir aplicacion [nombre] & Abre la aplicacion indicada \\
+\midrule
+estado del sistema & Muestra metricas generales \\
+\midrule
+espacio disponible & Reporta espacio libre en disco \\
+\midrule
+logs de auditoria & Abre el visor de logs \\
+\bottomrule
+\end{tabular}
+\caption{Comandos de voz/texto de Sandra AI}
+\label{tab:comandos-ai}
+\end{table}
 
 \section{Navegacion Principal}
 \label{sec:navegacion}
@@ -135,16 +148,21 @@ Modulos de la barra lateral:
 
 \begin{table}[H]
 \centering
-\begin{tabular}{p{3.5cm}p{10cm}}
+\begin{tabular}{>{\centering\arraybackslash}m{1.5cm}p{3cm}p{8.5cm}}
 \toprule
-\textbf{Modulo (Icono FA)} & \textbf{Descripcion} \\
+\textbf{Icono} & \textbf{Modulo} & \textbf{Descripcion} \\
 \midrule
-\texttt{fa-th-large} Dashboard & Panel principal con metricas \\
-\texttt{fa-code} Aplicaciones & Micro-aplicaciones desplegadas \\
-\texttt{fa-plug} Conexiones & Servidores remotos \\
-\texttt{fa-shield-alt} Seguridad & Politicas y auditoria \\
-\texttt{fa-eye} Visor & Documentos seguros \\
-\texttt{fa-cog} Configuracion & Preferencias \\
+{\color{sandraGreen}\Large\faIcon{th-large}} & Dashboard & Panel principal con metricas \\
+\midrule
+{\color{sandraGreen}\Large\faIcon{code}} & Aplicaciones & Micro-aplicaciones desplegadas \\
+\midrule
+{\color{sandraGreen}\Large\faIcon{plug}} & Conexiones & Servidores remotos \\
+\midrule
+{\color{sandraGreen}\Large\faIcon{shield-alt}} & Seguridad & Politicas y auditoria \\
+\midrule
+{\color{sandraGreen}\Large\faIcon{eye}} & Visor & Documentos seguros \\
+\midrule
+{\color{sandraGreen}\Large\faIcon{cog}} & Configuracion & Preferencias \\
 \bottomrule
 \end{tabular}
 \caption{Modulos de navegacion de SDC}
@@ -153,11 +171,13 @@ Modulos de la barra lateral:
 
 \subsection{Accesos Directos}
 
+Botones de acceso rapido disponibles:
+
 \begin{itemize}[leftmargin=*]
-    \item \texttt{fa-plus} Nueva Conexion
-    \item \texttt{fa-plus} Nueva Aplicacion
-    \item \texttt{fa-sync} Sincronizar
-    \item \texttt{fa-history} Auditoria
+    \item {\color{sandraGreen}\faIcon{plus}} Nueva Conexion
+    \item {\color{sandraGreen}\faIcon{plus}} Nueva Aplicacion
+    \item {\color{sandraGreen}\faIcon{sync}} Sincronizar
+    \item {\color{sandraGreen}\faIcon{history}} Auditoria
 \end{itemize}
 
 \section{Personalizacion del Dashboard}

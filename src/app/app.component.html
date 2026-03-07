@@ -40,7 +40,7 @@
             [class.pulse-animation]="wsStatus === 'Conectado'"></div>
           <span class="status-text">{{ wsStatus }}</span>
         </div>
-        <div class="app-brand-display">Sandra <span class="brand-lite">DC</span></div>
+        <div class="app-brand-display">Sandra<span class="brand-lite">DC</span></div>
       </div>
     </header>
 
@@ -80,7 +80,7 @@
           [src]="tab.url" frameborder="0"
           allow="autoplay; camera; microphone; clipboard-read; clipboard-write; display-capture; geolocation; gamepad; accelerometer; gyroscope; magnetometer; payment; usb; vr; xr-spatial-tracking"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-downloads-without-user-activation allow-modals allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-storage-access-by-user-activation allow-pointer-lock allow-orientation-lock"
-          (load)="onIframeLoad(tab.id)">
+          referrerpolicy="no-referrer-when-downgrade" (load)="onIframeLoad(tab.id)">
         </iframe>
 
         <!-- IFRAME MODO LIBRE (SANDBOX PERMISIVO) -->
@@ -88,7 +88,7 @@
           [src]="tab.url" frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; clipboard-read; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation allow-top-navigation-by-user-activation allow-downloads allow-downloads-without-user-activation allow-popups-to-escape-sandbox allow-top-navigation"
-          (load)="onIframeLoad(tab.id)">
+          referrerpolicy="no-referrer-when-downgrade" (load)="onIframeLoad(tab.id)">
         </iframe>
         <!-- PDF-VIEWER ORIGINAL (Para PDF y SSE) -->
         <div *ngIf="tab.type === 'pdf-viewer'" class="pdf-tab-container"
@@ -179,17 +179,49 @@
 
   <app-inspector></app-inspector>
 
+  <!-- Modal de Instalación/Desinstalación Elegante (installModal) -->
   <div class="modal-overlay" *ngIf="installModal.show">
-    <div class="modal-card">
-      <h3 class="modal-title">{{ installModal.title }}</h3>
-      <div class="modal-body">
-        <p class="modal-message" [class.error-text]="installModal.error">{{ installModal.error || installModal.message
-          }}</p>
-        <div class="progress-track" *ngIf="!installModal.error && !installModal.success">
+    <div class="modal-card activity-modal fade-in-up">
+      <!-- Close Button (X) - Only visible on success/error -->
+      <button class="btn-close-modal-x" *ngIf="installModal.error || installModal.success" (click)="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <div class="modal-body-clean">
+        <!-- Visual Header depending on state -->
+        <div class="modal-visual-header" [ngClass]="{
+            'error-header': installModal.error,
+            'success-header': installModal.success,
+            'info-header': !installModal.error && !installModal.success
+        }">
+          <div class="icon-pulse-wrapper" [ngClass]="{
+              'error-pulse': installModal.error,
+              'success-pulse': installModal.success,
+              'info-pulse': !installModal.error && !installModal.success
+          }">
+            <i class="fas" [ngClass]="{
+                'fa-exclamation-triangle': installModal.error,
+                'fa-check': installModal.success,
+                'fa-cog fa-spin': !installModal.error && !installModal.success
+            }"></i>
+          </div>
+        </div>
+
+        <h3 class="modal-title-clean">{{ installModal.title }}</h3>
+
+        <p class="modal-msg-clean" [class.error-text]="installModal.error">
+          {{ installModal.error || installModal.message }}
+        </p>
+
+        <!-- Progress Track (only when loading) -->
+        <div class="progress-track" *ngIf="!installModal.error && !installModal.success"
+          style="margin: 20px auto; width: 80%;">
           <div class="progress-bar-indeterminate"></div>
         </div>
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" *ngIf="installModal.error || installModal.success" (click)="closeModal()">
+
+        <!-- Actions -->
+        <div class="modal-actions-spread" *ngIf="installModal.error || installModal.success">
+          <button [ngClass]="installModal.error ? 'btn-modal-cancel' : 'btn-modal-save'" (click)="closeModal()">
             {{ installModal.error ? 'Cerrar' : 'Entendido' }}
           </button>
         </div>
@@ -197,14 +229,35 @@
     </div>
   </div>
 
+  <!-- Modal de Confirmación Elegante (Desinstalar App) -->
   <div class="modal-overlay" *ngIf="confirmModal.show">
-    <div class="modal-card">
-      <h3 class="modal-title">{{ confirmModal.title }}</h3>
-      <div class="modal-body">
-        <p class="modal-message">{{ confirmModal.message }}</p>
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" (click)="cancelDelete()">Cancelar</button>
-          <button class="btn-modal-confirm" (click)="confirmDelete()">Eliminar</button>
+    <div class="modal-card activity-modal fade-in-up">
+      <!-- Close Button (X) - Cancels Action -->
+      <button class="btn-close-modal-x" (click)="cancelDelete()">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <div class="modal-body-clean">
+        <div class="modal-visual-header error-header">
+          <div class="icon-pulse-wrapper error-pulse">
+            <i class="fas fa-trash-alt"></i>
+          </div>
+        </div>
+
+        <h3 class="modal-title-clean">{{ confirmModal.title }}</h3>
+
+        <p class="modal-msg-clean">
+          ¿Estás seguro de que deseas desinstalar la aplicación <strong>{{ confirmModal.appName }}</strong>?
+          <span class="sub-text">Esta acción eliminará todos los archivos locales y no se puede deshacer.</span>
+        </p>
+
+        <div class="modal-actions-spread">
+          <button class="btn-modal-confirm" (click)="confirmDelete()">
+            Desinstalar
+          </button>
+          <button class="btn-modal-cancel" (click)="cancelDelete()">
+            Mantener App
+          </button>
         </div>
       </div>
     </div>
@@ -346,5 +399,16 @@
         <button class="btn-modal-confirm exit-btn" (click)="confirmExit()">Salir de SandraDC</button>
       </div>
     </div>
+  </div>
+  <!-- Background Watermark -->
+  <div class="background-watermark">
+    <i class="fas fa-shield-alt"></i>
+  </div>
+
+  <!-- Global Snap Message (Subtle Feedback at cursor) -->
+  <div class="snap-message global-snap" *ngIf="showSnap && snapMessage" [style.top.px]="snapMessage.y - 30"
+    [style.left.px]="snapMessage.x + 10" [ngClass]="snapMessage.type || 'success'">
+    <i class="fas" [class]="snapMessage.icon || 'fa-check-circle'"></i>
+    {{ snapMessage.message }}
   </div>
 </div>

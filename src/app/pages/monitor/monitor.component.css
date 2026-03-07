@@ -5,12 +5,29 @@
 }
 
 .canvas-monitor {
-    padding: 15px; /* Disminuir margenes */
+    margin-top: -5px;
+    padding: 0px;
+    /* Disminuir margenes */
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 5px;
     box-sizing: border-box;
+}
+
+/* --- Brand Section --- */
+.header-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.page-title {
+    margin: 0;
+    font-size: 1.8rem;
+    letter-spacing: -0.5px;
+    color: #5d6d7e;
+    /* Gris azulado suave */
 }
 
 .monitor-header {
@@ -29,6 +46,23 @@
     display: flex;
     gap: 10px;
 }
+
+.title-with-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-main {
+    font-weight: 700;
+}
+
+.brand-sub {
+    font-weight: 300;
+    color: #b0bec5;
+    /* Gris muy claro pastel */
+}
+
 
 .search-input {
     padding: 8px 15px;
@@ -56,8 +90,15 @@
     background: #F8F9FB;
 }
 
-.btn-action.refresh:hover { color: var(--accent-purple); }
-.btn-action.clear:hover { color: #EF5350; background: #FFEBEE; border-color: #FFCDD2; }
+.btn-action.refresh:hover {
+    color: var(--accent-purple);
+}
+
+.btn-action.clear:hover {
+    color: #EF5350;
+    background: #FFEBEE;
+    border-color: #FFCDD2;
+}
 
 /* Table Container & Scroll */
 .monitor-table-container {
@@ -65,11 +106,13 @@
     background: #fff;
     border-radius: 12px;
     border: 1px solid #E1E5E8;
-    overflow: hidden; /* El container no scrollea, lo de adentro sí */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    overflow: hidden;
+    /* El container no scrollea, lo de adentro sí */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
     display: flex;
     flex-direction: column;
-    min-height: 0; /* Important for flex scrolling */
+    min-height: 0;
+    /* Important for flex scrolling */
 }
 
 .table-scroll {
@@ -82,7 +125,8 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Sombra sutil al hacer scroll */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    /* Sombra sutil al hacer scroll */
 }
 
 .monitor-table {
@@ -144,36 +188,60 @@
 
 /* Reutilizamos los badges */
 .badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: white;
-  font-size: 0.8em;
-  font-weight: 600;
-  text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
-.badge.log, .badge.info { background: #29B6F6; }
-.badge.warn { background: #FFA726; }
-.badge.error { background: #EF5350; }
-.badge.fetch { background: #AB47BC; }
+.badge.log,
+.badge.info {
+    background: #29B6F6;
+}
+
+.badge.warn {
+    background: #FFA726;
+}
+
+.badge.error {
+    background: #EF5350;
+}
+
+.badge.fetch {
+    background: #AB47BC;
+}
 
 
 
 
 
 @keyframes slideIn {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* --- CONFIRMATION MODAL STYLES --- */
 
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(45, 62, 78, 0.4);
     backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 2000;
 }
 
@@ -183,7 +251,7 @@
     border-radius: 20px;
     width: 380px;
     text-align: center;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
     position: relative;
     border: none;
 }
@@ -198,24 +266,34 @@
     font-size: 1.2rem;
     cursor: pointer;
     transition: color 0.2s;
-    width: 32px; height: 32px;
-    display: flex; align-items: center; justify-content: center;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
 }
+
 .btn-close-modal-x:hover {
     background: #f5f5f5;
     color: #546e7a;
 }
 
 .center-icon {
-    display: flex; justify-content: center; margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
 .modal-icon.warning {
-    width: 64px; height: 64px;
-    background: #fff8e1; /* Pastel Amber */
+    width: 64px;
+    height: 64px;
+    background: #fff8e1;
+    /* Pastel Amber */
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #ffa000;
     font-size: 2rem;
     box-shadow: 0 4px 15px rgba(255, 160, 0, 0.15);
@@ -226,9 +304,20 @@
 }
 
 @keyframes pulseWarning {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 160, 0, 0.2); }
-    50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 160, 0, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 160, 0, 0); }
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 160, 0, 0.2);
+    }
+
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(255, 160, 0, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 160, 0, 0);
+    }
 }
 
 .modal-title {
@@ -264,12 +353,18 @@
     transition: all 0.2s;
     flex: 1;
 }
-.btn-modal-cancel:hover { background: #fafafa; color: #546e7a; }
+
+.btn-modal-cancel:hover {
+    background: #fafafa;
+    color: #546e7a;
+}
 
 .btn-modal-confirm.delete-action {
-    background: #ffebee; /* Pastel Red Bg */
+    background: #ffebee;
+    /* Pastel Red Bg */
     border: 1px solid #ffcdd2;
-    color: #ef5350; /* Pastel Red Text */
+    color: #ef5350;
+    /* Pastel Red Text */
     padding: 10px 20px;
     border-radius: 10px;
     font-weight: 600;
@@ -277,10 +372,11 @@
     transition: all 0.2s;
     flex: 1;
 }
-.btn-modal-confirm.delete-action:hover { 
-    background: #ffcdd2; 
+
+.btn-modal-confirm.delete-action:hover {
+    background: #ffcdd2;
     color: #c62828;
-    transform: translateY(-1px); 
+    transform: translateY(-1px);
 }
 
 .fade-in-up {
@@ -288,8 +384,15 @@
 }
 
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* --- FIX: MODAL ACTIONS OVERFLOW --- */
@@ -298,23 +401,26 @@
     display: flex !important;
     gap: 15px !important;
     justify-content: center !important;
-    padding: 0 5px 0px 5px !important; /* Margen lateral fuerte */
+    padding: 0 5px 0px 5px !important;
+    /* Margen lateral fuerte */
     width: 100% !important;
     box-sizing: border-box !important;
 }
 
-.btn-modal-cancel, 
-.btn-modal-confirm, 
+.btn-modal-cancel,
+.btn-modal-confirm,
 .btn-modal-acept {
     flex: 1 !important;
     min-width: 0 !important;
-    max-width: 50% !important; /* Limite duro */
-    padding: 10px 5px !important; /* Reducir padding horizontal interno */
+    max-width: 50% !important;
+    /* Limite duro */
+    padding: 10px 5px !important;
+    /* Reducir padding horizontal interno */
     justify-content: center !important;
     text-align: center !important;
 }
 
 /* Asegurar que el modal card no corte sombras */
 .modal-card {
-    overflow: visible !important; 
+    overflow: visible !important;
 }

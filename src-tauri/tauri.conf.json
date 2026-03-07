@@ -20,7 +20,8 @@
         "maximized": true,
         "visible": false,
         "minWidth": 1024,
-        "minHeight": 768
+        "minHeight": 768,
+        "additionalBrowserArgs": "--ignore-certificate-errors"
       },
       {
         "width": 750,

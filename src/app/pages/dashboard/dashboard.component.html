@@ -1,6 +1,6 @@
 <div class="dashboard-container fade-in">
     <div class="system-web-header" *ngIf="stats">
-        
+
         <!-- IZQUIERDA: Identidad Visual y Plataforma -->
         <div class="header-brand">
             <h1 class="page-title">
@@ -16,7 +16,7 @@
 
         <!-- DERECHA: Telemetría Interactiva (Píldoras) -->
         <div class="header-status">
-            
+
             <!-- IP Pill -->
             <div class="metric-pill pill-network clickable" (click)="openInfoModal()" title="Ver detalles de Red">
                 <i class="fas fa-network-wired"></i>
@@ -46,17 +46,18 @@
 
         </div>
     </div>
-    
+
     <div class="apps-canvas">
         <div class="app-tile" *ngFor="let app of apps" (click)="!app.installed && onInstall.emit(app)">
-            
+
             <!-- Proxy Indicator (Fixed Position) -->
             <div class="proxy-badge" *ngIf="app.is_proxy_required && !app.is_external_browser" title="Proxy Activo">
                 <i class="fas fa-shield-alt"></i>
             </div>
 
             <!-- External/Free Mode Indicator -->
-            <div class="proxy-badge external-mode-badge" *ngIf="app.is_external_browser" title="Navegación Libre (Sin Proxy)">
+            <div class="proxy-badge external-mode-badge" *ngIf="app.is_external_browser"
+                title="Navegación Libre (Sin Proxy)">
                 <i class="fas fa-globe-americas"></i>
             </div>
 
@@ -74,30 +75,28 @@
                         <span class="status-dot"></span> Disponible
                     </span>
                 </div>
-                
-                
+
+
             </div>
 
-            
+
             <!-- Intelligent Overlay Layer (Slide Up) -->
             <div class="tile-overlay" *ngIf="app.installed">
                 <button class="btn-smart" (click)="onOpen.emit(app); $event.stopPropagation()">
                     Abrir <i class="fas fa-arrow-right"></i>
                 </button>
-                
+
                 <div class="btn-smart-secondary">
-                    <div   *ngIf="app.externalUrl == ''" class="icon-smart" (click)="onUpdate.emit(app); $event.stopPropagation()" title="Buscar Actualizaciones">
+                    <div *ngIf="app.externalUrl == ''" class="icon-smart"
+                        (click)="onUpdate.emit(app); $event.stopPropagation()" title="Buscar Actualizaciones">
                         <i class="fas fa-sync-alt"></i>
-                    </div>
-                    <div class="icon-smart delete" (click)="onDelete.emit(app); $event.stopPropagation()" title="Desactivar / Quitar">
-                        <i class="fas fa-folder-minus"></i>
                     </div>
                 </div>
             </div>
 
             <!-- Intelligent Overlay Layer (Slide Up) - AVAILABLE -->
             <div class="tile-overlay" *ngIf="!app.installed">
-                 <button class="btn-smart " (click)="onInstall.emit(app); $event.stopPropagation()">
+                <button class="btn-smart " (click)="onInstall.emit(app); $event.stopPropagation()">
                     Descargar App <i class="fas fa-cloud-download-alt"></i>
                 </button>
             </div>
@@ -111,9 +110,9 @@
     <div class="modal-card info-modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
             <h3 class="modal-title">Identidad del Sistema</h3>
-           
+
         </div>
-        
+
         <div class="modal-body">
             <!-- Hardware ID -->
             <div class="info-group">
@@ -133,7 +132,8 @@
                     <div class="info-value small" *ngFor="let ip of networkInfo">
                         <i class="fas fa-network-wired"></i> {{ ip }}
                     </div>
-                    <div class="info-value small text-muted" *ngIf="networkInfo.length === 0">Sin conexión local detectada</div>
+                    <div class="info-value small text-muted" *ngIf="networkInfo.length === 0">Sin conexión local
+                        detectada</div>
                 </div>
             </div>
 
@@ -148,7 +148,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="modal-actions">
             <button class="btn-modal-primary" (click)="closeModal()">Entendido</button>
         </div>

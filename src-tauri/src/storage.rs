@@ -97,6 +97,7 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     // Migración silenciosa: Añadir soporte para WSS Custom (Para DBs antiguas)
     let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_host TEXT", []);
     let _ = conn.execute("ALTER TABLE connections ADD COLUMN wss_port INTEGER", []);
+    let _ = conn.execute("ALTER TABLE connections ADD COLUMN jwt TEXT", []);
 
     // Migración silenciosa: Estado de conexión activo (Para DBs antiguas)
     let _ = conn.execute(

@@ -1,374 +1,819 @@
 <div class="security-container">
-  <div class="security-content-inner">
-      <header class="security-header">
-        <div class="header-content">
-          <h1><i class="fas fa-shield-alt"></i> Centro de Seguridad</h1>
-          <p>Gobernanza de Datos, Auditoría y Flujo de Trabajo Seguro</p>
-        </div>
-      </header>
 
-      <nav class="security-tabs">
+    <div class="header-brand">
+        <h1 class="page-title">
+            <span class="brand-main">Sandra</span> <span class="brand-sub">Mailbox</span>
+        </h1>
+    </div>
+
+    <nav class="security-tabs">
         <button [class.active]="activeTab === 'mailbox'" (click)="setTab('mailbox')">
-          <i class="fas fa-inbox"></i> Buzón Seguro
+            <i class="fas fa-inbox"></i> Buzón Seguro
         </button>
         <button [class.active]="activeTab === 'config'" (click)="setTab('config')">
-          <i class="fas fa-sliders-h"></i> Políticas y Auditoría
+            <i class="fas fa-sliders-h"></i> Políticas y Auditoría
         </button>
         <button [class.active]="activeTab === 'proxy'" (click)="setTab('proxy')">
-          <i class="fas fa-network-wired"></i> Rutas Proxy
+            <i class="fas fa-network-wired"></i> Rutas Proxy
         </button>
-      </nav>
+    </nav>
 
-  <div class="security-content">
-    
-    <!-- MAILBOX TAB (Split View) -->
-    <div *ngIf="activeTab === 'mailbox'" class="tab-pane fade-in-up mailbox-split-container">
-      
-      <!-- Left: Message List -->
-      <div class="mailbox-sidebar glass-card">
-        <div class="sidebar-toolbar">
-            <h3 class="sidebar-title">Bandeja de Entrada</h3>
-            <button class="btn-icon-mini" (click)="loadMessages()" title="Actualizar">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-        </div>
-        
-        <div class="msg-list-scroll">
-            <div *ngFor="let msg of messages" 
-                 class="msg-list-item" 
-                 [class.active]="selectedMessage === msg"
-                 (click)="selectMessage(msg)">
-                 
-                 <div class="msg-item-top">
-                     <span class="msg-item-author">{{ msg.author }}</span>
-                     <span class="msg-item-date">{{ msg.created_at | date:'dd/MM' }}</span>
-                 </div>
-                 
-                 <div class="msg-item-subject">
-                     {{ msg.sid }}
-                 </div>
-                 
-                 <div class="msg-item-preview">
-                     {{ msg.content | slice:0:60 }}...
-                 </div>
+    <div class="security-content">
 
-                 <div class="msg-item-footer">
-                     <span class="status-badge mini" [ngClass]="getStatusClass(msg.status)">
-                         {{ translateStatus(msg.status) }}
-                     </span>
-                 </div>
-            </div>
-            
-            <div *ngIf="messages.length === 0" class="empty-list-placeholder">
-                <p>No hay mensajes nuevos.</p>
-            </div>
-        </div>
-      </div>
+        <!-- MAILBOX TAB (Single Column View) -->
+        <div *ngIf="activeTab === 'mailbox'" class="tab-pane fade-in-up mailbox-single-container">
 
-          <!-- Right: Reading Pane -->
-          <div class="mailbox-reading-pane glass-card">
-              <!-- Empty State -->
-              <div *ngIf="!selectedMessage" class="empty-state-pane">
-                  <div class="empty-icon">
-                      <i class="fas fa-envelope-open-text"></i>
-                  </div>
-                  <p>Seleccione un mensaje para ver el detalle</p>
-              </div>
-
-              <!-- Detail View (Wrapped in *ngIf) -->
-              <div *ngIf="selectedMessage" class="msg-detail-view fade-in">
-                  <!-- Subdued Governance Ribbon (Dropdown Header) -->
-                  <div class="governance-ribbon clickable" (click)="toggleTrace()" [class.expanded]="showTrace">
-                      <div class="ribbon-summary">
-                          <i class="fas fa-fingerprint"></i>
-                          <span class="ribbon-title">Gobernanza y Trazabilidad Digital</span>
-                      </div>
-                      <div class="ribbon-toggle">
-                          <span class="toggle-status-text">{{ showTrace ? 'Ocultar Detalles' : 'Ver Certificación' }}</span>
-                          <i class="fas" [class.fa-chevron-down]="!showTrace" [class.fa-chevron-up]="showTrace"></i>
-                      </div>
-                  </div>
-
-                  <!-- Expanded Trace Details -->
-                  <div class="trace-details-panel fade-in" *ngIf="showTrace">
-                      <div class="trace-grid">
-                          <div class="trace-detail-item">
-                              <label>ID de Proceso</label>
-                              <span>{{ selectedMessage.id }}</span>
-                          </div>
-                          <div class="trace-detail-item">
-                              <label>Huella Digital (Tracking)</label>
-                              <span>{{ selectedMessage.tracking_info }}</span>
-                          </div>
-                          <div class="trace-detail-item">
-                              <label>Estado de Validación</label>
-                              <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">{{ translateStatus(selectedMessage.status) }}</span>
-                          </div>
-                          <div class="trace-detail-item">
-                              <label>Seguridad de Capa</label>
-                              <span style="color: #10b981;"><i class="fas fa-check-shield"></i> Cifrado Activo AES-256</span>
-                          </div>
-                      </div>
-                      <div class="trace-footer-info">
-                          <i class="fas fa-info-circle"></i> Este registro ha sido auditado y firmado digitalmente por el núcleo Sandra.
-                      </div>
-                  </div>
-
-                  <div class="detail-header">
-                      <div class="detail-title-row">
-                          <div class="title-with-badge">
-                            <h2>{{ selectedMessage.sid }}</h2>
-                            <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">
-                                <i class="fas" [class.fa-circle]="selectedMessage.status === 'Pending'"
-                                [class.fa-check-circle]="selectedMessage.status === 'Approved'"
-                                [class.fa-times-circle]="selectedMessage.status === 'Rejected'"></i>
-                                {{ translateStatus(selectedMessage.status) }}
-                            </span>
-                          </div>
-                          
-                          <div class="header-action-hub">
-                              <button class="btn-action-sm success" (click)="updateMessageStatus(selectedMessage, 'Approved')" *ngIf="selectedMessage.status !== 'Approved'" title="Validar Documento">
-                                  <i class="fas fa-check"></i>
-                              </button>
-                              <button class="btn-action-sm danger" (click)="updateMessageStatus(selectedMessage, 'Rejected')" *ngIf="selectedMessage.status !== 'Rejected'" title="Anular Registro">
-                                  <i class="fas fa-times"></i>
-                              </button>
-                              <button class="btn-action-sm info" (click)="updateMessageStatus(selectedMessage, 'Read')" *ngIf="selectedMessage.status !== 'Read'" title="Marcar como Visto">
-                                  <i class="fas fa-eye"></i>
-                              </button>
-                          </div>
-                      </div>
-                      
-                      <div class="detail-meta-row">
-                          <div class="meta-item">
-                              <i class="far fa-user"></i> 
-                              <span>{{ selectedMessage.author }}</span>
-                          </div>
-                          <div class="meta-item">
-                              <i class="far fa-calendar-alt"></i> 
-                              <span>{{ selectedMessage.created_at | date:'medium' }}</span>
-                          </div>
-                      </div>
-                  </div>
-
-                  <div class="detail-body">
-                      <!-- Unified Content Area: JSON or Text -->
-                      <div class="content-explorer-stage">
-                          
-                          <!-- Case A: Structured JSON Explorer -->
-                          <div *ngIf="parsedContent" class="json-inspector fade-in">
-                              <div class="inspector-header">
-                                  <i class="fas fa-code"></i> Datos Estructurados (JSON)
-                              </div>
-                              <div class="json-grid">
-                                  <div *ngFor="let key of getObjectKeys(parsedContent)" class="json-row">
-                                      <div class="json-key">{{ key }}</div>
-                                      <div class="json-value">
-                                          <ng-container *ngIf="!isObject(parsedContent[key])">
-                                              {{ parsedContent[key] }}
-                                          </ng-container>
-                                          <pre *ngIf="isObject(parsedContent[key])" class="json-inner-obj">
-                                              {{ parsedContent[key] | json }}
-                                          </pre>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-
-                          <!-- Case B: Plain Text Content -->
-                          <div *ngIf="!parsedContent" class="msg-content-text">
-                              {{ selectedMessage.content }}
-                          </div>
-                      </div>
-                      
-                      <!-- Attachments Section -->
-                      <div *ngIf="selectedMessage.attachments?.length" class="attachments-section fade-in">
-                          <h4><i class="fas fa-paperclip"></i> Documentos Adjuntos de Seguridad</h4>
-                          <div class="attachment-grid">
-                              <div *ngFor="let att of selectedMessage.attachments" class="attachment-card" (click)="openAttachment(att)">
-                                  <div class="att-icon">
-                                      <i class="fas" [class.fa-file-pdf]="att.type !== 'SSE'" [class.fa-lock]="att.type === 'SSE'"></i>
-                                  </div>
-                                  <div class="att-info">
-                                      <span class="att-name">{{ att.name }}</span>
-                                      <span class="att-type">Documento {{ att.type }}</span>
-                                  </div>
-                                  <div class="att-action">
-                                      <i class="fas fa-external-link-alt"></i>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-
-    </div>
-
-    <!-- CONFIG TAB -->
-    <div *ngIf="activeTab === 'config'" class="tab-pane fade-in-up">
-      <div class="glass-card config-panel">
-        <h3><i class="fas fa-lock"></i> Configuración de Seguridad</h3>
-        <p class="section-desc">Gestione políticas de contraseñas, niveles de auditoría y almacenamiento en caché.</p>
-        
-        <div class="form-grid">
-            <div class="form-group">
-            <label>Formato de Contraseña (Regex)</label>
-            <input type="text" [(ngModel)]="config.password_format_regex" class="input-dark font-mono">
-            <small>Expresión regular para imponer complejidad de contraseña.</small>
-            </div>
-            
-            <div class="form-group">
-            <label>Nivel de Reportes</label>
-            <select [(ngModel)]="config.reporting_level" class="input-dark">
-                <option value="Low">Bajo</option>
-                <option value="Medium">Medio</option>
-                <option value="High">Alto</option>
-                <option value="Critical">Crítico</option>
-            </select>
-            </div>
-
-            <div class="form-group">
-            <label>Nivel de Auditoría</label>
-            <select [(ngModel)]="config.audit_level" class="input-dark">
-                <option value="None">Ninguno</option>
-                <option value="Standard">Estándar</option>
-                <option value="Full">Completo (Log Detallado)</option>
-            </select>
-            </div>
-
-            <div class="form-group checkbox-group">
-            <label class="switch">
-                <input type="checkbox" [(ngModel)]="config.cache_enabled">
-                <span class="slider round"></span>
-            </label>
-            <span>Habilitar Almacenamiento en Caché Seguro</span>
-            </div>
-        </div>
-        
-        <div class="form-actions">
-            <button class="btn-primary" (click)="saveConfig()">
-                <i class="fas fa-save"></i> Guardar Políticas
-            </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- PROXY TAB -->
-    <div *ngIf="activeTab === 'proxy'" class="tab-pane fade-in-up">
-      
-      <!-- New Route Card -->
-      <div class="glass-card add-route-panel">
-        <div class="panel-header">
-            <div class="header-left">
-                <h3><i class="fas" [class.fa-route]="!isEditing" [class.fa-edit]="isEditing"></i> {{ isEditing ? 'Modificar Ruta' : 'Configurar Nueva Ruta' }}</h3>
-                <p class="subtitle">Defina puntos de acceso seguros y políticas de retención de datos.</p>
-            </div>
-            <span class="badge" [class.info]="!isEditing" [class.warning]="isEditing">{{ isEditing ? 'Modo Edición' : 'Interconexión Segura' }}</span>
-        </div>
-        
-        <div class="form-grid compact-grid proxy-grid-layout">
-            <!-- Ruta -->
-            <div class="form-group icon-input-group route-field">
-                <label>Ruta del Recurso <span class="required">*</span></label>
-                <div class="input-wrapper">
-                    <i class="fas fa-link input-icon"></i>
-                    <input [(ngModel)]="newRoute.route_path" placeholder="/api/v1/resource" class="input-dark pl-icon">
-                </div>
-                <!-- <small class="helper-text">Ej: /external-proxy/app-id</small> -->
-            </div>
-
-            <!-- Código -->
-            <div class="form-group icon-input-group code-field">
-                <label>Código/ID</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-tag input-icon"></i>
-                    <input [(ngModel)]="newRoute.code" placeholder="SEC-001" class="input-dark pl-icon">
-                </div>
-            </div>
-
-            <!-- Salvar Datos Local (Switch) -->
-            <div class="form-group switch-group">
-                <label>Salvar Datos Local</label>
-                <div class="switch-wrapper">
-                     <label class="switch">
-                        <input type="checkbox" [checked]="newRoute.target_database === 'SI'" (change)="newRoute.target_database = $event.target.checked ? 'SI' : 'NO'">
-                        <span class="slider round"></span>
-                    </label>
-                    <span class="switch-label">{{ newRoute.target_database === 'SI' ? 'Activado' : 'Desactivado' }}</span>
-                </div>
-                <small class="helper-text">Persistir tráfico en base de datos local SQLite.</small>
-            </div>
-
-            <!-- Descripción -->
-            <div class="form-group full-width icon-input-group desc-field">
-                <label>Descripción</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-align-left input-icon"></i>
-                    <input [(ngModel)]="newRoute.description" placeholder="Descripción breve del propósito de esta ruta..." class="input-dark pl-icon">
-                </div>
-            </div>
-        </div>
-
-        <div class="form-actions">
-            <button class="btn-primary" (click)="addProxyRoute()" [disabled]="!newRoute.route_path">
-                <i class="fas" [class.fa-plus-circle]="!isEditing" [class.fa-save]="isEditing"></i> {{ isEditing ? 'Guardar Cambios' : 'Registrar Ruta' }}
-            </button>
-            <button class="btn-secondary" (click)="cancelEdit()" *ngIf="isEditing">
-                <i class="fas fa-times"></i> Cancelar
-            </button>
-        </div>
-      </div>
-
-      <div class="table-container glass-card">
-        <table class="proxy-table">
-            <thead>
-            <tr>
-                <th width="30%">Ruta del Recurso</th>
-                <th width="15%">Código/ID</th>
-                <th width="25%">Descripción</th>
-                <th width="20%">Estado / Persistencia</th>
-                <th width="10%">Acciones</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr *ngFor="let route of proxyRoutes">
-                <td>
-                    <div class="font-mono">{{ route.route_path }}</div>
-                </td>
-                <td>
-                    <span class="code-badge no-wrap">{{ route.code }}</span>
-                </td>
-                <td class="desc-cell">
-                    <div class="truncate-text" title="{{ route.description }}">{{ route.description || 'Sin descripción' }}</div>
-                </td>
-                <td>
-                    <div class="status-combo">
-                        <span class="status-pill" [class.active]="route.is_active" [class.inactive]="!route.is_active">
-                            <span class="status-pulse"></span>
-                            {{ route.is_active ? 'OPERATIVO' : 'DETENIDO' }}
-                        </span>
-                        <span class="mini-db-tag" *ngIf="route.target_database === 'SI'" title="Persistencia Activa">
-                            <i class="fas fa-database"></i> SAVE
-                        </span>
+            <!-- Message List View -->
+            <div *ngIf="!selectedMessage && !isComposing" class="mailbox-sidebar glass-card full-width fade-in">
+                <div class="sidebar-toolbar">
+                    <div class="toolbar-search">
+                        <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="resetPagination()"
+                            placeholder="Buscar por remitente o asunto..." class="input-dark search-input pl-icon">
                     </div>
-                </td>
-                <td>
-                    <div class="table-action-hub">
-                        <button class="btn-icon-table edit" (click)="editProxyRoute(route)" title="Editar Ruta">
-                            <i class="fas fa-edit"></i>
+                    <div class="toolbar-actions">
+                        <div class="filter-dropdown">
+                            <select [(ngModel)]="statusFilter" (ngModelChange)="resetPagination()"
+                                class="input-dark filter-select">
+                                <option value="">Todos los Estatus</option>
+                                <option value="Pending">Pendientes</option>
+                                <option value="Approved">Aprobados</option>
+                                <option value="Rejected">Rechazados</option>
+                            </select>
+                        </div>
+                        <div class="vertical-divider"></div>
+                        <button class="btn-icon-mini danger" *ngIf="isAnySelected" (click)="deleteSelected()"
+                            title="Eliminar Seleccionados">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
-                        <button class="btn-icon-table danger" (click)="deleteProxyRoute(route.id)" title="Eliminar Ruta">
-                            <i class="fas fa-trash"></i>
+                        <button class="btn-icon-mini primary" (click)="startCompose()" title="Redactar Requerimiento">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn-icon-mini" (click)="loadMessages()" title="Actualizar">
+                            <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-      </div>
+                </div>
+
+                <!-- Gmail Toolbar (Checkbox Select All & Paginator) -->
+                <div class="gmail-toolbar">
+                    <div class="toolbar-left">
+                        <input type="checkbox" class="custom-checkbox" [checked]="isAllSelected"
+                            (click)="toggleSelectAll($event)" title="Seleccionar Todos">
+                    </div>
+
+                    <div class="toolbar-right">
+                        <span class="totalizer-text">{{ itemRange }}</span>
+
+                        <div class="pagination-buttons">
+                            <button class="btn-paginator" [disabled]="currentPage === 1" (click)="prevPage()"
+                                title="Anterior">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn-paginator" [disabled]="currentPage === totalPages" (click)="nextPage()"
+                                title="Siguiente">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="page-size-selector">
+                            <select [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)" class="size-select">
+                                <option [ngValue]="10">10</option>
+                                <option [ngValue]="20">20</option>
+                                <option [ngValue]="50">50</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message List Body (Gmail Style) -->
+                <div class="msg-list-scroll gmail-view">
+                    <div *ngFor="let msg of paginatedMessages" class="gmail-row"
+                        [class.active]="highlightedMessage === msg" (click)="highlightMessage(msg)"
+                        (dblclick)="selectMessage(msg)">
+
+                        <!-- Left: Checkbox & Actions -->
+                        <div class="gmail-col-left">
+                            <input type="checkbox" class="custom-checkbox" [checked]="selectedIds.has(msg.id)"
+                                (click)="toggleSelection(msg, $event)">
+                            <div class="gmail-hover-actions">
+                                <button class="btn-icon-table danger mini" (click)="deleteMessage(msg, $event)"
+                                    title="Eliminar Registro">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Main Content: 2-Line Layout -->
+                        <div class="gmail-col-main">
+                            <!-- Line 1: Author, Status & Date -->
+                            <div class="gmail-main-top">
+                                <span class="gmail-author">{{ (msg.author | slice:0:30) + (msg.author.length > 30 ?
+                                    '...' : '') }}</span>
+                                <div class="gmail-top-right">
+                                    <span class="status-tag" [ngClass]="getStatusClass(msg.status)">
+                                        <i [class]="getStatusIcon(msg.status)" class="tag-icon"></i>
+                                        {{ translateStatus(msg.status) }}
+                                    </span>
+                                    <span class="gmail-date">{{ msg.created_at | date:'d MMM' }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Line 2: Subject & Snippet -->
+                            <div class="gmail-main-bottom">
+                                <span class="gmail-subject">{{ (msg.sid | slice:0:40) + (msg.sid.length > 40 ? '...' :
+                                    '') }}</span>
+                                <span class="gmail-dash">&nbsp;-&nbsp;</span>
+                                <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
+                                    (getMessageSnippet(msg.content).length > 80 ?
+                                    '...' : '') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="filteredMessages.length === 0" class="empty-list-placeholder">
+                        <p>No se encontraron mensajes.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reading Pane / Compose View -->
+            <div *ngIf="selectedMessage || isComposing" class="mailbox-reading-pane glass-card full-width fade-in">
+
+                <!-- NEW PREMIUM COMPOSE VIEW -->
+                <div *ngIf="isComposing" class="compose-view fade-in">
+                    <div class="reading-pane-toolbar compose-toolbar-top-v4">
+                        <div class="compose-header-info-v4">
+                            <i class="fas fa-envelope-open-text header-mail-icon-v4"></i>
+                            <span class="compose-title-premium-v4">Nuevo Requerimiento</span>
+                        </div>
+                        <button class="btn-back-circular-v4" (click)="backToMailbox()" title="Volver">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="compose-header-minimal-v4">
+                        <!-- PARA FIELD -->
+                        <div class="form-group icon-input-group-v4">
+                            <div class="field-icon-label-v5">
+                                <i class="fas fa-user-shield"></i>
+                                <label class="field-label-v4">Para</label>
+                            </div>
+                            <div class="input-wrapper-v4">
+                                <div class="recipients-wrapper-v4">
+                                    <div class="recipient-pills-container-v4"
+                                        *ngIf="newMessage.selectedRecipients.length > 0">
+                                        <div *ngFor="let recipient of newMessage.selectedRecipients; let i = index"
+                                            class="recipient-pill-pastel-v4 fade-in">
+                                            <span>{{ recipient }}</span>
+                                            <i class="fas fa-times-circle" (click)="removeRecipient(i)"></i>
+                                        </div>
+                                    </div>
+                                    <div class="autocomplete-container-v4">
+                                        <input type="text" [(ngModel)]="newMessage.recipientInput"
+                                            (input)="filterUsers()" placeholder="Añadir destinatario..."
+                                            class="input-clean-v4">
+                                        <div class="autocomplete-dropdown-v4" *ngIf="showAutocomplete">
+                                            <div *ngFor="let user of filteredUsers" class="autocomplete-item-v4"
+                                                (click)="selectUser(user)">
+                                                <i class="fas fa-plus"></i> {{ user }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ASUNTO FIELD -->
+                        <div class="form-group icon-input-group-v4">
+                            <div class="field-icon-label-v5">
+                                <i class="fas fa-pen-nib"></i>
+                                <label class="field-label-v4">Asunto</label>
+                            </div>
+                            <div class="input-wrapper-v4">
+                                <input type="text" [(ngModel)]="newMessage.sid"
+                                    placeholder="Referencia o ID del Caso..." class="input-clean-v4">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden Input for File Upload -->
+                    <input type="file" id="pc-file-input" (change)="onFileSelected($event)" multiple
+                        style="display: none;" accept=".pdf,.txt,.doc,.docx,.zip,.rar,.sse,.png,.jpg,.jpeg">
+
+                    <!-- Rich Text Toolbar -->
+                    <div class="rich-editor-toolbar">
+                        <div class="toolbar-group">
+                            <select class="font-selector" (change)="formatDoc('fontName', $any($event.target).value)">
+                                <option value="Arial">Arial</option>
+                                <option value="Inter">Inter</option>
+                                <option value="Courier New">Monospace</option>
+                                <option value="Georgia">Serif</option>
+                                <option value="Verdana">Verdana</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn" (click)="formatDoc('bold')" title="Negrita"><i
+                                    class="fas fa-bold"></i></button>
+                            <button class="tool-btn" (click)="formatDoc('italic')" title="Cursiva"><i
+                                    class="fas fa-italic"></i></button>
+                            <button class="tool-btn" (click)="formatDoc('underline')" title="Subrayado"><i
+                                    class="fas fa-underline"></i></button>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn" (click)="formatDoc('justifyLeft')" title="Alinear Izquierda"><i
+                                    class="fas fa-align-left"></i></button>
+                            <button class="tool-btn" (click)="formatDoc('justifyCenter')" title="Centrar"><i
+                                    class="fas fa-align-center"></i></button>
+                            <button class="tool-btn" (click)="formatDoc('justifyRight')" title="Alinear Derecha"><i
+                                    class="fas fa-align-right"></i></button>
+                            <button class="tool-btn" (click)="formatDoc('justifyFull')" title="Justificar"><i
+                                    class="fas fa-align-justify"></i></button>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn" (click)="formatDoc('insertUnorderedList')" title="Viñetas"><i
+                                    class="fas fa-list-ul"></i></button>
+                            <button class="tool-btn" (click)="formatDoc('insertOrderedList')" title="Numeración"><i
+                                    class="fas fa-list-ol"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Contenteditable Editor -->
+                    <div class="compose-body-editor">
+                        <div #editor contenteditable="true" class="rich-textarea"
+                            (input)="editorContent = editor.innerHTML"
+                            placeholder="Escriba el detalle del reporte aquí...">
+                        </div>
+                    </div>
+
+                    <!-- Simplified Attachments V20 -->
+                    <!-- Enhanced Detail Attachments V23 -->
+                    <div class="compose-attachments-list" *ngIf="newMessage.attachments.length > 0">
+                        <div *ngFor="let att of newMessage.attachments; let i = index" class="att-pill-modern fade-in"
+                            [ngClass]="att.source === 'LOCAL' ? 'source-local' : 'source-vault'">
+                            <i [class]="att.icon"></i>
+                            <div class="att-info-block-v23" (click)="previewSecureAttachment(att)"
+                                title="Previsualizar documento">
+                                <span class="att-name">{{ att.name }}</span>
+                                <span class="att-meta-detail-v23">{{ att.type }} • {{ att.size || 'Local' }}</span>
+                            </div>
+                            <i class="fas fa-times remove-att" (click)="newMessage.attachments.splice(i, 1)"
+                                title="Eliminar adjunto"></i>
+                        </div>
+                    </div>
+
+                    <!-- Unified Footer V17 (Single Row) -->
+                    <div class="compose-footer-v17">
+                        <div class="footer-row-flat">
+                            <!-- Attachments -->
+                            <button class="btn-attachment-v4" (click)="attachFromPC()" title="Adjuntar desde PC">
+                                <i class="fas fa-paperclip"></i> Adjuntar
+                            </button>
+                            <button class="btn-attachment-v4 secure-v4" (click)="attachFromSecureViewer()"
+                                title="Adjuntar desde Visor Seguro">
+                                <i class="fas fa-vault"></i> Visor Seguro
+                            </button>
+
+                            <!-- Spacer -->
+                            <div class="row-spacer"></div>
+
+                            <!-- Sending Progress -->
+                            <div class="sending-mini-v17" *ngIf="isSending">
+                                <i class="fas fa-circle-notch fa-spin"></i>
+                                <span>{{ sendProgress }}%</span>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="main-actions-v17" *ngIf="!isSending">
+                                <button class="btn-send-pastel-green-v4" (click)="requestSend()"
+                                    [disabled]="!newMessage.sid || newMessage.selectedRecipients.length === 0">
+                                    <i class="fas fa-paper-plane"></i> Enviar
+                                </button>
+                                <button class="btn-discard-v4" (click)="cancelCompose()">Descartar</button>
+                            </div>
+                        </div>
+
+                        <!-- Progress Line -->
+                        <div class="footer-progress-line" *ngIf="isSending">
+                            <div class="progress-fill-v4" [style.width.%]="sendProgress"></div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Detail View (Wrapped in *ngIf) -->
+                <div *ngIf="selectedMessage" class="msg-detail-view fade-in">
+                    <!-- Subdued Governance Ribbon (Dropdown Header) -->
+                    <div class="governance-ribbon clickable" (click)="toggleTrace()" [class.expanded]="showTrace">
+                        <div class="ribbon-summary">
+                            <i class="fas fa-fingerprint"></i>
+                            <span class="ribbon-title">Gobernanza y Trazabilidad Digital</span>
+                        </div>
+                        <div class="ribbon-toggle">
+                            <span class="toggle-status-text">{{ showTrace ? 'Ocultar Detalles' : 'Ver
+                                Certificación'
+                                }}</span>
+                            <i class="fas" [class.fa-chevron-down]="!showTrace" [class.fa-chevron-up]="showTrace"></i>
+                        </div>
+                    </div>
+
+                    <!-- Expanded Trace Details -->
+                    <div class="trace-details-panel fade-in" *ngIf="showTrace">
+                        <div class="trace-grid">
+                            <div class="trace-detail-item">
+                                <label>ID de Proceso</label>
+                                <span>{{ selectedMessage.id }}</span>
+                            </div>
+                            <div class="trace-detail-item">
+                                <label>Huella Digital (Tracking)</label>
+                                <span>{{ selectedMessage.tracking_info }}</span>
+                            </div>
+                            <div class="trace-detail-item">
+                                <label>Estado de Validación</label>
+                                <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">{{
+                                    translateStatus(selectedMessage.status) }}</span>
+                            </div>
+                            <div class="trace-detail-item">
+                                <label>Seguridad de Capa</label>
+                                <span style="color: #10b981;"><i class="fas fa-check-shield"></i> Cifrado Activo
+                                    AES-256</span>
+                            </div>
+                        </div>
+                        <div class="trace-footer-info">
+                            <i class="fas fa-info-circle"></i> Este registro ha sido auditado y firmado
+                            digitalmente
+                            por el núcleo Sandra.
+                        </div>
+                    </div>
+
+                    <div class="detail-header">
+                        <div class="detail-title-row">
+                            <div class="title-with-badge">
+                                <h2>{{ selectedMessage.sid }}</h2>
+                                <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">
+                                    <i class="fas" [class.fa-circle]="selectedMessage.status === 'Pending'"
+                                        [class.fa-check-circle]="selectedMessage.status === 'Approved'"
+                                        [class.fa-times-circle]="selectedMessage.status === 'Rejected'"></i>
+                                    {{ translateStatus(selectedMessage.status) }}
+                                </span>
+                            </div>
+
+                            <div class="header-action-hub">
+                                <button class="btn-back-minimal icon-only mr-2" (click)="backToMailbox()"
+                                    title="Volver a la Bandeja">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <div class="vertical-divider"></div>
+                                <button class="btn-action-sm success"
+                                    (click)="updateMessageStatus(selectedMessage, 'Approved')"
+                                    *ngIf="selectedMessage.status !== 'Approved'" title="Validar Documento">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-action-sm danger"
+                                    (click)="updateMessageStatus(selectedMessage, 'Rejected')"
+                                    *ngIf="selectedMessage.status !== 'Rejected'" title="Anular Registro">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn-action-sm info"
+                                    (click)="updateMessageStatus(selectedMessage, 'Read')"
+                                    *ngIf="selectedMessage.status !== 'Read'" title="Marcar como Visto">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="detail-meta-row">
+                            <div class="meta-item">
+                                <i class="far fa-user"></i>
+                                <span>{{ selectedMessage.author }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="far fa-calendar-alt"></i>
+                                <span>{{ selectedMessage.created_at | date:'medium' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-body">
+                        <!-- Unified Content Area: JSON or Text -->
+                        <div class="content-explorer-stage">
+
+                            <!-- Case A: Clean Mail Render (V23/V22) -->
+                            <div *ngIf="parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content"
+                                class="msg-content-html fade-in">
+                                <div
+                                    [innerHTML]="parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content">
+                                </div>
+                            </div>
+
+                            <!-- Case B: Structured JSON Explorer (Fallback for config/metadata JSON) -->
+                            <div *ngIf="parsedContent && !parsedContent.message_envelope?.body && !parsedContent.payload?.body_content"
+                                class="json-inspector fade-in">
+                                <div class="inspector-header">
+                                    <i class="fas fa-code"></i> Datos Estructurados (JSON)
+                                </div>
+                                <div class="json-grid">
+                                    <div *ngFor="let key of getObjectKeys(parsedContent)" class="json-row">
+                                        <div class="json-key">{{ key }}</div>
+                                        <div class="json-value">
+                                            <ng-container *ngIf="!isObject(parsedContent[key])">
+                                                {{ parsedContent[key] }}
+                                            </ng-container>
+                                            <pre *ngIf="isObject(parsedContent[key])" class="json-inner-obj">
+                                                {{ parsedContent[key] | json }}
+                                            </pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Case C: Plain Text Content -->
+                            <div *ngIf="!parsedContent" class="msg-content-text">
+                                {{ selectedMessage.content }}
+                            </div>
+                        </div>
+
+                        <!-- Animated Watermark -->
+                        <div class="watermark-bg-v24">
+                            <i class="fas fa-envelope-open-text"></i>
+                        </div>
+                    </div>
+
+                    <!-- Attachments Section Minimal Footer -->
+                    <ng-container
+                        *ngIf="parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments">
+                        <div class="attachments-footer-minimal-v24 fade-in"
+                            *ngIf="(parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments).length > 0">
+
+                            <div class="attachment-divider-v24">
+                                <span><i class="fas fa-paperclip"></i> Documentos Adjuntos de Seguridad</span>
+                            </div>
+
+                            <div class="attachment-viewer-list-v24">
+                                <div *ngFor="let att of (parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments)"
+                                    class="att-pill-modern interactive fade-in"
+                                    [ngClass]="att.source === 'LOCAL' || (att.viewer_config && !att.viewer_config.isProtected) ? 'source-local' : 'source-vault'"
+                                    (click)="openAttachment(att)" title="Ver Documento">
+                                    <i [class]="getFileIcon(att.extension || att.type || '')"></i>
+                                    <div class="att-info-block-v23">
+                                        <span class="att-name">{{ att.name }}</span>
+                                        <span class="att-meta-detail-v23">{{ att.extension || att.type }} • {{ att.size
+                                            || (att.source === 'LOCAL' ? 'Local' : 'Vault') }}</span>
+                                    </div>
+                                    <i class="fas fa-external-link-alt action-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-container>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CONFIG TAB -->
+        <div *ngIf="activeTab === 'config'" class="tab-pane fade-in-up">
+            <div class="glass-card config-panel">
+                <h3><i class="fas fa-lock"></i> Configuración de Seguridad</h3>
+                <p class="section-desc">Gestione políticas de contraseñas, niveles de auditoría y almacenamiento
+                    en
+                    caché.</p>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Formato de Contraseña (Regex)</label>
+                        <input type="text" [(ngModel)]="config.password_format_regex" class="input-dark font-mono">
+                        <small>Expresión regular para imponer complejidad de contraseña.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nivel de Reportes</label>
+                        <select [(ngModel)]="config.reporting_level" class="input-dark">
+                            <option value="Low">Bajo</option>
+                            <option value="Medium">Medio</option>
+                            <option value="High">Alto</option>
+                            <option value="Critical">Crítico</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nivel de Auditoría</label>
+                        <select [(ngModel)]="config.audit_level" class="input-dark">
+                            <option value="None">Ninguno</option>
+                            <option value="Standard">Estándar</option>
+                            <option value="Full">Completo (Log Detallado)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label class="switch">
+                            <input type="checkbox" [(ngModel)]="config.cache_enabled">
+                            <span class="slider round"></span>
+                        </label>
+                        <span>Habilitar Almacenamiento en Caché Seguro</span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn-primary" (click)="saveConfig()">
+                        <i class="fas fa-save"></i> Guardar Políticas
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROXY TAB -->
+        <div *ngIf="activeTab === 'proxy'" class="tab-pane fade-in-up">
+
+            <!-- New Route Card -->
+            <div class="glass-card add-route-panel">
+                <div class="panel-header">
+                    <div class="header-left">
+                        <h3><i class="fas" [class.fa-route]="!isEditing" [class.fa-edit]="isEditing"></i> {{
+                            isEditing ? 'Modificar Ruta' : 'Configurar Nueva Ruta' }}</h3>
+                        <p class="subtitle">Defina puntos de acceso seguros y políticas de retención de datos.
+                        </p>
+                    </div>
+                    <span class="badge" [class.info]="!isEditing" [class.warning]="isEditing">{{ isEditing ?
+                        'Modo
+                        Edición' : 'Interconexión Segura' }}</span>
+                </div>
+
+                <div class="form-grid compact-grid proxy-grid-layout">
+                    <!-- Ruta -->
+                    <div class="form-group icon-input-group route-field">
+                        <label>Ruta del Recurso <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-link input-icon"></i>
+                            <input [(ngModel)]="newRoute.route_path" placeholder="/api/v1/resource"
+                                class="input-dark pl-icon">
+                        </div>
+                        <!-- <small class="helper-text">Ej: /external-proxy/app-id</small> -->
+                    </div>
+
+                    <!-- Código -->
+                    <div class="form-group icon-input-group code-field">
+                        <label>Código/ID</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-tag input-icon"></i>
+                            <input [(ngModel)]="newRoute.code" placeholder="SEC-001" class="input-dark pl-icon">
+                        </div>
+                    </div>
+
+                    <!-- Salvar Datos Local (Switch) -->
+                    <div class="form-group switch-group">
+                        <label>Salvar Datos Local</label>
+                        <div class="switch-wrapper">
+                            <label class="switch">
+                                <input type="checkbox" [checked]="newRoute.target_database === 'SI'"
+                                    (change)="newRoute.target_database = $event.target.checked ? 'SI' : 'NO'">
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="switch-label">{{ newRoute.target_database === 'SI' ? 'Activado' :
+                                'Desactivado' }}</span>
+                        </div>
+                        <small class="helper-text">Persistir tráfico en base de datos local SQLite.</small>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="form-group full-width icon-input-group desc-field">
+                        <label>Descripción</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-align-left input-icon"></i>
+                            <input [(ngModel)]="newRoute.description"
+                                placeholder="Descripción breve del propósito de esta ruta..."
+                                class="input-dark pl-icon">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn-primary" (click)="addProxyRoute()" [disabled]="!newRoute.route_path">
+                        <i class="fas" [class.fa-plus-circle]="!isEditing" [class.fa-save]="isEditing"></i> {{
+                        isEditing ? 'Guardar Cambios' : 'Registrar Ruta' }}
+                    </button>
+                    <button class="btn-secondary" (click)="cancelEdit()" *ngIf="isEditing">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container glass-card">
+                <table class="proxy-table">
+                    <thead>
+                        <tr>
+                            <th width="30%">Ruta del Recurso</th>
+                            <th width="15%">Código/ID</th>
+                            <th width="25%">Descripción</th>
+                            <th width="20%">Estado / Persistencia</th>
+                            <th width="10%">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let route of proxyRoutes">
+                            <td>
+                                <div class="font-mono">{{ route.route_path }}</div>
+                            </td>
+                            <td>
+                                <span class="code-badge no-wrap">{{ route.code }}</span>
+                            </td>
+                            <td class="desc-cell">
+                                <div class="truncate-text" title="{{ route.description }}">{{ route.description
+                                    ||
+                                    'Sin descripción' }}</div>
+                            </td>
+                            <td>
+                                <div class="status-combo">
+                                    <span class="status-pill" [class.active]="route.is_active"
+                                        [class.inactive]="!route.is_active">
+                                        <span class="status-pulse"></span>
+                                        {{ route.is_active ? 'OPERATIVO' : 'DETENIDO' }}
+                                    </span>
+                                    <span class="mini-db-tag" *ngIf="route.target_database === 'SI'"
+                                        title="Persistencia Activa">
+                                        <i class="fas fa-database"></i> SAVE
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="table-action-hub">
+                                    <button class="btn-icon-table edit" (click)="editProxyRoute(route)"
+                                        title="Editar Ruta">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon-table danger" (click)="deleteProxyRoute(route)"
+                                        title="Eliminar Ruta">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
-      </div>
-  </div>
+    <!-- Modal Confirmación Eliminar (Elegante) -->
+    <div class="modal-overlay" *ngIf="showDeleteModal">
+        <div class="modal-card activity-modal fade-in-up">
+            <div class="modal-body-clean">
+                <div class="modal-visual-header error-header">
+                    <div class="icon-pulse-wrapper error-pulse">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                </div>
+
+                <h3 class="modal-title-clean">
+                    {{ deleteType === 'messages' ? 'Eliminar Registros' : 'Eliminar Ruta Proxy' }}
+                </h3>
+
+                <p class="modal-msg-clean" *ngIf="deleteType === 'messages'">
+                    ¿Estás seguro de eliminar <strong>{{ messagesToDelete.length }}</strong> registro(s) de
+                    seguridad?
+                    <br><span class="sub-text">Esta acción es irreversible y eliminará la trazabilidad asociada
+                        a este
+                        requerimiento.</span>
+                </p>
+
+                <p class="modal-msg-clean" *ngIf="deleteType === 'route'">
+                    ¿Estás seguro de eliminar la ruta <strong>{{ routeToDelete?.route_path }}</strong>?
+                    <br><span class="sub-text">Esta acción eliminará el mapeo del proxy y podría afectar la
+                        conectividad
+                        hacia el destino.</span>
+                </p>
+
+                <div class="modal-actions-spread">
+                    <button class="btn-modal-confirm" (click)="confirmDelete()">
+                        Eliminar
+                    </button>
+                    <button class="btn-modal-cancel" (click)="cancelDelete()">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Visor Seguro V5 (Explorer Style) -->
+    <div class="modal-overlay" *ngIf="showSecureVaultModal">
+        <div class="modal-card vault-modal fade-in-up">
+            <div class="explorer-header-v5">
+                <div class="explorer-title-v5">
+                    <i class="fas fa-vault"></i>
+                    <h3>Visor Seguro: Explorer</h3>
+                </div>
+                <button class="btn-back-circular-v4" (click)="closeSecureVaultModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="explorer-container-v5">
+                <!-- Sidebar -->
+                <div class="explorer-sidebar-v5">
+                    <div class="sidebar-nav-item" [class.active]="vaultFilter === 'DOCS'"
+                        (click)="setVaultFilter('DOCS')">
+                        <i class="fas fa-folder-open"></i> Documentos
+                    </div>
+                    <div class="sidebar-nav-item" [class.active]="vaultFilter === 'SSE'"
+                        (click)="setVaultFilter('SSE')">
+                        <i class="fas fa-file-shield"></i> Reportes SSE
+                    </div>
+                    <div class="sidebar-nav-item" [class.active]="vaultFilter === 'RECENT'"
+                        (click)="setVaultFilter('RECENT')">
+                        <i class="fas fa-history"></i> Recientes
+                    </div>
+                </div>
+
+                <!-- Content Area -->
+                <div class="explorer-content-v5">
+                    <div class="explorer-breadcrumb-v5">
+                        <span>Vault</span> <i class="fas fa-chevron-right"></i>
+                        <span>{{ vaultFilter === 'SSE' ? 'Reportes SSE' : (vaultFilter === 'RECENT' ?
+                            'Recientes' :
+                            'Documentos') }}</span>
+                    </div>
+
+                    <!-- Column Headers -->
+                    <div class="explorer-file-header-v5">
+                        <div class="col-name-v5">Nombre</div>
+                        <div class="col-size-v5">Peso</div>
+                        <div class="col-date-v5">Fecha</div>
+                        <div class="col-action-v5"></div>
+                    </div>
+
+                    <div class="explorer-file-list-v5">
+                        <div *ngFor="let doc of filteredSecureDocs" class="file-row-v5" (click)="selectSecureDoc(doc)">
+                            <div class="file-info-v5" [ngClass]="doc.type.toLowerCase()">
+                                <i [class]="getFileIcon(doc.name.split('.').pop() || '')"></i>
+                                <span class="file-name-v5">{{ doc.name }}</span>
+                            </div>
+                            <span class="file-meta-v5">{{ doc.size }}</span>
+                            <span class="file-meta-v5">{{ doc.date }}</span>
+                            <div class="col-action-v5">
+                                <button class="btn-check-circular-v5" title="Seleccionar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="explorer-footer-v5">
+                <button class="btn-modal-cancel" (click)="closeSecureVaultModal()">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Global Overlays (Outside of glass-card to prevent backdrop-filter clipping) -->
+
+<!-- Modal Confirmación Envío -->
+<div class="modal-overlay" *ngIf="showSendConfirmModal">
+    <div class="modal-card activity-modal fade-in-up">
+        <div class="modal-body-clean">
+            <div class="modal-visual-header info-header">
+                <div class="icon-pulse-wrapper info-pulse">
+                    <i class="fas fa-paper-plane text-primary"></i>
+                </div>
+            </div>
+            <h3 class="modal-title-clean">Confirmar Envío</h3>
+            <p class="modal-msg-clean">
+                ¿Está seguro que desea enviar este reporte de seguridad?
+                <br><span class="sub-text">Se generará una firma digital única y se notificará a
+                    <strong>{{ newMessage.selectedRecipients.join(', ') }}</strong>.</span>
+            </p>
+            <div class="modal-actions-spread">
+                <button class="btn-modal-confirm primary" (click)="confirmSend()">Enviar
+                    Ahora</button>
+                <button class="btn-modal-cancel" (click)="cancelSend()">Revisar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fullscreen Sending Overlay V22 -->
+<div class="fullscreen-sending-overlay-v22" *ngIf="isSending">
+    <div class="overlay-content-v22">
+        <div class="spinner-container-v22">
+            <div class="scanner-ring-v22"></div>
+            <i class="fas fa-shield-alt main-icon-v22 rotate-in"></i>
+        </div>
+        <h2 class="sending-title-v22">Preparando Envío Seguro</h2>
+        <p class="sending-status-v22">
+            <span *ngIf="sendProgress < 30">Analizando archivos y cargando binarios...</span>
+            <span *ngIf="sendProgress >= 30 && sendProgress < 70">Cifrando paquetes de documentos SSE...</span>
+            <span *ngIf="sendProgress >= 70">Finalizando y transmitiendo reporte...</span>
+        </p>
+        <div class="progress-container-v22">
+            <div class="progress-bar-v22" [style.width.%]="sendProgress"></div>
+        </div>
+        <span class="progress-label-v22 text-pulse">{{ sendProgress }}% de transferencia completada</span>
+    </div>
 </div>

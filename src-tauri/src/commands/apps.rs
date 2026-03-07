@@ -74,11 +74,10 @@ pub async fn delete_app_repo(
         .map_err(|e| e.to_string())?;
     let target_dir = app_data.join("apps").join(&folder_name);
 
-    if !target_dir.exists() {
-        return Err("La aplicación no existe.".into());
+    if target_dir.exists() {
+        fs::remove_dir_all(&target_dir)
+            .map_err(|e| format!("Error al eliminar la carpeta: {}", e))?;
     }
-
-    fs::remove_dir_all(&target_dir).map_err(|e| format!("Error al eliminar la carpeta: {}", e))?;
 
     Ok(())
 }

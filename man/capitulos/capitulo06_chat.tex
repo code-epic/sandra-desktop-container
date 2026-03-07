@@ -56,25 +56,51 @@ Sandra AI procesa diferentes tipos de entrada, desde preguntas simples hasta com
 
 El usuario puede realizar preguntas sobre el sistema y recibir respuestas detalladas:
 
-\begin{lstlisting}[language=bash, caption={Ejemplos de consultas informativas}]
-"Cual es el estado del sistema?"
-"Cuanto espacio libre tengo en disco?"
-"Muestrame los logs de conexiones recientes"
-"Que aplicaciones tengo instaladas?"
-"Explicame que es una ruta proxy"
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{8cm}p{6cm}}
+\toprule
+\textbf{Consulta} & \textbf{Respuesta Esperada} \\
+\midrule
+Cual es el estado del sistema? & Metricas generales y estado de servicios \\
+\midrule
+Cuanto espacio libre tengo en disco? & Informacion de almacenamiento disponible \\
+\midrule
+Muestrame los logs de conexiones recientes & Visor de logs filtrado por conexiones \\
+\midrule
+Que aplicaciones tengo instaladas? & Lista completa de apps desplegadas \\
+\midrule
+Explicame que es una ruta proxy & Definicion y funcionamiento de proxies \\
+\bottomrule
+\end{tabular}
+\caption{Ejemplos de consultas informativas}
+\label{tab:consultas-chat}
+\end{table}
 
 \subsection{Comandos Operativos}
 
 Sandra puede ejecutar acciones directamente desde el chat:
 
-\begin{lstlisting}[language=bash, caption={Comandos operativos via chat}]
-"Crear nueva conexion al servidor produccion"
-"Abrir la aplicacion de correo"
-"Desactivar el proxy para la app de testing"
-"Generar reporte de auditoria de la ultima semana"
-"Limpiar los logs de sesion"
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\begin{tabular}{p{7cm}p{7cm}}
+\toprule
+\textbf{Comando} & \textbf{Accion Ejecutada} \\
+\midrule
+Crear nueva conexion al servidor produccion & Abre formulario de nueva conexion pre-cargado \\
+\midrule
+Abrir la aplicacion de correo & Lanza la app de correo configurada \\
+\midrule
+Desactivar el proxy para la app de testing & Cambia modo de navegacion a libre \\
+\midrule
+Generar reporte de auditoria de la ultima semana & Crea y exporta reporte PDF \\
+\midrule
+Limpiar los logs de sesion & Elimina logs temporales de la sesion actual \\
+\bottomrule
+\end{tabular}
+\caption{Comandos operativos via chat}
+\label{tab:comandos-operativos}
+\end{table}
 
 \subsection{Asistencia Contextual}
 
@@ -115,7 +141,7 @@ Sandra AI utiliza tecnicas de NLP para entender consultas formuladas de forma na
 
 \begin{quote}
 \textbf{Ejemplo de Comprension Contextual}\\
-Usuario: "Abre la primera aplicacion de la lista"\\
+Usuario: Abre la primera aplicacion de la lista\\
 Sandra: Entiende que se refiere a la primera app mostrada en el dashboard actual y la abre.
 \end{quote}
 
@@ -123,11 +149,11 @@ Sandra: Entiende que se refiere a la primera app mostrada en el dashboard actual
 
 El chat permite crear secuencias de comandos automatizadas:
 
-\begin{lstlisting}[language=bash, caption={Secuencia de automatizacion}]
-Usuario: "Crea un backup diario de la base de datos"
-Sandra: "He configurado una tarea programada para backup diario a las 02:00 AM. 
-         Se guardaran en /backups/automaticos/ y se mantendran las ultimas 30 copias."
-\end{lstlisting}
+\begin{quote}
+\textbf{Ejemplo de Automatizacion}\\
+Usuario: Crea un backup diario de la base de datos\\
+Sandra: He configurado una tarea programada para backup diario a las 02:00 AM. Se guardaran en /backups/automaticos/ y se mantendran las ultimas 30 copias.
+\end{quote}
 
 \subsection{Integracion con el Sistema}
 
@@ -178,7 +204,7 @@ Respuesta irrelevante & Proporciona mas contexto sobre lo que necesitas \\
 \midrule
 Comando no ejecutado & Verifica que tienes permisos suficientes \\
 \midrule
-Historial muy largo & Usa el comando "limpiar chat" para reiniciar \\
+Historial muy largo & Usa el comando limpiar chat para reiniciar \\
 \bottomrule
 \end{tabular}
 \caption{Solucion de problemas comunes en el chat}

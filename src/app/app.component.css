@@ -6,6 +6,8 @@
   background-color: var(--bg-alpha);
   color: var(--text-main);
   font-family: "Inter", sans-serif;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Sidebar Estilo Compass */
@@ -2089,5 +2091,100 @@ iframe {
   100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(41, 182, 246, 0);
+  }
+}
+
+/* --- Global Background Watermark --- */
+.background-watermark {
+  position: absolute;
+  bottom: -15px;
+  right: 20px;
+  font-size: 17rem;
+  color: rgba(99, 102, 241, 0.02);
+  pointer-events: none;
+  z-index: 0;
+  transform: none;
+  filter: blur(0.5px);
+  animation: floatGlobalWatermark 60s infinite ease-in-out;
+}
+
+@keyframes floatGlobalWatermark {
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-20px) scale(1.03);
+  }
+}
+
+/* --- Global Snap Message (Subtle Floating Feedback) --- */
+.snap-message.global-snap {
+  position: fixed;
+  z-index: 10000;
+  /* Above everything */
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+  animation: snapFadeActive 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Variants */
+.snap-message.success {
+  background: #E8F5E9;
+  color: #2E7D32;
+  border-color: #C8E6C9;
+}
+
+.snap-message.info {
+  background: #E3F2FD;
+  color: #0277BD;
+  border-color: #BBDEFB;
+}
+
+.snap-message.warning {
+  background: #FFF3E0;
+  color: #EF6C00;
+  border-color: #FFE0B2;
+}
+
+.snap-message.error {
+  background: #FFEBEE;
+  color: #C62828;
+  border-color: #FFCDD2;
+}
+
+@keyframes snapFadeActive {
+  0% {
+    opacity: 0;
+    transform: translateY(15px) scale(0.9);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1.03);
+  }
+
+  30% {
+    transform: scale(1);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(-8px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
   }
 }

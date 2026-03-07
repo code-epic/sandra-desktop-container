@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex 2025.3.8)  4 MAR 2026 14:11
+This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex 2025.3.8)  4 MAR 2026 14:57
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1317,7 +1317,7 @@ Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by
 
 
 Package spanish Warning: Replacing `TU/HelveticaNeue(0)/m/sc' by 
-(spanish)                faked small caps on input line 36.
+(spanish)                faked small caps on input line 35.
 
 [19
 
@@ -1392,11 +1392,6 @@ Capítulo 2.
 File: anexos/4 principal.png Graphic file (type bmp)
 <anexos/4 principal.png>
 
-Overfull \hbox (31.54721pt too wide) in paragraph at lines 28--39
- [][] 
- []
-
-
 
 [7
 
@@ -1409,50 +1404,14 @@ Overfull \hbox (3.09445pt too wide) in paragraph at lines 98--109
  [][] 
  []
 
-(/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2024/09/23 1.10c listings language file
-) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2024/09/23 1.10c listings language file
-)
-Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
-nput line 115.
-Package microtype Info: Loading generic protrusion settings for font family
-(microtype)             `cmtt' (encoding: OT1).
-(microtype)             For optimal results, create family-specific settings.
-(microtype)             See the microtype manual for details.
 
 
-LaTeX Info: Redefining \. on input line 128.
-LaTeX Info: Redefining \% on input line 128.
+LaTeX Info: Redefining \. on input line 143.
+LaTeX Info: Redefining \% on input line 143.
 [9]
-Underfull \hbox (badness 6204) in paragraph at lines 142--142
-[]|\TU/lmtt/m/n/10.95 fa-th-large \TU/HelveticaNeue(0)/m/sc/10.95 Dash-
- []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 143--143
-[]|\TU/lmtt/m/n/10.95 fa-code \TU/HelveticaNeue(0)/m/sc/10.95 Aplicacio-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 144--144
-[]|\TU/lmtt/m/n/10.95 fa-plug \TU/HelveticaNeue(0)/m/sc/10.95 Conexio-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 145--145
-[]|\TU/lmtt/m/n/10.95 fa-shield-alt \TU/HelveticaNeue(0)/m/sc/10.95 Se-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 147--147
-[]|\TU/lmtt/m/n/10.95 fa-cog \TU/HelveticaNeue(0)/m/sc/10.95 Configura-
- []
-
-
-
-LaTeX Info: Redefining \. on input line 170.
-LaTeX Info: Redefining \% on input line 170.
+LaTeX Info: Redefining \. on input line 177.
+LaTeX Info: Redefining \% on input line 177.
 [10])
 
 LaTeX Info: Redefining \. on input line 223.
@@ -1487,7 +1446,14 @@ LaTeX Info: Redefining \% on input line 104.
 
 LaTeX Info: Redefining \. on input line 123.
 LaTeX Info: Redefining \% on input line 123.
-[16]
+[16] (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
+File: lstlang1.sty 2024/09/23 1.10c listings language file
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty
+File: lstlang1.sty 2024/09/23 1.10c listings language file
+)
+Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
+nput line 145.
+
 
 LaTeX Info: Redefining \. on input line 154.
 LaTeX Info: Redefining \% on input line 154.
@@ -1673,20 +1639,22 @@ File: anexos/chat.png Graphic file (type bmp)
 [42
 
 ]
-Overfull \vbox (34.61525pt too high) has occurred while \output is active []
+Underfull \hbox (badness 10000) in paragraph at lines 67--68
+[]|\TU/HelveticaNeue(0)/m/sc/10.95 Informacion de almacenamiento
+ []
 
 
 
-LaTeX Info: Redefining \. on input line 21.
-LaTeX Info: Redefining \% on input line 21.
+LaTeX Info: Redefining \. on input line 79.
+LaTeX Info: Redefining \% on input line 79.
 [43]
 
-LaTeX Info: Redefining \. on input line 71.
-LaTeX Info: Redefining \% on input line 71.
+LaTeX Info: Redefining \. on input line 126.
+LaTeX Info: Redefining \% on input line 126.
 [44]
 
-LaTeX Info: Redefining \. on input line 122.
-LaTeX Info: Redefining \% on input line 122.
+LaTeX Info: Redefining \. on input line 163.
+LaTeX Info: Redefining \% on input line 163.
 [45])
 
 LaTeX Info: Redefining \. on input line 232.
@@ -1851,12 +1819,12 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: E8121FDF0EEC2271C3AED1BE34C6AACC;22532.
  ) 
 Here is how much of TeX's memory you used:
- 33215 strings out of 473832
- 662480 string characters out of 5729482
- 1376743 words of memory out of 5000000
- 55645 multiletter control sequences out of 15000+600000
- 562384 words of font info for 82 fonts, out of 8000000 for 9000
+ 33202 strings out of 473832
+ 662312 string characters out of 5729482
+ 1375596 words of memory out of 5000000
+ 55632 multiletter control sequences out of 15000+600000
+ 562216 words of font info for 81 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 84i,13n,94p,1001b,2070s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,13n,94p,1001b,2074s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on main.pdf (85 pages).

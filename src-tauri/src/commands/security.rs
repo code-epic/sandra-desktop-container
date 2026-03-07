@@ -291,6 +291,14 @@ pub fn update_mailbox_status(
     Ok(())
 }
 
+#[tauri::command]
+pub fn delete_mailbox_message(state: State<DbState>, id: i64) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM security_mailbox WHERE id = ?1", [id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // --- Commands: Config ---
 
 #[tauri::command]

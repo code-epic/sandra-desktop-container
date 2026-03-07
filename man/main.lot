@@ -8,34 +8,37 @@
 \addvspace {10\p@ }
 \contentsline {table}{\numberline {2.1}{\ignorespaces Metricas principales del Dashboard}}{8}{table.caption.15}%
 \contentsline {table}{\numberline {2.2}{\ignorespaces Tipos de interaccion con Sandra AI}}{9}{table.caption.18}%
-\contentsline {table}{\numberline {2.3}{\ignorespaces Modulos de navegacion de SDC}}{10}{table.caption.19}%
+\contentsline {table}{\numberline {2.3}{\ignorespaces Comandos de voz/texto de Sandra AI}}{10}{table.caption.19}%
+\contentsline {table}{\numberline {2.4}{\ignorespaces Modulos de navegacion de SDC}}{10}{table.caption.20}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {3.1}{\ignorespaces Parametros de configuracion de conexion}}{14}{table.caption.21}%
-\contentsline {table}{\numberline {3.2}{\ignorespaces Campos del formulario de aplicacion}}{17}{table.caption.25}%
-\contentsline {table}{\numberline {3.3}{\ignorespaces Modos de despliegue de aplicaciones}}{17}{table.caption.27}%
-\contentsline {table}{\numberline {3.4}{\ignorespaces Metricas monitoreadas del sistema}}{20}{table.caption.30}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Parametros de configuracion de conexion}}{14}{table.caption.22}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Campos del formulario de aplicacion}}{17}{table.caption.26}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Modos de despliegue de aplicaciones}}{17}{table.caption.28}%
+\contentsline {table}{\numberline {3.4}{\ignorespaces Metricas monitoreadas del sistema}}{20}{table.caption.31}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Niveles de seguridad predefinidos}}{22}{table.caption.32}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Niveles de auditoria y retencion de logs}}{25}{table.caption.35}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Niveles de seguridad predefinidos}}{22}{table.caption.33}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Niveles de auditoria y retencion de logs}}{25}{table.caption.36}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {5.1}{\ignorespaces Formatos de documento soportados por el visor}}{29}{table.caption.37}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Metodos de exportacion disponibles}}{34}{table.caption.42}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Opciones de configuracion del visor}}{39}{table.caption.47}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Formatos de documento soportados por el visor}}{29}{table.caption.38}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Metodos de exportacion disponibles}}{34}{table.caption.43}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Opciones de configuracion del visor}}{39}{table.caption.48}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Asistencia contextual de Sandra AI}}{45}{table.caption.49}%
-\contentsline {table}{\numberline {6.2}{\ignorespaces Solucion de problemas comunes en el chat}}{47}{table.caption.50}%
+\contentsline {table}{\numberline {6.1}{\ignorespaces Ejemplos de consultas informativas}}{44}{table.caption.50}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Comandos operativos via chat}}{44}{table.caption.51}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Asistencia contextual de Sandra AI}}{45}{table.caption.52}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces Solucion de problemas comunes en el chat}}{47}{table.caption.53}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {7.1}{\ignorespaces Temas visuales disponibles en SDC}}{50}{table.caption.52}%
-\contentsline {table}{\numberline {7.2}{\ignorespaces Parametros configurables de red}}{51}{table.caption.54}%
-\contentsline {table}{\numberline {7.3}{\ignorespaces Niveles de permisos de acceso}}{53}{table.caption.56}%
-\contentsline {table}{\numberline {7.4}{\ignorespaces Canales de actualizacion disponibles}}{54}{table.caption.58}%
-\contentsline {table}{\numberline {7.5}{\ignorespaces Datos tecnicos del sistema}}{56}{table.caption.60}%
-\contentsline {table}{\numberline {7.6}{\ignorespaces Opciones de cierre disponibles}}{58}{table.caption.62}%
+\contentsline {table}{\numberline {7.1}{\ignorespaces Temas visuales disponibles en SDC}}{50}{table.caption.55}%
+\contentsline {table}{\numberline {7.2}{\ignorespaces Parametros configurables de red}}{51}{table.caption.57}%
+\contentsline {table}{\numberline {7.3}{\ignorespaces Niveles de permisos de acceso}}{53}{table.caption.59}%
+\contentsline {table}{\numberline {7.4}{\ignorespaces Canales de actualizacion disponibles}}{54}{table.caption.61}%
+\contentsline {table}{\numberline {7.5}{\ignorespaces Datos tecnicos del sistema}}{56}{table.caption.63}%
+\contentsline {table}{\numberline {7.6}{\ignorespaces Opciones de cierre disponibles}}{58}{table.caption.65}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {A.1}{\ignorespaces Arquitectura multicapa de SDC}}{60}{table.caption.63}%
-\contentsline {table}{\numberline {A.2}{\ignorespaces Topologia de red del ecosistema SDC}}{61}{table.caption.64}%
-\contentsline {table}{\numberline {A.3}{\ignorespaces Puertos y protocolos utilizados por SDC}}{62}{table.caption.65}%
-\contentsline {table}{\numberline {A.4}{\ignorespaces Algoritmos criptograficos implementados}}{62}{table.caption.66}%
-\contentsline {table}{\numberline {A.5}{\ignorespaces Codigos de error estandar de SDC}}{63}{table.caption.67}%
+\contentsline {table}{\numberline {A.1}{\ignorespaces Arquitectura multicapa de SDC}}{60}{table.caption.66}%
+\contentsline {table}{\numberline {A.2}{\ignorespaces Topologia de red del ecosistema SDC}}{61}{table.caption.67}%
+\contentsline {table}{\numberline {A.3}{\ignorespaces Puertos y protocolos utilizados por SDC}}{62}{table.caption.68}%
+\contentsline {table}{\numberline {A.4}{\ignorespaces Algoritmos criptograficos implementados}}{62}{table.caption.69}%
+\contentsline {table}{\numberline {A.5}{\ignorespaces Codigos de error estandar de SDC}}{63}{table.caption.70}%
 \contentsfinish 
 \contentsfinish 

@@ -47,6 +47,20 @@ pub fn run() {
             app.manage(DbState(Mutex::new(conn)));
             app.manage(ConnectionTask(Mutex::new(None)));
             // println!("✅ [Tauri] Setup finalizado correctamente.");
+
+            #[cfg(target_os = "windows")]
+            if let Some(window) = app.get_webview_window("main") {
+                // Esto le dice al motor de Edge (WebView2) que ignore errores de SSL en localhost
+                // Útil si tu iframe apunta a servicios locales con certificados auto-firmados.
+                let _ = window.with_webview(|webview| unsafe {
+                    let _ = webview
+                        .controller()
+                        .CoreWebView2()
+                        .unwrap()
+                        .add_ProcessFailed(|_, _| Ok(()));
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -93,6 +107,7 @@ pub fn run() {
             commands::security::get_mailbox_messages,
             commands::security::create_mailbox_message,
             commands::security::update_mailbox_status,
+            commands::security::delete_mailbox_message,
             commands::security::get_security_config,
             commands::security::update_security_config,
             commands::security::get_proxy_routes,

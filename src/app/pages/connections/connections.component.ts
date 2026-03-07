@@ -11,6 +11,7 @@ import { FormsModule } from "@angular/forms";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { SdcService } from "../../core/services/sdc.service";
+import { SnapService } from "../../core/services/snap.service";
 
 interface Connection {
   id?: number;
@@ -23,6 +24,7 @@ interface Connection {
   wss_host?: string;
   wss_port?: number;
   is_connected?: boolean;
+  jwt?: string;
 }
 
 @Component({
@@ -60,6 +62,7 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
   connProgress: number = 0;
   connStatusMsg: string = "";
 
+
   // Confetti Modal
   showWelcomeModal: boolean = false;
 
@@ -76,7 +79,7 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
   pendingAction: (() => void) | null = null;
   confirmBtnParams: { text: string; class: string; icon: string } = {
     text: "Confirmar",
-    class: "btn-modal-confirm",
+    class: "btn-setup-next",
     icon: "fa-check",
   };
 
@@ -84,7 +87,8 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
 
   constructor(
     private cdr: ChangeDetectorRef,
-    private sdcService: SdcService
+    private sdcService: SdcService,
+    private snapService: SnapService
   ) { }
 
   requestConfirm(
@@ -101,7 +105,7 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
     } else {
       this.confirmBtnParams = {
         text: "Confirmar",
-        class: "btn-modal-confirm",
+        class: "btn-setup-next",
         icon: "fa-check",
       };
     }
@@ -166,6 +170,20 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
       }
       this.cdr.detectChanges();
     });
+
+    // Listen to authorization status
+    listen("connection-authorized", (event: any) => {
+      const payload = event.payload;
+      if (payload && payload.jwt) {
+        // If the currently edited connection is the one connected, update its local JWT too
+        if (this.form.is_connected) {
+          this.form.jwt = payload.jwt;
+        }
+        this.loadSavedConnections();
+        this.openFeedback("success", "Acceso Concedido", "Se han otorgado los permisos necesarios. JWT seguro almacenado.");
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   // Sync the currently edited form with the updated list status
@@ -190,8 +208,9 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
     }
   }
 
-  copyId() {
+  copyId(event: MouseEvent) {
     navigator.clipboard.writeText(this.clientId);
+    this.snapService.show("ID Copiado", event);
   }
 
   async loadSavedConnections() {
@@ -303,7 +322,7 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
       },
       {
         text: "Eliminar",
-        class: "btn-modal-confirm connected-btn",
+        class: "btn-danger",
         icon: "fa-trash",
       },
     );
@@ -367,7 +386,7 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
       },
       {
         text: "Desconectar",
-        class: "btn-modal-confirm connected-btn",
+        class: "btn-danger",
         icon: "fa-unlink",
       },
     );

@@ -197,7 +197,10 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
             return Response::builder()
                 .status(200)
                 .header("Access-Control-Allow-Origin", "*")
-                .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+                .header(
+                    "Access-Control-Allow-Methods",
+                    "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+                )
                 .header("Access-Control-Allow-Headers", "*")
                 .header("Access-Control-Max-Age", "86400")
                 .body(Vec::new())
@@ -286,7 +289,7 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
     let conn_guard = state.0.lock().ok()?; // Handle lock error gracefully
 
     // 1. Try to find explicitly connected
-    let mut query = "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected FROM connections WHERE is_connected = 1 LIMIT 1";
+    let mut query = "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected, jwt FROM connections WHERE is_connected = 1 LIMIT 1";
 
     let mut result = conn_guard
         .query_row(query, [], |row| {
@@ -303,6 +306,7 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
                 wss_host: row.get(7).ok(),
                 wss_port: row.get(8).ok(),
                 is_connected: Some(is_connected),
+                jwt: row.get(10).ok(),
             })
         })
         .optional()
@@ -312,7 +316,7 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
     // This allows the proxy to work even if the UI state desynced, acting as a "Best Effort" gateway.
     if result.is_none() {
         println!("⚠️ [Proxy] No active connection marked in DB. Attempting fallback to first available...");
-        query = "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected FROM connections LIMIT 1";
+        query = "SELECT id, name, ip_address, port, username, password, last_connected, wss_host, wss_port, is_connected, jwt FROM connections LIMIT 1";
 
         result = conn_guard
             .query_row(query, [], |row| {
@@ -331,6 +335,7 @@ fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
                     wss_port: row.get(8).ok(),
                     // We conceptually treat is as connected for the proxy attempt
                     is_connected: Some(is_connected),
+                    jwt: row.get(10).ok(),
                 })
             })
             .optional()
@@ -551,7 +556,7 @@ fn proxy_to_remote(
     // Asegurar Origin y Referer consistentes con el destino remoto para evitar bloqueos CORS
     let target_origin = format!("https://{}:{}", remote_ip, remote_port);
     req_builder = req_builder.header("Origin", &target_origin);
-    
+
     // Forward Body
     let body_bytes = request.body().clone();
     if !body_bytes.is_empty() {
@@ -588,7 +593,10 @@ fn proxy_to_remote(
     // 3. Inyectar nuestros headers permisivos ("Engaño" al navegador)
     Ok(response_builder
         .header("Access-Control-Allow-Origin", "*")
-        .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+        .header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+        )
         .header("Access-Control-Allow-Headers", "*")
         .header("X-Frame-Options", "ALLOWALL")
         .header("Referrer-Policy", "unsafe-url") // 🚀 IMPORTANTE: Forzar al navegador a enviar el Referer completo siempre

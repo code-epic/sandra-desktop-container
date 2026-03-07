@@ -122,7 +122,9 @@ pub async fn start_remote_listener(
 
                 while let Some(msg) = ws_stream.next().await {
                     match msg {
-                        Ok(Message::Text(text)) => process_command(&text, &app_handle),
+                        Ok(Message::Text(text)) => {
+                            process_command(&text, &app_handle, connection_id)
+                        }
                         Ok(Message::Close(_)) => {
                             println!("🔌 Servidor cerró la conexión.");
                             let _ = app_handle.emit("connection-status", "disconnected");
@@ -178,7 +180,7 @@ fn set_db_disconnected(app_handle: &AppHandle, connection_id: Option<i64>) {
     // Aquí lock_result cae fuera de scope y libera el Mutex automáticamente
 }
 
-fn process_command(text: &str, app_handle: &AppHandle) {
+fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64>) {
     println!("📩 [WS] Mensaje CRUDO recibido: {}", text);
 
     if let Ok(json) = serde_json::from_str::<Value>(text) {
@@ -249,6 +251,47 @@ fn process_command(text: &str, app_handle: &AppHandle) {
 
                 // También emitimos al frontend
                 let _ = app_handle.emit("system-notification", &json);
+            }
+            "access" => {
+                println!("🔑 [WS] Acceso concedido, recibiendo JWT...");
+                if let Some(jwt) = json["message"].as_str() {
+                    // Update Database
+                    if let Some(id) = connection_id {
+                        let state = app_handle.state::<DbState>();
+                        let lock_res = state.0.lock();
+                        if let Ok(conn) = lock_res {
+                            let _ = conn.execute(
+                                "UPDATE connections SET jwt = ?1 WHERE id = ?2",
+                                rusqlite::params![jwt, id],
+                            );
+                            println!(
+                                "💾 [WS] JWT guardado en base de datos para la conexión {}",
+                                id
+                            );
+                        }
+                    }
+
+                    // Push Notification
+                    use tauri_plugin_notification::NotificationExt;
+                    let mut builder = app_handle.notification().builder();
+                    builder = builder
+                        .title("Acceso Autorizado")
+                        .body("Se ha otorgado el acceso seguro a la conexión.")
+                        .sound("Default");
+                    let _ = builder.show();
+
+                    // Global App Event (chat / system messages)
+                    let access_payload = serde_json::json!({
+                        "type": "chat",
+                        "message": "Permisos necesarios otorgados. Acceso seguro establecido.",
+                        "from": "SISTEMA",
+                        "jwt": jwt,
+                    });
+                    let _ = app_handle.emit("connection-authorized", &json);
+                    let _ = app_handle.emit("chat-message", &access_payload);
+                } else {
+                    println!("❌ [WS] Mensaje 'access' sin campo 'jwt'");
+                }
             }
             "chat" => {
                 println!("💬 [WS] Redirigiendo mensaje al sistema de Chat...");
