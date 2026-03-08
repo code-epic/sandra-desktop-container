@@ -1938,6 +1938,7 @@ input:checked+.slider:before {
   margin-bottom: 35px;
 }
 
+/* --- Brand Section --- */
 .header-brand {
   display: flex;
   flex-direction: column;
@@ -1949,17 +1950,7 @@ input:checked+.slider:before {
   font-size: 1.8rem;
   letter-spacing: -0.5px;
   color: #5d6d7e;
-}
-
-.brand-main {
-  font-weight: 700;
-  color: #455a64;
-}
-
-.brand-sub {
-  font-weight: 300;
-  color: #b0bec5;
-  margin-left: 6px;
+  /* Gris azulado suave */
 }
 
 .header-actions {
@@ -2010,18 +2001,7 @@ input:checked+.slider:before {
   color: #546e7a !important;
 }
 
-.brand-main {
-  font-weight: 700 !important;
-  color: #37474f !important;
-}
 
-.brand-sub {
-  font-weight: 400 !important;
-  color: #b0bec5 !important;
-  margin-left: 8px !important;
-  font-size: 1.2rem !important;
-  /* Subtítulo más ligero */
-}
 
 /* Botón "Nueva App" - Estilo Verde Pastel (Sandra Theme) */
 .btn-header-action {
@@ -2226,4 +2206,15 @@ input:checked+.slider:before {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+
+.brand-main {
+  font-weight: 700;
+}
+
+.brand-sub {
+  font-weight: 300;
+  color: #b0bec5;
+  /* Gris muy claro pastel */
 }

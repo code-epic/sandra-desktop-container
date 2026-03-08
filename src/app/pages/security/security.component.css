@@ -25,17 +25,6 @@
   margin-bottom: 35px;
 }
 
-.brand-main {
-  font-weight: 700;
-}
-
-.brand-sub {
-  font-weight: 300;
-  color: #b0bec5;
-  /* Gris muy claro pastel */
-}
-
-
 /* --- Brand Section --- */
 .header-brand {
   display: flex;
@@ -50,6 +39,19 @@
   color: #5d6d7e;
   /* Gris azulado suave */
 }
+
+
+.brand-main {
+  font-weight: 700;
+}
+
+.brand-sub {
+  font-weight: 300;
+  color: #b0bec5;
+  /* Gris muy claro pastel */
+}
+
+
 
 .security-content-inner {
   padding: 1.5rem 2rem 0.5rem 2rem;

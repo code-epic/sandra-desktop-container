@@ -46,9 +46,9 @@ export class LoginModalComponent implements OnInit {
 
   @ViewChild("otp0") otp0!: ElementRef;
 
-  constructor() {}
+  constructor() { }
 
-  ngOnInit() {}
+  ngOnInit() { }
 
   async login() {
     if (!this.usuario || !this.clave) return;
@@ -59,7 +59,7 @@ export class LoginModalComponent implements OnInit {
     this.errorMessage = "";
 
     try {
-      const endpoint = "v1/api/wusuario/loginV2";
+      const endpoint = "v1/api/wusuario/loginPC";
 
       // Obtener el hash de la última conexión validada (o generarlo si es estático)
       // Como workaround, lo generaremos on-the-fly si no tenemos acceso directo al hash pero sí a la IP
@@ -88,13 +88,13 @@ export class LoginModalComponent implements OnInit {
 
       if (response && response.token !== "") {
         const token = response.token;
-
         // Decodificar el JWT para verificar si requiere 2FA (TOTP)
         let totpRequired = false;
         try {
           const payloadPart = token.split(".")[1];
-          const decodedPayload = JSON.parse(atob(payloadPart));
+          const decodedPayload = JSON.parse(atob(payloadPart)).Usuario;
           // Si el JWT contiene un atributo 'token' no vacío, significa que el login requiere 2FA
+          console.log("Decoded payload:", decodedPayload);
           if (
             decodedPayload &&
             decodedPayload.token &&
@@ -143,7 +143,7 @@ export class LoginModalComponent implements OnInit {
           const parsed = JSON.parse(match[0]);
           if (parsed && parsed.msj) return parsed.msj;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     return fallbackStr;
   }
@@ -166,11 +166,11 @@ export class LoginModalComponent implements OnInit {
     this.loading = true;
 
     try {
-      const endpoint = "v1/api/wusuario/verify_totp";
+      const endpoint = "v1/api/wusuario/vtotpPC";
 
       let currentHash = localStorage.getItem("sdc_ui_config")
         ? JSON.parse(localStorage.getItem("sdc_ui_config")!).connection_hash ||
-          ""
+        ""
         : "";
       if (!currentHash) {
         currentHash = await invoke("get_hash_preview", {
@@ -179,8 +179,7 @@ export class LoginModalComponent implements OnInit {
       }
 
       const payload = {
-        token: this.tempToken,
-        totp_code: this.otpCode,
+        Codigo: this.otpCode,
       };
 
       const response: any = await invoke("api_post_request", {
@@ -192,15 +191,14 @@ export class LoginModalComponent implements OnInit {
         tempAuthToken: this.tempToken,
       });
 
-      if (response && response.status === "success") {
+      if (response && response.msj === "Ok") {
         this.showTotpSection = false;
         this.verifying = true;
-        this.handleSuccess(response.token || this.tempToken);
+        this.handleSuccess(this.tempToken);
       } else {
         throw new Error("TOTP Invalid");
       }
     } catch (err: any) {
-      console.error("TOTP error (Tauri API)", err);
       this.isOtpInvalid = true;
       this.loading = false;
       const msg = this.extractErrorMessage(

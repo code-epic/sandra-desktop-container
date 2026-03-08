@@ -323,13 +323,13 @@
         <h3 class="modal-title-clean" style="text-align: center; margin-top: 20px;">{{ genericModal.title }}</h3>
         <p class="modal-msg-clean" style="text-align: center; padding: 0 10px; margin-bottom: 25px;">{{
           genericModal.message }}</p>
-       
+
       </div>
-       <div class="modal-actions-spread" >
-          <!-- Dynamically color the button depending on the type and ensure it is green/accept for success/info -->
-          <button [ngClass]="genericModal.type === 'error' ? 'btn-modal-confirm' : 'btn-modal-save'"
-            (click)="closeGenericModal()">Aceptar</button>
-        </div>
+      <div class="modal-actions-spread">
+        <!-- Dynamically color the button depending on the type and ensure it is green/accept for success/info -->
+        <button [ngClass]="genericModal.type === 'error' ? 'btn-modal-confirm' : 'btn-modal-save'"
+          (click)="closeGenericModal()">Aceptar</button>
+      </div>
     </div>
   </div>
 
@@ -387,8 +387,10 @@
 
       <h2 class="modal-title">{{ exitModal.closing ? 'Cerrando Sistema' : '¿Deseas Salir?' }}</h2>
       <p class="modal-message">
-        {{ exitModal.closing ? 'Cerrando conexión segura con Sandra Server...' : 'Se finalizarán todas las tareas y
-        sesiones activas del terminal.' }}
+        {{ exitModal.closing ?
+        'Cerrando conexión segura con Sandra Server...' :
+        'Se finalizarán todas las tareas y sesiones activas del terminal.'
+        }}
       </p>
 
       <div class="exit-loader" *ngIf="exitModal.closing">
@@ -412,8 +414,9 @@
           </div>
         </div>
         <h3 class="modal-title-clean" style="text-align: center;">{{ questionModal.title }}</h3>
-        <p class="modal-msg-clean" style="text-align: center; white-space: pre-wrap; margin-bottom: 25px;">{{ questionModal.message }}</p>
-        
+        <p class="modal-msg-clean" style="text-align: center; white-space: pre-wrap; margin-bottom: 25px;">{{
+          questionModal.message }}</p>
+
         <div class="modal-actions-spread">
           <button class="btn-modal-save" (click)="questionModal.onConfirm()">{{ questionModal.confirmText }}</button>
           <button class="btn-modal-cancel" (click)="questionModal.onCancel()">{{ questionModal.cancelText }}</button>
@@ -432,14 +435,15 @@
           </div>
         </div>
         <h3 class="modal-title-clean" style="text-align: center;">Seguridad JWT</h3>
-        
+
         <div class="jwt-description-box">
           <i class="fas fa-info-circle jwt-desc-icon"></i>
           <p class="jwt-description-text">
-            Configure la persistencia del token de seguridad. Esto permitirá que su sesión se mantenga activa según sus preferencias de privacidad.
+            Configure la persistencia del token de seguridad. Esto permitirá que su sesión se mantenga activa según sus
+            preferencias de privacidad.
           </p>
         </div>
-        
+
         <div class="jwt-setup-group">
           <label class="jwt-setup-label">Almacenamiento de Token</label>
           <div class="jwt-input-wrapper">
@@ -459,7 +463,7 @@
             <input type="text" [(ngModel)]="config.access.jwtVariableName" placeholder="Nombre de la clave (ej: token)">
           </div>
         </div>
-        
+
         <div class="modal-actions-spread" style="padding: 0 30px 10px;">
           <button class="btn-modal-save" (click)="confirmJwtSetup()" style="flex: 1.5;">Configurar y Activar</button>
           <button class="btn-modal-cancel" (click)="showJwtSetupModal = false" style="flex: 1;">Luego</button>
@@ -473,13 +477,9 @@
   </div>
 
   <!-- LOGIN MODAL (JWT Session) -->
-  <app-login-modal *ngIf="showLoginModal" 
-                   [ipAddress]="loginIpAddress" 
-                   [port]="loginPort" 
-                   [storageTarget]="config.access.jwtStorage" 
-                   [variableName]="config.access.jwtVariableName"
-                   (onClose)="showLoginModal = false"
-                   (onLoginSuccess)="handleLoginSuccess($event)">
+  <app-login-modal *ngIf="showLoginModal" [ipAddress]="loginIpAddress" [port]="loginPort"
+    [storageTarget]="config.access.jwtStorage" [variableName]="config.access.jwtVariableName"
+    (onClose)="showLoginModal = false" (onLoginSuccess)="handleLoginSuccess($event)">
   </app-login-modal>
 
   <!-- Global Snap Message (Subtle Feedback at cursor) -->

@@ -515,7 +515,6 @@ pub async fn api_post_request(
         }
     }
 
-    println!("Headers: {:?}", headers);
     let res = client
         .post(&url)
         .headers(headers)
