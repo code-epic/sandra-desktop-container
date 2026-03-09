@@ -18,7 +18,9 @@ interface ChatMessage {
 }
 
 import { WebSocketService } from "../../core/services/websocket.service";
+import { SdcService } from "../../core/services/sdc.service";
 import { Subscription } from "rxjs";
+import { invoke } from "@tauri-apps/api/core";
 
 @Component({
   selector: "app-chat",
@@ -30,6 +32,9 @@ import { Subscription } from "rxjs";
 export class ChatComponent implements OnInit, AfterViewChecked {
   private chatSub?: Subscription;
   @Input() wsStatus: string = "Desconectado";
+  @Input() activeConnection: any;
+  @Input() config: any;
+  @Input() clientId: string = "";
   @ViewChild("scrollContainer") privatescrollContainer!: ElementRef;
 
   isOpen = false;
@@ -39,7 +44,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   isTyping = false;
   unreadCount = 0;
 
-  constructor(private wsService: WebSocketService) { }
+  constructor(
+    private wsService: WebSocketService,
+    private sdcService: SdcService
+  ) { }
 
   ngOnInit() {
     // Escuchar mensajes reales del WebSocket
@@ -80,28 +88,75 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  sendMessage() {
+  async sendMessage() {
     if (!this.newMessage.trim()) return;
 
-    // Add User Message
+    const userText = this.newMessage;
+    this.newMessage = "";
+
+    // Add User Message UI
     this.messages.push({
-      text: this.newMessage,
+      text: userText,
       sender: "user",
       timestamp: new Date(),
     });
 
-    const userText = this.newMessage;
-    this.newMessage = "";
     this.isTyping = true;
     this.scrollToBottom();
 
-    // Simulate AI Processing & Typing Effect
+    // 1. Send via API (Tauri api_post_request)
+    console.log(this.activeConnection);
+    if (this.activeConnection && this.config) {
+      try {
+        const endpoint = "v1/api/sandra_send-message";
+        const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+        const token = storage.getItem(this.config.access.jwtVariableName);
+
+        let fromValue = "Anonymous";
+        if (token) {
+          try {
+            const payloadPart = token.split(".")[1];
+            const decoded = JSON.parse(atob(payloadPart));
+            // User requested: From: JWT.usuario.login_session
+            fromValue = decoded.Usuario?.login_session || decoded.Usuario?.Nombre || "SandraUser";
+          } catch (e) {
+            console.error("Error decoding JWT for chat", e);
+          }
+        }
+
+        const payload = {
+          Type: "chat",
+          ID: "", // Se envía el clientId (Session ID) como solicitó el usuario
+          Message: userText,
+          From: this.clientId,
+          To: "xterm",
+          Timestamp: new Date().toISOString(),
+          Status: "pending" // Conservar status
+        };
+
+        console.log(payload);
+
+        await this.sdcService.apiPostRequest(
+          this.activeConnection.ip_address,
+          this.activeConnection.port,
+          endpoint,
+          payload,
+          this.activeConnection.hash,
+          token
+        );
+      } catch (err) {
+        console.error("Error sending message via API:", err);
+      }
+    }
+
+    // 2. Simulate AI Processing & Typing Effect locally (or wait for WS response)
+    // For now keep the simulation as fallback or until WS event confirms
     setTimeout(
       () => {
         this.simulateResponse(userText);
       },
       1000 + Math.random() * 1000,
-    ); // 1-2s delay
+    );
   }
 
   simulateResponse(userQuery: string) {

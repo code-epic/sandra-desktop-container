@@ -395,6 +395,9 @@ pub async fn disconnect_from_server(
                 [id],
             );
         }
+
+        // El usuario solicitó limpiar los JWT de TODAS las conexiones al desconectar/cerrar sesión
+        let _ = conn.execute("UPDATE connections SET jwt = NULL", []);
     }
 
     // 3. Notify Server
@@ -515,6 +518,8 @@ pub async fn api_post_request(
         }
     }
 
+    println!("Headers: {:#?}", headers);
+
     let res = client
         .post(&url)
         .headers(headers)
@@ -525,6 +530,10 @@ pub async fn api_post_request(
 
     let status = res.status();
     let text = res.text().await.unwrap_or_default();
+
+    println!("Response: {}", text);
+    println!("Status: {}", status);
+    println!("URL: {}", url);
 
     if !status.is_success() {
         return Err(format!("HTTP Error {}: {}", status.as_u16(), text));

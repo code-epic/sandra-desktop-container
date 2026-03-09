@@ -346,7 +346,8 @@
     (close)="showControlPanel = false">
   </app-config>
 
-  <app-chat [wsStatus]="wsStatus"></app-chat>
+  <app-chat [wsStatus]="wsStatus" [activeConnection]="activeConnection" [config]="config"
+    [clientId]="clientId"></app-chat>
 
   <!-- SETUP WIZARD OVERLAY -->
   <app-setup-wizard *ngIf="showSetupWizard" [stats]="stats" [networkInfo]="networkInfo"
@@ -387,10 +388,15 @@
 
       <h2 class="modal-title">{{ exitModal.closing ? 'Cerrando Sistema' : '¿Deseas Salir?' }}</h2>
       <p class="modal-message">
-        {{ exitModal.closing ?
-        'Cerrando conexión segura con Sandra Server...' :
-        'Se finalizarán todas las tareas y sesiones activas del terminal.'
-        }}
+        <ng-container *ngIf="exitModal.closing; else notClosingMsg">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <span style="font-size: 1.1em; font-weight: 500; color: #455A64;">{{ logoutStep }}</span>
+            <span style="font-size: 0.85em; color: #90A4AE;">Por favor espere...</span>
+          </div>
+        </ng-container>
+        <ng-template #notClosingMsg>
+          Se finalizarán todas las tareas y sesiones activas del terminal.
+        </ng-template>
       </p>
 
       <div class="exit-loader" *ngIf="exitModal.closing">
@@ -478,7 +484,8 @@
 
   <!-- LOGIN MODAL (JWT Session) -->
   <app-login-modal *ngIf="showLoginModal" [ipAddress]="loginIpAddress" [port]="loginPort"
-    [storageTarget]="config.access.jwtStorage" [variableName]="config.access.jwtVariableName"
+    [connections]="loginConnections" [requireLogin]="requireJwtLogin" [storageTarget]="config.access.jwtStorage"
+    [variableName]="config.access.jwtVariableName" (onConnectionSelect)="handleConnectionSelect($event)"
     (onClose)="showLoginModal = false" (onLoginSuccess)="handleLoginSuccess($event)">
   </app-login-modal>
 

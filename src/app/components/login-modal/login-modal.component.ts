@@ -25,10 +25,15 @@ export class LoginModalComponent implements OnInit {
   @Input() storageTarget: string = "localStorage";
   @Input() variableName: string = "token";
 
+  @Input() connections: any[] = [];
+  @Input() requireLogin: boolean = true;
+
   @Output() onClose = new EventEmitter<void>();
   @Output() onLoginSuccess = new EventEmitter<string>();
+  @Output() onConnectionSelect = new EventEmitter<any>();
 
   showModal: boolean = true;
+  showConnectionSelector: boolean = false;
   isHidden: boolean = true;
   showTotpSection: boolean = false;
   verifying: boolean = false;
@@ -48,7 +53,23 @@ export class LoginModalComponent implements OnInit {
 
   constructor() { }
 
-  ngOnInit() { }
+  ngOnInit() {
+    if (this.connections && this.connections.length > 0) {
+      this.showConnectionSelector = true;
+    }
+  }
+
+  selectConnection(conn: any) {
+    this.ipAddress = conn.ip_address;
+    this.port = Number(conn.port);
+    this.onConnectionSelect.emit(conn);
+
+    if (this.requireLogin) {
+      this.showConnectionSelector = false;
+    } else {
+      this.closeModal();
+    }
+  }
 
   async login() {
     if (!this.usuario || !this.clave) return;
