@@ -46,6 +46,16 @@ pub struct ProxyRoute {
     pub is_active: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AuthorizationTicket {
+    pub auth_id: String,
+    pub payload: String,
+    pub content: String,
+    pub status: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}
+
 // --- Commands: Mailbox ---
 
 #[tauri::command]
@@ -419,4 +429,105 @@ pub fn encrypt_device_context(
     secret_key: String,
 ) -> Result<String, String> {
     crate::sha256::Sha256Service::encrypt_device_context(&context, &secret_key)
+}
+
+// --- Commands: Authorization Tickets ---
+
+#[tauri::command]
+pub fn register_authorization_ticket(
+    state: State<DbState>,
+    auth_id: String,
+    payload: String,
+    content: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO authorization_tickets (auth_id, payload, content) VALUES (?1, ?2, ?3)",
+        (auth_id, payload, content),
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_authorization_tickets(state: State<DbState>) -> Result<Vec<AuthorizationTicket>, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT auth_id, payload, content, status, created_at, updated_at FROM authorization_tickets ORDER BY created_at DESC")
+        .map_err(|e| e.to_string())?;
+
+    let tickets = stmt
+        .query_map([], |row| {
+            Ok(AuthorizationTicket {
+                auth_id: row.get(0)?,
+                payload: row.get(1)?,
+                content: row.get(2)?,
+                status: row.get(3)?,
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(tickets)
+}
+
+#[tauri::command]
+pub fn update_authorization_ticket_status(
+    state: State<DbState>,
+    auth_id: String,
+    status: String,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE authorization_tickets SET status = ?1, updated_at = CURRENT_TIMESTAMP WHERE auth_id = ?2",
+        (status, auth_id),
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_authorization_ticket(state: State<DbState>, auth_id: String) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM authorization_tickets WHERE auth_id = ?1",
+        [auth_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn process_hsf_authorization(
+    state: State<DbState>,
+    auth_id: String,
+    key: String,
+) -> Result<String, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+
+    // 1. Obtener el payload encriptado de la tabla authorization_tickets
+    let payload: String = conn
+        .query_row(
+            "SELECT payload FROM authorization_tickets WHERE auth_id = ?1",
+            [&auth_id],
+            |row| row.get(0),
+        )
+        .map_err(|_| format!("No se encontró el ticket de autorización para el ID proporcionado: {}", auth_id))?;
+
+    // 2. Desencriptar el payload usando la llave provista
+    let decrypted = crate::crypto::decrypt_string(&payload, &key)
+        .map_err(|e| format!("Error al desencriptar el ticket de autorización: {}", e))?;
+
+    // 3. Actualizar el estado a 'Procesado'
+    conn.execute(
+        "UPDATE authorization_tickets SET status = 'Procesado', updated_at = CURRENT_TIMESTAMP WHERE auth_id = ?1",
+        [&auth_id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // 4. Devolver la información desencriptada
+    Ok(decrypted)
 }

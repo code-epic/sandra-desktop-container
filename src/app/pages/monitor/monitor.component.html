@@ -1,24 +1,66 @@
 <div class="canvas-monitor">
     <div class="monitor-header">
-        <h1 class="page-title">
-            <span class="brand-main">Sandra</span> <span class="brand-sub">Monitor</span>
-        </h1>
-        <div class="monitor-controls">
-            <select class="app-select" [(ngModel)]="currentAppFilter" (change)="refreshLogs()">
-                <option value="all">Todas las Apps</option>
-                <option *ngFor="let app of apps" [value]="app">{{ app }}</option>
-            </select>
-            <input type="text" placeholder="Filtrar logs..." class="search-input" [(ngModel)]="filterText">
-            <button class="btn-action refresh" (click)="refreshLogs()" title="Actualizar"><i class="fas fa-sync-alt"
-                    [class.fa-spin]="loading"></i></button>
-            <button class="btn-action transfer" (click)="openTransferModal()" title="Transferir Reporte"><i
-                    class="fas fa-file-export"></i></button>
-            <button class="btn-action clear" (click)="requestClearLogs()" title="Limpiar Base de Datos"><i
-                    class="fas fa-trash-alt"></i></button>
+        <div class="header-top">
+            <h1 class="page-title">
+                <span class="brand-main">Sandra</span> <span class="brand-sub">Analytics</span>
+            </h1>
+            <div class="monitor-controls">
+                <!-- Controls for Logs Tab -->
+                <ng-container *ngIf="activeTab === 'logs'">
+                    <select class="app-select" [(ngModel)]="currentAppFilter" (change)="refreshLogs()">
+                        <option value="all">Todas las Apps</option>
+                        <option *ngFor="let app of apps" [value]="app">{{ app }}</option>
+                    </select>
+                    <input type="text" placeholder="Filtrar logs..." class="search-input" [(ngModel)]="filterText">
+                    <button class="btn-action refresh" (click)="refreshLogs()" title="Actualizar"><i class="fas fa-sync-alt"
+                            [class.fa-spin]="loading"></i></button>
+                    <button class="btn-action clear" (click)="requestClearLogs()" title="Limpiar Base de Datos"><i
+                            class="fas fa-trash-alt"></i></button>
+                </ng-container>
+
+                <!-- Controls for Notifications Tab -->
+                <ng-container *ngIf="activeTab === 'notifications'">
+                    <button class="btn-action refresh" (click)="loadNotifications()" title="Actualizar"><i
+                            class="fas fa-sync-alt" [class.fa-spin]="loadingNotifications"></i></button>
+                </ng-container>
+
+                <!-- Controls for Tickets Tab -->
+                <ng-container *ngIf="activeTab === 'tickets'">
+                    <select class="app-select" [(ngModel)]="ticketStatusFilter">
+                        <option value="all">Todo</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="en proceso">En Proceso</option>
+                        <option value="procesado">Procesados</option>
+                    </select>
+                    <button class="btn-action refresh" (click)="loadTickets()" title="Actualizar"><i class="fas fa-sync-alt"
+                            [class.fa-spin]="loadingTickets"></i></button>
+                </ng-container>
+
+                <button class="btn-action transfer" (click)="openTransferModal()" title="Transferir Reporte"><i
+                        class="fas fa-file-export"></i></button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation Bar -->
+        <div class="header-bottom">
+            <nav class="monitor-tabs">
+                <button class="tab-btn" [class.active]="activeTab === 'logs'" (click)="setTab('logs')">
+                    <i class="fas fa-terminal"></i> Monitor
+                </button>
+                <button class="tab-btn" [class.active]="activeTab === 'notifications'" (click)="setTab('notifications')">
+                    <i class="fas fa-bell"></i> Notificaciones
+                    <span class="tab-badge" *ngIf="notifications.length > 0">{{ notifications.length }}</span>
+                </button>
+                <button class="tab-btn" [class.active]="activeTab === 'tickets'" (click)="setTab('tickets')">
+                    <i class="fas fa-ticket-alt"></i> Tickets
+                    <span class="tab-badge" *ngIf="tickets.length > 0">{{ tickets.length }}</span>
+                </button>
+            </nav>
         </div>
     </div>
 
-    <div class="monitor-table-container">
+    <!-- 1. Logs View -->
+    <div class="monitor-table-container scroll-stage" *ngIf="activeTab === 'logs'">
         <div class="table-scroll">
             <table class="monitor-table">
                 <thead>
@@ -46,6 +88,129 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- 2. Notifications View -->
+    <div class="notifications-container scroll-stage" *ngIf="activeTab === 'notifications'">
+        <div class="empty-state" *ngIf="!loadingNotifications && notifications.length === 0">
+            <i class="fas fa-envelope-open"></i>
+            <p>No hay notificaciones de seguridad.</p>
+        </div>
+        <div class="list-layout">
+            <div class="notification-card" *ngFor="let msg of notifications">
+                <div class="notify-icon" [ngClass]="msg.status.toLowerCase()">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="notify-content">
+                    <div class="notify-header">
+                        <span class="notify-auth">{{ msg.author }}</span>
+                        <span class="notify-time">{{ msg.created_at | date:'dd MMM yyyy, HH:mm' }}</span>
+                    </div>
+                    <div class="notify-sid">{{ msg.sid }}</div>
+                    <div class="notify-body">{{ msg.content.substring(0, 150) }}...</div>
+                </div>
+                <div class="notify-status">
+                    <span class="badge" [ngClass]="msg.status.toLowerCase()">{{ msg.status }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Tickets View (Full Table) -->
+    <div class="monitor-table-container scroll-stage" *ngIf="activeTab === 'tickets'">
+        <div class="table-scroll">
+            <table class="monitor-table tickets-table">
+                <thead>
+                    <tr>
+                        <th width="120">Auth ID</th>
+                        <th width="150">Fecha Creación</th>
+                        <th width="120">Tiempo</th>
+                        <th width="150">Estado</th>
+                        <th>Tipo de Dato</th>
+                        <th width="100">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let ticket of filteredTickets" class="log-row" (dblclick)="viewTicketDetails(ticket)">
+                        <td class="id-cell">#{{ ticket.auth_id }}</td>
+                        <td class="time-cell">{{ ticket.created_at | date:'dd/MM/yy HH:mm' }}</td>
+                        <td class="time-cell">{{ getTimeElapsed(ticket.created_at) }}</td>
+                        <td>
+                            <span class="badge" [ngClass]="ticket.status">{{ ticket.status }}</span>
+                        </td>
+                        <td class="msg-cell payload-preview">
+                            <span class="json-tag"><i class="fas fa-code"></i> JSON Payload</span>
+                        </td>
+                        <td class="actions-cell">
+                            <div class="ticket-table-actions">
+                                <button class="btn-table-action view" (click)="viewTicketDetails(ticket)" title="Ver Detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn-table-action delete" (click)="requestDeleteTicket(ticket)" title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Vacío / Cargando -->
+                    <tr *ngIf="!loadingTickets && tickets.length === 0">
+                        <td colspan="6" class="empty-cell">
+                            <div class="inline-empty">
+                                <i class="fas fa-ticket-alt"></i> No se encontraron tickets de autorización.
+                            </div>
+                        </td>
+                    </tr>
+                    <tr *ngIf="loadingTickets">
+                        <td colspan="6" class="empty-cell">Cargando tickets...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Ticket (Autorización) -->
+<div class="modal-overlay" *ngIf="selectedTicket">
+    <div class="modal-card log-detail-modal fade-in-up">
+        <button class="btn-close-modal-x" (click)="closeTicketModal()">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <h3 class="modal-title centered"><i class="fas fa-id-card-clip"></i> Detalle de Autorización</h3>
+
+        <div class="modal-body-scrollable">
+            <div class="log-detail-header">
+                <div class="detail-item">
+                    <span class="label">Auth ID</span>
+                    <span class="value">{{ selectedTicket.auth_id }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Estado</span>
+                    <span class="badge" [ngClass]="selectedTicket.status">{{ selectedTicket.status }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Solicitud</span>
+                    <span class="value">{{ selectedTicket.created_at | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <label>Estructura de Contenido (Original)</label>
+                <div class="code-block json-block">
+                    <pre>{{ formatJson(selectedTicket.content) }}</pre>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <label>Payload (Capa Encriptada)</label>
+                <div class="code-block payload-block">{{ selectedTicket.payload }}</div>
+            </div>
+
+            <div class="modal-actions single">
+                <button class="btn-modal-cancel" (click)="closeTicketModal()">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -167,6 +332,36 @@
         <div class="modal-actions">
             <button class="btn-modal-cancel" (click)="cancelClearLogs()">Cancelar</button>
             <button class="btn-modal-confirm delete-action" (click)="confirmClearLogs()">Eliminar Todo</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmación Eliminar Ticket (Elegante) -->
+<div class="modal-overlay" *ngIf="isDeleteModalOpen">
+    <div class="modal-card activity-modal fade-in-up">
+
+        <div class="modal-body-clean">
+            <div class="modal-visual-header error-header">
+                <div class="icon-pulse-wrapper error-pulse">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+            </div>
+
+            <h3 class="modal-title-clean">Eliminar Autorización</h3>
+
+            <p class="modal-msg-clean">
+                ¿Estás seguro de quitar el ticket <strong>#{{ ticketToDelete?.auth_id }}</strong>?
+                <br><span class="sub-text">Esta acción revocará la petición y eliminará el registro de la base de datos permanentemente.</span>
+            </p>
+
+            <div class="modal-actions-spread">
+                <button class="btn-modal-confirm elegant-delete" (click)="confirmDeleteTicket()">
+                    Quitar
+                </button>
+                <button class="btn-modal-cancel-elegant" (click)="cancelDeleteTicket()">
+                    Cancelar
+                </button>
+            </div>
         </div>
     </div>
 </div>

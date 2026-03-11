@@ -1,4 +1,5 @@
 pub mod apps;
+pub mod cifrado;
 pub mod connections;
 pub mod gpg;
 pub mod handler_error;

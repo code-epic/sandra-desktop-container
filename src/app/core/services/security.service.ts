@@ -36,6 +36,15 @@ export interface ProxyRoute {
     is_active: boolean;
 }
 
+export interface AuthorizationTicket {
+    auth_id: string;
+    payload: string;
+    content: string;
+    status: 'pendiente' | 'en proceso' | 'procesado' | 'notificado';
+    created_at: string;
+    updated_at: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -95,5 +104,18 @@ export class SecurityService {
 
     async deleteProxyRoute(id: number) {
         return invoke('delete_proxy_route', { id });
+    }
+
+    // --- Authorization Tickets ---
+    async getAuthorizationTickets(): Promise<AuthorizationTicket[]> {
+        return invoke('get_authorization_tickets');
+    }
+
+    async deleteAuthorizationTicket(authId: string) {
+        return invoke('delete_authorization_ticket', { authId });
+    }
+
+    async updateAuthorizationTicketStatus(authId: string, status: string) {
+        return invoke('update_authorization_ticket_status', { authId, status });
     }
 }

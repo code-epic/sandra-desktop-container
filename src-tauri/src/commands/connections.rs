@@ -518,7 +518,7 @@ pub async fn api_post_request(
         }
     }
 
-    println!("Headers: {:#?}", headers);
+    // println!("Headers: {:#?}", headers);
 
     let res = client
         .post(&url)
@@ -531,9 +531,9 @@ pub async fn api_post_request(
     let status = res.status();
     let text = res.text().await.unwrap_or_default();
 
-    println!("Response: {}", text);
-    println!("Status: {}", status);
-    println!("URL: {}", url);
+    // println!("Response: {}", text);
+    // println!("Status: {}", status);
+    // println!("URL: {}", url);
 
     if !status.is_success() {
         return Err(format!("HTTP Error {}: {}", status.as_u16(), text));

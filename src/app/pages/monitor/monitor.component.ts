@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { invoke } from "@tauri-apps/api/core";
 import { FormsModule } from '@angular/forms';
+import { SecurityService, MailboxMessage, AuthorizationTicket } from '../../core/services/security.service';
 
 interface AppLog {
     id?: number;
@@ -19,16 +20,93 @@ interface AppLog {
     templateUrl: './monitor.component.html',
     styleUrls: ['./monitor.component.css']
 })
-export class MonitorComponent implements OnInit {
+export class MonitorComponent implements OnInit, OnDestroy {
+    activeTab: 'logs' | 'notifications' | 'tickets' = 'logs';
+
+    // Logs Data
     logs: AppLog[] = [];
     loading = false;
     filterText = '';
     apps: string[] = ['App.SDC'];
     currentAppFilter = 'all';
 
+    // Notifications Data
+    notifications: MailboxMessage[] = [];
+    loadingNotifications = false;
+
+    // Tickets Data
+    tickets: AuthorizationTicket[] = [];
+    loadingTickets = false;
+    ticketStatusFilter: string = 'all';
+    selectedTicket: AuthorizationTicket | null = null;
+
+    constructor(private securityService: SecurityService) { }
+
+    currentTime: Date = new Date();
+    private timeInterval: any;
+
     async ngOnInit() {
         await this.loadInstalledApps();
-        this.refreshLogs();
+        this.refreshAll();
+        
+        // Actualizador de tiempo en vivo
+        this.timeInterval = setInterval(() => {
+            if (this.activeTab === 'tickets') {
+                this.currentTime = new Date();
+            }
+        }, 1000);
+    }
+
+    ngOnDestroy() {
+        if (this.timeInterval) {
+            clearInterval(this.timeInterval);
+        }
+    }
+
+    async refreshAll() {
+        await Promise.all([
+            this.refreshLogs(),
+            this.loadNotifications(),
+            this.loadTickets()
+        ]);
+    }
+
+    async loadNotifications() {
+        this.loadingNotifications = true;
+        try {
+            const result = await this.securityService.getMailboxMessages();
+            this.notifications = result.map(n => {
+                if (n.created_at && n.created_at.length === 19 && n.created_at.includes(' ')) {
+                    n.created_at = n.created_at.replace(' ', 'T') + 'Z';
+                }
+                return n;
+            });
+        } catch (error) {
+            console.error('Error loading notifications:', error);
+        } finally {
+            this.loadingNotifications = false;
+        }
+    }
+
+    async loadTickets() {
+        this.loadingTickets = true;
+        try {
+            const result = await this.securityService.getAuthorizationTickets();
+            this.tickets = result.map(t => {
+                if (t.created_at && t.created_at.length === 19 && t.created_at.includes(' ')) {
+                    t.created_at = t.created_at.replace(' ', 'T') + 'Z';
+                }
+                return t;
+            });
+        } catch (error) {
+            console.error('Error loading tickets:', error);
+        } finally {
+            this.loadingTickets = false;
+        }
+    }
+
+    setTab(tab: 'logs' | 'notifications' | 'tickets') {
+        this.activeTab = tab;
     }
 
     async loadInstalledApps() {
@@ -136,6 +214,74 @@ export class MonitorComponent implements OnInit {
 
     closeModal() {
         this.selectedLog = null;
+    }
+
+    get filteredTickets() {
+        if (this.ticketStatusFilter === 'all') return this.tickets;
+        return this.tickets.filter(t => t.status === this.ticketStatusFilter);
+    }
+
+    getTimeElapsed(dateStr: string | undefined): string {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        const diffMs = this.currentTime.getTime() - date.getTime();
+        if (diffMs < 0) return '00:00';
+        
+        const diffSecsTotal = Math.floor(diffMs / 1000);
+        const diffMins = Math.floor(diffSecsTotal / 60);
+        const diffSecs = diffSecsTotal % 60;
+        
+        return `${diffMins.toString().padStart(2, '0')}:${diffSecs.toString().padStart(2, '0')}`;
+    }
+
+    ticketToDelete: AuthorizationTicket | null = null;
+    isDeleteModalOpen = false;
+
+    requestDeleteTicket(ticket: AuthorizationTicket) {
+        this.ticketToDelete = ticket;
+        this.isDeleteModalOpen = true;
+    }
+
+    cancelDeleteTicket() {
+        this.ticketToDelete = null;
+        this.isDeleteModalOpen = false;
+    }
+
+    async confirmDeleteTicket() {
+        if (!this.ticketToDelete) return;
+        try {
+            await this.securityService.deleteAuthorizationTicket(this.ticketToDelete.auth_id);
+            await this.loadTickets();
+        } catch (error) {
+            console.error('Error deleting ticket:', error);
+        } finally {
+            this.cancelDeleteTicket();
+        }
+    }
+
+    async updateTicketStatus(authId: string, status: any) {
+        try {
+            await this.securityService.updateAuthorizationTicketStatus(authId, status);
+            await this.loadTickets();
+        } catch (error) {
+            console.error('Error updating ticket status:', error);
+        }
+    }
+
+    viewTicketDetails(ticket: AuthorizationTicket) {
+        this.selectedTicket = ticket;
+    }
+
+    closeTicketModal() {
+        this.selectedTicket = null;
+    }
+
+    formatJson(jsonStr: string): string {
+        try {
+            return JSON.stringify(JSON.parse(jsonStr), null, 2);
+        } catch {
+            return jsonStr;
+        }
     }
 
     get filteredLogs() {

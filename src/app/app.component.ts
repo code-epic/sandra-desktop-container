@@ -160,6 +160,9 @@ export class AppComponent implements OnInit {
   snapMessage: SnapData | null = null;
   showSnap: boolean = false;
 
+  // Track MessagePorts for Secure Authorizations
+  authPorts = new Map<string, MessagePort>();
+
   questionModal = {
     show: false,
     title: "",
@@ -284,6 +287,41 @@ export class AppComponent implements OnInit {
           this.wsStatus = "Reintentando";
         } else if (s === "error") {
           this.wsStatus = "Desconectado";
+        }
+      });
+    });
+
+    // HSF (High Security) Authorization Event
+    await listen("hsf", async (event: any) => {
+      this.zone.run(async () => {
+        try {
+          // El payload es el string JSON crudo recibido del websocket
+          const msgData = JSON.parse(event.payload as string);
+          const authId = msgData.message; // authId enviado en message
+          const key = msgData.from; // key enviada en from
+
+          console.log(`🛡️ [Sec] Intento de autorización HSF para ${authId}`);
+
+          const decryptedData = await invoke<string>("process_hsf_authorization", {
+            authId,
+            key
+          });
+
+          this.snapService.show("Autorización Aprobada", undefined, "success");
+
+          // Notificar a la app hija si guardamos su puerto
+          const port = this.authPorts.get(authId);
+          if (port) {
+            port.postMessage({
+              type: "AUTORIZACION_APROBADA",
+              authId,
+              data: decryptedData
+            });
+            this.authPorts.delete(authId);
+          }
+        } catch (e: any) {
+          console.error("Error procesando autorización HSF:", e);
+          this.snapService.show("Fallo en Desencriptación", undefined, "error");
         }
       });
     });
@@ -1239,6 +1277,40 @@ export class AppComponent implements OnInit {
         await this.handlePdfHack(payload.fileName, payload.data, payload.meta);
         break;
 
+      case "SOLICITAR_AUTORIZACION":
+        try {
+          const { authId, payload, content } = event.data;
+          
+          // Convert content to string if it's an object, as Rust expects a String
+          const contentStr = typeof content === 'object' ? JSON.stringify(content) : content;
+          
+          await invoke("register_authorization_ticket", {
+            authId,
+            payload,
+            content: contentStr,
+          });
+
+          // Save the message port to reply back later
+          if (event.ports && event.ports.length > 0) {
+            this.authPorts.set(authId, event.ports[0]);
+          }
+
+          this.snapService.show(
+            "Autorización Registrada (Estatus: Pendiente)",
+            undefined,
+            "success",
+          );
+
+        } catch (e: any) {
+          console.error("Error al registrar autorización en Rust:", e);
+          this.snapService.show(
+            "Error al registrar autorización",
+            undefined,
+            "error",
+          );
+        }
+        break;
+
       default:
         break;
     }
@@ -1435,9 +1507,10 @@ export class AppComponent implements OnInit {
       // HIDE HISTORY BUTTON
       tab.isSavedToHistory = true;
 
-      this.showModal(
-        "Historial Actualizado",
-        `El documento se ha guardado correctamente en el historial.`,
+      this.snapService.show(
+        "Guardado en Historial",
+        undefined,
+        "success",
       );
     } catch (e: any) {
       console.error("History save error:", e);
@@ -1514,9 +1587,10 @@ export class AppComponent implements OnInit {
         jobTitle: tab.name || "SandraDocument.pdf",
       });
 
-      this.showModal(
-        "Impresión Enviada",
-        "El documento ha sido enviado a la impresora predeterminada del sistema.",
+      this.snapService.show(
+        "Enviado a impresora",
+        undefined,
+        "success",
       );
     } catch (e) {
       console.error("Print Error:", e);

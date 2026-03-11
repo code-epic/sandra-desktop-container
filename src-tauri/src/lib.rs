@@ -119,6 +119,13 @@ pub fn run() {
             commands::security::sha256_hash,
             commands::security::hmac_sha256,
             commands::security::encrypt_device_context,
+            commands::security::register_authorization_ticket,
+            commands::security::get_authorization_tickets,
+            commands::security::delete_authorization_ticket,
+            commands::security::update_authorization_ticket_status,
+            commands::security::process_hsf_authorization,
+            commands::cifrado::aplicar_capa_seguridad,
+            commands::cifrado::remover_capa_seguridad,
             commands::gpg::encrypt_gpg_symmetric_raw,
             commands::gpg::decrypt_gpg_symmetric_file_raw
         ])

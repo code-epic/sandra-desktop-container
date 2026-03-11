@@ -229,10 +229,29 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         "INSERT OR IGNORE INTO config (key, value) VALUES ('machine_description', '')",
         [],
     );
-    let _ = conn.execute(
-        "INSERT OR IGNORE INTO config (key, value) VALUES ('machine_area', '')",
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS high_security (
+            auth_id TEXT PRIMARY KEY,
+            key TEXT NOT NULL,
+            user TEXT,
+            tiempo DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
         [],
-    );
+    )
+    .map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS authorization_tickets (
+            auth_id TEXT PRIMARY KEY,
+            payload TEXT,
+            content TEXT,
+            status TEXT DEFAULT 'pendiente', -- pendiente, en proceso, procesado, notificado
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
 
     Ok(())
 }

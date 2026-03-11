@@ -37,6 +37,7 @@ pub async fn start_remote_listener(
 
     let connector = Connector::NativeTls(tls_builder.build().unwrap());
     let mut attempt_count = 0;
+    let mut delay = 1;
 
     // Emit initial status
     let _ = app_handle.emit("connection-status", "connecting");
@@ -89,16 +90,17 @@ pub async fn start_remote_listener(
 
         attempt_count += 1;
         println!(
-            "🔄 Intentando conectar a Sandra Server (Attempt {})...",
+            "Intentando conectar a Sandra Server (Attempt {})...",
             attempt_count
         );
 
         match connect_async_tls_with_config(&final_url, None, false, Some(connector.clone())).await
         {
             Ok((mut ws_stream, _)) => {
-                println!("📡 Conectado exitosamente");
+                println!("Conectado exitosamente");
                 let _ = app_handle.emit("connection-status", "connected");
                 attempt_count = 0; // Reset on success
+                delay = 1;         // Restaurar el backoff rápido al conectar exitosamente
 
                 // Recolectar estadísticas y cifrarlas para el primer mensaje
                 let stats = collect_system_stats();
@@ -115,49 +117,61 @@ pub async fn start_remote_listener(
                             if let Ok(json_str) = serde_json::to_string(&initial_payload) {
                                 if let Err(e) = ws_stream.send(Message::Text(json_str.into())).await
                                 {
-                                    eprintln!("❌ Error enviando mensaje inicial cifrado: {}", e);
+                                    eprintln!("Error enviando mensaje inicial cifrado: {}", e);
                                 } else {
-                                    println!("🚀 Mensaje inicial cifrado enviado a Go");
+                                    println!("Mensaje inicial cifrado enviado a Go");
                                 }
                             }
                         }
-                        Err(e) => eprintln!("❌ Error cifrando payload inicial: {}", e),
+                        Err(e) => eprintln!("Error cifrando payload inicial: {}", e),
                     }
                 }
 
-                while let Some(msg) = ws_stream.next().await {
-                    match msg {
-                        Ok(Message::Text(text)) => {
-                            process_command(&text, &app_handle, connection_id)
+                let mut heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+
+                loop {
+                    tokio::select! {
+                        msg = ws_stream.next() => {
+                            match msg {
+                                Some(Ok(Message::Text(text))) => {
+                                    process_command(&text, &app_handle, connection_id)
+                                }
+                                Some(Ok(Message::Pong(_))) => { 
+                                    // El servidor Go respondió al Latido
+                                }
+                                Some(Ok(Message::Close(_))) | Some(Err(_)) | None => {
+                                    println!("Conexión perdida o cerrada remotamente (Zombie detectado).");
+                                    let _ = app_handle.emit("connection-status", "disconnected");
+                                    set_db_disconnected(&app_handle, connection_id);
+                                    break;
+                                }
+                                _ => {}
+                            }
                         }
-                        Ok(Message::Close(_)) => {
-                            println!("🔌 Servidor cerró la conexión.");
-                            let _ = app_handle.emit("connection-status", "disconnected");
-                            set_db_disconnected(&app_handle, connection_id);
-                            break;
+                        _ = heartbeat_interval.tick() => {
+                            if let Err(e) = ws_stream.send(Message::Ping(vec![].into())).await {
+                                eprintln!("Fallo al enviar Ping (Heartbeat Zombie): {}", e);
+                                let _ = app_handle.emit("connection-status", "error");
+                                set_db_disconnected(&app_handle, connection_id);
+                                break;
+                            }
                         }
-                        Err(_) => {
-                            let _ = app_handle.emit("connection-status", "error");
-                            set_db_disconnected(&app_handle, connection_id);
-                            break;
-                        }
-                        _ => {}
                     }
                 }
             }
             Err(e) => {
-                eprintln!("❌ Error de handshake: {}", e);
+                eprintln!("Error de handshake: {}", e);
                 let _ = app_handle.emit("connection-status", "error");
                 // Important: If handshake fails, mark as disconnected in DB so UI updates
                 set_db_disconnected(&app_handle, connection_id);
 
+                let sleep_time = std::cmp::min(delay * 2, 60); 
+                delay = sleep_time; 
+
                 if attempt_count >= 3 {
-                    println!("⚠️ Demasiados intentos fallidos. Abortando auto-reconexion rapida.");
-                    // In a real app we might want to wait longer or stop.
-                    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-                } else {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    println!("Demasiados intentos fallidos. Aplicando backoff de {}s.", delay);
                 }
+                tokio::time::sleep(tokio::time::Duration::from_secs(delay as u64)).await;
             }
         }
     }
@@ -186,22 +200,22 @@ fn set_db_disconnected(app_handle: &AppHandle, connection_id: Option<i64>) {
 }
 
 fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64>) {
-    println!("📩 [WS] Mensaje CRUDO recibido: {}", text);
+    println!("[WS] Mensaje CRUDO recibido: {}", text);
 
     if let Ok(json) = serde_json::from_str::<Value>(text) {
         // Estructura Plana: { "type": "chat", "id": "...", "message": "...", "from": "..." }
         let msg_type = json["type"].as_str().unwrap_or("unknown");
-        println!("🔍 [WS] Tipo de mensaje detectado: {}", msg_type);
+        println!("[WS] Tipo de mensaje detectado: {}", msg_type);
 
         match msg_type {
             "notification" => {
-                println!("🔔 [WS] Procesando Notificación Nativa...");
+                println!("[WS] Procesando Notificación Nativa...");
                 use tauri_plugin_notification::NotificationExt;
 
                 // Verificar estado de permisos (diagnóstico)
                 let permission_state = app_handle.notification().permission_state();
                 println!(
-                    "🔐 [WS] Estado de permiso de notificación: {:?}",
+                    "[WS] Estado de permiso de notificación: {:?}",
                     permission_state
                 );
 
@@ -235,8 +249,8 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
                 }
 
                 if let Some(ref path) = icon_path {
-                    println!("🖼️ [WS] Ruta final del icono: {:?}", path);
-                    println!("❓ [WS] ¿Existe el icono?: {}", path.exists());
+                    println!("[WS] Ruta final del icono: {:?}", path);
+                    println!("[WS] ¿Existe el icono?: {}", path.exists());
                 }
 
                 let mut builder = app_handle.notification().builder();
@@ -250,15 +264,15 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
 
                 builder
                     .show()
-                    .unwrap_or_else(|e| println!("❌ Error mostrando notificación: {}", e));
+                    .unwrap_or_else(|e| println!("Error mostrando notificación: {}", e));
 
-                println!("🚀 [WS] Notificación enviada al sistema operativo.");
+                println!("[WS] Notificación enviada al sistema operativo.");
 
                 // También emitimos al frontend
                 let _ = app_handle.emit("system-notification", &json);
             }
             "access" => {
-                println!("🔑 [WS] Acceso concedido, recibiendo JWT...");
+                println!("[WS] Acceso concedido, recibiendo JWT...");
                 if let Some(jwt) = json["message"].as_str() {
                     // Update Database
                     if let Some(id) = connection_id {
@@ -270,7 +284,7 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
                                 rusqlite::params![jwt, id],
                             );
                             println!(
-                                "💾 [WS] JWT guardado en base de datos para la conexión {}",
+                                "[WS] JWT guardado en base de datos para la conexión {}",
                                 id
                             );
                         }
@@ -295,47 +309,51 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
                     let _ = app_handle.emit("connection-authorized", &json);
                     let _ = app_handle.emit("chat-message", &access_payload);
                 } else {
-                    println!("❌ [WS] Mensaje 'access' sin campo 'jwt'");
+                    println!("[WS] Mensaje 'access' sin campo 'jwt'");
                 }
             }
             "chat" => {
-                println!("💬 [WS] Redirigiendo mensaje al sistema de Chat...");
+                println!("[WS] Redirigiendo mensaje al sistema de Chat...");
                 // Mensaje plano para el componente de Chat
                 let _ = app_handle.emit("chat-message", &json);
             }
             "operation" => {
-                println!("⚙️ [WS] Ejecutando operación de sistema...");
+                println!("[WS] Ejecutando operación de sistema...");
                 // Acciones de sistema (reboot, updates, etc)
                 match json["cmd"].as_str() {
                     Some("reboot") => execute_system_reboot(),
                     Some("status") => { /* Responder con stats */ }
-                    _ => println!("📩 Operación desconocida: {:?}", json),
+                    _ => println!("Operación desconocida: {:?}", json),
                 }
                 let _ = app_handle.emit("operation-event", &json);
             }
             "welcome" => {
-                println!("👋 [WS] Servidor dio la bienvenida");
+                println!("[WS] Servidor dio la bienvenida");
                 let _ = app_handle.emit("server-welcome", &json);
             }
+            "hsf" => {
+                println!("[WS] Alta Seguridad Encontrada");
+                let _ = app_handle.emit("hsf", &json);
+            }
             _ => {
-                println!("⚠️ [WS] Tipo desconocido o legacy. Buscando 'cmd'...");
+                println!("[WS] Tipo desconocido o legacy. Buscando 'cmd'...");
                 // Compatibilidad con comandos antiguos (id-less o legacy)
                 if let Some(cmd) = json["cmd"].as_str() {
-                    println!("🏷️ [WS] Comando legacy encontrado: {}", cmd);
+                    println!("[WS] Comando legacy encontrado: {}", cmd);
                     match cmd {
                         "reboot" => execute_system_reboot(),
                         "welcome" => {
                             let _ = app_handle.emit("server-welcome", &json);
                         }
-                        _ => println!("📩 Comando legacy detectado: {}", cmd),
+                        _ => println!("Comando legacy detectado: {}", cmd),
                     }
                 } else {
-                    println!("📩 [WS] No se pudo determinar la acción para el mensaje");
+                    println!("[WS] No se pudo determinar la acción para el mensaje");
                 }
             }
         }
     } else {
-        println!("❌ [WS] Falló el parseo de JSON: {}", text);
+        println!("[WS] Falló el parseo de JSON: {}", text);
     }
 }
 
