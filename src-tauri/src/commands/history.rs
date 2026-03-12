@@ -9,6 +9,8 @@ pub struct DocumentHistoryItem {
     id: i32,
     file_name: String,
     file_path: String,
+    file_size: Option<String>,
+    remote_code: Option<String>,
     opened_at: String,
 }
 
@@ -18,6 +20,8 @@ pub fn add_document_history(
     db_state: State<DbState>,
     file_name: String,
     file_path: String,
+    file_size: Option<String>,
+    remote_code: Option<String>,
 ) -> Result<(), String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
@@ -56,8 +60,8 @@ pub fn add_document_history(
     };
 
     conn.execute(
-        "INSERT INTO document_history (file_name, file_path) VALUES (?1, ?2)",
-        params![file_name, final_path],
+        "INSERT INTO document_history (file_name, file_path, file_size, remote_code) VALUES (?1, ?2, ?3, ?4)",
+        params![file_name, final_path, file_size, remote_code],
     )
     .map_err(|e| e.to_string())?;
 
@@ -69,7 +73,7 @@ pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHist
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, file_name, file_path, opened_at FROM document_history ORDER BY opened_at DESC LIMIT 20")
+        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code FROM document_history ORDER BY opened_at DESC LIMIT 20")
         .map_err(|e| e.to_string())?;
 
     let history_iter = stmt
@@ -79,6 +83,8 @@ pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHist
                 file_name: row.get(1)?,
                 file_path: row.get(2)?,
                 opened_at: row.get(3)?,
+                file_size: row.get(4)?,
+                remote_code: row.get(5)?,
             })
         })
         .map_err(|e| e.to_string())?;

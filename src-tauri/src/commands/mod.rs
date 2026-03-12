@@ -1,6 +1,8 @@
+pub mod api;
 pub mod apps;
 pub mod cifrado;
 pub mod connections;
+pub mod file_upload;
 pub mod gpg;
 pub mod handler_error;
 pub mod history;

@@ -464,7 +464,12 @@ export class SecureViewerComponent {
             });
 
             if (this.gpgUnlockSaveToHistory) {
-                invoke('add_document_history', { fileName: this.gpgUnlockFileName, filePath: this.gpgUnlockFilePath })
+                invoke('add_document_history', { 
+                    fileName: this.gpgUnlockFileName, 
+                    filePath: this.gpgUnlockFilePath,
+                    fileSize: 'Locked',
+                    remoteCode: ''
+                })
                     .then(() => this.loadHistory())
                     .catch(err => console.error("Error saving history:", err));
             }
@@ -647,6 +652,8 @@ export class SecureViewerComponent {
             let viewerType: any = 'pdf-viewer';
             let dataUriPrefix = 'data:application/pdf;base64,';
             let iconClass = 'fas fa-file-pdf';
+        let fileSize = '0 KB';
+        let remoteCode = '';
 
             if (cleanName.endsWith('.csv')) { mimeType = 'text/csv'; viewerType = 'file-viewer'; dataUriPrefix = 'data:text/csv;base64,'; iconClass = 'fas fa-file-csv'; }
             else if (cleanName.endsWith('.txt')) { mimeType = 'text/plain'; viewerType = 'file-viewer'; dataUriPrefix = 'data:text/plain;base64,'; iconClass = 'fas fa-file-alt'; }
@@ -663,6 +670,8 @@ export class SecureViewerComponent {
             const blob = new Blob([byteArray], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+            fileSize = (byteArray.length / 1024).toFixed(1) + ' KB';
+            remoteCode = ''; // Not available here
 
             const isSse = cleanName.endsWith('.sse');
             if (isSse || cleanName.endsWith('.pdf')) {
@@ -692,7 +701,12 @@ export class SecureViewerComponent {
 
             // 4. Save to History (Async)
             if (saveToHistory) {
-                invoke('add_document_history', { fileName: this.fileName, filePath: path })
+                invoke('add_document_history', { 
+                    fileName: this.fileName, 
+                    filePath: path,
+                    fileSize: fileSize,
+                    remoteCode: remoteCode
+                })
                     .then(() => this.loadHistory())
                     .catch(err => console.error("Error saving history:", err));
             }

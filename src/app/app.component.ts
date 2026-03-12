@@ -59,7 +59,7 @@ interface DesktopApp {
     DashboardComponent,
     ConnectionsComponente,
     SecurityComponent,
-    MonitorComponent,
+    MonitorComponent, // Monitor de sistema seguro
     StorageComponent,
     InspectorComponent,
     ConfigComponent,
@@ -94,6 +94,7 @@ export class AppComponent implements OnInit {
 
   wsStatus: ConnectionStatus = "Desconectado";
   attemptNumber: number = 0;
+  pendingTicketsCount: number = 0;
 
   installModal = {
     show: false,
@@ -256,11 +257,21 @@ export class AppComponent implements OnInit {
     });
   }
 
+  async loadPendingTicketsCount() {
+    try {
+      const tickets: any[] = await invoke("get_authorization_tickets");
+      this.pendingTicketsCount = tickets.filter(t => t.status === "pendiente").length;
+    } catch (e) {
+      console.warn("Error al cargar tickets pendientes:", e);
+    }
+  }
+
   async ngOnInit() {
     this.loadConfig();
     this.loadApps(); // Load dynamic apps
     this.checkSidebarResponsive(window.innerWidth);
     this.refreshStats();
+    this.loadPendingTicketsCount();
     // Modificado: Ejecutar solo si estamos en Dashboard y cada 5 minutos
     setInterval(() => {
       if (this.currentTabId === "dashboard") {
@@ -307,6 +318,7 @@ export class AppComponent implements OnInit {
             key
           });
 
+          this.pendingTicketsCount = Math.max(0, this.pendingTicketsCount - 1);
           this.snapService.show("Autorización Aprobada", undefined, "success");
 
           // Notificar a la app hija si guardamos su puerto
@@ -392,6 +404,11 @@ export class AppComponent implements OnInit {
     );
     this.showLoginModal = false;
 
+    // Sincronizar la conexión visual para que se le permita el paso
+    if (this.activeConnection) {
+        this.activeConnection.jwt = token;
+    }
+
     // Si había una redirección pendiente
     if (this.pendingNavTab) {
       this.appState.setActiveTab(this.pendingNavTab);
@@ -405,26 +422,29 @@ export class AppComponent implements OnInit {
     const protectedTabs = ["security", "monitor"];
 
     if (protectedTabs.includes(tabId)) {
-      // Check if JWT token exists
+      if (!this.activeConnection) {
+        this.showModal(
+          "Sin Conexión Activa",
+          "Para autorizar el acceso a zonas protegidas, primero debe Conectar un servidor desde el Inicio."
+        );
+        return;
+      }
+
+      // Check if JWT token exists in storage AND in the current connection object
       const storage =
         this.config.access.jwtStorage === "sessionStorage"
           ? sessionStorage
           : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
+      
+      const connectionHasJwt = this.activeConnection.jwt && this.activeConnection.jwt.length > 0;
 
-      if (!token) {
+      // Si no existe token en storage o la conexión no tiene el JWT en su estado
+      if (!token || !connectionHasJwt) {
         if (!this.config.access.enableJwtSession) {
           this.showModal(
             "Acceso Restringido",
             "Esta sección requiere un token JWT válido. Primero active la 'Sesión JWT' en Configuración.",
-          );
-          return;
-        }
-
-        if (!this.activeConnection) {
-          this.showModal(
-            "Sin Conexión Activa",
-            "Para autorizar el acceso a zonas protegidas y mostrar el Login, primero debe Conectar un servidor desde el Inicio.",
           );
           return;
         }
@@ -1295,11 +1315,7 @@ export class AppComponent implements OnInit {
             this.authPorts.set(authId, event.ports[0]);
           }
 
-          this.snapService.show(
-            "Autorización Registrada (Estatus: Pendiente)",
-            undefined,
-            "success",
-          );
+          this.pendingTicketsCount++;
 
         } catch (e: any) {
           console.error("Error al registrar autorización en Rust:", e);
@@ -1687,7 +1703,7 @@ export class AppComponent implements OnInit {
   }
 
   selectTab(tabId: string) {
-    this.appState.setActiveTab(tabId);
+    this.handleNavigationRequest(tabId);
   }
 
   async confirmCloseTab(shouldSave: boolean) {

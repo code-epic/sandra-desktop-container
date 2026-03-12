@@ -4,7 +4,6 @@
   "description": "Capability for the main window",
   "windows": ["main"],
   "permissions": [
-    "core:default",
     "opener:default",
     "dialog:default",
     "shell:default",
@@ -12,6 +11,7 @@
     "notification:default",
     "fs:allow-download-write",
     "fs:allow-temp-write",
+    "core:default",
     "fs:allow-appdata-read",
     "fs:allow-appdata-write",
     "fs:allow-desktop-read",
@@ -28,7 +28,8 @@
         "$TEMP/**",
         "$APPDATA/**",
         "$DESKTOP/**",
-        "$DOCUMENT/**"
+        "$DOCUMENT/**",
+        "$HOME/**"
       ]
     }
   ]

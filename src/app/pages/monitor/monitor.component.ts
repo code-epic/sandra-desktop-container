@@ -4,7 +4,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { FormsModule } from '@angular/forms';
 import { SecurityService, MailboxMessage, AuthorizationTicket } from '../../core/services/security.service';
 
-interface AppLog {
+interface MonitorSdcConfig {
+    access: {
+        jwtStorage: 'localStorage' | 'sessionStorage';
+        jwtVariableName: string;
+    };
+}
+
+interface MonitorLog {
     id?: number;
     app_id: string;
     log_type: string;
@@ -24,7 +31,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
     activeTab: 'logs' | 'notifications' | 'tickets' = 'logs';
 
     // Logs Data
-    logs: AppLog[] = [];
+    logs: MonitorLog[] = [];
     loading = false;
     filterText = '';
     apps: string[] = ['App.SDC'];
@@ -46,6 +53,8 @@ export class MonitorComponent implements OnInit, OnDestroy {
     private timeInterval: any;
 
     async ngOnInit() {
+        if (!this.checkAuth()) return;
+
         await this.loadInstalledApps();
         this.refreshAll();
         
@@ -55,6 +64,27 @@ export class MonitorComponent implements OnInit, OnDestroy {
                 this.currentTime = new Date();
             }
         }, 1000);
+    }
+
+    private checkAuth(): boolean {
+        const configStr = localStorage.getItem('sdc_ui_config');
+        if (configStr) {
+            try {
+                const config: MonitorSdcConfig = JSON.parse(configStr);
+                const storage = config.access.jwtStorage === 'sessionStorage' ? sessionStorage : localStorage;
+                const token = storage.getItem(config.access.jwtVariableName);
+                
+                if (!token) {
+                    console.warn("Monitor: Acceso denegado. Token no encontrado.");
+                    // Redirección manejada por AppComponent para evitar dependencias circulares
+                    return false;
+                }
+            } catch (e) {
+                console.error("Error validando auth en Monitor", e);
+                return false;
+            }
+        }
+        return true;
     }
 
     ngOnDestroy() {
@@ -130,17 +160,14 @@ export class MonitorComponent implements OnInit, OnDestroy {
         this.logs = [];
 
         try {
-            // Si selecciona 'all', buscamos en todas las apps conocidas.
             let appsToFetch = this.currentAppFilter === 'all' ? this.apps : [this.currentAppFilter];
-            let allLogs: AppLog[] = [];
+            let allLogs: MonitorLog[] = [];
 
             for (const appId of appsToFetch) {
-                const appLogs = await invoke<AppLog[]>('get_app_logs', { appId });
+                const appLogs = await invoke<MonitorLog[]>('get_app_logs', { appId });
                 allLogs = [...allLogs, ...appLogs];
             }
 
-
-            // Ordenar por fecha descendente
             this.logs = allLogs.sort((a, b) => {
                 const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
                 const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -154,7 +181,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
         }
     }
 
-    selectedLog: AppLog | null = null;
+    selectedLog: MonitorLog | null = null;
     isConfirmModalOpen = false;
     isTransferModalOpen = false;
 
@@ -207,8 +234,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
         this.isTransferModalOpen = false;
     }
 
-    viewLogDetails(log: AppLog) {
-        console.info(log)
+    viewLogDetails(log: MonitorLog) {
         this.selectedLog = log;
     }
 

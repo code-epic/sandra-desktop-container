@@ -3176,3 +3176,418 @@ input:checked+.slider {
 }
 
 /* End of Security Styles */
+
+@keyframes pulse-upload {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.att-pill-modern.uploading {
+  border: 1px dashed #6366f1;
+  background: rgba(99, 102, 241, 0.05);
+  animation: pulse-upload 2s infinite ease-in-out;
+}
+
+.upload-status-info {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6366f1;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.upload-status-info.success {
+  color: #10b981;
+}
+
+.upload-status-info.error {
+  color: #ef4444;
+}
+
+/* Specific spinner styling for pills */
+.upload-status-info i {
+  font-size: 0.7rem;
+}
+
+.source-local.uploading .att-name {
+  color: #4f46e5;
+}
+
+.upload-status-info.pending {
+  color: #f59e0b;
+}
+
+/* --- Global Upload Overlay (Premium) --- */
+.global-upload-overlay {
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.upload-progress-card {
+  background: white;
+  border-radius: 24px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.upload-visual-v5 {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon-v5 {
+  font-size: 3rem;
+  color: #6366f1;
+  z-index: 2;
+}
+
+.upload-icon-v5.pulse {
+  animation: pulse-upload-v5 2s infinite ease-in-out;
+}
+
+@keyframes pulse-upload-v5 {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.upload-rings-v5 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ring-v5 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 4px solid #e2e8f0;
+  border-radius: 50%;
+  animation: ring-expand-v5 2s infinite cubic-bezier(0, 0.2, 0.8, 1);
+}
+
+.ring-v5:nth-child(2) {
+  animation-delay: -1s;
+}
+
+@keyframes ring-expand-v5 {
+  0% { transform: scale(0.6); opacity: 1; border-color: #6366f1; }
+  100% { transform: scale(1.4); opacity: 0; border-color: #a78bfa; }
+}
+
+.upload-title-v5 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.upload-subtitle-v5 {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+.upload-progress-container-v5 {
+  margin-bottom: 2rem;
+}
+
+.upload-progress-bar-v5 {
+  height: 12px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.upload-progress-fill-v5 {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a78bfa);
+  transition: width 0.3s ease;
+}
+
+.upload-percentage-v5 {
+  font-weight: 800;
+  color: #6366f1;
+  font-size: 1.2rem;
+}
+
+.upload-status-text-v5 {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* --- V5 Error Modal (macOS Style) --- */
+.error-v5 {
+  max-width: 420px !important;
+  background: #f1f1f1 !important; /* Slightly off-white/beige */
+  border-radius: 28px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+.error-v5-header {
+  padding: 2.5rem 0 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.error-folder-icon {
+  width: 100px;
+  height: 80px;
+  background: #3b82f6; /* Folder blue */
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.error-folder-icon::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  width: 40px;
+  height: 8px;
+  background: #3b82f6;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.error-folder-icon i {
+  font-size: 3rem;
+  color: white;
+}
+
+.modal-title-v5 {
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 0.8rem 0;
+}
+
+.v5-error-text {
+  font-size: 1.05rem;
+  color: #334155;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  padding: 0 30px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.modal-actions-v5 {
+  padding: 0 20px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-error-ok {
+  background: #3b82f6; /* macOS accent blue */
+  color: white;
+  border: none;
+  padding: 14px 0;
+  width: 100%;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-error-ok:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-error-ok:active {
+  transform: scale(0.98);
+}
+
+/* --- Reauth Modal (Estilo Sandra V5) --- */
+.auth-reauth-modal {
+  max-width: 440px !important;
+  background: white !important;
+  border-radius: 28px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4) !important;
+}
+
+.auth-header-v5 {
+    padding: 2.5rem 0 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+.auth-lock-icon {
+    width: 90px;
+    height: 90px;
+    background: #f1f5f9;
+    border: 3px solid #e2e8f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    font-size: 2.5rem;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.v5-reauth-text {
+    padding: 0 35px;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: #475569;
+    text-align: center;
+}
+
+.auth-form-v5 {
+    padding: 1.5rem 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reauth-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.reauth-input-group i {
+    position: absolute;
+    left: 18px;
+    color: #94a3b8;
+    z-index: 5;
+}
+
+.reauth-input {
+    width: 100%;
+    padding: 15px 15px 15px 50px;
+    border-radius: 16px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 1rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    color: #1e293b;
+}
+
+.reauth-input:focus {
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.modal-actions-v5.stacked {
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 30px 2.5rem;
+}
+
+.btn-reauth-confirm {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 18px;
+    border-radius: 16px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.2);
+}
+
+.btn-reauth-confirm:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -4px rgba(37, 99, 235, 0.3);
+}
+
+.btn-reauth-confirm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
+
+.btn-reauth-cancel {
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    padding: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.btn-reauth-cancel:hover {
+    color: #475569;
+    letter-spacing: 1px;
+}
+/* Mailbox Direction Toggle Group */
+.direction-toggle-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.direction-toggle-group .btn-toggle {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.direction-toggle-group .btn-toggle:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: #1E293B;
+}
+
+.direction-toggle-group .btn-toggle.active {
+  background: #ffffff;
+  color: #6366f1;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+

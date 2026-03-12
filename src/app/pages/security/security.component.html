@@ -27,10 +27,21 @@
             <div *ngIf="!selectedMessage && !isComposing" class="mailbox-sidebar glass-card full-width fade-in">
                 <div class="sidebar-toolbar">
                     <div class="toolbar-search">
-                        <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="resetPagination()"
+                        <input type="text" [(ngModel)]="searchText" (ngModelChange)="resetPagination()"
                             placeholder="Buscar por remitente o asunto..." class="input-dark search-input pl-icon">
                     </div>
                     <div class="toolbar-actions">
+                        <!-- Novedad: Selector de Bandeja Inbox/Outbox -->
+                        <div class="direction-toggle-group">
+                            <button class="btn-toggle" [class.active]="mailboxDirection === 'inbox'" (click)="mailboxDirection = 'inbox'; resetPagination()" title="Bandeja de Entrada">
+                                <i class="fas fa-inbox"></i> Recibidos
+                            </button>
+                            <button class="btn-toggle" [class.active]="mailboxDirection === 'outbox'" (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
+                                <i class="fas fa-paper-plane"></i> Enviados
+                            </button>
+                        </div>
+                        <div class="vertical-divider"></div>
+
                         <div class="filter-dropdown">
                             <select [(ngModel)]="statusFilter" (ngModelChange)="resetPagination()"
                                 class="input-dark filter-select">
@@ -190,15 +201,12 @@
                                 <label class="field-label-v4">Asunto</label>
                             </div>
                             <div class="input-wrapper-v4">
-                                <input type="text" [(ngModel)]="newMessage.sid"
+                                <input type="text" [(ngModel)]="newMessage.sid" (ngModelChange)="saveDraft()"
                                     placeholder="Referencia o ID del Caso..." class="input-clean-v4">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Hidden Input for File Upload -->
-                    <input type="file" id="pc-file-input" (change)="onFileSelected($event)" multiple
-                        style="display: none;" accept=".pdf,.txt,.doc,.docx,.zip,.rar,.sse,.png,.jpg,.jpeg">
 
                     <!-- Rich Text Toolbar -->
                     <div class="rich-editor-toolbar">
@@ -243,7 +251,7 @@
                     <!-- Contenteditable Editor -->
                     <div class="compose-body-editor">
                         <div #editor contenteditable="true" class="rich-textarea"
-                            (input)="editorContent = editor.innerHTML"
+                            (input)="editorContent = editor.innerHTML; saveDraft()" [innerHTML]="editorContent"
                             placeholder="Escriba el detalle del reporte aquí...">
                         </div>
                     </div>
@@ -252,12 +260,27 @@
                     <!-- Enhanced Detail Attachments V23 -->
                     <div class="compose-attachments-list" *ngIf="newMessage.attachments.length > 0">
                         <div *ngFor="let att of newMessage.attachments; let i = index" class="att-pill-modern fade-in"
-                            [ngClass]="att.source === 'LOCAL' ? 'source-local' : 'source-vault'">
-                            <i [class]="att.icon"></i>
+                            [ngClass]="att.status === 'UPLOADING' ? 'source-local uploading' : (att.source === 'LOCAL' ? 'source-local' : 'source-vault')">
+                            <i [class]="getFileIcon(att.extension || att.type || '')"
+                                (click)="previewSecureAttachment(att)" style="cursor: pointer;"></i>
                             <div class="att-info-block-v23" (click)="previewSecureAttachment(att)"
-                                title="Previsualizar documento">
+                                title="Previsualizar documento" style="cursor: pointer;">
                                 <span class="att-name">{{ att.name }}</span>
-                                <span class="att-meta-detail-v23">{{ att.type }} • {{ att.size || 'Local' }}</span>
+                                <span class="att-meta-detail-v23">
+                                    {{ att.extension || att.type || 'Archivo' }} • {{ att.size }}
+                                    <span *ngIf="att.status === 'PENDING'" class="upload-status-info pending">
+                                        <i class="fas fa-clock"></i> Pendiente
+                                    </span>
+                                    <span *ngIf="att.status === 'UPLOADING'" class="upload-status-info">
+                                        <i class="fas fa-circle-notch fa-spin"></i> {{ att.progress }}%
+                                    </span>
+                                    <span *ngIf="att.status === 'DONE'" class="upload-status-info success">
+                                        <i class="fas fa-check-double"></i> Listo
+                                    </span>
+                                    <span *ngIf="att.status === 'ERROR'" class="upload-status-info error">
+                                        <i class="fas fa-exclamation-triangle"></i> Falló
+                                    </span>
+                                </span>
                             </div>
                             <i class="fas fa-times remove-att" (click)="newMessage.attachments.splice(i, 1)"
                                 title="Eliminar adjunto"></i>
@@ -312,8 +335,10 @@
                             <span class="ribbon-title">Gobernanza y Trazabilidad Digital</span>
                         </div>
                         <div class="ribbon-toggle">
-                            <span class="toggle-status-text">{{ showTrace ? 'Ocultar Detalles' : 'Ver
-                                Certificación'
+                            <span class="toggle-status-text">{{
+                                showTrace ?
+                                'Ocultar Detalles' :
+                                'Ver Certificación'
                                 }}</span>
                             <i class="fas" [class.fa-chevron-down]="!showTrace" [class.fa-chevron-up]="showTrace"></i>
                         </div>
@@ -365,20 +390,20 @@
                                     title="Volver a la Bandeja">
                                     <i class="fas fa-arrow-left"></i>
                                 </button>
-                                <div class="vertical-divider"></div>
+                                <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox'"></div>
                                 <button class="btn-action-sm success"
                                     (click)="updateMessageStatus(selectedMessage, 'Approved')"
-                                    *ngIf="selectedMessage.status !== 'Approved'" title="Validar Documento">
+                                    *ngIf="selectedMessage.status !== 'Approved' && mailboxDirection !== 'outbox'" title="Validar Documento">
                                     <i class="fas fa-check"></i>
                                 </button>
                                 <button class="btn-action-sm danger"
                                     (click)="updateMessageStatus(selectedMessage, 'Rejected')"
-                                    *ngIf="selectedMessage.status !== 'Rejected'" title="Anular Registro">
+                                    *ngIf="selectedMessage.status !== 'Rejected' && mailboxDirection !== 'outbox'" title="Anular Registro">
                                     <i class="fas fa-times"></i>
                                 </button>
                                 <button class="btn-action-sm info"
                                     (click)="updateMessageStatus(selectedMessage, 'Read')"
-                                    *ngIf="selectedMessage.status !== 'Read'" title="Marcar como Visto">
+                                    *ngIf="selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'" title="Marcar como Visto">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -535,9 +560,11 @@
                         <p class="subtitle">Defina puntos de acceso seguros y políticas de retención de datos.
                         </p>
                     </div>
-                    <span class="badge" [class.info]="!isEditing" [class.warning]="isEditing">{{ isEditing ?
-                        'Modo
-                        Edición' : 'Interconexión Segura' }}</span>
+                    <span class="badge" [class.info]="!isEditing" [class.warning]="isEditing">{{
+                        isEditing ?
+                        'Modo Edición' :
+                        'Interconexión Segura'
+                        }}</span>
                 </div>
 
                 <div class="form-grid compact-grid proxy-grid-layout">
@@ -746,7 +773,7 @@
 
                     <div class="explorer-file-list-v5">
                         <div *ngFor="let doc of filteredSecureDocs" class="file-row-v5" (click)="selectSecureDoc(doc)">
-                            <div class="file-info-v5" [ngClass]="doc.type.toLowerCase()">
+                            <div class="file-info-v5" [ngClass]="(doc?.type || '').toLowerCase()">
                                 <i [class]="getFileIcon(doc.name.split('.').pop() || '')"></i>
                                 <span class="file-name-v5">{{ doc.name }}</span>
                             </div>
@@ -795,25 +822,86 @@
                 <button class="btn-modal-cancel" (click)="cancelSend()">Revisar</button>
             </div>
         </div>
-    </div>
-</div>
+        <!-- Modal Error de Envío (Estilo SandraDC Premium) -->
+        <div class="modal-overlay" *ngIf="showErrorModal">
+            <div class="modal-card activity-modal error-v5 fade-in-up">
+                <div class="modal-body-clean">
+                    <div class="modal-visual-header error-v5-header">
+                        <div class="error-folder-icon">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                    </div>
 
-<!-- Fullscreen Sending Overlay V22 -->
-<div class="fullscreen-sending-overlay-v22" *ngIf="isSending">
-    <div class="overlay-content-v22">
-        <div class="spinner-container-v22">
-            <div class="scanner-ring-v22"></div>
-            <i class="fas fa-shield-alt main-icon-v22 rotate-in"></i>
+                    <h3 class="modal-title-v5">SandraDC</h3>
+
+                    <p class="modal-msg-clean v5-error-text">
+                        {{ errorMessage }}
+                    </p>
+
+                    <div class="modal-actions-v5">
+                        <button class="btn-error-ok" (click)="closeErrorModal()">
+                            OK
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal Re-Autenticación (403 Handling) -->
+            <div class="modal-overlay" *ngIf="showReauthModal">
+                <div class="modal-card auth-reauth-modal fade-in-up">
+                    <div class="modal-body-clean">
+                        <div class="modal-visual-header auth-header-v5">
+                            <div class="auth-lock-icon">
+                                <i class="fas fa-user-lock"></i>
+                            </div>
+                        </div>
+
+                        <h3 class="modal-title-v5">Validación de Identidad</h3>
+
+                        <p class="modal-msg-clean v5-reauth-text">
+                            {{ errorMessage }}
+                        </p>
+
+                        <div class="auth-form-v5">
+                            <div class="reauth-input-group">
+                                <i class="fas fa-user"></i>
+                                <input type="text" [(ngModel)]="reauthUsername" placeholder="Nombre de Usuario"
+                                    class="reauth-input">
+                            </div>
+                            <div class="reauth-input-group">
+                                <i class="fas fa-key"></i>
+                                <input type="password" [(ngModel)]="reauthPassword" placeholder="Contraseña de Acceso"
+                                    class="reauth-input" (keyup.enter)="retryAfterAuth()">
+                            </div>
+                        </div>
+
+                        <div class="modal-actions-v5 stacked">
+                            <button class="btn-reauth-confirm" (click)="retryAfterAuth()"
+                                [disabled]="!reauthUsername || !reauthPassword">
+                                Desbloquear y Re-intentar
+                            </button>
+                            <button class="btn-reauth-cancel" (click)="cancelReauth()">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <h2 class="sending-title-v22">Preparando Envío Seguro</h2>
-        <p class="sending-status-v22">
-            <span *ngIf="sendProgress < 30">Analizando archivos y cargando binarios...</span>
-            <span *ngIf="sendProgress >= 30 && sendProgress < 70">Cifrando paquetes de documentos SSE...</span>
-            <span *ngIf="sendProgress >= 70">Finalizando y transmitiendo reporte...</span>
-        </p>
-        <div class="progress-container-v22">
-            <div class="progress-bar-v22" [style.width.%]="sendProgress"></div>
+
+        <!-- Fullscreen Sending Overlay V22 -->
+        <div class="fullscreen-sending-overlay-v22" *ngIf="isSending">
+            <div class="overlay-content-v22">
+                <div class="spinner-container-v22">
+                    <div class="scanner-ring-v22"></div>
+                    <i class="fas fa-shield-alt main-icon-v22 rotate-in"></i>
+                </div>
+                <h2 class="sending-title-v22">Procesando Envío Seguro</h2>
+                <p class="sending-status-v22">
+                    <span>{{ sendingStatusMessage }}</span>
+                </p>
+                <div class="progress-container-v22">
+                    <div class="progress-bar-v22" [style.width.%]="sendProgress"></div>
+                </div>
+                <span class="progress-label-v22 text-pulse">{{ sendProgress }}% de transferencia completada</span>
+            </div>
         </div>
-        <span class="progress-label-v22 text-pulse">{{ sendProgress }}% de transferencia completada</span>
-    </div>
-</div>

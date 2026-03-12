@@ -16,6 +16,7 @@ pub struct MailboxMessage {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub is_read: bool,
+    pub direction: Option<String>,
     pub attachments: Option<Vec<Attachment>>,
 }
 
@@ -62,7 +63,7 @@ pub struct AuthorizationTicket {
 pub fn get_mailbox_messages(state: State<DbState>) -> Result<Vec<MailboxMessage>, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT id, sid, content, author, status, tracking_info, responsible, created_at, updated_at, is_read FROM security_mailbox ORDER BY created_at DESC")
+        .prepare("SELECT id, sid, content, author, status, tracking_info, responsible, created_at, updated_at, is_read, direction FROM security_mailbox ORDER BY created_at DESC")
         .map_err(|e| e.to_string())?;
 
     let messages = stmt
@@ -78,6 +79,7 @@ pub fn get_mailbox_messages(state: State<DbState>) -> Result<Vec<MailboxMessage>
                 created_at: row.get(7)?,
                 updated_at: row.get(8)?,
                 is_read: row.get(9)?,
+                direction: row.get(10).unwrap_or(Some("inbox".to_string())),
                 attachments: {
                     let info: Option<String> = row.get(5)?;
                     if let Some(json_str) = info {
@@ -275,11 +277,15 @@ pub fn create_mailbox_message(
     content: Option<String>,
     author: Option<String>,
     responsible: Option<String>,
+    direction: Option<String>,
 ) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
+    
+    let unwrapped_dir = direction.unwrap_or_else(|| "outbox".to_string());
+
     conn.execute(
-        "INSERT INTO security_mailbox (sid, content, author, responsible, status) VALUES (?1, ?2, ?3, ?4, 'Pending')",
-        (sid, content, author, responsible),
+        "INSERT INTO security_mailbox (sid, content, author, responsible, status, direction) VALUES (?1, ?2, ?3, ?4, 'Pending', ?5)",
+        (sid, content, author, responsible, unwrapped_dir),
     )
     .map_err(|e| e.to_string())?;
     Ok(())

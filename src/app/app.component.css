@@ -136,6 +136,37 @@
   gap: 15px;
 }
 
+.ticket-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--pastel-green-bg, #e8f5e9);
+  color: var(--pastel-green-text, #2e7d32);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 500;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.ticket-indicator:hover {
+  filter: brightness(0.97);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ticket-count {
+  background: #ffffff;
+  color: var(--pastel-green-text, #2e7d32);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  font-weight: 600;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
 .connection-pill {
   background: #fff;
   padding: 6px 16px;

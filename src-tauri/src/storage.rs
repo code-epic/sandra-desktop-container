@@ -147,11 +147,16 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             file_name TEXT NOT NULL,
             file_path TEXT NOT NULL,
+            file_size TEXT,
+            remote_code TEXT,
             opened_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
         [],
     )
     .map_err(|e| e.to_string())?;
+
+    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN file_size TEXT", []);
+    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN remote_code TEXT", []);
 
     // Security Mailbox Table
     conn.execute(
@@ -170,6 +175,12 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         [],
     )
     .map_err(|e| e.to_string())?;
+
+    // Migración silenciosa: Añadir campo direction (inbox/outbox)
+    let _ = conn.execute(
+        "ALTER TABLE security_mailbox ADD COLUMN direction TEXT DEFAULT 'inbox'",
+        [],
+    );
 
     // Seed Security Mailbox with Initial Campaign (Updated with Attachment)
     conn.execute(

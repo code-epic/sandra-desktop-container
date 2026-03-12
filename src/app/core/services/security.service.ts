@@ -12,6 +12,7 @@ export interface MailboxMessage {
     created_at: string;
     updated_at: string;
     is_read: boolean;
+    direction?: 'inbox' | 'outbox';
     attachments?: Array<{
         name: string;
         type: 'PDF' | 'SSE';
@@ -60,7 +61,8 @@ export class SecurityService {
             sid: message.sid,
             content: message.content,
             author: message.author,
-            responsible: message.responsible
+            responsible: message.responsible,
+            direction: message.direction || 'outbox'
         });
     }
 
