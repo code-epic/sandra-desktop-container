@@ -15,8 +15,15 @@ export class DownloadService {
      * @param dataBase64 Contenido del archivo en Base64 (con o sin prefijo data:...).
      * @param pin PIN opcional (Default: "1234").
      * @param forceSSE Si es true (default), los PDF se convierten a .sse (formato seguro Bunker). Si es false, se descargan como .pdf normal.
+     * @param metadata Metadatos opcionales para la firma Alquimia (nombre, etc).
      */
-    async handleDownload(fileName: string, dataBase64: string, pin: string = "1234", forceSSE: boolean = true): Promise<boolean> {
+    async handleDownload(
+        fileName: string, 
+        dataBase64: string, 
+        pin: string = "1234", 
+        forceSSE: boolean = true,
+        metadata: any = { name: "Usuario Sandra" }
+    ): Promise<boolean> {
         try {
             console.log(`📥 [DownloadService] Iniciando descarga: ${fileName} (SSE: ${forceSSE})`);
 
@@ -34,7 +41,6 @@ export class DownloadService {
             // LOGICA SSE (Prioridad Máxima si forceSSE es true)
             if (forceSSE) {
                 displayExtension = 'sse';
-                // Asegurar extensión .sse
                 if (finalFileName.toLowerCase().endsWith('.pdf')) {
                     finalFileName = finalFileName.replace(/\.pdf$/i, '.sse');
                 } else if (!finalFileName.toLowerCase().endsWith('.sse')) {
@@ -56,22 +62,35 @@ export class DownloadService {
                 return false;
             }
 
-            // 5. Guardar Handler
+            // 5. Guardar Handler con Alquimia Forzada
             if (forceSSE) {
-                // Modo Protegido (Siempre, si forceSSE es true)
-                console.log("🔒 [DownloadService] Guardando como SSE...");
+                console.log("🔒 [DownloadService] Guardando como SSE con Alquimia...");
                 await invoke('save_protected_pdf', {
                     pdfBase64: base64Content,
                     filePath: filePath,
-                    pin: pin
+                    pin: pin,
+                    metadata: metadata // Pasamos metadatos para el sello dentro del PDF/SSE
                 });
             }
             else {
-                // Modo Estándar (Raw Write)
-                // Usamos plugin-fs para escribir los bytes decodificados
+                // Modo Estándar con Alquimia Esteganográfica (In-flight injection)
+                console.log("✒️ [DownloadService] Aplicando sello Alquimia al documento...");
+                
+                // Primero aplicamos el sello en Rust a partir del base64 temporal
+                // Como no tenemos el path físico aún (es un download), usamos apply_alquimia_seal 
+                // pero necesitamos una ruta temporal o una variante que acepte bytes.
+                // Reutilizamos apply_alquimia_seal_bytes si exponemos el comando, o creamos uno.
+                
+                // Guardar a un archivo temporal para procesarlo si es necesario, 
+                // o usar una ruta ficticia ya que apply_alquimia_seal_bytes solo usa la extensión.
+                const sealedBytes = await invoke<number[]>('apply_alquimia_seal', {
+                    fileName: fileName,
+                    pdfBase64: base64Content,
+                    metadata: metadata
+                });
+
                 const { writeFile } = await import('@tauri-apps/plugin-fs');
-                const binaryData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
-                await writeFile(filePath, binaryData);
+                await writeFile(filePath, new Uint8Array(sealedBytes));
             }
 
             console.log(`✅ [DownloadService] Guardado en: ${filePath}`);

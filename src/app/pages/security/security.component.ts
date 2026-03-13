@@ -55,6 +55,16 @@ export class SecurityComponent implements OnInit {
   routeToDelete: ProxyRoute | null = null;
   deleteType: 'messages' | 'route' = 'messages';
 
+  // Autor Detallado
+  authorProfile: any = {
+    nombre: 'Usuario',
+    usuario: 'xterm',
+    correo: '',
+    cargo: 'Autorizado'
+  };
+  systemMac: string = '';
+  certificationMap: Map<string, any> = new Map(); // Store certification info for attachments (by path)
+
   // Pagination State
   currentPage: number = 1;
   pageSize: number = 10;
@@ -76,21 +86,37 @@ export class SecurityComponent implements OnInit {
   showSendConfirmModal = false;
   showSecureVaultModal = false;
   vaultFilter: 'DOCS' | 'SSE' | 'RECENT' = 'DOCS';
+  viewerActiveTab: 'global' | 'mailbox' = 'global';
+  viewerSearchText: string = '';
+  showCertificationModal = false;
+  selectedCertification: any = null;
 
   // Rich Text Editor Content (Hidden Model)
   editorContent = '';
-
-  mockedSecureDocs = [
-    { name: 'Certificado_Seguridad_2026.sse', type: 'SSE', size: '256KB', date: '2026-03-01', desc: 'Certificado de encriptación nivel 4', category: 'SSE' },
-    { name: 'Reporte_Incidente_QA.pdf', type: 'PDF', size: '1.2MB', date: '2026-02-28', desc: 'Análisis de vulnerabilidades detectadas en entorno QA', category: 'DOCS' },
-    { name: 'Configuracion_Vault_V2.sse', type: 'SSE', size: '45KB', date: '2026-03-05', desc: 'Parámetros de rotación de llaves maestras', category: 'SSE' },
-    { name: 'Auditoria_Seguridad_Interna.txt', type: 'TXT', size: '12KB', date: '2026-03-04', desc: 'Notas de revisión de cumplimiento SOC2', category: 'DOCS' },
-    { name: 'Manual_Usuario_SSandra.pdf', type: 'PDF', size: '3.4MB', date: '2026-01-15', desc: 'Documentación técnica completa del sistema', category: 'DOCS' },
-    { name: 'KMS_Recovery_Keys.sse', type: 'SSE', size: '12KB', date: '2026-03-02', desc: 'Llaves de recuperación para emergencia KMS', category: 'SSE' }
-  ];
+  editorInitialContent = ''; // Separate variable for initial load to avoid cursor jump binding loop
 
   get filteredSecureDocs() {
-    const list = this.vaultFilter === 'RECENT' ? this.history.slice(0, 3) : this.history;
+    let list = this.history;
+
+    // Filtro por Tab Principal (Global vs Mailbox)
+    if (this.viewerActiveTab === 'global') {
+      list = list.filter((d: any) => !d.source || d.source === 'GLOBAL');
+      // Subfiltro original para Global
+      if (this.vaultFilter === 'SSE') list = list.filter((d: any) => d.file_name.toLowerCase().endsWith('.sse'));
+      if (this.vaultFilter === 'DOCS') list = list.filter((d: any) => !d.file_name.toLowerCase().endsWith('.sse'));
+    } else {
+      list = list.filter((d: any) => d.source === 'MAILBOX');
+    }
+
+    // Filtro de Texto (Buscador del Visor)
+    if (this.viewerSearchText) {
+      const lower = this.viewerSearchText.toLowerCase();
+      list = list.filter((d: any) =>
+        d.file_name.toLowerCase().includes(lower) ||
+        (d.remote_code && d.remote_code.toLowerCase().includes(lower))
+      );
+    }
+
     const mapped = list.map((d: any) => ({
       ...d,
       name: d.file_name,
@@ -99,11 +125,7 @@ export class SecurityComponent implements OnInit {
       type: d.file_name.split('.').pop()?.toUpperCase() || 'FILE'
     }));
 
-    return mapped.filter((d: any) => {
-      if (this.vaultFilter === 'SSE') return d.name.toLowerCase().endsWith('.sse');
-      if (this.vaultFilter === 'DOCS') return !d.name.toLowerCase().endsWith('.sse');
-      return true;
-    });
+    return mapped;
   }
 
   setVaultFilter(filter: 'DOCS' | 'SSE' | 'RECENT') {
@@ -172,7 +194,8 @@ export class SecurityComponent implements OnInit {
     attachments: [] as any[]
   };
 
-  onEditorChange() {
+  onEditorInput(html: string) {
+    this.editorContent = html;
     this.saveDraft();
   }
 
@@ -198,6 +221,27 @@ export class SecurityComponent implements OnInit {
       return 'Datos Estructurados (JSON)';
     } catch {
       return content.trim();
+    }
+  }
+
+  getAttachmentCount(content: string): number {
+    if (!content) return 0;
+    try {
+      const parsed = JSON.parse(content);
+      const atts = parsed?.message_envelope?.attachments || parsed?.payload?.attachments || [];
+      return Array.isArray(atts) ? atts.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  getMessageGuid(content: string): string {
+    if (!content) return '';
+    try {
+      const parsed = JSON.parse(content);
+      return parsed?.manifest?.guid || parsed?.id || '';
+    } catch {
+      return '';
     }
   }
 
@@ -238,6 +282,16 @@ export class SecurityComponent implements OnInit {
     this.loadHistory();
     this.loadDraft();
     this.extractAuthorFromJwt();
+    this.loadSystemIdentity();
+  }
+
+  private async loadSystemIdentity() {
+    try {
+      const stats = await this.sdcService.getSystemTelemetry();
+      this.systemMac = stats.mac_address || '00:00:00:00:00:00';
+    } catch (e) {
+      console.warn("No se pudo obtener MAC para el sello", e);
+    }
   }
 
   private extractAuthorFromJwt() {
@@ -248,9 +302,13 @@ export class SecurityComponent implements OnInit {
           const decodedPayload = JSON.parse(atob(payloadPart));
           const userData = decodedPayload.Usuario;
           if (userData) {
-            const userName = userData.name || userData.Nombre || userData.Login || 'Usuario';
-            const userRole = userData.profile || userData.description || 'Autorizado';
-            this.currentAuthorName = `${userName} (${userRole})`;
+            this.authorProfile = {
+              nombre: userData.nombre || userData.name || userData.Nombre || 'Usuario',
+              usuario: userData.usuario || userData.Login || 'persona',
+              correo: userData.correo || userData.email || '',
+              cargo: userData.cargo || userData.descripcion || (userData.Perfil ? userData.Perfil.descripcion : 'Autorizado')
+            };
+            this.currentAuthorName = `${this.authorProfile.nombre} (${this.authorProfile.cargo})`;
           }
         }
       } catch (e) {
@@ -297,6 +355,7 @@ export class SecurityComponent implements OnInit {
         const draft = JSON.parse(draftStr);
         this.newMessage = draft.newMessage;
         this.editorContent = draft.editorContent;
+        this.editorInitialContent = draft.editorContent; // Load initial content once to avoid binding loop jump
         if (this.newMessage.sid || this.newMessage.content || this.editorContent || this.newMessage.attachments.length > 0) {
           this.isComposing = true;
         }
@@ -313,6 +372,10 @@ export class SecurityComponent implements OnInit {
   async loadHistory() {
     try {
       this.history = await invoke('get_document_history');
+      // Trigger lazy verification for history items
+      this.history.forEach(doc => {
+        if (doc.file_path) this.verifyAttachmentCertification(doc.file_path);
+      });
     } catch (e) {
       console.warn("Could not load vault history", e);
     }
@@ -461,6 +524,7 @@ export class SecurityComponent implements OnInit {
       attachments: []
     };
     this.editorContent = '';
+    this.editorInitialContent = ''; // Clear initial content
     this.sendProgress = 0;
     this.isSending = false;
   }
@@ -630,19 +694,39 @@ export class SecurityComponent implements OnInit {
             progressCallback(event.progress);
             if (event.state === 'DONE') {
               att.status = 'DONE';
-              const msj = event.body?.Msj || event.body?.msj || '';
-              if (msj.includes('|')) {
-                att.remoteCode = msj.split('|')[1];
-              } else {
-                att.remoteCode = msj || event.body?.code || event.body?.hash || null;
+              console.log("Upload done", event);
+
+              // 1. Extraer remoteCode desde 'contenido' si existe (Mapeo Original|Remoto)
+              if (event.body?.contenido && Array.isArray(event.body.contenido)) {
+                const match = event.body.contenido.find((c: string) =>
+                  c.toLowerCase().includes(att.name.toLowerCase()) ||
+                  c.toLowerCase().includes(att.path.toLowerCase().split(/[\\/]/).pop() || "")
+                );
+                if (match && match.includes('|')) {
+                  att.remoteCode = match.split('|')[1];
+                }
               }
+
+              // 2. Fallback al 'msj' si no se encontró en contenido
+              if (!att.remoteCode) {
+                const msj = event.body?.Msj || event.body?.msj || '';
+                if (msj.includes('|')) {
+                  att.remoteCode = msj.split('|')[1];
+                } else {
+                  att.remoteCode = msj || event.body?.code || event.body?.hash || null;
+                }
+              }
+
               att.size = event.body?.size || 'V24-Ready';
               // Guardar en historial local como subida exitosa
-              invoke('add_document_history', { 
-                fileName: att.name, 
+              invoke('add_document_history', {
+                fileName: att.name,
                 filePath: att.path,
                 fileSize: att.size,
-                remoteCode: att.remoteCode || ''
+                remoteCode: att.remoteCode || '',
+                source: 'MAILBOX'
+              }).then((finalPath: any) => {
+                if (finalPath) att.path = finalPath;
               }).catch(e => console.warn("Historial local no actualizado", e));
               resolve();
             } else if (event.state === 'ERROR') {
@@ -687,7 +771,11 @@ export class SecurityComponent implements OnInit {
         version: '0.1.6-SEC',
         timestamp: new Date().toISOString(),
         guid: dynamicMessageId,
-        sender: this.currentAuthorName || 'Sandra Desktop Client'
+        sender: this.currentAuthorName || 'Sandra Desktop Client',
+        login: `SDC-Seal(Signed by ${this.authorProfile.usuario} ${this.authorProfile.nombre} (${this.authorProfile.cargo}) (${this.systemMac}))`,
+        estatus: 'Pending',
+        para: this.newMessage.selectedRecipients,
+        download_count: 0
       },
       message_envelope: {
         subject: this.newMessage.sid,
@@ -701,20 +789,20 @@ export class SecurityComponent implements OnInit {
     try {
       // 1. Send to Remote Sys-Mailbox Collection
       const remotePayload = {
-        coleccion: "sys-mailbox",
+        coleccion: "sdc-mailbox",
         objeto: securePackageV23,
         donde: `{"id":"${dynamicMessageId}"}`,
         driver: "MGDBA",
         upsert: true
       };
 
-      const remoteEndpoint = 'v1/api/ccoleccion:hash'.replace(':hash', this.activeConnection.hash || '');
+      const remoteEndpoint = 'v1/api/ccoleccion';
 
       const invokeOptions = {
-        ip: this.activeConnection.ip,
-        port: this.activeConnection.port,
+        ip: this.activeConnection.ip_address,
+        port: Number(this.activeConnection.port),
         endpoint: remoteEndpoint,
-        payload: JSON.stringify(remotePayload),
+        payload: remotePayload, // Pasar el objeto directamente para que Rust lo reciba como Value::Object
         hash: this.activeConnection.hash,
         tempAuthToken: this.activeConnection.jwt
       };
@@ -735,7 +823,7 @@ export class SecurityComponent implements OnInit {
         responsible: this.newMessage.selectedRecipients.join(', '),
         direction: 'outbox'
       });
-      
+
       this.cancelCompose();
       await this.loadMessages();
     } catch (e) {
@@ -743,8 +831,100 @@ export class SecurityComponent implements OnInit {
     }
   }
 
+  applyTemplate(type: string) {
+    if (!type) return;
+    
+    let templateHtml = '';
+    const now = new Date().toLocaleDateString();
+    const user = this.authorProfile.nombre || 'Personal Autorizado';
+    const cargo = this.authorProfile.cargo || 'Funcionario';
+
+    switch (type) {
+      case 'MEMO':
+        templateHtml = `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <p style="text-align: center; font-weight: bold; font-size: 1.2rem; text-decoration: underline; margin-bottom: 25px;">MEMORÁNDUM Nro: SND-2024-${Math.floor(Math.random() * 1000)}</p>
+            <p><strong>PARA:</strong> Destinatario Principal</p>
+            <p><strong>DE:</strong> ${user} (${cargo})</p>
+            <p><strong>FECHA:</strong> ${now}</p>
+            <p><strong>ASUNTO:</strong> Notificación de Seguridad Operativa</p>
+            <hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 20px 0;">
+            <p>Por medio de la presente, se informa que...</p>
+            <br><br>
+            <p>Atentamente,</p>
+            <p><strong>${user}</strong></p>
+          </div>
+        `;
+        break;
+      case 'RADIOGRAMA':
+        templateHtml = `
+          <div style="font-family: 'Courier New', monospace; padding: 20px; background-color: #f8fafc; border: 2px solid #64748b;">
+            <p><strong>PRIORIDAD:</strong> MÁXIMA / CIFRADO</p>
+            <p><strong>ORIGEN:</strong> Sandra Core Terminal V24</p>
+            <p><strong>FECHA/HORA:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>TEXTO:</strong></p>
+            <p style="padding: 15px; border-left: 4px solid #1e293b;">SOLICITO VERIFICACIÓN DE CREDENCIALES EN EL NODO...</p>
+          </div>
+        `;
+        break;
+      case 'COMUNICADO':
+        templateHtml = `
+          <div style="font-family: Inter, sans-serif; text-align: center; padding: 30px; border: 4px double #10b981;">
+            <h1 style="color: #10b981; margin-bottom: 5px;">COMUNICADO OFICIAL</h1>
+            <p style="font-style: italic; color: #64748b;">División de Seguridad Sandra</p>
+            <br>
+            <p style="text-align: justify; line-height: 1.6;">Se hace de conocimiento general que las políticas de acceso han sido actualizadas conforme al protocolo...</p>
+          </div>
+        `;
+        break;
+      case 'REUNION':
+        templateHtml = `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="border-bottom: 2px solid #10b981; padding-bottom: 10px;">MINUTA DE REUNIÓN - ${now}</h2>
+            <p><strong>ASISTENTES:</strong> ${user}, ...</p>
+            <p><strong>OBJETIVO:</strong> Seguimiento de Incidencias Criticas</p>
+            <h3>1. TEMAS TRATADOS</h3>
+            <ul><li>Punto A...</li><li>Punto B...</li></ul>
+            <h3>2. ACUERDOS</h3>
+            <p>Se acuerda implementar...</p>
+          </div>
+        `;
+        break;
+      case 'CAMPAÑA':
+        templateHtml = `
+          <div style="background: linear-gradient(to right, #f0fdf4, #ffffff); padding: 25px; border-radius: 12px; border: 1px solid #bcf0da;">
+            <h2 style="color: #065f46;">PLAN DE CAMPAÑA: OPERACIÓN ESCUDO</h2>
+            <p><strong>OBJETIVO:</strong> Mitigación de brechas de integridad en bases de datos.</p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+              <tr style="background: #ecfdf5;">
+                <th style="padding: 10px; border: 1px solid #d1fae5;">Fase</th>
+                <th style="padding: 10px; border: 1px solid #d1fae5;">Acción</th>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border: 1px solid #d1fae5;">Detección</td>
+                <td style="padding: 10px; border: 1px solid #d1fae5;">Escaneo de Nodos Pasivos</td>
+              </tr>
+            </table>
+          </div>
+        `;
+        break;
+    }
+
+    if (templateHtml) {
+      this.editorContent = templateHtml;
+      this.editorInitialContent = templateHtml;
+      this.saveDraft();
+    }
+  }
+
   formatDoc(cmd: string, val?: string) {
     document.execCommand(cmd, false, val);
+    // Sync after format to ensure content matches and draft is saved
+    const editorEle = document.querySelector('.rich-textarea') as HTMLElement;
+    if (editorEle) {
+      this.editorContent = editorEle.innerHTML;
+      this.saveDraft();
+    }
   }
 
   // --- Enhanced Attachment Logic ---
@@ -792,6 +972,22 @@ export class SecurityComponent implements OnInit {
     };
     this.newMessage.attachments.push(newAtt);
     this.saveDraft();
+    this.verifyAttachmentCertification(filePath);
+  }
+
+  async verifyAttachmentCertification(path: string) {
+    try {
+      const result = await invoke<any>('verify_file_seal', { filePath: path });
+      if (result && result.status === 'VALID') {
+        this.certificationMap.set(path, result);
+        console.log("Certification found for attachment:", path, result);
+      } else {
+        this.certificationMap.delete(path);
+      }
+    } catch (e) {
+      console.warn("Cert verify failed for attachment", e);
+      this.certificationMap.delete(path);
+    }
   }
 
   selectSecureDoc(doc: any) {
@@ -804,17 +1000,59 @@ export class SecurityComponent implements OnInit {
       date: doc.opened_at || doc.date || '',
       source: 'VAULT',
       path: doc.file_path,
-      status: 'DONE',
+      status: 'PENDING', // CAMBIADO DE 'DONE' A 'PENDING' PARA ACTIVAR CICLO DE FIRMA Y SUBIDA
       remoteCode: doc.remote_code || null,
-      icon: this.getFileIcon(ext)
+      icon: this.getFileTypeConfig(doc.file_name).icon
     };
     this.newMessage.attachments.push(newAtt);
     this.saveDraft();
+    this.verifyAttachmentCertification(doc.file_path);
     this.closeSecureVaultModal();
+  }
+
+  openCertificationDetails(att: any, event: Event) {
+    event.stopPropagation();
+    const cert = this.certificationMap.get(att.path);
+    if (cert) {
+      this.selectedCertification = cert;
+      this.selectedCertification.fileName = att.name;
+      this.showCertificationModal = true;
+    }
+  }
+
+  closeCertificationModal() {
+    this.showCertificationModal = false;
+    this.selectedCertification = null;
   }
 
   closeSecureVaultModal() {
     this.showSecureVaultModal = false;
+    this.viewerSearchText = '';
+  }
+
+  async uploadToGlobal() {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'Documentos', extensions: ['pdf', 'sse', 'gpg', 'csv', 'txt', 'png', 'jpg'] }]
+      });
+
+      if (selected && typeof selected === 'string') {
+        const fileName = selected.split(/[\\/]/).pop() || selected;
+        // Simular registro en historial como Global
+        await invoke('add_document_history', {
+          fileName: fileName,
+          filePath: selected,
+          fileSize: 'Local',
+          remoteCode: '',
+          source: 'GLOBAL'
+        });
+        await this.loadHistory();
+      }
+    } catch (e) {
+      console.error("Error subiendo a global", e);
+    }
   }
 
   previewSecureAttachment(att: any) {
@@ -880,26 +1118,29 @@ export class SecurityComponent implements OnInit {
     }
   }
 
-  getFileIcon(ext: string): string {
-    const lowExt = ext.toLowerCase();
-    switch (lowExt) {
-      case 'pdf': return 'fas fa-file-pdf';
-      case 'sse': return 'fas fa-shield-alt';
-      case 'zip':
-      case 'rar':
-      case '7z': return 'fas fa-file-archive';
-      case 'txt': return 'fas fa-file-alt';
-      case 'doc':
-      case 'docx': return 'fas fa-file-word';
-      case 'xls':
-      case 'xlsx':
-      case 'csv': return 'fas fa-file-excel';
-      case 'png':
-      case 'jpg':
-      case 'jpeg':
-      case 'gif': return 'fas fa-file-image';
-      default: return 'fas fa-file';
-    }
+  getFileTypeConfig(fileName: string) {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+
+    const configs: { [key: string]: { icon: string, colorClass: string, isMascot?: boolean } } = {
+      'pdf': { icon: 'far fa-file-pdf', colorClass: 'icon-pdf' },
+      'csv': { icon: 'fas fa-file-csv', colorClass: 'icon-csv' },
+      'xls': { icon: 'fas fa-file-excel', colorClass: 'icon-excel' },
+      'xlsx': { icon: 'fas fa-file-excel', colorClass: 'icon-excel' },
+      'zip': { icon: 'fas fa-file-archive', colorClass: 'icon-zip' },
+      'rar': { icon: 'fas fa-file-archive', colorClass: 'icon-zip' },
+      '7z': { icon: 'fas fa-file-archive', colorClass: 'icon-zip' },
+      'sse': { icon: '', colorClass: '', isMascot: true },
+      'png': { icon: 'fas fa-file-image', colorClass: 'icon-img' },
+      'jpg': { icon: 'fas fa-file-image', colorClass: 'icon-img' },
+      'jpeg': { icon: 'fas fa-file-image', colorClass: 'icon-img' },
+      'txt': { icon: 'fas fa-file-alt', colorClass: 'icon-txt' },
+    };
+
+    return configs[ext] || { icon: 'fas fa-shield-alt', colorClass: 'icon-protected' };
+  }
+
+  getFileExtension(fileName: string): string {
+    return fileName.split('.').pop()?.toUpperCase() || 'FILE';
   }
 
   translateStatus(status: string): string {
@@ -929,20 +1170,28 @@ export class SecurityComponent implements OnInit {
 
     let content: any = null;
 
-    // Use Blob strategy for local files (Pending or explicitly Local) to avoid protocol issues
-    if (att.status === 'PENDING' || att.source === 'LOCAL') {
+    // Use Blob strategy for any file that is local/vault to avoid protocol issues (like unsupported URL error)
+    const isLocalOrVault = att.source === 'LOCAL' || att.source === 'VAULT' ||
+      (att.transfer_info && (att.transfer_info.source === 'LOCAL' || att.transfer_info.source === 'VAULT')) ||
+      (path && path.includes('sandra_vault'));
+
+    if (att.status === 'PENDING' || att.status === 'UPLOADING' || isLocalOrVault) {
       try {
         const bytes = await readFile(path);
         const blob = new Blob([bytes], { type: mimeType });
         content = this.sanitizer.bypassSecurityTrustResourceUrl(URL.createObjectURL(blob));
       } catch (e) {
-        console.error("Error reading local file for preview", e);
+        console.error("Error reading file for preview via Blob strategy", e);
         // Fallback to convertFileSrc
         content = this.sanitizer.bypassSecurityTrustResourceUrl(convertFileSrc(path));
       }
     } else {
-      // For vault files, convertFileSrc should work given the expanded scope
+      // For remote or other files
       content = this.sanitizer.bypassSecurityTrustResourceUrl(convertFileSrc(path));
+    }
+
+    if (path) {
+      this.verifyAttachmentCertification(path);
     }
 
     if (isSSE) {

@@ -1,288 +1,395 @@
-<div class="viewer-layout" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
-  
-  <!-- COMPACT HEADER BAR (GREENISH THEME) -->
-  <div class="secure-header-card">
-    <div class="hdr-left">
-        <div class="security-badge">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-shield"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-        </div>
-        <div class="hdr-text">
-            <h2>Visor Seguro</h2>
-            <span>Desencriptado en memoria RAM</span>
-        </div>
-    </div>
-    
-    <div class="hdr-right">
-        <div class="error-pill" *ngIf="error">{{ error }}</div>
-        <button class="btn-modal-primary" (click)="openFileDialog()">
-            <span *ngIf="!isLoading"><i class="fas fa-folder-open"></i> Abrir Documento</span>
-            <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>
-        </button>
-    </div>
-  </div>
+<div class="viewer-layout" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (contextmenu)="$event.preventDefault()">
 
-  <!-- DROPPING OVERLAY -->
-  <div class="dropping-overlay" *ngIf="isDragging">
-     <div class="drop-msg">
-         <i class="fas fa-file-import"></i>
-         <span>Suelta el archivo aquí</span>
-     </div>
-  </div>
-
-  <!-- HISTORY LIST -->
-  <div class="history-container">
-    <div class="section-label" *ngIf="history.length > 0">DOCUMENTOS RECIENTES</div>
-    
-    <div class="history-list-view">
-        <div class="doc-row" *ngFor="let item of history" (click)="openFromHistory(item)">
-            <!-- ICON AREA (UPDATED PDF ICON) -->
-            <div class="col-icon">
-                <ng-container *ngIf="item.file_name.toLowerCase().endsWith('.pdf'); else sseIcon">
-                    <!-- ICONO PDF MAS ELEGANTE (File Alt) -->
-                    <i class="far fa-file-pdf pdf-green-icon"></i>
-                </ng-container>
-                <ng-template #sseIcon>
-                    <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon" onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
-                </ng-template>
+    <!-- COMPACT HEADER BAR (GREENISH THEME) -->
+    <div class="secure-header-card">
+        <div class="hdr-left">
+            <div class="security-badge">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="feather feather-shield">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
             </div>
+            <div class="hdr-text" style="display: flex; flex-direction: column; gap: 2px;">
+                <h2 style="line-height: 1.1;">Visor Seguro</h2>
+                <span>Desencriptado en memoria RAM</span>
+            </div>
+        </div>
 
-            <!-- INFO AREA (REORDERED & SOFTENED) -->
-            <div class="col-info">
-                <div class="info-primary">
-                    <span class="doc-name">{{ item.file_name }}</span>
-                    <!-- METADATA TAGS RIGHT AFTER TITLE -->
-                    <span class="meta-tag type-tag" *ngIf="!item.file_name.toLowerCase().endsWith('.pdf')">
-                        PROTECTED
-                    </span>
+        <!-- NEW TABS -->
+        <div class="viewer-tabs-container">
+            <button [class.active]="viewerActiveTab === 'global'" (click)="viewerActiveTab = 'global'">
+                <i class="fas fa-globe"></i> Global
+            </button>
+            <button [class.active]="viewerActiveTab === 'mailbox'" (click)="viewerActiveTab = 'mailbox'">
+                <i class="fas fa-envelope-open-text"></i> Mailbox
+            </button>
+        </div>
+
+        <div class="hdr-right">
+            <div class="error-pill" *ngIf="error">{{ error }}</div>
+            <button class="btn-plus-circular" (click)="openFileDialog()" title="Abrir Documento">
+                <i class="fas fa-paperclip" *ngIf="!isLoading"></i>
+                <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- SEARCH BAR -->
+    <div class="viewer-search-bar">
+        <input type="text" [(ngModel)]="viewerSearchText" placeholder="Buscar documentos por nombre o código...">
+        <i class="fas fa-search"></i>
+    </div>
+
+    <!-- HISTORY LIST -->
+    <div class="history-container">
+        <div class="section-label" *ngIf="filteredHistory.length > 0">{{ viewerActiveTab === 'global' ? 'DOCUMENTOS
+            GLOBAL' : 'CORREOS Y ARCHIVOS' }}</div>
+
+        <div class="history-list-view">
+            <div class="doc-row" *ngFor="let item of filteredHistory" (click)="openFromHistory(item)">
+                <!-- ICON AREA (UPDATED PDF ICON) -->
+                <div class="col-icon">
+                    <ng-container *ngIf="!getFileTypeConfig(item.file_name).isMascot; else sseMascot">
+                        <i [class]="getFileTypeConfig(item.file_name).icon"
+                            [ngClass]="getFileTypeConfig(item.file_name).colorClass"></i>
+                    </ng-container>
+                    <ng-template #sseMascot>
+                        <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon"
+                            onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
+                    </ng-template>
                 </div>
-                
-                <div class="info-secondary">
-                   <!-- AUTHOR & PATH GROUP -->
-                   <div class="meta-group">
-                       <i class="fas fa-shield-alt"></i> <span>Sandra System</span>
-                   </div>
-                   <div class="dot-separator">•</div>
-                   <div class="meta-group path-group" title="Ubicación Protegida">
-                       <i class="fas fa-hard-drive"></i> <span class="path-text">Local File</span>
-                   </div>
+
+                <!-- INFO AREA (REORDERED & SOFTENED) -->
+                <div class="col-info">
+                    <div class="info-primary">
+                        <span class="doc-name">{{ item.file_name }}</span>
+                        <!-- METADATA TAGS RIGHT AFTER TITLE -->
+                        <span class="meta-tag tag-protected" *ngIf="item.file_name.toLowerCase().endsWith('.sse')">
+                            <i class="fas fa-lock"></i> PROTEGIDO
+                        </span>
+                        <span class="meta-tag cert-tag fade-in" *ngIf="certificationMap.has(item.file_path)"
+                            (click)="openCertificationDetails(item, $event)">
+                            <i class="fas fa-certificate"></i> CERTIFICADO
+                        </span>
+                    </div>
+
+                    <div class="info-secondary">
+                        <!-- AUTHOR & PATH GROUP -->
+                        <div class="meta-group">
+                            <i class="fas fa-shield-alt"></i> <span>Sandra System</span>
+                        </div>
+                        <div class="dot-separator">•</div>
+                        <div class="meta-group path-group" title="Ubicación Protegida">
+                            <i class="fas fa-hard-drive"></i> <span class="path-text">Local File</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATE AREA -->
+                <div class="col-date">
+                    {{ item.opened_at | date:'dd MMM, HH:mm' }}
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="col-action">
+                    <button class="btn-row-action" *ngIf="true" (click)="promptExport(item, $event)"
+                        title="Exportar Documento">
+                        <i class="fas fa-file-export"></i>
+                    </button>
+                    <button class="btn-row-delete" (click)="deleteHistoryItem(item, $event)"
+                        title="Eliminar del historial">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- DATE AREA -->
-            <div class="col-date">
-                {{ item.opened_at | date:'dd MMM, HH:mm' }}
-            </div>
-            
-             <!-- ACTIONS -->
-            <div class="col-action">
-                 <button class="btn-row-action" *ngIf="true" (click)="promptExport(item, $event)" title="Exportar Documento">
-                    <i class="fas fa-file-export"></i>
-                 </button>
-                 <button class="btn-row-delete" (click)="deleteHistoryItem(item, $event)" title="Eliminar del historial">
-                    <i class="fas fa-trash-alt"></i>
-                 </button>
+            <div class="empty-state" *ngIf="filteredHistory.length === 0">
+                <div class="empty-icon-wrapper">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <p>{{ viewerSearchText ? 'No se encontraron resultados' : 'No hay documentos en esta sección' }}</p>
+                <p class="sub">{{ viewerSearchText ? 'Prueba con otros términos de búsqueda.' : (viewerActiveTab ===
+                    'global' ? 'Usa el botón superior para abrir tu primer archivo.' : 'Los archivos de correos seguros
+                    aparecerán aquí.') }}</p>
             </div>
         </div>
 
-        <div class="empty-state" *ngIf="history.length === 0">
-            <div class="empty-icon-wrapper">
-                <i class="fas fa-shield-alt"></i>
+        <!-- DROPPING OVERLAY (Moved inside container) -->
+        <div class="dropping-overlay" *ngIf="isDragging">
+            <div class="drop-msg">
+                <i class="fas fa-file-import"></i>
+                <span>Suelta el archivo aquí</span>
             </div>
-            <p>No hay documentos recientes.</p>
-            <p class="sub">Usa el botón superior para abrir tu primer archivo seguro.</p>
         </div>
-    </div>
-  </div>
-
-</div>
+    </div> <!-- End of history-container -->
+</div> <!-- End of viewer-layout -->
 
 <!-- DELETE CONFIRMATION MODAL -->
 <div class="modal-overlay" *ngIf="showDeleteModal">
-    <div class="modal-card">
-      <h3 class="modal-title">Eliminar del Historial</h3>
-      <div class="modal-body">
-        <p class="modal-message">¿Estás seguro de quitar <b>{{ itemToDelete?.file_name }}</b> del historial? <br><span style="font-size:11px; color:#ef5350;">(Se eliminará el archivo del disco si existe)</span></p>
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" (click)="cancelDelete()">Cancelar</button>
-          <button class="btn-modal-confirm" (click)="confirmDelete()">Eliminar</button>
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2 header-red">
+            <div class="icon-pulse-container red">
+                <i class="fas fa-trash-alt"></i>
+            </div>
         </div>
-      </div>
+        <div class="modal-content-v2">
+            <h3>Eliminar del Historial</h3>
+            <p class="msg-primary">
+                ¿Estás seguro de quitar <b>{{ itemToDelete?.file_name }}</b> del historial?
+                <span class="msg-secondary">Esta acción eliminará el archivo físico del disco permanentemente.</span>
+            </p>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-secondary" (click)="cancelDelete()">Cancelar</button>
+            <button class="btn-v2 btn-v2-red" (click)="confirmDelete()">Quitar</button>
+        </div>
     </div>
 </div>
 
 <!-- UNLOCK PIN MODAL -->
 <div class="modal-overlay" *ngIf="showUnlockModal">
-    <div class="modal-card">
-        <div class="lock-icon-circle">
-            <i class="fas fa-lock"></i>
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2 header-blue">
+            <div class="icon-pulse-container blue">
+                <i class="fas fa-lock"></i>
+            </div>
         </div>
-        <h3 class="modal-title">Documento Protegido</h3>
-        <p class="modal-subtitle">Este archivo requiere una clave de acceso.</p>
-        
-        <div class="modal-body">
-            <div class="pin-input-group">
-                <input type="password" [(ngModel)]="unlockPin" placeholder="Ingrese PIN de seguridad" (keyup.enter)="submitUnlock()" autofocus class="input-pin">
+        <div class="modal-content-v2">
+            <h3>Documento Protegido</h3>
+            <div class="msg-primary">
+                Este archivo requiere una clave de acceso <br>
+                <b>PIN de Seguridad SDC</b>
             </div>
-            <div class="modal-actions">
-                <button class="btn-modal-cancel" (click)="cancelUnlock()">Cancelar</button>
-                <button class="btn-modal-primary" (click)="submitUnlock()">Desbloquear</button>
+            <div class="pin-container-v2">
+                <input type="password" [(ngModel)]="unlockPin" placeholder="PIN" (keyup.enter)="submitUnlock()"
+                    autofocus class="input-premium">
             </div>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-secondary" (click)="cancelUnlock()">Cerrar</button>
+            <button class="btn-v2 btn-v2-blue" (click)="submitUnlock()">Desbloquear</button>
         </div>
     </div>
 </div>
 
 <!-- EXPORT OPTIONS MODAL -->
 <div class="modal-overlay" *ngIf="showExportModal">
-    <div class="modal-card" style="max-width: 550px;">
-        <h3 class="modal-title">Exportar Documento</h3>
-        <p class="modal-subtitle">¿Cómo desea exportar <b>{{ itemToExport?.file_name }}</b>?</p>
-        
-        <div class="modal-body">
-            <div class="export-options">
-                <button class="export-option-btn" (click)="confirmExport(true)" *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.sse')">
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2 header-blue">
+            <div class="icon-pulse-container blue">
+                <i class="fas fa-file-export"></i>
+            </div>
+        </div>
+        <div class="modal-content-v2">
+            <h3>Exportar Documento</h3>
+            <p class="msg-primary">¿Cómo desea exportar <b>{{ itemToExport?.file_name }}</b>?</p>
+
+            <div class="export-grid-v2">
+                <div class="export-card-v2" (click)="confirmExport(true)"
+                    *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.sse')">
                     <i class="fas fa-shield-alt"></i>
-                    <div class="opt-text">
-                        <span class="opt-title">Mantener Protección</span>
-                        <span class="opt-desc">Conserva encriptación (Solo Sandra).</span>
+                    <div class="export-info-v2">
+                        <span class="title">Mantener Protección</span>
+                        <span class="desc">Conserva encriptación nativa.</span>
                     </div>
-                </button>
-                <button class="export-option-btn" (click)="confirmExport(false)" *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.sse')">
+                </div>
+                <div class="export-card-v2" (click)="confirmExport(false)"
+                    *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.sse')">
                     <i class="fas fa-unlock-alt"></i>
-                    <div class="opt-text">
-                        <span class="opt-title">Desbloquear</span>
-                        <span class="opt-desc">Exportar como PDF estándar.</span>
+                    <div class="export-info-v2">
+                        <span class="title">Desbloquear</span>
+                        <span class="desc">Exportar como PDF estándar.</span>
                     </div>
-                </button>
-                 <button class="export-option-btn" (click)="unlockGpgExport()" *ngIf="itemToExport && (itemToExport.file_name.toLowerCase().endsWith('.gpg') || itemToExport.file_name.toLowerCase().endsWith('.pgp'))">
-                    <i class="fas fa-unlock-alt"></i>
-                    <div class="opt-text">
-                        <span class="opt-title">Desbloquear</span>
-                        <span class="opt-desc">Descifrar y ver contenido.</span>
-                    </div>
-                </button>
-                 <button class="export-option-btn" (click)="EncryptionConfig()" *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.pdf')">
-                    <i class="fas fa-file-contract"></i>
-                    <div class="opt-text">
-                        <span class="opt-title">Cifrar Documento</span>
-                        <span class="opt-desc">Proteger con contraseña privada.</span>
-                    </div>
-                </button>
-                <button class="export-option-btn" (click)="EncryptionGpgConfig()" *ngIf="itemToExport && !itemToExport.file_name.toLowerCase().endsWith('.gpg') && !itemToExport.file_name.toLowerCase().endsWith('.pgp')">
+                </div>
+                <div class="export-card-v2" (click)="unlockGpgExport()"
+                    *ngIf="itemToExport && (itemToExport.file_name.toLowerCase().endsWith('.gpg') || itemToExport.file_name.toLowerCase().endsWith('.pgp'))">
                     <i class="fas fa-key"></i>
-                    <div class="opt-text">
-                        <span class="opt-title">Cifrado GPG Simétrico</span>
-                        <span class="opt-desc">Añadir capa GPG con contraseña.</span>
+                    <div class="export-info-v2">
+                        <span class="title">Descifrar GPG</span>
+                        <span class="desc">Ver contenido original.</span>
                     </div>
-                </button>
+                </div>
+                <div class="export-card-v2" (click)="EncryptionConfig()"
+                    *ngIf="itemToExport && itemToExport.file_name.toLowerCase().endsWith('.pdf')">
+                    <i class="fas fa-file-contract"></i>
+                    <div class="export-info-v2">
+                        <span class="title">Cifrar Documento</span>
+                        <span class="desc">Proteger con contraseña.</span>
+                    </div>
+                </div>
+                <div class="export-card-v2" (click)="EncryptionGpgConfig()"
+                    *ngIf="itemToExport && !itemToExport.file_name.toLowerCase().endsWith('.gpg') && !itemToExport.file_name.toLowerCase().endsWith('.pgp')">
+                    <i class="fas fa-user-shield"></i>
+                    <div class="export-info-v2">
+                        <span class="title">Cifrado GPG</span>
+                        <span class="desc">Añadir capa GPG simétrica.</span>
+                    </div>
+                </div>
             </div>
-            <div class="modal-actions" style="justify-content: center; margin-top: 15px;">
-                <button class="btn-modal-cancel" (click)="cancelExport()">Cancelar</button>
-            </div>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-secondary" (click)="cancelExport()">Volver</button>
         </div>
     </div>
 </div>
 
 <!-- ENCRYPTION CONFIG MODAL -->
 <div class="modal-overlay" *ngIf="showEncryptionModal">
-    <div class="modal-card">
-        <h3 class="modal-title">Cifrar Documento</h3>
-        <p class="modal-subtitle">Configure la protección para <b>{{ itemToExport?.file_name }}</b></p>
-        
-        <div class="modal-body">
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="display:block; margin-bottom:5px; font-weight:500;">Descripción / Marca de Agua</label>
-                <input type="text" [(ngModel)]="encryptionData.watermark" placeholder="Ej: CONFIDENCIAL" class="input-text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2 header-green">
+            <div class="icon-pulse-container green">
+                <i class="fas fa-file-contract"></i>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display:block; margin-bottom:5px; font-weight:500;">PIN de Acceso (Opcional)</label>
-                <input type="text" [(ngModel)]="encryptionData.pin" placeholder="Dejar vacío para generar automáticamente" class="input-text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-                <small style="color:#666; font-size:11px;">Si se deja vacío, el servidor generará un PIN seguro.</small>
-            </div>
+        </div>
+        <div class="modal-content-v2">
+            <h3>Cifrado de Documento</h3>
+            <div class="msg-primary">Protegiendo <b>{{ itemToExport?.file_name }}</b></div>
 
-            <div class="modal-actions">
-                <button class="btn-modal-cancel" (click)="cancelEncryption()">Cancelar</button>
-                <button class="btn-modal-primary" (click)="confirmEncryption()">
-                    <span *ngIf="!isEncrypting">Cifrar y Guardar</span>
-                    <span *ngIf="isEncrypting"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>
-                </button>
+            <div class="pin-container-v2">
+                <input type="text" [(ngModel)]="encryptionData.watermark" placeholder="Marca de Agua (Ej: CONFIDENCIAL)"
+                    class="input-premium" style="margin-bottom: 12px; font-size: 0.95rem;">
+                <input type="text" [(ngModel)]="encryptionData.pin" placeholder="PIN Personalizado (Opcional)"
+                    class="input-premium" style="font-size: 0.95rem;">
             </div>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-secondary" (click)="cancelEncryption()">Cancelar</button>
+            <button class="btn-v2 btn-v2-green" (click)="confirmEncryption()" [disabled]="isEncrypting">
+                <span *ngIf="!isEncrypting">Proteger</span>
+                <i class="fas fa-spinner fa-spin" *ngIf="isEncrypting"></i>
+            </button>
         </div>
     </div>
 </div>
 
 <!-- GPG ENCRYPTION MODAL -->
 <div class="modal-overlay" *ngIf="showGpgEncryptionModal">
-    <div class="modal-card">
-        <h3 class="modal-title">Cifrado GPG Simétrico</h3>
-        <p class="modal-subtitle">Configure la contraseña para <b>{{ itemToExport?.file_name }}</b></p>
-        
-        <div class="modal-body">
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display:block; margin-bottom:5px; font-weight:500;">Contraseña de Cifrado (Passphrase)</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input [type]="showGpgPassword ? 'text' : 'password'" [(ngModel)]="gpgData.passphrase" placeholder="Ingrese su contraseña" class="input-text" style="width:100%; padding:8px; padding-right:35px; border:1px solid #ddd; border-radius:4px;">
-                    <i class="fas" [ngClass]="showGpgPassword ? 'fa-eye-slash' : 'fa-eye'" (click)="showGpgPassword = !showGpgPassword" style="position: absolute; right: 10px; cursor: pointer; color: #666;"></i>
-                </div>
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2 header-blue">
+            <div class="icon-pulse-container blue">
+                <i class="fas fa-key"></i>
             </div>
+        </div>
+        <div class="modal-content-v2">
+            <h3>Cifrado GPG Simétrico</h3>
+            <div class="msg-primary">Asigne una contraseña para el archivo</div>
 
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label style="display:block; margin-bottom:5px; font-weight:500;">Confirmar Contraseña</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input [type]="showGpgPassword ? 'text' : 'password'" [(ngModel)]="gpgData.confirmPassphrase" placeholder="Repita la contraseña" class="input-text" style="width:100%; padding:8px; padding-right:35px; border:1px solid #ddd; border-radius:4px;" [ngStyle]="{'border-color': (gpgData.passphrase && gpgData.confirmPassphrase && gpgData.passphrase !== gpgData.confirmPassphrase) ? '#ef5350' : '#ddd'}">
-                </div>
-                <small style="color:#ef5350; font-size:11px; display:block; margin-top:5px;" *ngIf="gpgData.passphrase && gpgData.confirmPassphrase && gpgData.passphrase !== gpgData.confirmPassphrase">Las contraseñas no coinciden.</small>
-                <small style="color:#666; font-size:11px; display:block; margin-top:5px;" *ngIf="!(gpgData.passphrase && gpgData.confirmPassphrase && gpgData.passphrase !== gpgData.confirmPassphrase)">Esta contraseña será necesaria para desencriptar el archivo.</small>
+            <div class="pin-container-v2">
+                <input [type]="showGpgPassword ? 'text' : 'password'" [(ngModel)]="gpgData.passphrase"
+                    placeholder="Contraseña Maestra" class="input-premium" style="margin-bottom: 12px;">
+                <input [type]="showGpgPassword ? 'text' : 'password'" [(ngModel)]="gpgData.confirmPassphrase"
+                    placeholder="Confirmar" class="input-premium">
             </div>
-
-            <div class="modal-actions">
-                <button class="btn-modal-cancel" (click)="cancelGpgEncryption()">Cancelar</button>
-                <button class="btn-modal-primary" (click)="confirmGpgEncryption()" [disabled]="!gpgData.passphrase || gpgData.passphrase !== gpgData.confirmPassphrase">
-                    <span *ngIf="!isGpgEncrypting">Cifrar como .gpg</span>
-                    <span *ngIf="isGpgEncrypting"><i class="fas fa-spinner fa-spin"></i> Procesando...</span>
-                </button>
-            </div>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-secondary" (click)="cancelGpgEncryption()">Cancelar</button>
+            <button class="btn-v2 btn-v2-blue" (click)="confirmGpgEncryption()"
+                [disabled]="!gpgData.passphrase || gpgData.passphrase !== gpgData.confirmPassphrase || isGpgEncrypting">
+                <span *ngIf="!isGpgEncrypting">Crear GPG</span>
+                <i class="fas fa-spinner fa-spin" *ngIf="isGpgEncrypting"></i>
+            </button>
         </div>
     </div>
 </div>
 
 <!-- GPG UNLOCK MODAL -->
 <div class="modal-overlay" *ngIf="showGpgUnlockModal">
-    <div class="modal-card">
-        <div class="lock-icon-circle">
-            <i class="fas fa-key"></i>
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2 header-blue">
+            <div class="icon-pulse-container blue">
+                <i class="fas fa-unlock-alt"></i>
+            </div>
         </div>
-        <h3 class="modal-title">Documento GPG</h3>
-        <p class="modal-subtitle">Este archivo está cifrado. Ingrese su passphrase.</p>
-        
-        <div class="modal-body">
-            <div class="pin-input-group" style="position: relative; display: flex; align-items: center;">
-                <input [type]="showGpgUnlockPassword ? 'text' : 'password'" [(ngModel)]="gpgUnlockPassphrase" placeholder="Contraseña GPG" (keyup.enter)="submitGpgUnlock()" autofocus class="input-pin" style="width:100%; padding-right:35px;">
-                <i class="fas" [ngClass]="showGpgUnlockPassword ? 'fa-eye-slash' : 'fa-eye'" (click)="showGpgUnlockPassword = !showGpgUnlockPassword" style="position: absolute; right: 15px; cursor: pointer; color: #666; font-size: 16px;"></i>
+        <div class="modal-content-v2">
+            <h3>Desbloquear GPG</h3>
+            <div class="msg-primary">Ingrese su passphrase secreta</div>
+            <div class="pin-container-v2">
+                <input [type]="showGpgUnlockPassword ? 'text' : 'password'" [(ngModel)]="gpgUnlockPassphrase"
+                    (keyup.enter)="submitGpgUnlock()" placeholder="Passphrase" class="input-premium">
             </div>
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button class="btn-modal-cancel" (click)="cancelGpgUnlock()">Cancelar</button>
-                <button class="btn-modal-primary" (click)="submitGpgUnlock()">
-                    <span *ngIf="!isLoading">Desbloquear</span>
-                    <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin"></i> Abriendo...</span>
-                </button>
-            </div>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-secondary" (click)="cancelGpgUnlock()">Cerrar</button>
+            <button class="btn-v2 btn-v2-blue" (click)="submitGpgUnlock()" [disabled]="isLoading">
+                <span *ngIf="!isLoading">Abrir</span>
+                <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+            </button>
         </div>
     </div>
 </div>
 
 <!-- RESULT MODAL -->
 <div class="modal-overlay" *ngIf="resultModal.show">
-    <div class="modal-card">
-        <div class="lock-icon-circle" [style.background]="resultModal.isError ? '#ffebee' : '#e8f5e9'" [style.color]="resultModal.isError ? '#d32f2f' : '#66bb6a'">
-            <i [class]="resultModal.isError ? 'fas fa-exclamation-triangle' : 'fas fa-check'"></i>
-        </div>
-        <h3 class="modal-title">{{ resultModal.title }}</h3>
-        <div class="modal-body">
-            <p class="modal-message" style="text-align:center; color:#546e7a;">{{ resultModal.message }}</p>
-            <div class="modal-actions" style="justify-content: center;">
-                <button class="btn-modal-primary" (click)="closeResultModal()">Aceptar</button>
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2" [ngClass]="resultModal.isError ? 'header-red' : 'header-green'">
+            <div class="icon-pulse-container" [ngClass]="resultModal.isError ? 'red' : 'green'">
+                <i class="fas" [ngClass]="resultModal.isError ? 'fa-exclamation-triangle' : 'fa-check'"></i>
             </div>
+        </div>
+        <div class="modal-content-v2">
+            <h3>{{ resultModal.title }}</h3>
+            <p class="msg-primary">{{ resultModal.message }}</p>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2" [ngClass]="resultModal.isError ? 'btn-v2-red' : 'btn-v2-green'"
+                (click)="closeResultModal()">Entendido</button>
+        </div>
+    </div>
+</div>
+<!-- CERTIFICATION DETAILS MODAL -->
+<div class="modal-overlay" *ngIf="showCertificationModal">
+    <div class="modal-v2 certification-modal fade-in-up">
+        <div class="modal-header-v2 header-emerald">
+            <div class="icon-pulse-container emerald">
+                <i class="fas fa-fingerprint"></i>
+            </div>
+            <div class="seal-header-badge">SDC-ALQUIMIA VERIFICADO</div>
+        </div>
+        <div class="modal-content-v2">
+            <h3>Certificación de Trazabilidad</h3>
+            <p class="msg-primary">Documento: <b>{{ selectedCertification?.fileName }}</b></p>
+
+            <div class="certification-box">
+                <div class="cert-item">
+                    <label><i class="fas fa-fingerprint"></i> Huella Digital (Seal)</label>
+                    <div class="cert-value-raw">{{ selectedCertification?.seal }}</div>
+                </div>
+
+                <div class="cert-grid">
+                    <div class="cert-mini-item">
+                        <label>Estado</label>
+                        <span class="val success" *ngIf="!isPendingValidation">INTEGRIDAD_OK</span>
+                        <span class="tag-pending-sdc" *ngIf="isPendingValidation">
+                            <i class="far fa-clock"></i> Pendiente
+                        </span>
+                    </div>
+                    <div class="cert-mini-item">
+                        <label>Protocolo</label>
+                        <span class="val">SDC-AI (Invisible)</span>
+                    </div>
+                </div>
+
+                <div class="cert-info-footer">
+                    <i class="fas fa-info-circle"></i>
+                    Este sello fue inyectado esteganográficamente utilizando caracteres de ancho cero, garantizando que
+                    el archivo no ha sido alterado desde su firma original.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer-v2">
+            <ng-container *ngIf="!isPendingValidation; else interactionFooter">
+                <button class="btn-v2 btn-v2-green" (click)="closeCertificationModal()">Cerrar Certificado</button>
+            </ng-container>
+            <ng-template #interactionFooter>
+                <div class="modal-actions-spread" style="display: flex; gap: 12px; width: 100%;">
+                    <button class="btn-v2 btn-v2-green" (click)="confirmAttachment()">
+                        <i class="fas fa-paperclip"></i> Adjuntar y Ver
+                    </button>
+                    <button class="btn-v2 btn-v2-secondary" (click)="cancelAttachment()">
+                        Descartar
+                    </button>
+                </div>
+            </ng-template>
         </div>
     </div>
 </div>

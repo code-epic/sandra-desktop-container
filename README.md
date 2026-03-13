@@ -44,6 +44,8 @@ Cumplimos con los controles de criptografía de la norma ISO 27001 para asegurar
 - **En Tránsito**: Comunicaciones obligatorias sobre **TLS 1.3** y **WSS (WebSocket Secure)**, rechazando conexiones degradadas o inseguras.
 - **Hashing**: Uso de **Argon2** para el derivado y verificación de credenciales, resistente a ataques de fuerza bruta y GPU/ASIC.
 
+### 2. Aislamiento y Control de Módulos (ISO/IEC 27034)
+
 - **Aislamiento (Sandboxing)**: Cada micro-aplicación se ejecuta en un contexto `iframe` controlado con políticas de seguridad de contenido (CSP) estrictas, evitando el Cross-Site Scripting (XSS) entre módulos. SDC implementa una arquitectura de **Micro-Frontends Aislados** mediante un esquema de protocolo personalizado (`sandra-app://`).
 - **Trazabilidad**: El **Inspector SDC** integrado ofrece un registro inmutable de eventos (Log, Red, Sistema) que permite auditorías forenses precisas sin comprometer la privacidad (los logs de vista se limpian de la memoria de sesión sin afectar la persistencia legal en BD).
 
@@ -61,6 +63,62 @@ Implementamos directrices para la protección de activos en el ciberespacio:
 
 - **Resiliencia Operativa**: Capacidad de recuperación ante fallos mediante el aislamiento de hilos en Rust.
 - **Defensa en Profundidad**: Múltiples capas de validación desde el kernel de Rust hasta la sanitización de la UI en Angular.
+
+---
+
+## Protocolo de Gobernanza y Trazabilidad "Alquimia Invisible" (SDC-AI)
+
+### 1. Resumen Ejecutivo
+La estrategia **Alquimia Invisible** implementa una capa de esteganografía digital de alta fidelidad. Utilizando técnicas de inyección de metadatos y caracteres de ancho cero (Zero-Width Characters), el sistema inyecta sellos de trazabilidad que son imperceptibles para el ojo humano y para procesadores de texto estándar, pero completamente verificables por el núcleo de seguridad de SandraDC.
+
+### 2. Marco Normativo y Estándares Internacionales
+El desarrollo de esta tecnología se rige por las siguientes normativas de protección de la información:
+
+- **ISO/IEC 27001:2022 (Gestión de Seguridad de la Información)**:
+    - *Control A.8.25 (Cifrado)*: Cumple con el requisito de proteger la confidencialidad e integridad de la información mediante técnicas criptográficas y de ocultación (Steganography).
+    - *Control A.8.33 (Eliminación de información)*: Asegura que los metadatos de trazabilidad no interfieran con la utilidad o el propósito primario del archivo.
+- **ISO/IEC 24760-1:2019 (Gestión de Identidad y Trazabilidad)**:
+    - Establece el soporte para el **No Repudiable**. Al inyectar la firma del nodo (MAC) y del usuario (JWT) de forma invisible, el sistema garantiza que el origen de un archivo sea rastreable hasta el emisor original.
+- **Estándar Unicode (U+200C, U+200D, U+FEFF, U+200B)**:
+    - La implementación respeta el estándar internacional Unicode, asegurando interoperabilidad de datos sin corromper el parsing de sistemas externos.
+
+### 3. Estrategias de Inyección por Arquitectura de Archivo
+
+#### A. Alquimia para Documentos Estructurados (PDF)
+Para archivos PDF, SandraDC utiliza la técnica de **Metadata Object Injection**:
+- **Target**: Diccionario `Info` del Trailer del PDF.
+- **Metodología**: Utilizando la librería `lopdf` en Rust, se inyecta una semilla criptográfica bajo la clave personalizada `SDC-Seal`.
+- **Efecto**: El sello reside en la estructura de objetos del PDF. Es invisible al lector (Viewer), no aparece en el texto del documento, pero es detectable mediante inspección de objetos binarios.
+
+#### B. Alquimia Esteganográfica para Texto Plano (CSV, TXT, LOG)
+Para archivos de flujo secuencial, se utiliza la técnica de **Zero-Width Bit Encoding**:
+- **Metodología**: El sello de texto se convierte en una secuencia de bits. Cada bit se mapea a un carácter Unicode invisible:
+    - **Bit 1**: `U+200D` (Zero Width Joiner)
+    - **Bit 0**: `U+200C` (Zero Width Non-Joiner)
+- **Encapsulamiento**: La cadena de bits se rodea de marcadores de control:
+    - `U+FEFF` (Marcador de Inicio / BOM)
+    - `U+200B` (Marcador de Fin / Zero Width Space)
+- **Efecto**: La firma se adjunta al final del stream de bytes. Es **100% invisible** en editores de texto, hojas de cálculo o navegadores, sin alterar la estructura de filas o columnas del archivo.
+
+### 4. Especificaciones de Seguridad (Propiedades de la Capa)
+
+- **Integridad (Hashing)**: El sello inyectado incluye un Hash derivado de la identidad del usuario y del terminal. Cualquier intento de modificar el sello sin las llaves del contenedor invalidará la secuencia de bits detectada por el validador en Rust.
+- **Resistencia a la Detección (Stealth)**: Al evitar caracteres ASCII extendidos o saltos de línea adicionales, la firma sobrevive a procesos comunes de transferencia de archivos y copiado/pegado en sistemas que soporten codificación UTF-8.
+- **No Repudiación Global**: Cada archivo generado por SandraDC lleva la "huella digital" del terminal origen, impidiendo que un usuario niegue la autoría o exportación de datos sensibles.
+
+### 5. Guía de Auditoría Forense Digital
+Para auditores que necesiten validar la firma sin herramientas SandraDC:
+
+**Método Hexadecimal (Referencia Cruzada):**
+1. Buscar el marcador de inicio: `EF BB BF` (Hex).
+2. Patrón de datos: Secuencias repetitivas de `E2 80 8C` (0) y `E2 80 8D` (1).
+3. Marcador de fin: `E2 80 8B`.
+
+**Comando Bash de Auditoría:**
+```bash
+# Extraer los últimos 1000 bytes y buscar el preámbulo de la Alquimia Invisible
+tail -c 1000 [archivo_analizar] | xxd -p | grep "efbbbf"
+```
 
 ---
 

@@ -19,8 +19,16 @@ export class SecureViewerComponent {
     fileName: string = '';
     error: string | null = null;
     history: any[] = [];
+    viewerActiveTab: 'global' | 'mailbox' = 'global';
+    viewerSearchText: string = '';
 
     isDragging = false;
+    certificationMap: Map<string, any> = new Map(); // Store certification info per path
+    showCertificationModal = false;
+    selectedCertification: any = null;
+    isPendingValidation = false;
+    pendingFileSelected: string | null = null;
+    pendingFileResult: any = null;
 
     constructor(
         private sanitizer: DomSanitizer,
@@ -32,9 +40,58 @@ export class SecureViewerComponent {
     async loadHistory() {
         try {
             this.history = await invoke('get_document_history');
+            // Proactive verification for all history items to show badges
+            this.history.forEach(item => {
+                if (item.file_path) {
+                    this.verifyDocumentCertification(item.file_path);
+                }
+            });
         } catch (e) {
             console.warn("Could not load history", e);
         }
+    }
+
+    get filteredHistory() {
+        let list = this.history;
+
+        // Filter by Tab (Global vs Mailbox)
+        if (this.viewerActiveTab === 'global') {
+            list = list.filter((d: any) => !d.source || d.source === 'GLOBAL');
+        } else {
+            list = list.filter((d: any) => d.source === 'MAILBOX');
+        }
+
+        // Search Filter
+        if (this.viewerSearchText) {
+            const lower = this.viewerSearchText.toLowerCase();
+            list = list.filter((d: any) =>
+                (d.file_name && d.file_name.toLowerCase().includes(lower)) ||
+                (d.remote_code && d.remote_code.toLowerCase().includes(lower))
+            );
+        }
+
+        return list;
+    }
+
+    getFileTypeConfig(fileName: string) {
+        const ext = fileName.toLowerCase().split('.').pop() || '';
+        
+        const configs: { [key: string]: { icon: string, colorClass: string, isMascot?: boolean } } = {
+            'pdf': { icon: 'far fa-file-pdf', colorClass: 'icon-pdf' },
+            'csv': { icon: 'fas fa-file-csv', colorClass: 'icon-csv' },
+            'xls': { icon: 'fas fa-file-excel', colorClass: 'icon-excel' },
+            'xlsx': { icon: 'fas fa-file-excel', colorClass: 'icon-excel' },
+            'zip': { icon: 'fas fa-file-archive', colorClass: 'icon-zip' },
+            'rar': { icon: 'fas fa-file-archive', colorClass: 'icon-zip' },
+            '7z': { icon: 'fas fa-file-archive', colorClass: 'icon-zip' },
+            'sse': { icon: '', colorClass: '', isMascot: true },
+            'png': { icon: 'fas fa-file-image', colorClass: 'icon-img' },
+            'jpg': { icon: 'fas fa-file-image', colorClass: 'icon-img' },
+            'jpeg': { icon: 'fas fa-file-image', colorClass: 'icon-img' },
+            'txt': { icon: 'fas fa-file-alt', colorClass: 'icon-txt' },
+        };
+
+        return configs[ext] || { icon: 'fas fa-shield-alt', colorClass: 'icon-protected' };
     }
 
     onDragOver(event: DragEvent) {
@@ -71,6 +128,27 @@ export class SecureViewerComponent {
 
             if (selected && typeof selected === 'string') {
                 this.fileName = selected.split(/[\\/]/).pop() || selected;
+                
+                // --- PROACTIVE ALCHEMY VALIDATION (THE BRAKE) ---
+                try {
+                    const result = await invoke<any>('verify_file_seal', { filePath: selected });
+                    if (result && result.status === 'VALID') {
+                        // Mark for interception
+                        this.pendingFileSelected = selected;
+                        this.pendingFileResult = result;
+                        
+                        // Show the 'Wow' certification modal as a GATE
+                        this.selectedCertification = result;
+                        this.selectedCertification.fileName = this.fileName;
+                        this.isPendingValidation = true; // Flag for dual button footer
+                        this.showCertificationModal = true;
+                        this.isLoading = false;
+                        return; // BRAKE: Stop here until user confirms
+                    }
+                } catch (certErr) {
+                    console.warn("Initial cert check skipped/failed", certErr);
+                }
+
                 if (selected.toLowerCase().endsWith('.gpg') || selected.toLowerCase().endsWith('.pgp')) {
                     this.isLoading = false;
                     this.gpgUnlockFilePath = selected;
@@ -101,7 +179,75 @@ export class SecureViewerComponent {
             this.showGpgUnlockModal = true;
         } else {
             await this.loadSecureDoc(item.file_path, false);
+            // Re-verify certification as well
+            this.verifyDocumentCertification(item.file_path);
         }
+    }
+
+    async verifyDocumentCertification(path: string) {
+        try {
+            const result = await invoke<any>('verify_file_seal', { filePath: path });
+            if (result && result.status === 'VALID') {
+                this.certificationMap.set(path, result);
+                console.log("Certification found for:", path, result);
+            } else {
+                this.certificationMap.delete(path);
+            }
+        } catch (e) {
+            console.warn("Cert verify failed", e);
+            this.certificationMap.delete(path);
+        }
+    }
+
+    openCertificationDetails(item: any, event: Event) {
+        event.stopPropagation();
+        const cert = this.certificationMap.get(item.file_path);
+        if (cert) {
+            this.selectedCertification = cert;
+            this.selectedCertification.fileName = item.file_name;
+            this.showCertificationModal = true;
+        }
+    }
+
+    closeCertificationModal() {
+        this.showCertificationModal = false;
+        this.selectedCertification = null;
+        this.isPendingValidation = false;
+        this.pendingFileSelected = null;
+        this.pendingFileResult = null;
+    }
+
+    async confirmAttachment() {
+        if (!this.pendingFileSelected) return;
+        
+        const path = this.pendingFileSelected;
+        const result = this.pendingFileResult;
+        
+        // 1. Mark as certified so the badge appears
+        this.certificationMap.set(path, result);
+        
+        // 2. Clear pendings
+        this.isPendingValidation = false;
+        this.showCertificationModal = false;
+        
+        // 3. Proceed to load/encrypt/save to history
+        if (path.toLowerCase().endsWith('.gpg') || path.toLowerCase().endsWith('.pgp')) {
+            this.gpgUnlockFilePath = path;
+            this.gpgUnlockFileName = this.fileName;
+            this.gpgUnlockSaveToHistory = true;
+            this.showGpgUnlockModal = true;
+        } else {
+            await this.loadSecureDoc(path, true);
+        }
+        
+        this.pendingFileSelected = null;
+        this.pendingFileResult = null;
+    }
+
+    cancelAttachment() {
+        this.closeCertificationModal();
+        this.isLoading = false;
+        this.fileName = '';
     }
 
 
@@ -246,21 +392,19 @@ export class SecureViewerComponent {
                 const { readFile, writeFile } = await import('@tauri-apps/plugin-fs');
 
                 // Get fresh blob from backend (fixes header automatically)
-                // Backend 'load_sse_document' handles header fix. 'readFile' gives raw.
-                // We should probably rely on backend helper to get raw binary with %PDF fix, OR simple copy if header is compatible.
-                // Let's use backend to get the blob (without PIN -> Unlocked=False => Censored)
                 const base64Data = await invoke<string>('load_sse_document', {
                     filePath: item.file_path,
                     unlockPin: null
                 });
 
-                const byteCharacters = atob(base64Data);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
-                await writeFile(savePath, byteArray);
+                // --- APPLY ALQUIMIA SEAL BEFORE SAVING ---
+                const sealedBytes = await invoke<number[]>('apply_alquimia_seal', {
+                    fileName: item.file_name,
+                    pdfBase64: base64Data,
+                    metadata: { name: "Usuario Sandra" } // In a real scenario, use actual user name
+                });
+
+                await writeFile(savePath, new Uint8Array(sealedBytes));
 
                 this.resultModal = {
                     show: true,
@@ -464,11 +608,16 @@ export class SecureViewerComponent {
             });
 
             if (this.gpgUnlockSaveToHistory) {
+                // Calculate hash for GPG unlocked file (or use path)
+                const fileHash = await invoke<string>('sha256_hash_file', { filePath: this.gpgUnlockFilePath });
+                
                 invoke('add_document_history', { 
                     fileName: this.gpgUnlockFileName, 
                     filePath: this.gpgUnlockFilePath,
                     fileSize: 'Locked',
-                    remoteCode: ''
+                    remoteCode: '',
+                    source: 'GLOBAL',
+                    fileHash: fileHash
                 })
                     .then(() => this.loadHistory())
                     .catch(err => console.error("Error saving history:", err));
@@ -674,6 +823,51 @@ export class SecureViewerComponent {
             remoteCode = ''; // Not available here
 
             const isSse = cleanName.endsWith('.sse');
+            let csvHeaders: string[] = [];
+            let csvRows: string[][] = [];
+
+            if (cleanName.endsWith('.csv')) {
+                // Parse CSV Data
+                const textContent = byteCharacters;
+                const lines = textContent.split(/\r?\n/).filter(line => line.trim().length > 0);
+                
+                if (lines.length > 0) {
+                    // Smart delimiter detection: search for , or ; in first line
+                    const firstLine = lines[0];
+                    const commaCount = (firstLine.match(/,/g) || []).length;
+                    const semiCount = (firstLine.match(/;/g) || []).length;
+                    const delimiter = semiCount > commaCount ? ';' : ',';
+                    
+                    // Simple CSV Parser considering quotes
+                    const parseLine = (line: string) => {
+                        const result = [];
+                        let current = '';
+                        let inQuotes = false;
+                        for (let i = 0; i < line.length; i++) {
+                            const char = line[i];
+                            if (char === '"') inQuotes = !inQuotes;
+                            else if (char === delimiter && !inQuotes) {
+                                result.push(current.trim().replace(/^"|"$/g, ''));
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        result.push(current.trim().replace(/^"|"$/g, ''));
+                        return result;
+                    };
+
+                    csvHeaders = parseLine(lines[0]);
+                    // Only parse up to 10k rows for UI performance, even if we show 200 via Slice
+                    // For truly large (100k+) files, we keep them in memory but avoid full DOM hit
+                    csvRows = lines.slice(1).map(line => parseLine(line));
+                    
+                    viewerType = 'csv-viewer';
+                    mimeType = 'text/csv';
+                    iconClass = 'fas fa-table';
+                }
+            }
+
             if (isSse || cleanName.endsWith('.pdf')) {
                 iconClass = isSse ? 'fas fa-file-shield' : 'fas fa-file-pdf';
                 viewerType = 'pdf-viewer';
@@ -696,16 +890,22 @@ export class SecureViewerComponent {
                 isSavedToHistory: !saveToHistory,
                 showToolbar: true,
                 zoomLevel: 1.0,
-                mimeType: mimeType
+                mimeType: mimeType,
+                csvHeader: csvHeaders,
+                csvRows: csvRows
             });
 
             // 4. Save to History (Async)
             if (saveToHistory) {
+                const fileHash = await invoke<string>('sha256_hash_file', { filePath: path });
+
                 invoke('add_document_history', { 
                     fileName: this.fileName, 
                     filePath: path,
                     fileSize: fileSize,
-                    remoteCode: remoteCode
+                    remoteCode: remoteCode,
+                    source: 'GLOBAL',
+                    fileHash: fileHash
                 })
                     .then(() => this.loadHistory())
                     .catch(err => console.error("Error saving history:", err));
@@ -713,6 +913,9 @@ export class SecureViewerComponent {
 
             this.isLoading = false;
             this.fileName = '';
+
+            // Verify Certification
+            this.verifyDocumentCertification(path);
 
         } catch (e: any) {
             console.error("Error loading secure doc:", e);

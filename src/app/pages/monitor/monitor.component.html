@@ -12,8 +12,8 @@
                         <option *ngFor="let app of apps" [value]="app">{{ app }}</option>
                     </select>
                     <input type="text" placeholder="Filtrar logs..." class="search-input" [(ngModel)]="filterText">
-                    <button class="btn-action refresh" (click)="refreshLogs()" title="Actualizar"><i class="fas fa-sync-alt"
-                            [class.fa-spin]="loading"></i></button>
+                    <button class="btn-action refresh" (click)="refreshLogs()" title="Actualizar"><i
+                            class="fas fa-sync-alt" [class.fa-spin]="loading"></i></button>
                     <button class="btn-action clear" (click)="requestClearLogs()" title="Limpiar Base de Datos"><i
                             class="fas fa-trash-alt"></i></button>
                 </ng-container>
@@ -32,8 +32,8 @@
                         <option value="en proceso">En Proceso</option>
                         <option value="procesado">Procesados</option>
                     </select>
-                    <button class="btn-action refresh" (click)="loadTickets()" title="Actualizar"><i class="fas fa-sync-alt"
-                            [class.fa-spin]="loadingTickets"></i></button>
+                    <button class="btn-action refresh" (click)="loadTickets()" title="Actualizar"><i
+                            class="fas fa-sync-alt" [class.fa-spin]="loadingTickets"></i></button>
                 </ng-container>
 
                 <button class="btn-action transfer" (click)="openTransferModal()" title="Transferir Reporte"><i
@@ -47,7 +47,8 @@
                 <button class="tab-btn" [class.active]="activeTab === 'logs'" (click)="setTab('logs')">
                     <i class="fas fa-terminal"></i> Monitor
                 </button>
-                <button class="tab-btn" [class.active]="activeTab === 'notifications'" (click)="setTab('notifications')">
+                <button class="tab-btn" [class.active]="activeTab === 'notifications'"
+                    (click)="setTab('notifications')">
                     <i class="fas fa-bell"></i> Notificaciones
                     <span class="tab-badge" *ngIf="notifications.length > 0">{{ notifications.length }}</span>
                 </button>
@@ -137,23 +138,25 @@
                         <td class="time-cell">{{ ticket.created_at | date:'dd/MM/yy HH:mm' }}</td>
                         <td class="time-cell">{{ getTimeElapsed(ticket.created_at) }}</td>
                         <td>
-                            <span class="badge" [ngClass]="ticket.status">{{ ticket.status }}</span>
+                            <span class="badge" [ngClass]="ticket.status.toLowerCase()">{{ ticket.status }}</span>
                         </td>
                         <td class="msg-cell payload-preview">
                             <span class="json-tag"><i class="fas fa-code"></i> JSON Payload</span>
                         </td>
                         <td class="actions-cell">
                             <div class="ticket-table-actions">
-                                <button class="btn-table-action view" (click)="viewTicketDetails(ticket)" title="Ver Detalles">
+                                <button class="btn-table-action view" (click)="viewTicketDetails(ticket)"
+                                    title="Ver Detalles">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="btn-table-action delete" (click)="requestDeleteTicket(ticket)" title="Eliminar">
+                                <button class="btn-table-action delete" (click)="requestDeleteTicket(ticket)"
+                                    title="Eliminar">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
                         </td>
                     </tr>
-                    
+
                     <!-- Vacío / Cargando -->
                     <tr *ngIf="!loadingTickets && tickets.length === 0">
                         <td colspan="6" class="empty-cell">
@@ -188,7 +191,8 @@
                 </div>
                 <div class="detail-item">
                     <span class="label">Estado</span>
-                    <span class="badge" [ngClass]="selectedTicket.status">{{ selectedTicket.status }}</span>
+                    <span class="badge" [ngClass]="selectedTicket.status.toLowerCase()">{{ selectedTicket.status
+                        }}</span>
                 </div>
                 <div class="detail-item">
                     <span class="label">Solicitud</span>
@@ -197,15 +201,29 @@
             </div>
 
             <div class="detail-section">
-                <label>Estructura de Contenido (Original)</label>
+                <label>{{ selectedTicket.status.toLowerCase() === 'procesado' ? 'Contenido Desencriptado (Decrypted)' :
+                    'Estructura de Contenido (Original)' }}</label>
                 <div class="code-block json-block">
-                    <pre>{{ formatJson(selectedTicket.content) }}</pre>
+                    <pre>{{ getTruncatedContent(formatJson(selectedTicket.content), 35) }}</pre>
+                    <div class="code-fade-overlay" *ngIf="hasMoreLines(formatJson(selectedTicket.content), 35)"></div>
+                </div>
+                <div class="code-hidden-indicator" *ngIf="hasMoreLines(formatJson(selectedTicket.content), 35)">
+                    <i class="fas"
+                        [ngClass]="selectedTicket.status.toLowerCase() === 'procesado' ? 'fa-shield-alt' : 'fa-eye-slash'"></i>
+                    {{ selectedTicket.status.toLowerCase() === 'procesado' ? 'Información sensible
+                    desencriptada/truncada' : 'Parte del contenido oculto por seguridad' }}
                 </div>
             </div>
 
-            <div class="detail-section">
+            <div class="detail-section" *ngIf="selectedTicket.status.toLowerCase() !== 'procesado'">
                 <label>Payload (Capa Encriptada)</label>
-                <div class="code-block payload-block">{{ selectedTicket.payload }}</div>
+                <div class="code-block payload-block">
+                    {{ getTruncatedContent(selectedTicket.payload, 4) }}
+                    <div class="code-fade-overlay" *ngIf="hasMoreLines(selectedTicket.payload, 4)"></div>
+                </div>
+                <div class="code-hidden-indicator" *ngIf="hasMoreLines(selectedTicket.payload, 4)">
+                    <i class="fas fa-lock"></i> Datos encriptados adicionales ocultos
+                </div>
             </div>
 
             <div class="modal-actions single">
@@ -351,7 +369,8 @@
 
             <p class="modal-msg-clean">
                 ¿Estás seguro de quitar el ticket <strong>#{{ ticketToDelete?.auth_id }}</strong>?
-                <br><span class="sub-text">Esta acción revocará la petición y eliminará el registro de la base de datos permanentemente.</span>
+                <br><span class="sub-text">Esta acción revocará la petición y eliminará el registro de la base de datos
+                    permanentemente.</span>
             </p>
 
             <div class="modal-actions-spread">

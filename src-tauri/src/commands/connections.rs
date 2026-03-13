@@ -430,4 +430,10 @@ pub async fn get_hash_preview(account_name: String) -> Result<String, String> {
     Ok(hash)
 }
 
+#[tauri::command]
+pub async fn get_ws_status(state: tauri::State<'_, crate::WsStatus>) -> Result<String, String> {
+    let status = state.0.lock().unwrap();
+    Ok(status.clone())
+}
+
 

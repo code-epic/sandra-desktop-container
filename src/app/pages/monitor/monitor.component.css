@@ -273,9 +273,21 @@
     font-size: 1.2rem;
 }
 
-.notify-icon.pending { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
-.notify-icon.approved { background: rgba(40, 167, 69, 0.15); color: #28a745; }
-.notify-icon.rejected { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
+.notify-icon.pending { 
+    background: #fff8e1; 
+    color: #e67e22; 
+    border: 1px solid #ffecb3;
+}
+.notify-icon.approved { 
+    background: #e9f7ef; 
+    color: #27ae60; 
+    border: 1px solid #d4efdf;
+}
+.notify-icon.rejected { 
+    background: #fdf2f2; 
+    color: #e74c3c; 
+    border: 1px solid #fadbd8;
+}
 
 .notify-content {
     flex: 1;
@@ -310,11 +322,34 @@
     color: rgba(255, 255, 255, 0.6);
 }
 
-/* --- Status Badges --- */
-.badge.pendiente { background: #fff8e1; color: #ffa000; border: 1px solid #ffecb3; }
-.badge.en\ proceso { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
-.badge.procesado { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-.badge.notificado { background: #f5f7fa; color: #607d8b; border: 1px solid #eceff1; }
+/* --- Status Badges (Refined) --- */
+.badge.pendiente { 
+    background: #fff8e1; 
+    color: #e67e22; 
+    border: 1px solid #ffecb3; 
+}
+.badge.en.proceso { 
+    background: #ebf5ff; 
+    color: #3498db; 
+    border: 1px solid #d6eaf8; 
+}
+.badge.procesado,
+.badge.approved,
+.badge.PROCESADO { 
+    background: #e9f7ef; 
+    color: #27ae60; 
+    border: 1px solid #d4efdf; 
+}
+.badge.rejected { 
+    background: #fdf2f2; 
+    color: #e74c3c; 
+    border: 1px solid #fadbd8; 
+}
+.badge.notificado { 
+    background: #f4f6f7; 
+    color: #7f8c8d; 
+    border: 1px solid #e5e8e8; 
+}
 
 /* Empty State */
 .empty-state {
@@ -428,29 +463,35 @@
 
 /* Reutilizamos los badges */
 .badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    color: white;
-    font-size: 0.8em;
-    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .badge.log,
 .badge.info {
     background: #607d8b;
+    color: white;
 }
 
 .badge.warn {
     background: #FFA726;
+    color: white;
 }
 
 .badge.error {
     background: #EF5350;
+    color: white;
 }
 
 .badge.fetch {
     background: #AB47BC;
+    color: white;
 }
 
 
@@ -597,6 +638,93 @@
 .btn-modal-cancel:hover {
     background: #fafafa;
     color: #546e7a;
+}
+
+/* --- Code Blocks & JSON Viewers --- */
+.code-block {
+    background: #f8f9fb;
+    border: 1px solid #e1e5e8;
+    color: #455a64;
+    padding: 15px;
+    border-radius: 12px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    position: relative;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.json-block pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #455a64;
+}
+
+/* Modal Pills */
+.status-pill {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: #e9f7ef;
+    color: #27ae60;
+    border: 1px solid #d4efdf;
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-pill.error {
+    background: #fdf2f2;
+    color: #e74c3c;
+    border: 1px solid #fadbd8;
+}
+
+.method-pill {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: #ebf5ff;
+    color: #3498db;
+    border: 1px solid #d6eaf8;
+    display: inline-flex;
+    align-items: center;
+}
+
+.detail-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #607d8b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.payload-block {
+    max-height: 200px;
+}
+
+.code-fade-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(transparent, #f8f9fb);
+    pointer-events: none;
+}
+
+.code-hidden-indicator {
+    padding: 10px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #90a4ae;
+    font-style: italic;
+    background: #f8f9fb;
+    border-top: 1px dashed #e1e5e8;
 }
 
 .btn-modal-confirm.delete-action {

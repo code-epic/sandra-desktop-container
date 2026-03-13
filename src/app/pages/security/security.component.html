@@ -33,10 +33,12 @@
                     <div class="toolbar-actions">
                         <!-- Novedad: Selector de Bandeja Inbox/Outbox -->
                         <div class="direction-toggle-group">
-                            <button class="btn-toggle" [class.active]="mailboxDirection === 'inbox'" (click)="mailboxDirection = 'inbox'; resetPagination()" title="Bandeja de Entrada">
+                            <button class="btn-toggle" [class.active]="mailboxDirection === 'inbox'"
+                                (click)="mailboxDirection = 'inbox'; resetPagination()" title="Bandeja de Entrada">
                                 <i class="fas fa-inbox"></i> Recibidos
                             </button>
-                            <button class="btn-toggle" [class.active]="mailboxDirection === 'outbox'" (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
+                            <button class="btn-toggle" [class.active]="mailboxDirection === 'outbox'"
+                                (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
                                 <i class="fas fa-paper-plane"></i> Enviados
                             </button>
                         </div>
@@ -116,11 +118,25 @@
 
                         <!-- Main Content: 2-Line Layout -->
                         <div class="gmail-col-main">
-                            <!-- Line 1: Author, Status & Date -->
+                            <!-- Line 1: Author/Recipient, Status & Date -->
                             <div class="gmail-main-top">
-                                <span class="gmail-author">{{ (msg.author | slice:0:30) + (msg.author.length > 30 ?
-                                    '...' : '') }}</span>
+                                <span class="gmail-author">
+                                    <i class="fas fa-chevron-right outbox-indicator"
+                                        *ngIf="mailboxDirection === 'outbox'"></i>
+                                    {{ (mailboxDirection === 'outbox' ? msg.responsible : msg.author) | slice:0:30 }}
+                                    <span
+                                        *ngIf="((mailboxDirection === 'outbox' ? msg.responsible : msg.author) || '').length > 30">...</span>
+                                    <span class="msg-id-pill" *ngIf="getMessageGuid(msg.content)"
+                                        title="Huella Digital (Tracking)">
+                                        <i class="fas fa-fingerprint"></i> {{ getMessageGuid(msg.content) | slice:0:8 }}
+                                    </span>
+                                </span>
                                 <div class="gmail-top-right">
+                                    <span class="att-indicator-badge" *ngIf="getAttachmentCount(msg.content) > 0"
+                                        title="Contiene adjuntos">
+                                        <i class="fas fa-paperclip"></i>
+                                        <span class="att-count">{{ getAttachmentCount(msg.content) }}</span>
+                                    </span>
                                     <span class="status-tag" [ngClass]="getStatusClass(msg.status)">
                                         <i [class]="getStatusIcon(msg.status)" class="tag-icon"></i>
                                         {{ translateStatus(msg.status) }}
@@ -131,7 +147,8 @@
 
                             <!-- Line 2: Subject & Snippet -->
                             <div class="gmail-main-bottom">
-                                <span class="gmail-subject">{{ (msg.sid | slice:0:40) + (msg.sid.length > 40 ? '...' :
+                                <span class="gmail-subject">{{ (msg.sid | slice:0:40) + ((msg.sid || '').length > 40 ?
+                                    '...' :
                                     '') }}</span>
                                 <span class="gmail-dash">&nbsp;-&nbsp;</span>
                                 <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
@@ -141,8 +158,16 @@
                         </div>
                     </div>
 
-                    <div *ngIf="filteredMessages.length === 0" class="empty-list-placeholder">
-                        <p>No se encontraron mensajes.</p>
+                    <div *ngIf="filteredMessages.length === 0" class="empty-list-placeholder-v4 fade-in">
+                        <div class="empty-visual">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <h3>Buzón sin registros</h3>
+                        <p>No se encontraron mensajes en la bandeja de {{ mailboxDirection === 'inbox' ? 'entrada' :
+                            'salida' }}.</p>
+                        <button class="btn-refresh-empty" (click)="loadMessages()">
+                            <i class="fas fa-sync-alt"></i> Actualizar
+                        </button>
                     </div>
                 </div>
             </div>
@@ -210,17 +235,32 @@
 
                     <!-- Rich Text Toolbar -->
                     <div class="rich-editor-toolbar">
-                        <div class="toolbar-group">
-                            <select class="font-selector" (change)="formatDoc('fontName', $any($event.target).value)">
-                                <option value="Arial">Arial</option>
-                                <option value="Inter">Inter</option>
-                                <option value="Courier New">Monospace</option>
-                                <option value="Georgia">Serif</option>
-                                <option value="Verdana">Verdana</option>
-                            </select>
+                        <div class="toolbar-group fluid-group">
+                            <div class="combo-wrapper-v24 font-combo">
+                                <i class="fas fa-font"></i>
+                                <select class="modern-select-v24" (change)="formatDoc('fontName', $any($event.target).value)">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Inter">Inter</option>
+                                    <option value="Courier New">Monospace</option>
+                                    <option value="Georgia">Serif</option>
+                                    <option value="Verdana">Verdana</option>
+                                </select>
+                            </div>
+                            <div class="combo-wrapper-v24 size-combo">
+                                <i class="fas fa-text-height"></i>
+                                <select class="modern-select-v24" (change)="formatDoc('fontSize', $any($event.target).value)">
+                                    <option value="1">Muy Pequeño</option>
+                                    <option value="2">Pequeño</option>
+                                    <option value="3" selected>Normal</option>
+                                    <option value="4">Grande</option>
+                                    <option value="5">Extra Grande</option>
+                                    <option value="6">Título 2</option>
+                                    <option value="7">Título 1</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="toolbar-divider"></div>
-                        <div class="toolbar-group">
+                        <div class="toolbar-group fluid-group">
                             <button class="tool-btn" (click)="formatDoc('bold')" title="Negrita"><i
                                     class="fas fa-bold"></i></button>
                             <button class="tool-btn" (click)="formatDoc('italic')" title="Cursiva"><i
@@ -228,8 +268,8 @@
                             <button class="tool-btn" (click)="formatDoc('underline')" title="Subrayado"><i
                                     class="fas fa-underline"></i></button>
                         </div>
-                        <div class="toolbar-divider"></div>
-                        <div class="toolbar-group">
+                        <div class="toolbar-divider hide-on-small"></div>
+                        <div class="toolbar-group alignment-group">
                             <button class="tool-btn" (click)="formatDoc('justifyLeft')" title="Alinear Izquierda"><i
                                     class="fas fa-align-left"></i></button>
                             <button class="tool-btn" (click)="formatDoc('justifyCenter')" title="Centrar"><i
@@ -246,12 +286,27 @@
                             <button class="tool-btn" (click)="formatDoc('insertOrderedList')" title="Numeración"><i
                                     class="fas fa-list-ol"></i></button>
                         </div>
+
+                        <!-- TEMPLATE SELECTOR -->
+                        <div class="toolbar-group fluid-group">
+                            <div class="combo-wrapper-v24 template-combo-v24">
+                                <i class="fas fa-file-invoice"></i>
+                                <select class="modern-select-v24" (change)="applyTemplate($any($event.target).value); $any($event.target).value = ''">
+                                    <option value="" disabled selected>Esquemas / Plantillas</option>
+                                    <option value="MEMO">MEMORÁNDUM</option>
+                                    <option value="RADIOGRAMA">RADIOGRAMA</option>
+                                    <option value="COMUNICADO">COMUNICADO</option>
+                                    <option value="REUNION">ACTA DE REUNIÓN</option>
+                                    <option value="CAMPAÑA">PLAN DE CAMPAÑA</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Contenteditable Editor -->
                     <div class="compose-body-editor">
                         <div #editor contenteditable="true" class="rich-textarea"
-                            (input)="editorContent = editor.innerHTML; saveDraft()" [innerHTML]="editorContent"
+                            (input)="onEditorInput(editor.innerHTML)" [innerHTML]="editorInitialContent"
                             placeholder="Escriba el detalle del reporte aquí...">
                         </div>
                     </div>
@@ -261,13 +316,19 @@
                     <div class="compose-attachments-list" *ngIf="newMessage.attachments.length > 0">
                         <div *ngFor="let att of newMessage.attachments; let i = index" class="att-pill-modern fade-in"
                             [ngClass]="att.status === 'UPLOADING' ? 'source-local uploading' : (att.source === 'LOCAL' ? 'source-local' : 'source-vault')">
-                            <i [class]="getFileIcon(att.extension || att.type || '')"
+                            <i [class]="getFileTypeConfig(att.name).icon"
+                                [ngClass]="getFileTypeConfig(att.name).colorClass"
                                 (click)="previewSecureAttachment(att)" style="cursor: pointer;"></i>
                             <div class="att-info-block-v23" (click)="previewSecureAttachment(att)"
                                 title="Previsualizar documento" style="cursor: pointer;">
                                 <span class="att-name">{{ att.name }}</span>
                                 <span class="att-meta-detail-v23">
                                     {{ att.extension || att.type || 'Archivo' }} • {{ att.size }}
+                                    <span class="meta-tag cert-tag-compose fade-in" 
+                                          *ngIf="certificationMap.has(att.path)" 
+                                          (click)="openCertificationDetails(att, $event)">
+                                        <i class="fas fa-certificate"></i> CERTIFICADO
+                                    </span>
                                     <span *ngIf="att.status === 'PENDING'" class="upload-status-info pending">
                                         <i class="fas fa-clock"></i> Pendiente
                                     </span>
@@ -291,12 +352,12 @@
                     <div class="compose-footer-v17">
                         <div class="footer-row-flat">
                             <!-- Attachments -->
-                            <button class="btn-attachment-v4" (click)="attachFromPC()" title="Adjuntar desde PC">
+                            <!-- <button class="btn-attachment-v4" (click)="attachFromPC()" title="Adjuntar desde PC">
                                 <i class="fas fa-paperclip"></i> Adjuntar
-                            </button>
+                            </button> -->
                             <button class="btn-attachment-v4 secure-v4" (click)="attachFromSecureViewer()"
                                 title="Adjuntar desde Visor Seguro">
-                                <i class="fas fa-vault"></i> Visor Seguro
+                                <i class="fas fa-paperclip"></i> Visor Seguro
                             </button>
 
                             <!-- Spacer -->
@@ -348,12 +409,9 @@
                     <div class="trace-details-panel fade-in" *ngIf="showTrace">
                         <div class="trace-grid">
                             <div class="trace-detail-item">
-                                <label>ID de Proceso</label>
-                                <span>{{ selectedMessage.id }}</span>
-                            </div>
-                            <div class="trace-detail-item">
                                 <label>Huella Digital (Tracking)</label>
-                                <span>{{ selectedMessage.tracking_info }}</span>
+                                <span class="font-mono">{{ getMessageGuid(selectedMessage.content) ||
+                                    selectedMessage.tracking_info || 'S/N' }}</span>
                             </div>
                             <div class="trace-detail-item">
                                 <label>Estado de Validación</label>
@@ -393,17 +451,20 @@
                                 <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox'"></div>
                                 <button class="btn-action-sm success"
                                     (click)="updateMessageStatus(selectedMessage, 'Approved')"
-                                    *ngIf="selectedMessage.status !== 'Approved' && mailboxDirection !== 'outbox'" title="Validar Documento">
+                                    *ngIf="selectedMessage.status !== 'Approved' && mailboxDirection !== 'outbox'"
+                                    title="Validar Documento">
                                     <i class="fas fa-check"></i>
                                 </button>
                                 <button class="btn-action-sm danger"
                                     (click)="updateMessageStatus(selectedMessage, 'Rejected')"
-                                    *ngIf="selectedMessage.status !== 'Rejected' && mailboxDirection !== 'outbox'" title="Anular Registro">
+                                    *ngIf="selectedMessage.status !== 'Rejected' && mailboxDirection !== 'outbox'"
+                                    title="Anular Registro">
                                     <i class="fas fa-times"></i>
                                 </button>
                                 <button class="btn-action-sm info"
                                     (click)="updateMessageStatus(selectedMessage, 'Read')"
-                                    *ngIf="selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'" title="Marcar como Visto">
+                                    *ngIf="selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'"
+                                    title="Marcar como Visto">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -460,10 +521,6 @@
                             </div>
                         </div>
 
-                        <!-- Animated Watermark -->
-                        <div class="watermark-bg-v24">
-                            <i class="fas fa-envelope-open-text"></i>
-                        </div>
                     </div>
 
                     <!-- Attachments Section Minimal Footer -->
@@ -481,11 +538,18 @@
                                     class="att-pill-modern interactive fade-in"
                                     [ngClass]="att.source === 'LOCAL' || (att.viewer_config && !att.viewer_config.isProtected) ? 'source-local' : 'source-vault'"
                                     (click)="openAttachment(att)" title="Ver Documento">
-                                    <i [class]="getFileIcon(att.extension || att.type || '')"></i>
+                                    <i [class]="getFileTypeConfig(att.name).icon"
+                                        [ngClass]="getFileTypeConfig(att.name).colorClass"></i>
                                     <div class="att-info-block-v23">
                                         <span class="att-name">{{ att.name }}</span>
                                         <span class="att-meta-detail-v23">{{ att.extension || att.type }} • {{ att.size
-                                            || (att.source === 'LOCAL' ? 'Local' : 'Vault') }}</span>
+                                            || (att.source === 'LOCAL' ? 'Local' : 'Vault') }}
+                                            <span class="meta-tag cert-tag-compose fade-in" 
+                                                  *ngIf="certificationMap.has(att.path || att.transfer_info?.path)" 
+                                                  (click)="openCertificationDetails(att, $event)">
+                                                <i class="fas fa-certificate"></i> CERTIFICADO
+                                            </span>
+                                        </span>
                                     </div>
                                     <i class="fas fa-external-link-alt action-icon"></i>
                                 </div>
@@ -724,75 +788,132 @@
         </div>
     </div>
 
-    <!-- Modal Visor Seguro V5 (Explorer Style) -->
+    <!-- Modal Visor Seguro V6 (Premium Explorer) -->
     <div class="modal-overlay" *ngIf="showSecureVaultModal">
-        <div class="modal-card vault-modal fade-in-up">
-            <div class="explorer-header-v5">
-                <div class="explorer-title-v5">
-                    <i class="fas fa-vault"></i>
-                    <h3>Visor Seguro: Explorer</h3>
+        <div class="modal-card vault-modal-v6 fade-in-up">
+
+            <!-- V6 HEADER: Navbar + Search -->
+            <div class="explorer-header-v6">
+                <div class="header-left-v6">
+                    <div class="viewer-tabs-v6">
+                        <button [class.active]="viewerActiveTab === 'global'" (click)="viewerActiveTab = 'global'">
+                            <i class="fas fa-globe"></i> Global
+                        </button>
+                        <button [class.active]="viewerActiveTab === 'mailbox'" (click)="viewerActiveTab = 'mailbox'">
+                            <i class="fas fa-envelope-open-text"></i> Mailbox
+                        </button>
+                    </div>
                 </div>
-                <button class="btn-back-circular-v4" (click)="closeSecureVaultModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+
+                <div class="header-center-v6">
+                    <div class="search-box-v6">
+                        <i class="fas fa-search"></i>
+                        <input type="text" [(ngModel)]="viewerSearchText"
+                            placeholder="Buscar documentos por nombre o código...">
+                    </div>
+                </div>
+
+                <div class="header-right-v6">
+                    <button class="btn-close-v6" (click)="closeSecureVaultModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
 
-            <div class="explorer-container-v5">
-                <!-- Sidebar -->
-                <div class="explorer-sidebar-v5">
+            <div class="explorer-body-v6">
+                <!-- Sidebar (Sub-filtros) -->
+                <div class="explorer-sidebar-v6">
+                    <div class="sidebar-section-title">Categorías</div>
                     <div class="sidebar-nav-item" [class.active]="vaultFilter === 'DOCS'"
                         (click)="setVaultFilter('DOCS')">
-                        <i class="fas fa-folder-open"></i> Documentos
+                        <i class="fas fa-file-alt"></i> Documentos
                     </div>
                     <div class="sidebar-nav-item" [class.active]="vaultFilter === 'SSE'"
                         (click)="setVaultFilter('SSE')">
-                        <i class="fas fa-file-shield"></i> Reportes SSE
+                        <i class="fas fa-shield-alt"></i> Reportes SSE
                     </div>
-                    <div class="sidebar-nav-item" [class.active]="vaultFilter === 'RECENT'"
-                        (click)="setVaultFilter('RECENT')">
-                        <i class="fas fa-history"></i> Recientes
+
+                    <div class="sidebar-divider"></div>
+
+                    <div class="sidebar-section-title">Acciones</div>
+                    <button class="btn-sidebar-action" (click)="uploadToGlobal()" *ngIf="viewerActiveTab === 'global'">
+                        <i class="fas fa-paperclip"></i> Adjuntar
+                    </button>
+                    <div class="sidebar-hint" *ngIf="viewerActiveTab === 'mailbox'">
+                        <i class="fas fa-info-circle"></i> Documentos provenientes de envíos seguros.
                     </div>
                 </div>
 
-                <!-- Content Area -->
-                <div class="explorer-content-v5">
-                    <div class="explorer-breadcrumb-v5">
-                        <span>Vault</span> <i class="fas fa-chevron-right"></i>
-                        <span>{{ vaultFilter === 'SSE' ? 'Reportes SSE' : (vaultFilter === 'RECENT' ?
-                            'Recientes' :
-                            'Documentos') }}</span>
+                <!-- Main Content Area -->
+                <div class="explorer-content-v6">
+                    <div class="explorer-breadcrumb-v6">
+                        <span>Vault</span>
+                        <i class="fas fa-chevron-right"></i>
+                        <span class="breadcrumb-active">{{ viewerActiveTab === 'global' ? 'Global' : 'Mailbox' }}</span>
                     </div>
 
-                    <!-- Column Headers -->
-                    <div class="explorer-file-header-v5">
-                        <div class="col-name-v5">Nombre</div>
-                        <div class="col-size-v5">Peso</div>
-                        <div class="col-date-v5">Fecha</div>
-                        <div class="col-action-v5"></div>
+                    <!-- Header de Columnas -->
+                    <div class="explorer-list-header-v6">
+                        <div class="col-name">Nombre del Documento</div>
+                        <div class="col-code" *ngIf="viewerActiveTab === 'mailbox'">Código Seguro</div>
+                        <div class="col-size">Tipo</div>
+                        <div class="col-date">Fecha Registro</div>
                     </div>
 
-                    <div class="explorer-file-list-v5">
-                        <div *ngFor="let doc of filteredSecureDocs" class="file-row-v5" (click)="selectSecureDoc(doc)">
-                            <div class="file-info-v5" [ngClass]="(doc?.type || '').toLowerCase()">
-                                <i [class]="getFileIcon(doc.name.split('.').pop() || '')"></i>
-                                <span class="file-name-v5">{{ doc.name }}</span>
+                    <!-- Scrollable List -->
+                    <div class="explorer-scroll-v6">
+                        <div *ngFor="let doc of filteredSecureDocs" class="file-row-v6" (click)="selectSecureDoc(doc)">
+                            <div class="col-name-info">
+                                <div class="col-icon-vault">
+                                    <ng-container *ngIf="!getFileTypeConfig(doc.name).isMascot; else sseMascot">
+                                        <i [class]="getFileTypeConfig(doc.name).icon"
+                                            [ngClass]="getFileTypeConfig(doc.name).colorClass"></i>
+                                    </ng-container>
+                                    <ng-template #sseMascot>
+                                        <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon-vault"
+                                            onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
+                                    </ng-template>
+                                </div>
+                                <div class="name-meta">
+                                    <span class="file-name">{{ doc.name }}</span>
+                                    <span class="tag-protected-vault"
+                                        *ngIf="doc.name.toLowerCase().endsWith('.sse')">PROTECTED</span>
+                                    <span class="badge-cert-vault fade-in" 
+                                          *ngIf="certificationMap.has(doc.file_path || doc.path)"
+                                          (click)="openCertificationDetails(doc, $event)"
+                                          title="Ver Certificado de Trazabilidad">
+                                        <i class="fas fa-certificate"></i>
+                                    </span>
+                                </div>
                             </div>
-                            <span class="file-meta-v5">{{ doc.size }}</span>
-                            <span class="file-meta-v5">{{ doc.date }}</span>
-                            <div class="col-action-v5">
-                                <button class="btn-check-circular-v5" title="Seleccionar">
-                                    <i class="fas fa-check"></i>
-                                </button>
+
+                            <div class="col-code-info" *ngIf="viewerActiveTab === 'mailbox'">
+                                <span class="badge-code">{{ doc.remote_code || 'N/A' }}</span>
                             </div>
+
+                            <div class="col-size-info">{{ getFileExtension(doc.name) }}</div>
+                            <div class="col-date-info">{{ doc.date | date:'dd/MM/yyyy HH:mm' }}</div>
+                        </div>
+
+                        <!-- Empty States -->
+                        <div class="explorer-empty-v6" *ngIf="filteredSecureDocs.length === 0">
+                            <div class="empty-icon-v6">
+                                <i [class]="viewerSearchText ? 'fas fa-search' : 'fas fa-folder-open'"></i>
+                            </div>
+                            <h3>{{ viewerSearchText ? 'No se hallaron coincidencias' : 'Bandeja Vacía' }}</h3>
+                            <p>{{ viewerSearchText ? 'Pruebe con otros términos de búsqueda.' : 'No hay documentos
+                                registrados en esta sección.' }}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="explorer-footer-v5">
-                <button class="btn-modal-cancel" (click)="closeSecureVaultModal()">
-                    Cancelar
-                </button>
+            <!-- Modal Footer -->
+            <div class="explorer-footer-v6">
+                <div class="footer-stats-v6">
+                    <span>{{ filteredSecureDocs.length }} documentos encontrados</span>
+                </div>
+                <button class="btn-cancel-v6" (click)="closeSecureVaultModal()">Cerrar Visor</button>
             </div>
         </div>
     </div>
@@ -905,3 +1026,45 @@
                 <span class="progress-label-v22 text-pulse">{{ sendProgress }}% de transferencia completada</span>
             </div>
         </div>
+
+<!-- CERTIFICATION DETAILS MODAL (SHARED COMPONENT STYLE) -->
+<div class="modal-overlay" *ngIf="showCertificationModal" style="z-index: 9999;">
+    <div class="modal-v2 certification-modal fade-in-up">
+        <div class="modal-header-v2 header-emerald">
+            <div class="icon-pulse-container emerald">
+                <i class="fas fa-shield-check"></i>
+            </div>
+            <div class="seal-header-badge">SDC-ALQUIMIA VERIFIED</div>
+        </div>
+        <div class="modal-content-v2">
+            <h3>Certificación de Trazabilidad</h3>
+            <p class="msg-primary">Documento: <b>{{ selectedCertification?.fileName }}</b></p>
+            
+            <div class="certification-box">
+                <div class="cert-item">
+                    <label><i class="fas fa-fingerprint"></i> Huella Digital (Seal)</label>
+                    <div class="cert-value-raw">{{ selectedCertification?.seal }}</div>
+                </div>
+                
+                <div class="cert-grid">
+                    <div class="cert-mini-item">
+                        <label>Estado</label>
+                        <span class="val success">INTEGRIDAD_OK</span>
+                    </div>
+                    <div class="cert-mini-item">
+                        <label>Protocolo</label>
+                        <span class="val">SDC-AI (Invisible)</span>
+                    </div>
+                </div>
+
+                <div class="cert-info-footer">
+                    <i class="fas fa-info-circle"></i>
+                    Este sello fue inyectado esteganográficamente utilizando caracteres de ancho cero, garantizando que el archivo no ha sido alterado desde su firma original.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-green" (click)="closeCertificationModal()">Cerrar Certificado</button>
+        </div>
+    </div>
+</div>

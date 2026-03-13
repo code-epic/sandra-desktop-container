@@ -157,6 +157,8 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
 
     let _ = conn.execute("ALTER TABLE document_history ADD COLUMN file_size TEXT", []);
     let _ = conn.execute("ALTER TABLE document_history ADD COLUMN remote_code TEXT", []);
+    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN source TEXT DEFAULT 'GLOBAL'", []);
+    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN file_hash TEXT", []);
 
     // Security Mailbox Table
     conn.execute(

@@ -10,6 +10,7 @@ pub fn save_protected_pdf(
     pdf_base64: String,
     file_path: String,
     pin: String,
+    metadata: Option<serde_json::Value>,
 ) -> Result<(), String> {
     // 1. Decode Base64
     let bytes = general_purpose::STANDARD
@@ -19,6 +20,34 @@ pub fn save_protected_pdf(
     // 2. Load PDF
     let mut doc =
         Document::load_from(bytes.as_slice()).map_err(|e| format!("PDF Load Error: {}", e))?;
+
+    // --- APPLY SEAL IF METADATA PROVIDED ---
+    if let Some(meta) = metadata {
+        let user_name = meta.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown");
+        let stats = crate::commands::monitor::collect_system_stats();
+        let mac = stats.mac_address.clone();
+        
+        // Inyectar en el diccionario Info
+        if let Ok(info_id) = doc.trailer.get(b"Info") {
+            if let Ok(info_dict) = doc
+                .get_object(info_id.as_reference().unwrap())
+                .and_then(|obj| obj.as_dict())
+            {
+                let mut new_info = info_dict.clone();
+                new_info.set(
+                    "SDC-Seal",
+                    lopdf::Object::string_literal(format!(
+                        "Firmado por {} ({})>>",
+                        user_name, mac
+                    )),
+                );
+                doc.objects.insert(
+                    info_id.as_reference().unwrap(),
+                    lopdf::Object::Dictionary(new_info),
+                );
+            }
+        }
+    }
 
     // --- CHECK IF ALREADY PROTECTED ---
     let pages_check = doc.get_pages();

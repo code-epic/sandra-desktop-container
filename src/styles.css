@@ -358,30 +358,6 @@ textarea {
   color: #546E7A;
 }
 
-.badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: white;
-  font-size: 0.8em;
-  font-weight: 600;
-}
-
-.badge.log,
-.badge.info {
-  background: #29B6F6;
-}
-
-.badge.warn {
-  background: #FFA726;
-}
-
-.badge.error {
-  background: #EF5350;
-}
-
-.badge.fetch {
-  background: #AB47BC;
-}
 
 .code-block {
   background: #263238;

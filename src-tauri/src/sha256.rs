@@ -17,10 +17,21 @@ impl Sha256Service {
     /// Esta implementación utiliza la crate 'sha2' para mayor seguridad y rendimiento,
     /// equivalente a la implementación manual proporcionada en TypeScript.
     pub fn hash(message: &str) -> String {
+        Self::hash_bytes(message.as_bytes())
+    }
+
+    /// Computa el hash SHA-256 de un bloque de bytes.
+    pub fn hash_bytes(data: &[u8]) -> String {
         let mut hasher = Sha256::new();
-        hasher.update(message.as_bytes());
+        hasher.update(data);
         let result = hasher.finalize();
         format!("{:x}", result)
+    }
+
+    /// Computa el hash SHA-256 de un archivo en disco.
+    pub fn hash_file(path: &str) -> Result<String, String> {
+        let bytes = std::fs::read(path).map_err(|e| format!("Error leyendo archivo para hash: {}", e))?;
+        Ok(Self::hash_bytes(&bytes))
     }
 
     /// Computa el HMAC-SHA256 de un mensaje con una clave.

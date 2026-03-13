@@ -7,7 +7,6 @@ export interface Tab {
   name: string;
   icon: string;
   url?: SafeResourceUrl;
-  type?: 'iframe' | 'pdf-viewer' | 'file-viewer'; // Separate viewers for PDF and general Files
   content?: SafeResourceUrl;      // Content for internal viewers
   blobData?: string;              // Raw Base64/DataUri for saving later
   originalName?: string;          // Filename for saving
@@ -23,6 +22,10 @@ export interface Tab {
   isExternalMode?: boolean;       // If true, use permissive iframe for external browsing
   mimeType?: string;              // Mime type for document viewer
   blobUrl?: string;               // New: URL object for cleaner memory management
+  csvHeader?: string[];           // Header columns for CSV viewer
+  csvRows?: string[][];           // Data rows for CSV viewer
+  csvFilteredRows?: string[][];   // Search results for CSV viewer
+  type?: 'iframe' | 'pdf-viewer' | 'file-viewer' | 'csv-viewer';
 }
 
 @Injectable({

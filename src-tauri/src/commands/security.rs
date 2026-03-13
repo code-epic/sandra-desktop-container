@@ -1,6 +1,6 @@
 use crate::storage::DbState;
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{Emitter, State};
 
 // --- Data Models ---
 
@@ -430,6 +430,11 @@ pub fn hmac_sha256(message: String, key: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn sha256_hash_file(file_path: String) -> Result<String, String> {
+    crate::sha256::Sha256Service::hash_file(&file_path)
+}
+
+#[tauri::command]
 pub fn encrypt_device_context(
     context: serde_json::Value,
     secret_key: String,
@@ -508,6 +513,7 @@ pub fn delete_authorization_ticket(state: State<DbState>, auth_id: String) -> Re
 
 #[tauri::command]
 pub fn process_hsf_authorization(
+    app: tauri::AppHandle,
     state: State<DbState>,
     auth_id: String,
     key: String,
@@ -527,13 +533,28 @@ pub fn process_hsf_authorization(
     let decrypted = crate::crypto::decrypt_string(&payload, &key)
         .map_err(|e| format!("Error al desencriptar el ticket de autorización: {}", e))?;
 
-    // 3. Actualizar el estado a 'Procesado'
+    // 3. Actualizar el estado a 'Procesado' y GUARDAR el contenido desencriptado
     conn.execute(
-        "UPDATE authorization_tickets SET status = 'Procesado', updated_at = CURRENT_TIMESTAMP WHERE auth_id = ?1",
-        [&auth_id],
+        "UPDATE authorization_tickets SET status = 'Procesado', content = ?1, updated_at = CURRENT_TIMESTAMP WHERE auth_id = ?2",
+        [&decrypted, &auth_id],
     )
     .map_err(|e| e.to_string())?;
 
-    // 4. Devolver la información desencriptada
+    // 4. Crear una notificación automática en el Mailbox de Seguridad y Sistema
+    let notify_content = format!("La solicitud de autorización #{} ha sido procesada y desencriptada exitosamente.", auth_id);
+    
+    // Guardar en DB (Mailbox interno)
+    conn.execute(
+        "INSERT INTO security_mailbox (sid, content, author, responsible, status, direction) VALUES (?1, ?2, ?3, 'System', 'Approved', 'inbox')",
+        (Some(auth_id.clone()), Some(notify_content.clone()), Some("HSF Gatekeeper".to_string())),
+    ).ok();
+
+    // Notificación Nativa (OS)
+    crate::remote_control::show_native_notification(&app, "Autorización Aprobada", &notify_content);
+
+    // Emitir evento para refrescar Monitor UI si está abierto
+    let _ = app.emit("refresh-monitor-data", ());
+
+    // 5. Devolver la información desencriptada
     Ok(decrypted)
 }

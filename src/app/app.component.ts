@@ -104,6 +104,10 @@ export class AppComponent implements OnInit {
     success: false,
   };
 
+  // --- CSV SEARCH STATE ---
+  csvSearchQuery = "";
+  showCsvSearch = false;
+
   confirmModal = {
     show: false,
     title: "",
@@ -306,34 +310,37 @@ export class AppComponent implements OnInit {
     await listen("hsf", async (event: any) => {
       this.zone.run(async () => {
         try {
-          // El payload es el string JSON crudo recibido del websocket
-          const msgData = JSON.parse(event.payload as string);
-          const authId = msgData.message; // authId enviado en message
+          const msgData = event.payload;
+          const rawAuthId = msgData.message; // authId enviado en message
+          const authId = (rawAuthId || "").toLowerCase();
           const key = msgData.from; // key enviada en from
 
           console.log(`🛡️ [Sec] Intento de autorización HSF para ${authId}`);
 
           const decryptedData = await invoke<string>("process_hsf_authorization", {
-            authId,
+            authId: rawAuthId, // Enviar el original a Rust por si acaso la DB es case-sensitive
             key
           });
 
           this.pendingTicketsCount = Math.max(0, this.pendingTicketsCount - 1);
-          this.snapService.show("Autorización Aprobada", undefined, "success");
+          // this.snapService.show(`Seguridad: Ticket #${rawAuthId} procesado con éxito`, undefined as any, "success", "fa-shield-check");
 
           // Notificar a la app hija si guardamos su puerto
           const port = this.authPorts.get(authId);
+          console.log(`🔌 [Sec] Buscando puerto para ${authId}:`, port ? "ENCONTRADO" : "NO ENCONTRADO");
+
           if (port) {
+            console.log(`📤 [Sec] Enviando mensaje de aprobación a la app hija para ${authId}`);
             port.postMessage({
               type: "AUTORIZACION_APROBADA",
-              authId,
+              authId: rawAuthId,
               data: decryptedData
             });
             this.authPorts.delete(authId);
           }
         } catch (e: any) {
           console.error("Error procesando autorización HSF:", e);
-          this.snapService.show("Fallo en Desencriptación", undefined, "error");
+          this.snapService.show("Fallo en Desencriptación", undefined as any, "error");
         }
       });
     });
@@ -406,7 +413,7 @@ export class AppComponent implements OnInit {
 
     // Sincronizar la conexión visual para que se le permita el paso
     if (this.activeConnection) {
-        this.activeConnection.jwt = token;
+      this.activeConnection.jwt = token;
     }
 
     // Si había una redirección pendiente
@@ -436,7 +443,7 @@ export class AppComponent implements OnInit {
           ? sessionStorage
           : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
-      
+
       const connectionHasJwt = this.activeConnection.jwt && this.activeConnection.jwt.length > 0;
 
       // Si no existe token en storage o la conexión no tiene el JWT en su estado
@@ -521,10 +528,18 @@ export class AppComponent implements OnInit {
       });
 
       if (isUp) {
-        // Si el host responde y estaba marcado como conectado
-        this.wsStatus = "Conectado";
+        // El Host responde (TCP), ahora verificar si el WebSocket está REALMENTE enlazado
+        const realWsStatus = await invoke<string>("get_ws_status");
+
+        if (realWsStatus === "connected") {
+          this.wsStatus = "Conectado";
+        } else if (realWsStatus === "connecting") {
+          this.wsStatus = "Reintentando";
+        } else {
+          this.wsStatus = "Desconectado";
+        }
       } else {
-        // Host no responde
+        // Host no responde (Servidor apagado o inaccesible)
         this.wsStatus = "Reintentando";
       }
     } catch (e) {
@@ -679,7 +694,7 @@ export class AppComponent implements OnInit {
     try {
       await this.sdcService.disconnectFromServer(conn, this.clientId).catch(() => { });
       await this.sdcService.connectToServer(conn, this.clientId);
-      this.wsStatus = "Conectado"; // Optimistic update
+      this.wsStatus = "Reintentando"; // Initial state, will update via event listener
       await this.loadConnections(); // Sync is_connected ref
     } catch (e) {
       console.error("Error conectando tras selección de perfil:", e);
@@ -1300,10 +1315,11 @@ export class AppComponent implements OnInit {
       case "SOLICITAR_AUTORIZACION":
         try {
           const { authId, payload, content } = event.data;
-          
+          const normalizedId = (authId || "").toLowerCase();
+
           // Convert content to string if it's an object, as Rust expects a String
           const contentStr = typeof content === 'object' ? JSON.stringify(content) : content;
-          
+
           await invoke("register_authorization_ticket", {
             authId,
             payload,
@@ -1312,7 +1328,10 @@ export class AppComponent implements OnInit {
 
           // Save the message port to reply back later
           if (event.ports && event.ports.length > 0) {
-            this.authPorts.set(authId, event.ports[0]);
+            console.log(`📥 [Sec] Registrando puerto para Ticket: ${normalizedId}`);
+            this.authPorts.set(normalizedId, event.ports[0]);
+          } else {
+            console.warn(`⚠️ [Sec] No se recibió MessagePort para Ticket: ${normalizedId}`);
           }
 
           this.pendingTicketsCount++;
@@ -1688,6 +1707,39 @@ export class AppComponent implements OnInit {
 
   showSaveLogModal = false;
   tabIdToClose: string | null = null;
+
+  toggleCsvSearch() {
+    this.showCsvSearch = !this.showCsvSearch;
+    if (!this.showCsvSearch) {
+      this.csvSearchQuery = "";
+      const tabs = this.appState.getTabsSnapshot();
+      tabs.forEach(t => {
+        if (t.type === 'csv-viewer') t.csvFilteredRows = undefined;
+      });
+    }
+  }
+
+  onCsvSearch(tab: Tab) {
+    if (!tab.csvRows) return;
+    const query = this.csvSearchQuery.trim().toLowerCase();
+    if (!query) {
+      tab.csvFilteredRows = undefined;
+      return;
+    }
+
+    const terms = query.split(/\s+/).filter(t => t.length > 0);
+    if (terms.length === 0) {
+      tab.csvFilteredRows = undefined;
+      return;
+    }
+
+    // Estrategia Full-Text: Cada palabra del buscador debe existir en alguna columna de la fila (Lógica AND)
+    tab.csvFilteredRows = tab.csvRows.filter(row => {
+      // Creamos una cadena única de la fila para una búsqueda ultra-rápida de múltiples términos
+      const rowContent = row.join(" ").toLowerCase();
+      return terms.every(term => rowContent.includes(term));
+    });
+  }
 
   async closeTab(tabId: string, evt: Event) {
     evt.stopPropagation();

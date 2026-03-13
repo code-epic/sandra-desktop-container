@@ -11,6 +11,8 @@ pub struct DocumentHistoryItem {
     file_path: String,
     file_size: Option<String>,
     remote_code: Option<String>,
+    source: Option<String>,
+    file_hash: Option<String>,
     opened_at: String,
 }
 
@@ -22,8 +24,37 @@ pub fn add_document_history(
     file_path: String,
     file_size: Option<String>,
     remote_code: Option<String>,
-) -> Result<(), String> {
+    source: Option<String>,
+    mut file_hash: Option<String>,
+) -> Result<String, String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
+
+    // 1. Calcular Hash si no viene dado (evitar duplicados por contenido)
+    if file_hash.is_none() {
+        if let Ok(h) = crate::sha256::Sha256Service::hash_file(&file_path) {
+            file_hash = Some(h);
+        }
+    }
+
+    // 2. Verificar si el Hash ya existe en el historial
+    if let Some(ref h) = file_hash {
+        let existing_path: Option<String> = conn
+            .query_row(
+                "SELECT file_path FROM document_history WHERE file_hash = ?1",
+                [h],
+                |row| row.get(0),
+            )
+            .ok();
+
+        if let Some(path) = existing_path {
+            // Actualizar fecha de apertura si ya existe
+            let _ = conn.execute(
+                "UPDATE document_history SET opened_at = CURRENT_TIMESTAMP WHERE file_hash = ?1",
+                [h],
+            );
+            return Ok(path); // Retornar ruta existente para no duplicar físico ni entrada
+        }
+    }
 
     let vault_dir = app
         .path()
@@ -60,12 +91,12 @@ pub fn add_document_history(
     };
 
     conn.execute(
-        "INSERT INTO document_history (file_name, file_path, file_size, remote_code) VALUES (?1, ?2, ?3, ?4)",
-        params![file_name, final_path, file_size, remote_code],
+        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, file_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![file_name, final_path, file_size, remote_code, source.unwrap_or_else(|| "GLOBAL".to_string()), file_hash],
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(())
+    Ok(final_path)
 }
 
 #[command]
@@ -73,7 +104,7 @@ pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHist
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code FROM document_history ORDER BY opened_at DESC LIMIT 20")
+        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash FROM document_history ORDER BY opened_at DESC LIMIT 50")
         .map_err(|e| e.to_string())?;
 
     let history_iter = stmt
@@ -85,6 +116,8 @@ pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHist
                 opened_at: row.get(3)?,
                 file_size: row.get(4)?,
                 remote_code: row.get(5)?,
+                source: row.get(6)?,
+                file_hash: row.get(7)?,
             })
         })
         .map_err(|e| e.to_string())?;

@@ -11,6 +11,7 @@ use tauri::async_runtime::JoinHandle;
 use tauri::Manager;
 
 pub struct ConnectionTask(pub Mutex<Option<JoinHandle<()>>>);
+pub struct WsStatus(pub Mutex<String>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -46,6 +47,7 @@ pub fn run() {
             let conn = storage::initialize_db(&app.handle()).expect("Error al inicializar SQLite");
             app.manage(DbState(Mutex::new(conn)));
             app.manage(ConnectionTask(Mutex::new(None)));
+            app.manage(WsStatus(Mutex::new("disconnected".to_string())));
             // println!("✅ [Tauri] Setup finalizado correctamente.");
 
             #[cfg(target_os = "windows")]
@@ -92,6 +94,7 @@ pub fn run() {
             commands::connections::get_connections,
             commands::connections::delete_connection,
             commands::connections::get_hash_preview,
+            commands::connections::get_ws_status,
             commands::api::api_post_request,
             commands::api::api_post_stream_request,
             commands::file_upload::process_and_upload,
@@ -119,6 +122,7 @@ pub fn run() {
             commands::security::create_proxy_route,
             commands::security::delete_proxy_route,
             commands::security::sha256_hash,
+            commands::security::sha256_hash_file,
             commands::security::hmac_sha256,
             commands::security::encrypt_device_context,
             commands::security::register_authorization_ticket,
@@ -129,7 +133,9 @@ pub fn run() {
             commands::cifrado::aplicar_capa_seguridad,
             commands::cifrado::remover_capa_seguridad,
             commands::gpg::encrypt_gpg_symmetric_raw,
-            commands::gpg::decrypt_gpg_symmetric_file_raw
+            commands::gpg::decrypt_gpg_symmetric_file_raw,
+            commands::file_upload::verify_file_seal,
+            commands::file_upload::apply_alquimia_seal
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -133,8 +133,68 @@
           </div>
         </div>
 
+        <!-- NUEVO CSV-GRID VIEWER (Optimizado para 100k+ líneas) -->
+        <div *ngIf="tab.type === 'csv-viewer'" class="file-viewer-stage csv-stage fade-in" (contextmenu)="$event.preventDefault()">
+          <div class="file-viewer-glass-header">
+            <div class="fv-header-info">
+              <div class="fv-icon-box csv-icon">
+                <i class="fas fa-table-list"></i>
+              </div>
+              <div class="fv-text-details">
+                <span class="fv-filename">{{ tab.name }}</span>
+                <span class="fv-mimetype">DATA GRID • {{ tab.csvRows?.length || 0 }} Registros</span>
+              </div>
+            </div>
+            <div class="fv-header-actions">
+              <div class="csv-search-bar" [class.visible]="showCsvSearch">
+                <i class="fas fa-search"></i>
+                <input type="text" 
+                       [(ngModel)]="csvSearchQuery" 
+                       (input)="onCsvSearch(tab)" 
+                       placeholder="Filtrar registros..." 
+                       class="csv-inline-search">
+              </div>
+              <button class="fv-action-btn search" (click)="toggleCsvSearch()" [class.active]="showCsvSearch" title="Buscar">
+                <i class="fas fa-search"></i>
+              </button>
+              <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" title="Exportar con Sello">
+                <i class="fas fa-file-export"></i>
+              </button>
+              <div class="fv-divider"></div>
+              <button class="fv-action-btn close" (click)="closeTab(tab.id, $event)">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="csv-grid-container">
+            <table class="premium-csv-table">
+              <thead>
+                <tr>
+                  <th *ngFor="let head of (tab.csvHeader || [])">{{ head }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Virtualized display: only first 200 rows shown for performance -->
+                <tr *ngFor="let row of (tab.csvFilteredRows || tab.csvRows || []) | slice:0:200">
+                  <td *ngFor="let cell of row">{{ cell }}</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="csv-load-more" *ngIf="(tab.csvFilteredRows?.length || tab.csvRows?.length || 0) > 200">
+              <i class="fas fa-info-circle"></i> 
+              <span *ngIf="!tab.csvFilteredRows">Visualizando las primeras 200 de {{ tab.csvRows?.length }} líneas para optimizar RAM.</span>
+              <span *ngIf="tab.csvFilteredRows">Encontrados {{ tab.csvFilteredRows.length }} resultados. Mostrando los primeros 200.</span>
+            </div>
+            <div class="csv-no-results" *ngIf="tab.csvFilteredRows && tab.csvFilteredRows.length === 0">
+              <i class="fas fa-search-minus"></i> No se encontraron coincidencias para "{{ csvSearchQuery }}"
+            </div>
+          </div>
+        </div>
+
         <!-- NUEVO FILE-VIEWER MODERNO (CSV, TXT, IMG, PNG) -->
-        <div *ngIf="tab.type === 'file-viewer'" class="file-viewer-stage fade-in">
+        <div *ngIf="tab.type === 'file-viewer'" class="file-viewer-stage fade-in" (contextmenu)="$event.preventDefault()">
           <div class="file-viewer-glass-header">
             <div class="fv-header-info">
               <div class="fv-icon-box">

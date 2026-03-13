@@ -40,7 +40,7 @@ pub async fn start_remote_listener(
     let mut delay = 1;
 
     // Emit initial status
-    let _ = app_handle.emit("connection-status", "connecting");
+    update_ws_status(&app_handle, "connecting");
 
     loop {
         // 1. Recolectar contexto del dispositivo para el Handshake Seguro
@@ -98,7 +98,7 @@ pub async fn start_remote_listener(
         {
             Ok((mut ws_stream, _)) => {
                 println!("Conectado exitosamente");
-                let _ = app_handle.emit("connection-status", "connected");
+                update_ws_status(&app_handle, "connected");
                 attempt_count = 0; // Reset on success
                 delay = 1;         // Restaurar el backoff rápido al conectar exitosamente
 
@@ -141,7 +141,7 @@ pub async fn start_remote_listener(
                                 }
                                 Some(Ok(Message::Close(_))) | Some(Err(_)) | None => {
                                     println!("Conexión perdida o cerrada remotamente (Zombie detectado).");
-                                    let _ = app_handle.emit("connection-status", "disconnected");
+                                    update_ws_status(&app_handle, "disconnected");
                                     set_db_disconnected(&app_handle, connection_id);
                                     break;
                                 }
@@ -151,7 +151,7 @@ pub async fn start_remote_listener(
                         _ = heartbeat_interval.tick() => {
                             if let Err(e) = ws_stream.send(Message::Ping(vec![].into())).await {
                                 eprintln!("Fallo al enviar Ping (Heartbeat Zombie): {}", e);
-                                let _ = app_handle.emit("connection-status", "error");
+                                update_ws_status(&app_handle, "error");
                                 set_db_disconnected(&app_handle, connection_id);
                                 break;
                             }
@@ -161,7 +161,7 @@ pub async fn start_remote_listener(
             }
             Err(e) => {
                 eprintln!("Error de handshake: {}", e);
-                let _ = app_handle.emit("connection-status", "error");
+                update_ws_status(&app_handle, "error");
                 // Important: If handshake fails, mark as disconnected in DB so UI updates
                 set_db_disconnected(&app_handle, connection_id);
 
@@ -175,6 +175,14 @@ pub async fn start_remote_listener(
             }
         }
     }
+}
+
+fn update_ws_status(app_handle: &AppHandle, status: &str) {
+    if let Some(state) = app_handle.try_state::<crate::WsStatus>() {
+        let mut ws_state = state.0.lock().unwrap();
+        *ws_state = status.to_string();
+    }
+    let _ = app_handle.emit("connection-status", status);
 }
 
 fn set_db_disconnected(app_handle: &AppHandle, connection_id: Option<i64>) {
@@ -210,61 +218,13 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
         match msg_type {
             "notification" => {
                 println!("[WS] Procesando Notificación Nativa...");
-                use tauri_plugin_notification::NotificationExt;
-
-                // Verificar estado de permisos (diagnóstico)
-                let permission_state = app_handle.notification().permission_state();
-                println!(
-                    "[WS] Estado de permiso de notificación: {:?}",
-                    permission_state
-                );
-
                 let title = json["title"]
                     .as_str()
                     .or(json["from"].as_str())
                     .unwrap_or("Sandra Alert");
                 let body = json["message"].as_str().unwrap_or("Nuevo evento detectado");
 
-                // 1. Intentar ruta de recursos (Producción)
-                let mut icon_path = app_handle
-                    .path()
-                    .resource_dir()
-                    .map(|p| p.join("icons").join("icon.png"))
-                    .ok();
-
-                // 2. Si no existe, intentar ruta de desarrollo (Source)
-                if icon_path.as_ref().map_or(true, |p| !p.exists()) {
-                    if let Ok(_app_dir) = app_handle.path().app_config_dir() {
-                        // app_config_dir suele estar cerca de la fuente en dev,
-                        // pero la forma mas segura en dev es app_handle.path().current_dir() si esta habilitado
-                        // O simplemente reconstruir desde app_handle.path().resource_dir() hacia arriba.
-                        if let Ok(res_dir) = app_handle.path().resource_dir() {
-                            let dev_path =
-                                res_dir.join("..").join("..").join("icons").join("icon.png");
-                            if dev_path.exists() {
-                                icon_path = Some(dev_path);
-                            }
-                        }
-                    }
-                }
-
-                if let Some(ref path) = icon_path {
-                    println!("[WS] Ruta final del icono: {:?}", path);
-                    println!("[WS] ¿Existe el icono?: {}", path.exists());
-                }
-
-                let mut builder = app_handle.notification().builder();
-                builder = builder.title(title).body(body).sound("Default");
-
-                if let Some(path) = icon_path {
-                    if path.exists() {
-                        builder = builder.icon(path.to_string_lossy().to_string());
-                    }
-                }
-
-                builder
-                    .show()
-                    .unwrap_or_else(|e| println!("Error mostrando notificación: {}", e));
+                show_native_notification(app_handle, title, body);
 
                 println!("[WS] Notificación enviada al sistema operativo.");
 
@@ -291,13 +251,11 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
                     }
 
                     // Push Notification
-                    use tauri_plugin_notification::NotificationExt;
-                    let mut builder = app_handle.notification().builder();
-                    builder = builder
-                        .title("Acceso Autorizado")
-                        .body("Se ha otorgado el acceso seguro a la conexión.")
-                        .sound("Default");
-                    let _ = builder.show();
+                    show_native_notification(
+                        app_handle,
+                        "Acceso Autorizado",
+                        "Se ha otorgado el acceso seguro a la conexión.",
+                    );
 
                     // Global App Event (chat / system messages)
                     let access_payload = serde_json::json!({
@@ -332,7 +290,15 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
                 let _ = app_handle.emit("server-welcome", &json);
             }
             "hsf" => {
-                println!("[WS] Alta Seguridad Encontrada");
+                println!("[WS] Alta Seguridad Encontrada (HSF)");
+                let auth_id = json["message"].as_str().unwrap_or("Desconocido");
+                
+                show_native_notification(
+                    app_handle,
+                    "Requerimiento de Alta Seguridad",
+                    &format!("Se solicita autorización para el Ticket: {}", auth_id),
+                );
+
                 let _ = app_handle.emit("hsf", &json);
             }
             _ => {
@@ -355,6 +321,40 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
     } else {
         println!("[WS] Falló el parseo de JSON: {}", text);
     }
+}
+
+pub fn show_native_notification(app_handle: &AppHandle, title: &str, body: &str) {
+    use tauri_plugin_notification::NotificationExt;
+
+    // 1. Intentar ruta de recursos (Producción)
+    let mut icon_path = app_handle
+        .path()
+        .resource_dir()
+        .map(|p| p.join("icons").join("icon.png"))
+        .ok();
+
+    // 2. Si no existe, intentar ruta de desarrollo (Source)
+    if icon_path.as_ref().map_or(true, |p| !p.exists()) {
+        if let Ok(res_dir) = app_handle.path().resource_dir() {
+            let dev_path = res_dir.join("..").join("..").join("icons").join("icon.png");
+            if dev_path.exists() {
+                icon_path = Some(dev_path);
+            }
+        }
+    }
+
+    let mut builder = app_handle.notification().builder();
+    builder = builder.title(title).body(body).sound("Default");
+
+    if let Some(path) = icon_path {
+        if path.exists() {
+            builder = builder.icon(path.to_string_lossy().to_string());
+        }
+    }
+
+    builder
+        .show()
+        .unwrap_or_else(|e| println!("Error mostrando notificación: {}", e));
 }
 
 fn execute_system_reboot() {

@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { FormsModule } from '@angular/forms';
 import { SecurityService, MailboxMessage, AuthorizationTicket } from '../../core/services/security.service';
 
@@ -57,6 +58,18 @@ export class MonitorComponent implements OnInit, OnDestroy {
 
         await this.loadInstalledApps();
         this.refreshAll();
+
+        // Escuchar eventos globales de actualización
+        listen('refresh-monitor-data', () => {
+            this.refreshAll();
+            // Si hay un ticket seleccionado, refrescar sus datos locales
+            if (this.selectedTicket) {
+                const updated = this.tickets.find(t => t.auth_id === this.selectedTicket?.auth_id);
+                if (updated) {
+                    this.selectedTicket = { ...updated };
+                }
+            }
+        });
         
         // Actualizador de tiempo en vivo
         this.timeInterval = setInterval(() => {
@@ -308,6 +321,18 @@ export class MonitorComponent implements OnInit, OnDestroy {
         } catch {
             return jsonStr;
         }
+    }
+
+    getTruncatedContent(text: string, maxLines: number = 5): string {
+        if (!text) return '';
+        const lines = text.split('\n');
+        if (lines.length <= maxLines) return text;
+        return lines.slice(0, maxLines).join('\n');
+    }
+
+    hasMoreLines(text: string, maxLines: number = 5): boolean {
+        if (!text) return false;
+        return text.split('\n').length > maxLines;
     }
 
     get filteredLogs() {
