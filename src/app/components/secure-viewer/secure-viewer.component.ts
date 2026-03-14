@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { invoke } from '@tauri-apps/api/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AppStateService } from '../../core/services/app-state.service';
+import { FileService } from '../../core/services/file.service';
 
 @Component({
     selector: 'app-secure-viewer',
@@ -32,7 +33,8 @@ export class SecureViewerComponent {
 
     constructor(
         private sanitizer: DomSanitizer,
-        private appState: AppStateService
+        private appState: AppStateService,
+        private fileService: FileService
     ) {
         this.loadHistory();
     }
@@ -568,7 +570,7 @@ export class SecureViewerComponent {
                 let hasComma = false;
                 for (let i = 0; i < Math.min(byteArray.length, 500); i++) {
                     if (byteArray[i] === 0) { isBinary = true; break; }
-                    if (byteArray[i] === 0x2C) hasComma = true;
+                    if (byteArray[i] === 0x2C || byteArray[i] === 0x3B) hasComma = true;
                 }
                 if (!isBinary) {
                     if (hasComma) { mimeType = 'text/csv'; ext = '.csv'; }
@@ -604,8 +606,22 @@ export class SecureViewerComponent {
                 isSavedToHistory: true,
                 showToolbar: true,
                 zoomLevel: 1.0,
-                mimeType: mimeType
+                mimeType: mimeType,
+                csvHeader: [],
+                csvRows: []
             });
+
+            if (mimeType === 'text/csv') {
+                const { header, rows } = await this.fileService.parseCSV(blob);
+                const tabs = this.appState.getTabsSnapshot();
+                const lastTab = tabs[tabs.length - 1];
+                if (lastTab && lastTab.id === tabId) {
+                    lastTab.type = 'csv-viewer';
+                    lastTab.csvHeader = header;
+                    lastTab.csvRows = rows;
+                    lastTab.icon = 'fas fa-table';
+                }
+            }
 
             if (this.gpgUnlockSaveToHistory) {
                 // Calculate hash for GPG unlocked file (or use path)
@@ -827,41 +843,10 @@ export class SecureViewerComponent {
             let csvRows: string[][] = [];
 
             if (cleanName.endsWith('.csv')) {
-                // Parse CSV Data
-                const textContent = byteCharacters;
-                const lines = textContent.split(/\r?\n/).filter(line => line.trim().length > 0);
-                
-                if (lines.length > 0) {
-                    // Smart delimiter detection: search for , or ; in first line
-                    const firstLine = lines[0];
-                    const commaCount = (firstLine.match(/,/g) || []).length;
-                    const semiCount = (firstLine.match(/;/g) || []).length;
-                    const delimiter = semiCount > commaCount ? ';' : ',';
-                    
-                    // Simple CSV Parser considering quotes
-                    const parseLine = (line: string) => {
-                        const result = [];
-                        let current = '';
-                        let inQuotes = false;
-                        for (let i = 0; i < line.length; i++) {
-                            const char = line[i];
-                            if (char === '"') inQuotes = !inQuotes;
-                            else if (char === delimiter && !inQuotes) {
-                                result.push(current.trim().replace(/^"|"$/g, ''));
-                                current = '';
-                            } else {
-                                current += char;
-                            }
-                        }
-                        result.push(current.trim().replace(/^"|"$/g, ''));
-                        return result;
-                    };
-
-                    csvHeaders = parseLine(lines[0]);
-                    // Only parse up to 10k rows for UI performance, even if we show 200 via Slice
-                    // For truly large (100k+) files, we keep them in memory but avoid full DOM hit
-                    csvRows = lines.slice(1).map(line => parseLine(line));
-                    
+                const { header, rows } = await this.fileService.parseCSV(blob);
+                if (header.length > 0) {
+                    csvHeaders = header;
+                    csvRows = rows;
                     viewerType = 'csv-viewer';
                     mimeType = 'text/csv';
                     iconClass = 'fas fa-table';

@@ -157,6 +157,9 @@
               <button class="fv-action-btn search" (click)="toggleCsvSearch()" [class.active]="showCsvSearch" title="Buscar">
                 <i class="fas fa-search"></i>
               </button>
+              <button class="fv-action-btn save" (click)="savePdfToHistory(tab)" *ngIf="!tab.isSavedToHistory" title="Guardar en Historial">
+                <i class="fas fa-history"></i>
+              </button>
               <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" title="Exportar con Sello">
                 <i class="fas fa-file-export"></i>
               </button>

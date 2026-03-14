@@ -13,6 +13,7 @@ import { LoggerService } from "./core/services/logger.service";
 import { SystemStats } from "./core/models/telemetry.model";
 import { AppStateService, Tab } from "./core/services/app-state.service";
 import { DownloadService } from "./core/services/download.service";
+import { FileService } from "./core/services/file.service";
 import { Observable } from "rxjs";
 import { SnapService, SnapData } from "./core/services/snap.service";
 // import { PDFDocument, rgb, degrees } from 'pdf-lib'; // REMOVED: Now handled in DownloadService/ChildApp
@@ -213,6 +214,7 @@ export class AppComponent implements OnInit {
     private sanitizer: DomSanitizer,
     private titleService: Title,
     private snapService: SnapService,
+    private fileService: FileService,
   ) {
     // ... existing constructor logic ...
 
@@ -1466,17 +1468,34 @@ export class AppComponent implements OnInit {
       const ext = fileName.split(".").pop()?.toLowerCase();
 
       let icon = "fas fa-file-pdf";
-      if (ext === "csv") icon = "fas fa-file-csv";
-      else if (ext === "txt") icon = "fas fa-file-alt";
+      if (ext === "txt") icon = "fas fa-file-alt";
       else if (ext === "xlsx" || ext === "xls") icon = "fas fa-file-excel";
       else if (["png", "jpg", "jpeg", "gif", "svg"].includes(ext || ""))
         icon = "fas fa-file-image";
+
+      let csvHeader: string[] = [];
+      let csvRows: string[][] = [];
+      let finalViewerType: any = viewerType;
+
+      if (ext === "csv") {
+        try {
+          const { header, rows } = await this.fileService.parseCSV(blob);
+          if (header.length > 0) {
+            csvHeader = header;
+            csvRows = rows;
+            finalViewerType = 'csv-viewer';
+            icon = "fas fa-table-list";
+          }
+        } catch (csvErr) {
+          console.error("Error parsing CSV for grid view:", csvErr);
+        }
+      }
 
       this.appState.addTab({
         id: tabId,
         name: isProtected ? fileName.replace(/\.pdf$/i, ".sse") : fileName,
         icon: isProtected ? "fas fa-file-shield" : icon,
-        type: viewerType,
+        type: finalViewerType as any,
         content: safeUrl,
         url: safeUrl,
         blobData: dataUri, // Save raw data for later actions (Save/History)
@@ -1486,6 +1505,8 @@ export class AppComponent implements OnInit {
         showToolbar: true, // ENABLE Toolbar for API calls
         zoomLevel: 1.0, // Init Zoom
         mimeType: blob.type, // Guardar mimeType para el visor
+        csvHeader,
+        csvRows
       });
     } catch (e) {
       console.error("Error opening document tab:", e);
@@ -1566,7 +1587,7 @@ export class AppComponent implements OnInit {
           pin: "1234",
         });
       } else {
-        // Normal PDF Case
+        // Standard File Case (CSV, PDF, Images, etc.)
         const tempName = `cached_${Date.now()}_${tab.originalName}`;
         fullPath = await join(tempPath, tempName);
 

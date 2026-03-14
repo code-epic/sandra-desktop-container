@@ -86,4 +86,54 @@ export class FileService {
 
     return progress$.asObservable();
   }
+
+  /**
+   * Parsea un Blob CSV a una estructura de encabezados y filas.
+   * Soporta detección automática de delimitador (coma o punto y coma)
+   * y manejo de campos entrecomillados con soporte para comillas escapadas ("").
+   */
+  async parseCSV(blob: Blob): Promise<{ header: string[], rows: string[][] }> {
+    try {
+      const textContent = await blob.text();
+      const lines = textContent.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length === 0) return { header: [], rows: [] };
+
+      const firstLine = lines[0];
+      const commaCount = (firstLine.match(/,/g) || []).length;
+      const semiCount = (firstLine.match(/;/g) || []).length;
+      const delimiter = semiCount > commaCount ? ';' : ',';
+
+      const parseLine = (line: string) => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            // Manejar comillas dobles escapadas "" (RFC 4180)
+            if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+              current += '"';
+              i++; // Saltar la siguiente comilla
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === delimiter && !inQuotes) {
+            result.push(current.trim().replace(/^"|"$/g, ''));
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim().replace(/^"|"$/g, ''));
+        return result;
+      };
+
+      const header = parseLine(lines[0]);
+      const rows = lines.slice(1).map(l => parseLine(l));
+      return { header, rows };
+    } catch (e) {
+      console.error("Error en parseCSV:", e);
+      return { header: [], rows: [] };
+    }
+  }
 }
