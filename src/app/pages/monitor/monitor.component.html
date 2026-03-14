@@ -5,6 +5,19 @@
                 <span class="brand-main">Sandra</span> <span class="brand-sub">Analytics</span>
             </h1>
             <div class="monitor-controls">
+
+                <!-- Controls for Tickets Tab -->
+                <ng-container *ngIf="activeTab === 'tickets'">
+                    <select class="app-select" [(ngModel)]="ticketStatusFilter">
+                        <option value="all">Todo</option>
+                        <option value="pendiente">Pendiente</option>
+                        <!-- <option value="en proceso">En Proceso</option> -->
+                        <option value="procesado">Procesado</option>
+                    </select>
+                    <button class="btn-action refresh" (click)="loadTickets()" title="Actualizar"><i
+                            class="fas fa-sync-alt" [class.fa-spin]="loadingTickets"></i></button>
+                </ng-container>
+
                 <!-- Controls for Logs Tab -->
                 <ng-container *ngIf="activeTab === 'logs'">
                     <select class="app-select" [(ngModel)]="currentAppFilter" (change)="refreshLogs()">
@@ -18,23 +31,9 @@
                             class="fas fa-trash-alt"></i></button>
                 </ng-container>
 
-                <!-- Controls for Notifications Tab -->
-                <ng-container *ngIf="activeTab === 'notifications'">
-                    <button class="btn-action refresh" (click)="loadNotifications()" title="Actualizar"><i
-                            class="fas fa-sync-alt" [class.fa-spin]="loadingNotifications"></i></button>
-                </ng-container>
 
-                <!-- Controls for Tickets Tab -->
-                <ng-container *ngIf="activeTab === 'tickets'">
-                    <select class="app-select" [(ngModel)]="ticketStatusFilter">
-                        <option value="all">Todo</option>
-                        <option value="pendiente">Pendientes</option>
-                        <option value="en proceso">En Proceso</option>
-                        <option value="procesado">Procesados</option>
-                    </select>
-                    <button class="btn-action refresh" (click)="loadTickets()" title="Actualizar"><i
-                            class="fas fa-sync-alt" [class.fa-spin]="loadingTickets"></i></button>
-                </ng-container>
+
+
 
                 <button class="btn-action transfer" (click)="openTransferModal()" title="Transferir Reporte"><i
                         class="fas fa-file-export"></i></button>
@@ -44,79 +43,19 @@
         <!-- Tab Navigation Bar -->
         <div class="header-bottom">
             <nav class="monitor-tabs">
-                <button class="tab-btn" [class.active]="activeTab === 'logs'" (click)="setTab('logs')">
-                    <i class="fas fa-terminal"></i> Monitor
-                </button>
-                <button class="tab-btn" [class.active]="activeTab === 'notifications'"
-                    (click)="setTab('notifications')">
-                    <i class="fas fa-bell"></i> Notificaciones
-                    <span class="tab-badge" *ngIf="notifications.length > 0">{{ notifications.length }}</span>
-                </button>
                 <button class="tab-btn" [class.active]="activeTab === 'tickets'" (click)="setTab('tickets')">
                     <i class="fas fa-ticket-alt"></i> Tickets
                     <span class="tab-badge" *ngIf="tickets.length > 0">{{ tickets.length }}</span>
                 </button>
+                <button class="tab-btn" [class.active]="activeTab === 'logs'" (click)="setTab('logs')">
+                    <i class="fas fa-terminal"></i> Monitor
+                </button>
+
+
             </nav>
         </div>
     </div>
 
-    <!-- 1. Logs View -->
-    <div class="monitor-table-container scroll-stage" *ngIf="activeTab === 'logs'">
-        <div class="table-scroll">
-            <table class="monitor-table">
-                <thead>
-                    <tr>
-                        <th width="150">Fecha</th>
-                        <th width="100">Origen</th>
-                        <th width="80">Tipo</th>
-                        <th>Mensaje</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let log of filteredLogs" class="log-row" (dblclick)="viewLogDetails(log)">
-                        <td class="time-cell">{{ log.timestamp | date:'dd/MM/yy HH:mm:ss' }}</td>
-                        <td class="app-cell">{{ log.app_id }}</td>
-                        <td>
-                            <span class="badge" [ngClass]="log.log_type.toLowerCase()">{{ log.log_type }}</span>
-                        </td>
-                        <td class="msg-cell">{{ log.message }}</td>
-                    </tr>
-                    <tr *ngIf="!loading && filteredLogs.length === 0">
-                        <td colspan="4" class="empty-cell">No se encontraron registros.</td>
-                    </tr>
-                    <tr *ngIf="loading">
-                        <td colspan="4" class="empty-cell">Cargando registros...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 2. Notifications View -->
-    <div class="notifications-container scroll-stage" *ngIf="activeTab === 'notifications'">
-        <div class="empty-state" *ngIf="!loadingNotifications && notifications.length === 0">
-            <i class="fas fa-envelope-open"></i>
-            <p>No hay notificaciones de seguridad.</p>
-        </div>
-        <div class="list-layout">
-            <div class="notification-card" *ngFor="let msg of notifications">
-                <div class="notify-icon" [ngClass]="msg.status.toLowerCase()">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <div class="notify-content">
-                    <div class="notify-header">
-                        <span class="notify-auth">{{ msg.author }}</span>
-                        <span class="notify-time">{{ msg.created_at | date:'dd MMM yyyy, HH:mm' }}</span>
-                    </div>
-                    <div class="notify-sid">{{ msg.sid }}</div>
-                    <div class="notify-body">{{ msg.content.substring(0, 150) }}...</div>
-                </div>
-                <div class="notify-status">
-                    <span class="badge" [ngClass]="msg.status.toLowerCase()">{{ msg.status }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- 3. Tickets View (Full Table) -->
     <div class="monitor-table-container scroll-stage" *ngIf="activeTab === 'tickets'">
@@ -136,7 +75,8 @@
                     <tr *ngFor="let ticket of filteredTickets" class="log-row" (dblclick)="viewTicketDetails(ticket)">
                         <td class="id-cell">#{{ ticket.auth_id }}</td>
                         <td class="time-cell">{{ ticket.created_at | date:'dd/MM/yy HH:mm' }}</td>
-                        <td class="time-cell">{{ getTimeElapsed(ticket.created_at) }}</td>
+                        <td class="time-cell">{{ ticket.status.toLowerCase() !== 'procesado' ?
+                            getTimeElapsed(ticket.created_at) : '--:--' }}</td>
                         <td>
                             <span class="badge" [ngClass]="ticket.status.toLowerCase()">{{ ticket.status }}</span>
                         </td>
@@ -172,6 +112,41 @@
             </table>
         </div>
     </div>
+
+    <!-- 1. Logs View -->
+    <div class="monitor-table-container scroll-stage" *ngIf="activeTab === 'logs'">
+        <div class="table-scroll">
+            <table class="monitor-table">
+                <thead>
+                    <tr>
+                        <th width="150">Fecha</th>
+                        <th width="100">Origen</th>
+                        <th width="80">Tipo</th>
+                        <th>Mensaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let log of filteredLogs" class="log-row" (dblclick)="viewLogDetails(log)">
+                        <td class="time-cell">{{ log.timestamp | date:'dd/MM/yy HH:mm:ss' }}</td>
+                        <td class="app-cell">{{ log.app_id }}</td>
+                        <td>
+                            <span class="badge" [ngClass]="log.log_type.toLowerCase()">{{ log.log_type }}</span>
+                        </td>
+                        <td class="msg-cell">{{ log.message }}</td>
+                    </tr>
+                    <tr *ngIf="!loading && filteredLogs.length === 0">
+                        <td colspan="4" class="empty-cell">No se encontraron registros.</td>
+                    </tr>
+                    <tr *ngIf="loading">
+                        <td colspan="4" class="empty-cell">Cargando registros...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
 </div>
 
 <!-- Modal Detalle Ticket (Autorización) -->

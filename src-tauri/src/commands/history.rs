@@ -16,6 +16,16 @@ pub struct DocumentHistoryItem {
     opened_at: String,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ChatHistoryItem {
+    id: Option<i32>,
+    text: String,
+    sender: String,
+    sender_name: Option<String>,
+    timestamp: String,
+    session_id: Option<String>,
+}
+
 #[command]
 pub fn add_document_history(
     app: AppHandle,
@@ -138,4 +148,57 @@ pub fn delete_document_history(db_state: State<DbState>, id: i32) -> Result<(), 
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[command]
+pub fn save_chat_messages(
+    db_state: State<DbState>,
+    messages: Vec<ChatHistoryItem>,
+) -> Result<(), String> {
+    let mut conn = db_state.0.lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    for msg in messages {
+        tx.execute(
+            "INSERT INTO chat_history (text, sender, sender_name, timestamp, session_id) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![msg.text, msg.sender, msg.sender_name, msg.timestamp, msg.session_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[command]
+pub fn get_chat_history(
+    db_state: State<DbState>,
+    limit: i32,
+    offset: i32,
+) -> Result<Vec<ChatHistoryItem>, String> {
+    let conn = db_state.0.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare("SELECT id, text, sender, sender_name, timestamp, session_id FROM chat_history ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2")
+        .map_err(|e| e.to_string())?;
+
+    let history_iter = stmt
+        .query_map(params![limit, offset], |row| {
+            Ok(ChatHistoryItem {
+                id: Some(row.get(0)?),
+                text: row.get(1)?,
+                sender: row.get(2)?,
+                sender_name: row.get(3)?,
+                timestamp: row.get(4)?,
+                session_id: row.get(5)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut history = Vec::new();
+    for item in history_iter {
+        history.push(item.map_err(|e| e.to_string())?);
+    }
+
+    Ok(history)
 }

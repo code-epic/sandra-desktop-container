@@ -232,7 +232,7 @@
     position: relative;
 
     &:nth-child(even) {
-        background: #f4f8fd; /* More visible but still soft blue stripes */
+        background: #f1f8f3; /* Soft green stripes */
     }
 
     &:last-child {
@@ -358,7 +358,7 @@
         color: #94a3b8;
     }
 
-    .btn-row-action:hover { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+    .btn-row-action:hover { background: var(--pastel-green-bg, #f0fdf4); color: var(--pastel-green-text, #16a34a); border-color: var(--pastel-green-hover, #dcfce7); }
     .btn-row-delete:hover { background: #fef2f2; color: #dc2626; border-color: #fee2e2; }
 }
 
@@ -380,7 +380,7 @@
 
 .header-red { background: #fff5f5; }
 .header-green { background: #f0fdf4; }
-.header-blue { background: #eff6ff; }
+.header-blue { background: #f0fdf4; }
 
 .icon-pulse-container {
     width: 52px;
@@ -397,7 +397,7 @@
 
 .icon-pulse-container.red { color: #f87171; animation: pulse-soft 2s infinite; }
 .icon-pulse-container.green { color: #34d399; animation: pulse-soft 2s infinite; }
-.icon-pulse-container.blue { color: #60a5fa; animation: pulse-soft 2s infinite; }
+.icon-pulse-container.blue { color: var(--pastel-green-text, #16a34a); animation: pulse-soft 2s infinite; }
 
 .modal-content-v2 {
     padding: 24px 32px 12px 32px;
@@ -454,8 +454,8 @@
 .btn-v2-green { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
 .btn-v2-green:hover { background: #16a34a; color: #ffffff; }
 
-.btn-v2-blue { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
-.btn-v2-blue:hover { background: #2563eb; color: #ffffff; }
+.btn-v2-blue { background: var(--pastel-green-bg, #f0fdf4); color: var(--pastel-green-text, #16a34a); border: 1px solid var(--pastel-green-hover, #dcfce7); }
+.btn-v2-blue:hover { background: var(--pastel-green-text, #16a34a); color: #ffffff; }
 
 /* Empty state refined */
 .empty-state {

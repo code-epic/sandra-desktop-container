@@ -280,7 +280,7 @@ pub fn create_mailbox_message(
     direction: Option<String>,
 ) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
-    
+
     let unwrapped_dir = direction.unwrap_or_else(|| "outbox".to_string());
 
     conn.execute(
@@ -461,7 +461,9 @@ pub fn register_authorization_ticket(
 }
 
 #[tauri::command]
-pub fn get_authorization_tickets(state: State<DbState>) -> Result<Vec<AuthorizationTicket>, String> {
+pub fn get_authorization_tickets(
+    state: State<DbState>,
+) -> Result<Vec<AuthorizationTicket>, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare("SELECT auth_id, payload, content, status, created_at, updated_at FROM authorization_tickets ORDER BY created_at DESC")
@@ -484,7 +486,28 @@ pub fn get_authorization_tickets(state: State<DbState>) -> Result<Vec<Authorizat
 
     Ok(tickets)
 }
-
+#[tauri::command]
+pub fn get_authorization_ticket_by_id(
+    state: State<DbState>,
+    auth_id: String,
+) -> Result<AuthorizationTicket, String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    conn.query_row(
+        "SELECT auth_id, payload, content, status, created_at, updated_at FROM authorization_tickets WHERE auth_id = ?1",
+        [auth_id],
+        |row| {
+            Ok(AuthorizationTicket {
+                auth_id: row.get(0)?,
+                payload: row.get(1)?,
+                content: row.get(2)?,
+                status: row.get(3)?,
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
+        },
+    )
+    .map_err(|e| e.to_string())
+}
 #[tauri::command]
 pub fn update_authorization_ticket_status(
     state: State<DbState>,
@@ -527,7 +550,12 @@ pub fn process_hsf_authorization(
             [&auth_id],
             |row| row.get(0),
         )
-        .map_err(|_| format!("No se encontró el ticket de autorización para el ID proporcionado: {}", auth_id))?;
+        .map_err(|_| {
+            format!(
+                "No se encontró el ticket de autorización para el ID proporcionado: {}",
+                auth_id
+            )
+        })?;
 
     // 2. Desencriptar el payload usando la llave provista
     let decrypted = crate::crypto::decrypt_string(&payload, &key)
@@ -541,12 +569,15 @@ pub fn process_hsf_authorization(
     .map_err(|e| e.to_string())?;
 
     // 4. Crear una notificación automática en el Mailbox de Seguridad y Sistema
-    let notify_content = format!("La solicitud de autorización #{} ha sido procesada y desencriptada exitosamente.", auth_id);
-    
+    let notify_content = format!(
+        "La solicitud de autorización #{} ha sido procesada y desencriptada exitosamente.",
+        auth_id
+    );
+
     // Guardar en DB (Mailbox interno)
     conn.execute(
         "INSERT INTO security_mailbox (sid, content, author, responsible, status, direction) VALUES (?1, ?2, ?3, 'System', 'Approved', 'inbox')",
-        (Some(auth_id.clone()), Some(notify_content.clone()), Some("HSF Gatekeeper".to_string())),
+        (Some(auth_id.clone()), Some(notify_content.clone()), Some("HSF Ticket Seguro".to_string())),
     ).ok();
 
     // Notificación Nativa (OS)

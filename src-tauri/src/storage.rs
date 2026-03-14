@@ -266,6 +266,20 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
+    // Chat History Table
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS chat_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT NOT NULL,
+            sender TEXT NOT NULL, -- 'user' | 'sandra'
+            sender_name TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            session_id TEXT -- Para agrupar conversaciones
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     Ok(())
 }
 

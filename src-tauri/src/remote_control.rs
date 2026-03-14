@@ -100,7 +100,7 @@ pub async fn start_remote_listener(
                 println!("Conectado exitosamente");
                 update_ws_status(&app_handle, "connected");
                 attempt_count = 0; // Reset on success
-                delay = 1;         // Restaurar el backoff rápido al conectar exitosamente
+                delay = 1; // Restaurar el backoff rápido al conectar exitosamente
 
                 // Recolectar estadísticas y cifrarlas para el primer mensaje
                 let stats = collect_system_stats();
@@ -127,7 +127,8 @@ pub async fn start_remote_listener(
                     }
                 }
 
-                let mut heartbeat_interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+                let mut heartbeat_interval =
+                    tokio::time::interval(tokio::time::Duration::from_secs(30));
 
                 loop {
                     tokio::select! {
@@ -136,7 +137,7 @@ pub async fn start_remote_listener(
                                 Some(Ok(Message::Text(text))) => {
                                     process_command(&text, &app_handle, connection_id)
                                 }
-                                Some(Ok(Message::Pong(_))) => { 
+                                Some(Ok(Message::Pong(_))) => {
                                     // El servidor Go respondió al Latido
                                 }
                                 Some(Ok(Message::Close(_))) | Some(Err(_)) | None => {
@@ -165,11 +166,14 @@ pub async fn start_remote_listener(
                 // Important: If handshake fails, mark as disconnected in DB so UI updates
                 set_db_disconnected(&app_handle, connection_id);
 
-                let sleep_time = std::cmp::min(delay * 2, 60); 
-                delay = sleep_time; 
+                let sleep_time = std::cmp::min(delay * 2, 60);
+                delay = sleep_time;
 
                 if attempt_count >= 3 {
-                    println!("Demasiados intentos fallidos. Aplicando backoff de {}s.", delay);
+                    println!(
+                        "Demasiados intentos fallidos. Aplicando backoff de {}s.",
+                        delay
+                    );
                 }
                 tokio::time::sleep(tokio::time::Duration::from_secs(delay as u64)).await;
             }
@@ -211,115 +215,119 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
     println!("[WS] Mensaje CRUDO recibido: {}", text);
 
     if let Ok(json) = serde_json::from_str::<Value>(text) {
-        // Estructura Plana: { "type": "chat", "id": "...", "message": "...", "from": "..." }
         let msg_type = json["type"].as_str().unwrap_or("unknown");
         println!("[WS] Tipo de mensaje detectado: {}", msg_type);
 
         match msg_type {
-            "notification" => {
-                println!("[WS] Procesando Notificación Nativa...");
-                let title = json["title"]
-                    .as_str()
-                    .or(json["from"].as_str())
-                    .unwrap_or("Sandra Alert");
-                let body = json["message"].as_str().unwrap_or("Nuevo evento detectado");
-
-                show_native_notification(app_handle, title, body);
-
-                println!("[WS] Notificación enviada al sistema operativo.");
-
-                // También emitimos al frontend
-                let _ = app_handle.emit("system-notification", &json);
-            }
-            "access" => {
-                println!("[WS] Acceso concedido, recibiendo JWT...");
-                if let Some(jwt) = json["message"].as_str() {
-                    // Update Database
-                    if let Some(id) = connection_id {
-                        let state = app_handle.state::<DbState>();
-                        let lock_res = state.0.lock();
-                        if let Ok(conn) = lock_res {
-                            let _ = conn.execute(
-                                "UPDATE connections SET jwt = ?1 WHERE id = ?2",
-                                rusqlite::params![jwt, id],
-                            );
-                            println!(
-                                "[WS] JWT guardado en base de datos para la conexión {}",
-                                id
-                            );
-                        }
-                    }
-
-                    // Push Notification
-                    show_native_notification(
-                        app_handle,
-                        "Acceso Autorizado",
-                        "Se ha otorgado el acceso seguro a la conexión.",
-                    );
-
-                    // Global App Event (chat / system messages)
-                    let access_payload = serde_json::json!({
-                        "type": "chat",
-                        "message": "Permisos necesarios otorgados. Acceso seguro establecido.",
-                        "from": "SISTEMA",
-                        "jwt": jwt,
-                    });
-                    let _ = app_handle.emit("connection-authorized", &json);
-                    let _ = app_handle.emit("chat-message", &access_payload);
-                } else {
-                    println!("[WS] Mensaje 'access' sin campo 'jwt'");
-                }
-            }
-            "chat" => {
-                println!("[WS] Redirigiendo mensaje al sistema de Chat...");
-                // Mensaje plano para el componente de Chat
-                let _ = app_handle.emit("chat-message", &json);
-            }
-            "operation" => {
-                println!("[WS] Ejecutando operación de sistema...");
-                // Acciones de sistema (reboot, updates, etc)
-                match json["cmd"].as_str() {
-                    Some("reboot") => execute_system_reboot(),
-                    Some("status") => { /* Responder con stats */ }
-                    _ => println!("Operación desconocida: {:?}", json),
-                }
-                let _ = app_handle.emit("operation-event", &json);
-            }
-            "welcome" => {
-                println!("[WS] Servidor dio la bienvenida");
-                let _ = app_handle.emit("server-welcome", &json);
-            }
-            "hsf" => {
-                println!("[WS] Alta Seguridad Encontrada (HSF)");
-                let auth_id = json["message"].as_str().unwrap_or("Desconocido");
-                
-                show_native_notification(
-                    app_handle,
-                    "Requerimiento de Alta Seguridad",
-                    &format!("Se solicita autorización para el Ticket: {}", auth_id),
-                );
-
-                let _ = app_handle.emit("hsf", &json);
-            }
-            _ => {
-                println!("[WS] Tipo desconocido o legacy. Buscando 'cmd'...");
-                // Compatibilidad con comandos antiguos (id-less o legacy)
-                if let Some(cmd) = json["cmd"].as_str() {
-                    println!("[WS] Comando legacy encontrado: {}", cmd);
-                    match cmd {
-                        "reboot" => execute_system_reboot(),
-                        "welcome" => {
-                            let _ = app_handle.emit("server-welcome", &json);
-                        }
-                        _ => println!("Comando legacy detectado: {}", cmd),
-                    }
-                } else {
-                    println!("[WS] No se pudo determinar la acción para el mensaje");
-                }
-            }
+            "notification" => handle_notification_msg(app_handle, &json),
+            "access" => handle_access_msg(app_handle, &json, connection_id),
+            "chat" => handle_chat_msg(app_handle, &json),
+            "operation" => handle_operation_msg(app_handle, &json),
+            "welcome" => handle_welcome_msg(app_handle, &json),
+            "hsf" => handle_hsf_msg(app_handle, &json),
+            _ => handle_legacy_msg(app_handle, &json),
         }
     } else {
         println!("[WS] Falló el parseo de JSON: {}", text);
+    }
+}
+
+// --- Specialized Handlers ---
+
+fn handle_notification_msg(app_handle: &AppHandle, json: &Value) {
+    println!("[WS] Procesando Notificación Nativa...");
+    let title = json["title"]
+        .as_str()
+        .or(json["from"].as_str())
+        .unwrap_or("Sandra Alert");
+    let body = json["message"].as_str().unwrap_or("Nuevo evento detectado");
+
+    show_native_notification(app_handle, title, body);
+    println!("[WS] Notificación enviada al sistema operativo.");
+
+    let _ = app_handle.emit("system-notification", json);
+}
+
+fn handle_access_msg(app_handle: &AppHandle, json: &Value, connection_id: Option<i64>) {
+    println!("[WS] Acceso concedido, recibiendo JWT...");
+    if let Some(jwt) = json["message"].as_str() {
+        if let Some(id) = connection_id {
+            if let Some(state) = app_handle.try_state::<DbState>() {
+                if let Ok(conn) = state.0.lock() {
+                    let _ = conn.execute(
+                        "UPDATE connections SET jwt = ?1 WHERE id = ?2",
+                        rusqlite::params![jwt, id],
+                    );
+                    println!("[WS] JWT guardado en base de datos para la conexión {}", id);
+                }
+            }
+        }
+
+        show_native_notification(
+            app_handle,
+            "Acceso Autorizado",
+            "Se ha otorgado el acceso seguro a la conexión.",
+        );
+
+        let access_payload = serde_json::json!({
+            "type": "chat",
+            "message": "Permisos necesarios otorgados. Acceso seguro establecido.",
+            "from": "SISTEMA",
+            "jwt": jwt,
+        });
+        let _ = app_handle.emit("connection-authorized", json);
+        let _ = app_handle.emit("chat-message", &access_payload);
+    } else {
+        println!("[WS] Mensaje 'access' sin campo 'jwt'");
+    }
+}
+
+fn handle_chat_msg(app_handle: &AppHandle, json: &Value) {
+    println!("[WS] Redirigiendo mensaje al sistema de Chat...");
+    let _ = app_handle.emit("chat-message", json);
+}
+
+fn handle_operation_msg(app_handle: &AppHandle, json: &Value) {
+    println!("[WS] Ejecutando operación de sistema...");
+    match json["cmd"].as_str() {
+        Some("reboot") => execute_system_reboot(),
+        Some("status") => { /* Responder con stats */ }
+        _ => println!("Operación desconocida: {:?}", json),
+    }
+    let _ = app_handle.emit("operation-event", json);
+}
+
+fn handle_welcome_msg(app_handle: &AppHandle, json: &Value) {
+    println!("[WS] Servidor dio la bienvenida");
+    let _ = app_handle.emit("server-welcome", json);
+}
+
+fn handle_hsf_msg(app_handle: &AppHandle, json: &Value) {
+    println!("[WS] Alta Seguridad Encontrada (HSF)");
+    let auth_id = json["message"].as_str().unwrap_or("Desconocido");
+
+    show_native_notification(
+        app_handle,
+        "Requerimiento de Alta Seguridad",
+        &format!("Se solicita autorización para el Ticket: {}", auth_id),
+    );
+
+    let _ = app_handle.emit("hsf", json);
+}
+
+fn handle_legacy_msg(app_handle: &AppHandle, json: &Value) {
+    println!("[WS] Tipo desconocido o legacy. Buscando 'cmd'...");
+    if let Some(cmd) = json["cmd"].as_str() {
+        println!("[WS] Comando legacy encontrado: {}", cmd);
+        match cmd {
+            "reboot" => execute_system_reboot(),
+            "welcome" => {
+                let _ = app_handle.emit("server-welcome", json);
+            }
+            _ => println!("Comando legacy detectado: {}", cmd),
+        }
+    } else {
+        println!("[WS] No se pudo determinar la acción para el mensaje");
     }
 }
 

@@ -101,9 +101,9 @@
 }
 
 .nav-item.active {
-  background: #f0edff;
-  color: var(--accent-purple);
-  border-right: 3px solid var(--accent-purple);
+  background: var(--pastel-green-bg);
+  color: var(--pastel-green-text);
+  border-right: 3px solid var(--pastel-green-text);
 }
 
 .nav-spacer {
@@ -180,17 +180,17 @@
 }
 
 .global-loader-pill {
-  background: #f0edff;
-  color: var(--accent-purple);
+  background: var(--pastel-green-bg);
+  color: var(--pastel-green-text);
   padding: 6px 16px;
   border-radius: 20px;
-  border: 1px solid rgba(142, 117, 255, 0.2);
+  border: 1px solid var(--pastel-green-hover);
   font-size: 0.85em;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 2px 8px rgba(142, 117, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.15);
 }
 
 .app-brand-display {
@@ -247,8 +247,8 @@
 
 .app-tile:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(142, 117, 255, 0.12);
-  border-color: var(--accent-purple);
+  box-shadow: 0 12px 24px rgba(46, 125, 50, 0.12);
+  border-color: var(--pastel-green-text);
 }
 
 /* Estilo específico para apps instaladas (Verde Pastel) */

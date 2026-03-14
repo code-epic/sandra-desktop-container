@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { FormsModule } from '@angular/forms';
 import { SecurityService, MailboxMessage, AuthorizationTicket } from '../../core/services/security.service';
+import { AppStateService } from '../../core/services/app-state.service';
 
 interface MonitorSdcConfig {
     access: {
@@ -29,7 +30,7 @@ interface MonitorLog {
     styleUrls: ['./monitor.component.css']
 })
 export class MonitorComponent implements OnInit, OnDestroy {
-    activeTab: 'logs' | 'notifications' | 'tickets' = 'logs';
+    activeTab: 'logs' | 'tickets' = 'tickets';
 
     // Logs Data
     logs: MonitorLog[] = [];
@@ -38,17 +39,18 @@ export class MonitorComponent implements OnInit, OnDestroy {
     apps: string[] = ['App.SDC'];
     currentAppFilter = 'all';
 
-    // Notifications Data
-    notifications: MailboxMessage[] = [];
-    loadingNotifications = false;
+
 
     // Tickets Data
     tickets: AuthorizationTicket[] = [];
     loadingTickets = false;
-    ticketStatusFilter: string = 'all';
+    ticketStatusFilter: string = 'pendiente';
     selectedTicket: AuthorizationTicket | null = null;
 
-    constructor(private securityService: SecurityService) { }
+    constructor(
+        private securityService: SecurityService,
+        private appState: AppStateService
+    ) { }
 
     currentTime: Date = new Date();
     private timeInterval: any;
@@ -81,21 +83,28 @@ export class MonitorComponent implements OnInit, OnDestroy {
 
     private checkAuth(): boolean {
         const configStr = localStorage.getItem('sdc_ui_config');
+        const isRealJwt = (t: any) => t && t.length > 20 && t.includes('.');
+
         if (configStr) {
             try {
                 const config: MonitorSdcConfig = JSON.parse(configStr);
                 const storage = config.access.jwtStorage === 'sessionStorage' ? sessionStorage : localStorage;
                 const token = storage.getItem(config.access.jwtVariableName);
                 
-                if (!token) {
-                    console.warn("Monitor: Acceso denegado. Token no encontrado.");
-                    // Redirección manejada por AppComponent para evitar dependencias circulares
+                if (!isRealJwt(token)) {
+                    console.warn("Monitor: Acceso denegado. Token no válido o sesión no activa.");
+                    this.appState.setActiveTab('dashboard');
                     return false;
                 }
             } catch (e) {
                 console.error("Error validando auth en Monitor", e);
+                this.appState.setActiveTab('dashboard');
                 return false;
             }
+        } else {
+            console.warn("Monitor: Configuración no encontrada.");
+            this.appState.setActiveTab('dashboard');
+            return false;
         }
         return true;
     }
@@ -109,27 +118,11 @@ export class MonitorComponent implements OnInit, OnDestroy {
     async refreshAll() {
         await Promise.all([
             this.refreshLogs(),
-            this.loadNotifications(),
             this.loadTickets()
         ]);
     }
 
-    async loadNotifications() {
-        this.loadingNotifications = true;
-        try {
-            const result = await this.securityService.getMailboxMessages();
-            this.notifications = result.map(n => {
-                if (n.created_at && n.created_at.length === 19 && n.created_at.includes(' ')) {
-                    n.created_at = n.created_at.replace(' ', 'T') + 'Z';
-                }
-                return n;
-            });
-        } catch (error) {
-            console.error('Error loading notifications:', error);
-        } finally {
-            this.loadingNotifications = false;
-        }
-    }
+
 
     async loadTickets() {
         this.loadingTickets = true;
@@ -148,7 +141,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
         }
     }
 
-    setTab(tab: 'logs' | 'notifications' | 'tickets') {
+    setTab(tab: 'logs' | 'tickets') {
         this.activeTab = tab;
     }
 
@@ -257,7 +250,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
 
     get filteredTickets() {
         if (this.ticketStatusFilter === 'all') return this.tickets;
-        return this.tickets.filter(t => t.status === this.ticketStatusFilter);
+        return this.tickets.filter(t => (t.status || '').toLowerCase() === this.ticketStatusFilter.toLowerCase());
     }
 
     getTimeElapsed(dateStr: string | undefined): string {

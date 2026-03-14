@@ -22,12 +22,15 @@
                 <div class="status-dot" [class.online]="wsStatus === 'Conectado'"></div>
             </div>
             <div class="header-text">
-                <h3>Sandra AI</h3>
+                <h3>Sandra IA</h3>
                 <span class="status-text">{{ wsStatus }}</span>
             </div>
         </div>
         <div class="header-actions">
-            <button class="icon-btn" (click)="toggleChat()">
+            <button class="btn-header-action" (click)="openHistoryModal()" title="Historial">
+                <i class="fas fa-history"></i>
+            </button>
+            <button class="btn-close-chat" (click)="toggleChat()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -51,52 +54,75 @@
             </div>
         </div>
 
-            <!-- Messages List -->
-            <div class="messages-list" *ngIf="!isLoading">
-                <div class="message-row" *ngFor="let msg of messages" [class.user-row]="msg.sender === 'user'" [class.ai-row]="msg.sender === 'sandra'">
+        <!-- Messages List -->
+        <div class="messages-list" *ngIf="!isLoading">
+            <div class="message-row" *ngFor="let msg of messages" 
+                 [class.user-row]="msg.sender === 'user'" 
+                 [class.ai-row]="msg.sender === 'sandra'">
+                
+                <div class="message-content-wrapper">
+                    <div class="sender-info" *ngIf="msg.sender === 'sandra' && msg.from">
+                        <span class="sender-name">{{ msg.from }}</span>
+                    </div>
                     
-                    <!-- Sender and Bubble Container -->
-                    <div class="message-content-wrapper">
-                        <div class="sender-info" *ngIf="msg.sender === 'sandra' && msg.from">
-                            <span class="sender-name">{{ msg.from }}</span>
-                        </div>
-                        
-                        <div class="bubble-container">
-                            <div class="message-bubble" [class.user-bubble]="msg.sender === 'user'" [class.ai-bubble]="msg.sender === 'sandra'">
-                                <span [innerHTML]="msg.text"></span>
-                                <span class="typing-cursor" *ngIf="msg.isTyping"></span>
+                    <div class="bubble-container">
+                        <div class="message-bubble" [class.user-bubble]="msg.sender === 'user'" [class.ai-bubble]="msg.sender === 'sandra'">
+                            <span class="bubble-text">{{ msg.text }}<span class="typing-cursor" *ngIf="msg.isTyping"></span></span>
+                            
+                            <div class="message-meta-v2">
+                                <span class="message-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                                <span class="message-status" *ngIf="msg.sender === 'user'">
+                                    <i class="fas fa-clock shadow-pulse" *ngIf="msg.status === 'pending'" title="Pendiente"></i>
+                                    <i class="fas fa-check" *ngIf="msg.status === 'sent'"></i>
+                                </span>
                             </div>
-                        </div>
-
-                        <div class="message-meta">
-                            <span class="message-time">{{ msg.timestamp | date:'shortTime' }}</span>
                         </div>
                     </div>
                 </div>
-
-            <!-- Global Typing Indicator (Thinking) -->
-            <div class="message-row" *ngIf="isTyping">
-                <div class="message-bubble ai-bubble typing-bubble">
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                </div>
             </div>
         </div>
-    </div>
+
+        <!-- Global Typing Indicator (Thinking) -->
+        <div class="message-row" *ngIf="isTyping">
+            <div class="message-bubble ai-bubble typing-bubble">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+    </div> <!-- End chat-body -->
 
     <!-- Footer / Input -->
     <div class="chat-footer">
         <div class="input-wrapper">
-            <input type="text" 
+            <textarea 
                    [(ngModel)]="newMessage" 
-                   (keydown.enter)="sendMessage()"
-                   placeholder="Escribe un comando o mensaje..." 
-                   [disabled]="wsStatus === 'Desconectado' || isLoading">
+                   (keydown)="handleKeyDown($event)"
+                   (input)="onInput($event)"
+                   placeholder="Escribe un mensaje..." 
+                   [disabled]="wsStatus === 'Desconectado' || isLoading"
+                   rows="1"></textarea>
             <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim() || wsStatus === 'Desconectado'">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
     </div>
 
-</div>
+    <!-- History Modal Overlay -->
+    <div class="history-modal-overlay" *ngIf="isHistoryOpen" (click)="closeHistoryModal()">
+        <div class="history-modal" (click)="$event.stopPropagation()">
+            <div class="history-header">
+                <h3>Historial de Sandra</h3>
+                <button class="btn-close-mini" (click)="closeHistoryModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="history-body">
+                <div class="history-empty" *ngIf="historyGroups.length === 0">
+                    <i class="fas fa-calendar-alt"></i>
+                    <p>No hay conversaciones archivadas aún.</p>
+                </div>
+                <!-- Grupos de historial irán aquí -->
+            </div>
+        </div>
+    </div>
+
+</div> <!-- End chat-window-container -->

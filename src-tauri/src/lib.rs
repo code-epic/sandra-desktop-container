@@ -111,6 +111,8 @@ pub fn run() {
             commands::history::add_document_history,
             commands::history::get_document_history,
             commands::history::delete_document_history,
+            commands::history::save_chat_messages,
+            commands::history::get_chat_history,
             // Security Module
             commands::security::get_mailbox_messages,
             commands::security::create_mailbox_message,
@@ -127,6 +129,7 @@ pub fn run() {
             commands::security::encrypt_device_context,
             commands::security::register_authorization_ticket,
             commands::security::get_authorization_tickets,
+            commands::security::get_authorization_ticket_by_id,
             commands::security::delete_authorization_ticket,
             commands::security::update_authorization_ticket_status,
             commands::security::process_hsf_authorization,

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap');
+
 @font-face {
   font-family: 'Inter';
   src: url('assets/fonts/Inter-Regular.otf') format('opentype');
@@ -53,7 +55,7 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Nunito', 'Inter', sans-serif;
   font-size: 14px;
   line-height: 1.5;
   letter-spacing: -0.2px;
@@ -415,8 +417,8 @@ textarea {
 }
 
 .method-pill {
-  background: #E3F2FD;
-  color: #1565C0;
+  background: var(--pastel-green-bg);
+  color: var(--pastel-green-text);
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 700;

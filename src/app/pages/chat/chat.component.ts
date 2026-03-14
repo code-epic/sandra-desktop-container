@@ -15,6 +15,7 @@ interface ChatMessage {
   from?: string;
   timestamp: Date;
   isTyping?: boolean;
+  status?: "sent" | "pending" | "error";
 }
 
 import { WebSocketService } from "../../core/services/websocket.service";
@@ -41,8 +42,12 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   isLoading = true; // Initial loading state
   newMessage = "";
   messages: ChatMessage[] = [];
+  pendingMessages: ChatMessage[] = []; // Explicit queue for logic, though status: 'pending' in 'messages' is the UI source
   isTyping = false;
   unreadCount = 0;
+  isHistoryOpen = false;
+  historyGroups: any[] = [];
+  private jwtCheckInterval: any;
 
   constructor(
     private wsService: WebSocketService,
@@ -50,6 +55,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   ) { }
 
   ngOnInit() {
+    this.loadMessagesFromStorage();
+
     // Escuchar mensajes reales del WebSocket
     this.chatSub = this.wsService.chatMessages$.subscribe(msg => {
       this.addIncomingMessage(msg.from, msg.message);
@@ -62,21 +69,54 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         this.addSystemMessage("Hola, soy Sandra. ¿En qué puedo ayudarte hoy?");
       }
     }, 1000);
+
+    // Intervalo para revisar JWT y enviar pendientes
+    this.jwtCheckInterval = setInterval(() => {
+      this.checkAndSendPendingMessages();
+    }, 5000); // Revisar cada 5 segundos
+  }
+
+  private loadMessagesFromStorage() {
+    const saved = localStorage.getItem("sandra_chat_buffer");
+    if (saved) {
+      try {
+        this.messages = JSON.parse(saved).map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp)
+        }));
+      } catch (e) {
+        console.error("Error cargando chat desde storage", e);
+      }
+    }
+  }
+
+  private saveMessagesToStorage() {
+    localStorage.setItem("sandra_chat_buffer", JSON.stringify(this.messages));
   }
 
   ngOnDestroy() {
     this.chatSub?.unsubscribe();
+    if (this.jwtCheckInterval) {
+      clearInterval(this.jwtCheckInterval);
+    }
   }
 
   ngAfterViewChecked() {
-    this.scrollToBottom();
+    // Only scroll automatically if we are NOT typing a message 
+    // to avoid fighting with the typewriter effect
+    if (!this.messages.some(m => m.isTyping)) {
+       this.scrollToBottom();
+    }
   }
 
   scrollToBottom(): void {
     try {
       if (this.privatescrollContainer) {
-        this.privatescrollContainer.nativeElement.scrollTop =
-          this.privatescrollContainer.nativeElement.scrollHeight;
+        const container = this.privatescrollContainer.nativeElement;
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'auto' // Use auto for instant jump, 'smooth' for user feel
+        });
       }
     } catch (err) { }
   }
@@ -88,95 +128,125 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  async sendMessage() {
+  openHistoryModal() {
+    this.isHistoryOpen = true;
+    // Cargar historial desde SQLite próximamente
+  }
+
+  closeHistoryModal() {
+    this.isHistoryOpen = false;
+  }
+
+  async sendMessage(event?: Event) {
+    if (event) event.preventDefault();
     if (!this.newMessage.trim()) return;
 
     const userText = this.newMessage;
     this.newMessage = "";
+    this.resetTextareaHeight();
 
-    // Add User Message UI
-    this.messages.push({
+    // Crear objeto de mensaje
+    const msg: ChatMessage = {
       text: userText,
       sender: "user",
       timestamp: new Date(),
-    });
+      status: "pending"
+    };
 
-    this.isTyping = true;
-    this.scrollToBottom();
+    this.messages.push(msg);
+    this.saveMessagesToStorage();
 
-    // 1. Send via API (Tauri api_post_request)
-    console.log(this.activeConnection);
-    if (this.activeConnection && this.config) {
-      try {
-        const endpoint = "v1/api/sandra_send-message";
-        const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
-        const token = storage.getItem(this.config.access.jwtVariableName);
-
-        let fromValue = "Anonymous";
-        if (token) {
-          try {
-            const payloadPart = token.split(".")[1];
-            const decoded = JSON.parse(atob(payloadPart));
-            // User requested: From: JWT.usuario.login_session
-            fromValue = decoded.Usuario?.login_session || decoded.Usuario?.Nombre || "SandraUser";
-          } catch (e) {
-            console.error("Error decoding JWT for chat", e);
-          }
-        }
-
-        const payload = {
-          Type: "chat",
-          ID: "", // Se envía el clientId (Session ID) como solicitó el usuario
-          Message: userText,
-          From: this.clientId,
-          To: "xterm",
-          Timestamp: new Date().toISOString(),
-          Status: "pending" // Conservar status
-        };
-
-        console.log(payload);
-
-        await this.sdcService.apiPostRequest(
-          this.activeConnection.ip_address,
-          this.activeConnection.port,
-          endpoint,
-          payload,
-          this.activeConnection.hash,
-          token
-        );
-      } catch (err) {
-        console.error("Error sending message via API:", err);
-      }
-    }
-
-    // 2. Simulate AI Processing & Typing Effect locally (or wait for WS response)
-    // For now keep the simulation as fallback or until WS event confirms
-    setTimeout(
-      () => {
-        this.simulateResponse(userText);
-      },
-      1000 + Math.random() * 1000,
-    );
-  }
-
-  simulateResponse(userQuery: string) {
+    this.isTyping = true; // Show thinking indicator
+    await this.processMessageDelivery(msg);
     this.isTyping = false;
-    let responseText = "Entendido, procesando tu solicitud...";
+    this.scrollToBottom();
+  }
 
-    // Simple mocked logic for demo
-    if (userQuery.toLowerCase().includes("hola")) {
-      responseText = "¡Hola! Estoy en línea y conectada al núcleo.";
-    } else if (userQuery.toLowerCase().includes("status")) {
-      responseText = `El estado actual del sistema es: ${this.wsStatus}`;
-    } else if (userQuery.toLowerCase().includes("ayuda")) {
-      responseText =
-        "Puedo ayudarte a gestionar apps, monitorear la red o ejecutar comandos remotos.";
+  handleKeyDown(event: KeyboardEvent) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  onInput(event: any) {
+    const textarea = event.target;
+    textarea.style.height = "40px";
+    const newHeight = Math.min(textarea.scrollHeight, 120);
+    textarea.style.height = newHeight + "px";
+  }
+
+  private resetTextareaHeight() {
+    setTimeout(() => {
+      const textarea = document.querySelector(".input-wrapper textarea") as HTMLTextAreaElement;
+      if (textarea) textarea.style.height = "40px";
+    }, 0);
+  }
+  private async processMessageDelivery(msg: ChatMessage) {
+    if (!this.activeConnection || !this.config) {
+      msg.status = "pending";
+      return;
     }
 
-    this.typeWriterEffect(responseText);
+    try {
+      const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+      const token = storage.getItem(this.config.access.jwtVariableName);
+
+      if (!token) {
+        msg.status = "pending";
+        console.warn("Sin JWT. Mensaje encolado.");
+        return;
+      }
+
+      const endpoint = "v1/api/sandra_send-message";
+      const payload = {
+        Type: "chat",
+        ID: "",
+        Message: msg.text,
+        From: this.clientId,
+        To: "xterm",
+        Timestamp: msg.timestamp.toISOString(),
+        Status: "pending"
+      };
+
+      const response = await this.sdcService.apiPostRequest(
+        this.activeConnection.ip_address,
+        this.activeConnection.port,
+        endpoint,
+        payload,
+        this.activeConnection.hash,
+        token
+      );
+
+      console.log("Chat Server Response:", response);
+
+      // Si la respuesta contiene un mensaje directo, lo procesamos
+      if (response && response.Message) {
+         this.addIncomingMessage("Sandra", response.Message);
+      }
+
+      msg.status = "sent";
+      this.saveMessagesToStorage();
+
+    } catch (err) {
+      console.error("Error enviando mensaje:", err);
+      msg.status = "pending"; // Re-intentar luego
+    }
   }
+
+  private checkAndSendPendingMessages() {
+    const pending = this.messages.filter(m => m.sender === "user" && m.status === "pending");
+    if (pending.length > 0) {
+      console.log(`Revisando ${pending.length} mensajes pendientes...`);
+      pending.forEach(msg => this.processMessageDelivery(msg));
+    }
+  }
+
+
 
   typeWriterEffect(text: string, from: string = "Sandra") {
+    if (!text) return; // Prevent empty bubbles
+
     const msg: ChatMessage = {
       text: "",
       sender: "sandra",
@@ -185,22 +255,32 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       isTyping: true,
     };
     this.messages.push(msg);
-
+    this.saveMessagesToStorage(); // Persist the initial empty bubble
+    
     let i = 0;
-    const speed = 30; // ms per char
-
-    const type = () => {
-      if (i < text.length) {
-        msg.text += text.charAt(i);
-        i++;
-        setTimeout(type, speed);
-      } else {
-        msg.isTyping = false;
-      }
-      this.scrollToBottom();
-    };
-
-    type();
+    const speed = 25;
+    
+    // Tiny delay to ensure Angular has pushed the new bubble to the DOM
+    setTimeout(() => {
+      const type = () => {
+        if (i < text.length) {
+          msg.text += text.charAt(i);
+          i++;
+          
+          // Manual scroll inside loop for real-time tracking
+          if (i % 5 === 0) {
+            this.scrollToBottom();
+          }
+          
+          setTimeout(type, speed);
+        } else {
+          msg.isTyping = false;
+          this.saveMessagesToStorage(); // Final save
+          this.scrollToBottom(); // Final scroll
+        }
+      };
+      type();
+    }, 30);
   }
 
   addIncomingMessage(from: string, text: string) {
@@ -220,6 +300,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       sender: "sandra",
       timestamp: new Date(),
     });
+    this.saveMessagesToStorage();
     this.scrollToBottom();
   }
 

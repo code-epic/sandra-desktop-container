@@ -41,6 +41,10 @@
                                 (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
                                 <i class="fas fa-paper-plane"></i> Enviados
                             </button>
+                            <button class="btn-toggle" [class.active]="mailboxDirection === 'notifications'"
+                                (click)="mailboxDirection = 'notifications'; resetPagination()" title="Notificaciones de Sistema">
+                                <i class="fas fa-bell"></i> Notificaciones
+                            </button>
                         </div>
                         <div class="vertical-divider"></div>
 
@@ -147,9 +151,14 @@
 
                             <!-- Line 2: Subject & Snippet -->
                             <div class="gmail-main-bottom">
-                                <span class="gmail-subject">{{ (msg.sid | slice:0:40) + ((msg.sid || '').length > 40 ?
-                                    '...' :
-                                    '') }}</span>
+                                <span class="gmail-subject">
+                                    <ng-container *ngIf="msg.author === 'HSF Ticket Seguro'">
+                                        <span class="brand-main">Notificación de Ticket</span>
+                                    </ng-container>
+                                    <ng-container *ngIf="msg.author !== 'HSF Ticket Seguro'">
+                                        {{ (msg.sid | slice:0:40) + ((msg.sid || '').length > 40 ? '...' : '') }}
+                                    </ng-container>
+                                </span>
                                 <span class="gmail-dash">&nbsp;-&nbsp;</span>
                                 <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
                                     (getMessageSnippet(msg.content).length > 80 ?
@@ -163,8 +172,7 @@
                             <i class="fas fa-inbox"></i>
                         </div>
                         <h3>Buzón sin registros</h3>
-                        <p>No se encontraron mensajes en la bandeja de {{ mailboxDirection === 'inbox' ? 'entrada' :
-                            'salida' }}.</p>
+                        <p>No se encontraron mensajes en la bandeja de {{ mailboxDirection === 'inbox' ? 'entrada' : (mailboxDirection === 'outbox' ? 'salida' : 'notificaciones') }}.</p>
                         <button class="btn-refresh-empty" (click)="loadMessages()">
                             <i class="fas fa-sync-alt"></i> Actualizar
                         </button>
@@ -434,7 +442,10 @@
                     <div class="detail-header">
                         <div class="detail-title-row">
                             <div class="title-with-badge">
-                                <h2>{{ selectedMessage.sid }}</h2>
+                                <h2 *ngIf="selectedMessage.author === 'HSF Ticket Seguro'">
+                                    <span class="brand-main">Notificación de Ticket</span>
+                                </h2>
+                                <h2 *ngIf="selectedMessage.author !== 'HSF Ticket Seguro'">{{ selectedMessage.sid }}</h2>
                                 <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">
                                     <i class="fas" [class.fa-circle]="selectedMessage.status === 'Pending'"
                                         [class.fa-check-circle]="selectedMessage.status === 'Approved'"
@@ -448,7 +459,7 @@
                                     title="Volver a la Bandeja">
                                     <i class="fas fa-arrow-left"></i>
                                 </button>
-                                <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox'"></div>
+                                <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox' && selectedMessage.status !== 'Approved'"></div>
                                 <button class="btn-action-sm success"
                                     (click)="updateMessageStatus(selectedMessage, 'Approved')"
                                     *ngIf="selectedMessage.status !== 'Approved' && mailboxDirection !== 'outbox'"
@@ -457,13 +468,13 @@
                                 </button>
                                 <button class="btn-action-sm danger"
                                     (click)="updateMessageStatus(selectedMessage, 'Rejected')"
-                                    *ngIf="selectedMessage.status !== 'Rejected' && mailboxDirection !== 'outbox'"
+                                    *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Rejected' && mailboxDirection !== 'outbox'"
                                     title="Anular Registro">
                                     <i class="fas fa-times"></i>
                                 </button>
                                 <button class="btn-action-sm info"
                                     (click)="updateMessageStatus(selectedMessage, 'Read')"
-                                    *ngIf="selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'"
+                                    *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'"
                                     title="Marcar como Visto">
                                     <i class="fas fa-eye"></i>
                                 </button>

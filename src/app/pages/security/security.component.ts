@@ -41,7 +41,7 @@ export class SecurityComponent implements OnInit {
   selectedMessage: MailboxMessage | null = null;
   highlightedMessage: MailboxMessage | null = null;
   parsedContent: any = null;
-  mailboxDirection: 'inbox' | 'outbox' = 'inbox'; // Novedad: Bandeja de entrada o salida
+  mailboxDirection: 'inbox' | 'outbox' | 'notifications' = 'inbox'; // Novedad: Bandeja de entrada, salida o notificaciones
 
   // Estado del Autor
   currentAuthorName: string = 'E. Admin (Sandra)';
@@ -135,11 +135,20 @@ export class SecurityComponent implements OnInit {
   get filteredMessages(): MailboxMessage[] {
     let filtered = this.messages;
 
-    // Filter by Direction (Inbox/Outbox)
+    // Filter by Direction (Inbox/Outbox/Notifications)
     if (this.mailboxDirection) {
       filtered = filtered.filter(m => {
-        const mDir = m.direction || 'inbox'; // Por defecto los viejos son inbox
-        return mDir === this.mailboxDirection;
+        const mDir = m.direction || 'inbox';
+        const isNotification = (m.author || '').includes('HSF Ticket Seguro');
+
+        if (this.mailboxDirection === 'notifications') {
+          return isNotification;
+        } else if (this.mailboxDirection === 'inbox') {
+          return mDir === 'inbox' && !isNotification;
+        } else {
+          // Outbox
+          return mDir === 'outbox';
+        }
       });
     }
 
@@ -319,14 +328,16 @@ export class SecurityComponent implements OnInit {
 
   private checkAuth(): boolean {
     const configStr = localStorage.getItem('sdc_ui_config');
+    const isRealJwt = (t: any) => t && t.length > 20 && t.includes('.');
+
     if (configStr) {
       try {
         const config: SdcConfig = JSON.parse(configStr);
         const storage = config.access.jwtStorage === 'sessionStorage' ? sessionStorage : localStorage;
         const token = storage.getItem(config.access.jwtVariableName);
 
-        if (!token) {
-          console.warn("Security: Acceso denegado. Token no encontrado.");
+        if (!isRealJwt(token)) {
+          console.warn("Security: Acceso denegado. Token no válido.");
           this.appState.setActiveTab('dashboard');
           return false;
         }
@@ -335,6 +346,11 @@ export class SecurityComponent implements OnInit {
         this.appState.setActiveTab('dashboard');
         return false;
       }
+    } else {
+      // Si no hay configuración guardada, por seguridad bloqueamos
+      console.warn("Security: Configuración no encontrada.");
+      this.appState.setActiveTab('dashboard');
+      return false;
     }
     return true;
   }
@@ -833,7 +849,7 @@ export class SecurityComponent implements OnInit {
 
   applyTemplate(type: string) {
     if (!type) return;
-    
+
     let templateHtml = '';
     const now = new Date().toLocaleDateString();
     const user = this.authorProfile.nombre || 'Personal Autorizado';

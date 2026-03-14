@@ -426,37 +426,37 @@ export class AppComponent implements OnInit {
   pendingNavTab: string | null = null;
 
   handleNavigationRequest(tabId: string) {
-    const protectedTabs = ["security", "monitor"];
+    const protectedTabs = ["security", "monitor", "secure-viewer"];
 
     if (protectedTabs.includes(tabId)) {
-      if (!this.activeConnection) {
+      // 1. Verificar Conexión Real (WSS)
+      if (!this.activeConnection || this.wsStatus !== 'Conectado') {
         this.showModal(
           "Sin Conexión Activa",
-          "Para autorizar el acceso a zonas protegidas, primero debe Conectar un servidor desde el Inicio."
+          "El acceso a " + tabId.toUpperCase() + " requiere una conexión WebSocket establecida y estable con Sandra Server."
         );
         return;
       }
 
-      // Check if JWT token exists in storage AND in the current connection object
-      const storage =
-        this.config.access.jwtStorage === "sessionStorage"
-          ? sessionStorage
-          : localStorage;
+      // 2. Verificar si la Sesión JWT está habilitada globalmente
+      if (!this.config.access.enableJwtSession) {
+        this.showModal(
+          "Seguridad Requerida",
+          "Para acceder a zonas protegidas, debe activar la 'Sesión JWT' en el panel de Configuración y autorizar el terminal."
+        );
+        return;
+      }
+
+      // 3. Validación Robusta de JWT (Token real vs placeholder)
+      const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
+      
+      const isRealJwt = (t: any) => t && t.length > 20 && t.includes('.');
+      const connectionHasJwt = isRealJwt(this.activeConnection.jwt);
+      const storageHasJwt = isRealJwt(token);
 
-      const connectionHasJwt = this.activeConnection.jwt && this.activeConnection.jwt.length > 0;
-
-      // Si no existe token en storage o la conexión no tiene el JWT en su estado
-      if (!token || !connectionHasJwt) {
-        if (!this.config.access.enableJwtSession) {
-          this.showModal(
-            "Acceso Restringido",
-            "Esta sección requiere un token JWT válido. Primero active la 'Sesión JWT' en Configuración.",
-          );
-          return;
-        }
-
-        // Si auto-jwt está activo y hay conexión: mostrar modal
+      if (!storageHasJwt || !connectionHasJwt) {
+        // Si no hay token válido, forzar login
         this.pendingNavTab = tabId;
         this.loginConnections = [];
         this.requireJwtLogin = true;
@@ -464,15 +464,13 @@ export class AppComponent implements OnInit {
         this.loginPort = Number(this.activeConnection.port);
         this.showLoginModal = true;
 
-        // Use a safe mock event for the snap message
         const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
         this.snapService.show("Autenticación Requerida", safeEvent as any);
-
         return;
       }
     }
 
-    // Si no está protegido o sí tiene token, navega normal
+    // Si todo es correcto o no es zona protegida
     this.appState.setActiveTab(tabId);
   }
 
@@ -1343,6 +1341,51 @@ export class AppComponent implements OnInit {
             undefined,
             "error",
           );
+        }
+        break;
+
+      case "CONSULTAR_ESTADO_AUTORIZACION":
+        try {
+          const authId = event.data.authId;
+          const normalizedId = (authId || "").toLowerCase();
+          console.log(`📡 [Sync] Solicitud manual para: [${authId}]`);
+
+          // Consultar a Rust el estado real del ticket
+          const ticket = await invoke<any>("get_authorization_ticket_by_id", { authId });
+
+          if (ticket && ticket.status && ticket.status.toLowerCase() === 'procesado') {
+            console.log(`✅ [Sync] Ticket ${authId} APROBADO. Preparando respuesta.`);
+
+            const port = this.authPorts.get(normalizedId);
+            console.log(`🔌 [Sync] Puerto para ${normalizedId}:`, port ? "CONECTADO" : "FALLBACK (Window)");
+
+            // Intentar parsear el contenido si viene como string
+            let finalData = ticket.content;
+            try {
+              if (typeof ticket.content === 'string') {
+                finalData = JSON.parse(ticket.content);
+              }
+            } catch (e) {
+              console.warn(`⚠️ [Sync] No se pudo parsear como JSON para ${authId}`, e);
+            }
+
+            const responseData = {
+              type: "AUTORIZACION_APROBADA",
+              authId: authId,
+              data: finalData
+            };
+
+            if (port) {
+              port.postMessage(responseData);
+              this.authPorts.delete(normalizedId);
+            } else if (event.source) {
+              (event.source as Window).postMessage(responseData, { targetOrigin: '*' } as any);
+            }
+          } else {
+            console.log(`⏳ [Sync] Ticket ${authId} sigue en estado: ${ticket?.status || 'desconocido'}`);
+          }
+        } catch (e: any) {
+          console.error("❌ [Sync] Error en consulta manual:", e);
         }
         break;
 

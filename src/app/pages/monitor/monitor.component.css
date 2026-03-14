@@ -145,9 +145,9 @@
 }
 
 .tab-btn.active {
-    color: #5c6bc0;
-    /* Color púrpura-azul premium */
-    border-bottom-color: #5c6bc0;
+    color: var(--pastel-green-text);
+    /* Soft premium green */
+    border-bottom-color: var(--pastel-green-text);
 }
 
 .tab-badge {
@@ -240,87 +240,7 @@
     white-space: nowrap;
 }
 
-/* --- Notifications View --- */
-.list-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
 
-.notification-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 15px 20px;
-    transition: all 0.2s;
-}
-
-.notification-card:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-.notify-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-}
-
-.notify-icon.pending { 
-    background: #fff8e1; 
-    color: #e67e22; 
-    border: 1px solid #ffecb3;
-}
-.notify-icon.approved { 
-    background: #e9f7ef; 
-    color: #27ae60; 
-    border: 1px solid #d4efdf;
-}
-.notify-icon.rejected { 
-    background: #fdf2f2; 
-    color: #e74c3c; 
-    border: 1px solid #fadbd8;
-}
-
-.notify-content {
-    flex: 1;
-}
-
-.notify-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
-}
-
-.notify-auth {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: #f8f9fa;
-}
-
-.notify-time {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.notify-sid {
-    font-size: 0.85rem;
-    color: #455a64;
-    margin-bottom: 4px;
-    font-weight: 600;
-}
-
-.notify-body {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
-}
 
 /* --- Status Badges (Refined) --- */
 .badge.pendiente { 
@@ -686,9 +606,9 @@
     border-radius: 6px;
     font-size: 0.8rem;
     font-weight: 700;
-    background: #ebf5ff;
-    color: #3498db;
-    border: 1px solid #d6eaf8;
+    background: var(--pastel-green-bg);
+    color: var(--pastel-green-text);
+    border: 1px solid var(--pastel-green-hover);
     display: inline-flex;
     align-items: center;
 }
