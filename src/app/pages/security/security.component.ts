@@ -139,7 +139,7 @@ export class SecurityComponent implements OnInit {
     if (this.mailboxDirection) {
       filtered = filtered.filter(m => {
         const mDir = m.direction || 'inbox';
-        const isNotification = (m.author || '').includes('HSF Ticket Seguro');
+        const isNotification = (m.author || '').includes('HSF Ticket Seguro') || (m.author || '') === 'Ejecución de Función';
 
         if (this.mailboxDirection === 'notifications') {
           return isNotification;
@@ -885,8 +885,8 @@ export class SecurityComponent implements OnInit {
         break;
       case 'COMUNICADO':
         templateHtml = `
-          <div style="font-family: Inter, sans-serif; text-align: center; padding: 30px; border: 4px double #10b981;">
-            <h1 style="color: #10b981; margin-bottom: 5px;">COMUNICADO OFICIAL</h1>
+          <div style="font-family: Inter, sans-serif; text-align: center; padding: 30px; border: 4px double #66BB6A;">
+            <h1 style="color: #66BB6A; margin-bottom: 5px;">COMUNICADO OFICIAL</h1>
             <p style="font-style: italic; color: #64748b;">División de Seguridad Sandra</p>
             <br>
             <p style="text-align: justify; line-height: 1.6;">Se hace de conocimiento general que las políticas de acceso han sido actualizadas conforme al protocolo...</p>
@@ -896,7 +896,7 @@ export class SecurityComponent implements OnInit {
       case 'REUNION':
         templateHtml = `
           <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2 style="border-bottom: 2px solid #10b981; padding-bottom: 10px;">MINUTA DE REUNIÓN - ${now}</h2>
+            <h2 style="border-bottom: 2px solid #66BB6A; padding-bottom: 10px;">MINUTA DE REUNIÓN - ${now}</h2>
             <p><strong>ASISTENTES:</strong> ${user}, ...</p>
             <p><strong>OBJETIVO:</strong> Seguimiento de Incidencias Criticas</p>
             <h3>1. TEMAS TRATADOS</h3>
@@ -1118,7 +1118,8 @@ export class SecurityComponent implements OnInit {
 
   getStatusClass(status: string): string {
     switch (status) {
-      case 'Approved': return 'status-approved';
+      case 'Approved':
+      case 'Completed': return 'status-approved';
       case 'Rejected': return 'status-rejected';
       case 'Read': return 'status-read';
       default: return 'status-pending';
@@ -1127,7 +1128,8 @@ export class SecurityComponent implements OnInit {
 
   getStatusIcon(status: string): string {
     switch (status) {
-      case 'Approved': return 'fas fa-check-circle';
+      case 'Approved':
+      case 'Completed': return 'fas fa-check-circle';
       case 'Rejected': return 'fas fa-times-circle';
       case 'Read': return 'fas fa-envelope-open';
       default: return 'fas fa-clock';
@@ -1162,6 +1164,7 @@ export class SecurityComponent implements OnInit {
   translateStatus(status: string): string {
     switch (status) {
       case 'Approved': return 'Aprobado';
+      case 'Completed': return 'Completado';
       case 'Rejected': return 'Rechazado';
       case 'Read': return 'Leído';
       case 'Pending': return 'Pendiente';

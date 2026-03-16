@@ -11,14 +11,15 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { SdcService } from "./core/services/sdc.service";
 import { LoggerService } from "./core/services/logger.service";
 import { SystemStats } from "./core/models/telemetry.model";
-import { AppStateService, Tab } from "./core/services/app-state.service";
+import { AppStateService, Tab, BackgroundTask } from "./core/services/app-state.service";
 import { DownloadService } from "./core/services/download.service";
 import { FileService } from "./core/services/file.service";
-import { Observable } from "rxjs";
+import { Observable, Subject } from "rxjs";
+import { debounceTime } from "rxjs/operators";
 import { SnapService, SnapData } from "./core/services/snap.service";
 // import { PDFDocument, rgb, degrees } from 'pdf-lib'; // REMOVED: Now handled in DownloadService/ChildApp
 
-import { listen } from "@tauri-apps/api/event";
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { SidebarComponent } from "./components/sidebar/sidebar.component";
 import { DashboardComponent } from "./pages/dashboard/dashboard.component";
 import { ConnectionsComponente } from "./pages/connections/connections.component";
@@ -31,6 +32,7 @@ import { AppsComponent } from "./pages/apps/apps.component";
 import { DesktopAppsService } from "./core/services/desktop-apps.service";
 import { ChatComponent } from "./pages/chat/chat.component";
 import { SecureViewerComponent } from "./components/secure-viewer/secure-viewer.component";
+import { BackgroundProgressComponent } from "./components/background-progress/background-progress.component";
 import { SetupWizardComponent } from "./components/setup-wizard/setup-wizard.component";
 import { LoginModalComponent } from "./components/login-modal/login-modal.component";
 
@@ -67,6 +69,7 @@ interface DesktopApp {
     AppsComponent,
     ChatComponent,
     SecureViewerComponent,
+    BackgroundProgressComponent,
     SetupWizardComponent,
     LoginModalComponent,
   ],
@@ -96,6 +99,8 @@ export class AppComponent implements OnInit {
   wsStatus: ConnectionStatus = "Desconectado";
   attemptNumber: number = 0;
   pendingTicketsCount: number = 0;
+  private csvSearchSubject = new Subject<Tab>();
+  private backgroundTaskUnlisten?: UnlistenFn;
 
   installModal = {
     show: false,
@@ -145,6 +150,7 @@ export class AppComponent implements OnInit {
 
   activeTabId$: Observable<string>;
   openTabs$: Observable<Tab[]>;
+  chatVisible$: Observable<boolean>;
   rightSidebarOpen$: Observable<boolean>;
   leftSidebarOpen$: Observable<boolean>;
   currentTabId: string = "dashboard";
@@ -224,6 +230,7 @@ export class AppComponent implements OnInit {
 
     this.activeTabId$ = this.appState.activeTabId$;
     this.openTabs$ = this.appState.openTabs$;
+    this.chatVisible$ = this.appState.chatVisible$;
     this.globalLoading$ = this.appState.globalLoading$;
     this.rightSidebarOpen$ = this.appState.rightSidebarOpen$;
     this.leftSidebarOpen$ = this.appState.leftSidebarOpen$;
@@ -243,6 +250,11 @@ export class AppComponent implements OnInit {
       if (id === "dashboard") {
         this.refreshStats();
       }
+    });
+
+    // --- Search Optimization Logic ---
+    this.csvSearchSubject.pipe(debounceTime(400)).subscribe(tab => {
+      this.executeCsvSearch(tab);
     });
 
     setInterval(() => {
@@ -275,6 +287,7 @@ export class AppComponent implements OnInit {
   async ngOnInit() {
     this.loadConfig();
     this.loadApps(); // Load dynamic apps
+    this.setupBackgroundTaskListener();
     this.checkSidebarResponsive(window.innerWidth);
     this.refreshStats();
     this.loadPendingTicketsCount();
@@ -452,7 +465,7 @@ export class AppComponent implements OnInit {
       // 3. Validación Robusta de JWT (Token real vs placeholder)
       const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
-      
+
       const isRealJwt = (t: any) => t && t.length > 20 && t.includes('.');
       const connectionHasJwt = isRealJwt(this.activeConnection.jwt);
       const storageHasJwt = isRealJwt(token);
@@ -1260,7 +1273,8 @@ export class AppComponent implements OnInit {
     if (!event.data || !event.data.type) return;
 
     const { type, payload } = event.data;
-    console.log(`📥 [Bridge] Mensaje recibido: ${type}`, payload?.fileName);
+    const logInfo = payload?.fileName || (type === 'EXEC_FNX_FINALIZADO' ? payload?.taskId : '');
+    console.log(`📥 [Bridge] Mensaje recibido: ${type}${logInfo ? ' – ' + logInfo : ''}`);
 
     switch (type) {
       case "DOWNLOAD_PDF":
@@ -1475,9 +1489,11 @@ export class AppComponent implements OnInit {
 
       let csvHeader: string[] = [];
       let csvRows: string[][] = [];
+      let csvSearchCache: string[] = [];
       let finalViewerType: any = viewerType;
 
       if (ext === "csv") {
+        this.appState.setGlobalLoading(true, "Analizando base de datos masiva...");
         try {
           const { header, rows } = await this.fileService.parseCSV(blob);
           if (header.length > 0) {
@@ -1485,9 +1501,15 @@ export class AppComponent implements OnInit {
             csvRows = rows;
             finalViewerType = 'csv-viewer';
             icon = "fas fa-table-list";
+
+            // OPTIMIZATION: Pre-calculate lowercase strings for fast full-text search
+            console.log(`⚡ [Performance] Generando cache de búsqueda para ${rows.length} registros...`);
+            csvSearchCache = rows.map(row => row.join(" ").toLowerCase());
           }
         } catch (csvErr) {
           console.error("Error parsing CSV for grid view:", csvErr);
+        } finally {
+          this.appState.setGlobalLoading(false);
         }
       }
 
@@ -1506,7 +1528,9 @@ export class AppComponent implements OnInit {
         zoomLevel: 1.0, // Init Zoom
         mimeType: blob.type, // Guardar mimeType para el visor
         csvHeader,
-        csvRows
+        csvRows,
+        csvVisibleColumns: [...csvHeader],
+        csvSearchCache
       });
     } catch (e) {
       console.error("Error opening document tab:", e);
@@ -1653,11 +1677,41 @@ export class AppComponent implements OnInit {
 
   async downloadPdfFromTab(tab: Tab) {
     if (!tab.blobData || !tab.originalName) return;
+
+    let dataToDownload = tab.blobData;
+    let finalFileName = tab.originalName;
+
+    // --- CSV ALCHEMY: Filter columns if viewer is CSV and has visibility configuration ---
+    if (tab.type === 'csv-viewer' && tab.csvHeader && tab.csvVisibleColumns && tab.csvRows) {
+      // Si el usuario ha filtrado columnas, generamos un nuevo CSV solo con esas
+      if (tab.csvVisibleColumns.length < tab.csvHeader.length) {
+        console.log("🧪 [Alchemy] Filtrando columnas para exportación segura...");
+
+        // Mapear indices de columnas visibles
+        const visibleIndices = tab.csvVisibleColumns.map(name => tab.csvHeader!.indexOf(name));
+
+        // Crear nuevas filas solo con datos visibles
+        const filteredRows = tab.csvRows.map(row =>
+          visibleIndices.map(idx => row[idx]).join(",")
+        );
+
+        // Unir header y filas
+        const csvContent = [
+          tab.csvVisibleColumns.join(","),
+          ...filteredRows
+        ].join("\n");
+
+        // Convertir a DataURI
+        dataToDownload = `data:text/csv;base64,${btoa(unescape(encodeURIComponent(csvContent)))}`;
+        console.log("✅ [Alchemy] CSV regenerado con éxito.");
+      }
+    }
+
     // If Protected (SSE), forceSSE = true. Else false.
     const forceSSE = !!tab.isProtected;
     await this.downloadService.handleDownload(
-      tab.originalName,
-      tab.blobData,
+      finalFileName,
+      dataToDownload,
       "1234",
       forceSSE,
     );
@@ -1774,6 +1828,7 @@ export class AppComponent implements OnInit {
 
   toggleCsvSearch() {
     this.showCsvSearch = !this.showCsvSearch;
+    this.showColumnSelector = false; // Close other panel
     if (!this.showCsvSearch) {
       this.csvSearchQuery = "";
       const tabs = this.appState.getTabsSnapshot();
@@ -1783,9 +1838,51 @@ export class AppComponent implements OnInit {
     }
   }
 
+  showColumnSelector = false;
+  toggleColumnSelector() {
+    this.showColumnSelector = !this.showColumnSelector;
+    this.showCsvSearch = false; // Close other panel
+  }
+
+  isColumnVisible(tab: Tab, columnName: string): boolean {
+    if (!tab.csvVisibleColumns) return true;
+    return tab.csvVisibleColumns.includes(columnName);
+  }
+
+  toggleCsvColumn(tab: Tab, columnName: string) {
+    if (!tab.csvVisibleColumns) tab.csvVisibleColumns = [...(tab.csvHeader || [])];
+
+    const index = tab.csvVisibleColumns.indexOf(columnName);
+    if (index > -1) {
+      // Don't allow hiding all columns
+      if (tab.csvVisibleColumns.length > 1) {
+        tab.csvVisibleColumns.splice(index, 1);
+      }
+    } else {
+      tab.csvVisibleColumns.push(columnName);
+    }
+  }
+
+  showAllColumns(tab: Tab) {
+    if (!tab.csvHeader) return;
+    tab.csvVisibleColumns = [...tab.csvHeader];
+  }
+
+  hideAllColumns(tab: Tab) {
+    if (!tab.csvHeader || tab.csvHeader.length === 0) return;
+    // Keep at least the first column to avoid empty state
+    tab.csvVisibleColumns = [tab.csvHeader[0]];
+  }
+
   onCsvSearch(tab: Tab) {
+    // Al usar Subject + debounceTime, la UI no se bloquea mientras el usuario escribe
+    this.csvSearchSubject.next(tab);
+  }
+
+  executeCsvSearch(tab: Tab) {
     if (!tab.csvRows) return;
     const query = this.csvSearchQuery.trim().toLowerCase();
+
     if (!query) {
       tab.csvFilteredRows = undefined;
       return;
@@ -1797,12 +1894,101 @@ export class AppComponent implements OnInit {
       return;
     }
 
-    // Estrategia Full-Text: Cada palabra del buscador debe existir en alguna columna de la fila (Lógica AND)
-    tab.csvFilteredRows = tab.csvRows.filter(row => {
-      // Creamos una cadena única de la fila para una búsqueda ultra-rápida de múltiples términos
-      const rowContent = row.join(" ").toLowerCase();
-      return terms.every(term => rowContent.includes(term));
-    });
+    // Si el archivo es grande (> 5000 filas), mostramos loading para dar feedback visual
+    const isLargeFile = tab.csvRows.length > 5000;
+    if (isLargeFile) this.appState.setGlobalLoading(true, "Filtrando registros...");
+
+    // Usamos micro-task para no bloquear el frame actual y permitir que el loading se pinte
+    setTimeout(() => {
+      try {
+        // OPTIMIZACIÓN: Usamos el cache pre-calculado si existe
+        if (tab.csvSearchCache && tab.csvRows) {
+          tab.csvFilteredRows = tab.csvRows.filter((_, index) => {
+            const rowContent = tab.csvSearchCache![index];
+            return terms.every(term => rowContent.includes(term));
+          });
+        } else {
+          // Fallback por si no se generó el cache
+          tab.csvFilteredRows = tab.csvRows!.filter(row => {
+            const rowContent = row.join(" ").toLowerCase();
+            return terms.every(term => rowContent.includes(term));
+          });
+        }
+      } finally {
+        if (isLargeFile) this.appState.setGlobalLoading(false);
+      }
+    }, isLargeFile ? 100 : 0);
+  }
+
+  /**
+   * Calcula el total acumulado de una columna numérica al hacer doble clic.
+   * Si detecta texto en lugar de números, avisa al usuario y pone el total a 0.
+   */
+  calculateColumnTotal(tab: Tab, columnName: string) {
+    if (!tab.csvHeader || !tab.csvRows) return;
+
+    this.appState.setGlobalLoading(true, "Calculando total...");
+
+    // Timeout para permitir que el DOM se actualice y muestre el cargando
+    setTimeout(() => {
+      try {
+        const colIndex = tab.csvHeader!.indexOf(columnName);
+        if (colIndex === -1) return;
+
+        let total = 0;
+        let hasStrings = false;
+
+        // Utilizamos las filas filtradas si existen, si no las originales.
+        const rowsToProcess = tab.csvFilteredRows || tab.csvRows!;
+
+        for (const row of rowsToProcess) {
+          const val = row[colIndex];
+          if (val === undefined || val === null) continue;
+
+          const trimmedVal = val.trim();
+          if (trimmedVal === "") continue;
+
+          const cleanedVal = trimmedVal.replace(/,/g, '');
+          const num = parseFloat(cleanedVal);
+
+          if (isNaN(num)) {
+            hasStrings = true;
+            break;
+          }
+          total += num;
+        }
+
+        if (hasStrings) {
+          this.showModal(
+            "Detección de Texto",
+            `<div class="total-result-wrapper">
+              <span class="total-result-label">Error en columna "${columnName}"</span>
+              <div class="total-result-amount error">0.00</div>
+              <span class="total-result-meta error">Contiene cadenas de texto</span>
+            </div>`,
+            "error"
+          );
+        } else {
+          const formattedTotal = total.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+
+          const count = rowsToProcess.length;
+          this.showModal(
+            "Cálculo de Columna",
+            `<div class="total-result-wrapper">
+              <span class="total-result-label">Total de "${columnName}"</span>
+              <div class="total-result-amount success">${formattedTotal}</div>
+              <span class="total-result-meta">${count.toLocaleString()} registros</span>
+            </div>`,
+            "success"
+          );
+        }
+      } finally {
+        this.appState.setGlobalLoading(false);
+      }
+    }, 100);
   }
 
   async closeTab(tabId: string, evt: Event) {
@@ -1917,6 +2103,102 @@ export class AppComponent implements OnInit {
           },
           targetOrigin,
         );
+      }
+
+      // 3. Notificar Tareas Finalizadas (Si existen para esta APP)
+      const tasks = this.appState.getTasksSnapshot();
+      const completedTasks = tasks.filter(t => t.appId === tabId && t.status === 'finalizado');
+
+      completedTasks.forEach(task => {
+        console.log(`[PostMessage] Re-enviando finalización de tarea ${task.id} a ${tabId}`);
+        iframe.contentWindow!.postMessage({
+          type: "EXEC_FNX_FINALIZADO",
+          payload: {
+            appId: task.appId,
+            taskId: task.id,
+            data: task.logs?.join("\n") || task.payload
+          }
+        }, targetOrigin);
+      });
+    }
+  }
+  private async setupBackgroundTaskListener() {
+    this.backgroundTaskUnlisten = await listen("background-task-event", (event: any) => {
+      this.zone.run(() => {
+        const payload = event.payload;
+        if (payload.type === "exec-fnx" && payload.from === "system") {
+          this.handleExecFnxTask(payload);
+        }
+      });
+    });
+  }
+
+  private handleExecFnxTask(payload: any) {
+    const taskId = payload.id || payload.appId || "unknown-task";
+    const status = payload.status as "pending" | "running" | "finalizado" | "error";
+
+    const task: BackgroundTask = {
+      id: taskId,
+      appId: payload.appId,
+      title: payload.title || "Ejecución de Tarea",
+      status: status,
+      progress: payload.progress ?? 0,
+      message: payload.message,
+      payload: payload.payload, // Full document details
+      timestamp: new Date(),
+    };
+
+    // Agregar o actualizar en el servicio
+    this.appState.addTask(task);
+    this.appState.updateTask(taskId, task);
+
+    // Si está finalizado, notificar a la app hija
+
+    if (status === "finalizado") {
+
+
+      // Recuperar la tarea completa con todos los logs acumulados
+      const fullTask = this.appState.getTasksSnapshot().find(t => t.id === taskId);
+      const accumulatedLogs = fullTask?.logs?.join("\n") || payload.payload;
+
+      this.notifyExecFnxCompletion(payload, accumulatedLogs);
+
+      // Auto-remover de la UI tras 5 segundos
+      setTimeout(() => {
+        this.appState.removeTask(taskId);
+      }, 5000);
+    }
+  }
+
+  private notifyExecFnxCompletion(payload: any, data: any) {
+    const appId = payload.appId;
+    if (!appId) return;
+
+    const normalizedId = appId.toLowerCase();
+    const port = this.authPorts.get(normalizedId);
+    const completionMsg = {
+      type: "EXEC_FNX_FINALIZADO",
+      payload: {
+        appId: appId,
+        taskId: payload.id,
+        data: data,
+      }
+    };
+
+    if (port) {
+      port.postMessage(completionMsg);
+    } else {
+      // Intentar buscar el iframe directamente si no hay puerto
+      const iframeId = "iframe-" + appId;
+      const iframeExtId = "iframe-ext-" + appId;
+      const iframe = (document.getElementById(iframeId) ||
+        document.getElementById(iframeExtId)) as HTMLIFrameElement;
+
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(completionMsg, "*");
+      } else {
+        // Fallback a broadcast global (menos recomendado pero útil como último recurso)
+        window.postMessage(completionMsg, "*");
       }
     }
   }

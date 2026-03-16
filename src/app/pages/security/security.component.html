@@ -155,7 +155,10 @@
                                     <ng-container *ngIf="msg.author === 'HSF Ticket Seguro'">
                                         <span class="brand-main">Notificación de Ticket</span>
                                     </ng-container>
-                                    <ng-container *ngIf="msg.author !== 'HSF Ticket Seguro'">
+                                    <ng-container *ngIf="msg.author === 'Ejecución de Función'">
+                                        <span class="brand-main">Ejecución de Función</span>
+                                    </ng-container>
+                                    <ng-container *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
                                         {{ (msg.sid | slice:0:40) + ((msg.sid || '').length > 40 ? '...' : '') }}
                                     </ng-container>
                                 </span>
@@ -417,25 +420,31 @@
                     <div class="trace-details-panel fade-in" *ngIf="showTrace">
                         <div class="trace-grid">
                             <div class="trace-detail-item">
-                                <label>Huella Digital (Tracking)</label>
-                                <span class="font-mono">{{ getMessageGuid(selectedMessage.content) ||
-                                    selectedMessage.tracking_info || 'S/N' }}</span>
+                                <label>Huella Digital (ID)</label>
+                                <span class="font-mono">{{ selectedMessage.sid || 'S/N' }}</span>
                             </div>
                             <div class="trace-detail-item">
                                 <label>Estado de Validación</label>
-                                <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">{{
-                                    translateStatus(selectedMessage.status) }}</span>
+                                <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">
+                                    <i [class]="getStatusIcon(selectedMessage.status)"></i>
+                                    {{ translateStatus(selectedMessage.status) }}
+                                </span>
                             </div>
                             <div class="trace-detail-item">
                                 <label>Seguridad de Capa</label>
-                                <span style="color: #10b981;"><i class="fas fa-check-shield"></i> Cifrado Activo
+                                <span style="color: #66BB6A;"><i class="fas fa-check-shield"></i> Cifrado Activo
                                     AES-256</span>
                             </div>
                         </div>
                         <div class="trace-footer-info">
                             <i class="fas fa-info-circle"></i> Este registro ha sido auditado y firmado
-                            digitalmente
-                            por el núcleo Sandra.
+                            digitalmente por el núcleo Sandra.
+                        </div>
+
+                        <!-- Add Execution Log if present -->
+                        <div class="trace-log-section" *ngIf="selectedMessage.tracking_info">
+                            <div class="trace-label">LOG DE EJECUCIÓN / METADATA</div>
+                            <pre class="trace-log-content">{{ selectedMessage.tracking_info }}</pre>
                         </div>
                     </div>
 
@@ -445,11 +454,12 @@
                                 <h2 *ngIf="selectedMessage.author === 'HSF Ticket Seguro'">
                                     <span class="brand-main">Notificación de Ticket</span>
                                 </h2>
-                                <h2 *ngIf="selectedMessage.author !== 'HSF Ticket Seguro'">{{ selectedMessage.sid }}</h2>
+                                <h2 *ngIf="selectedMessage.author === 'Ejecución de Función'">
+                                    <span class="brand-main">Ejecución de Función</span>
+                                </h2>
+                                <h2 *ngIf="selectedMessage.author !== 'HSF Ticket Seguro' && selectedMessage.author !== 'Ejecución de Función'">{{ selectedMessage.sid }}</h2>
                                 <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">
-                                    <i class="fas" [class.fa-circle]="selectedMessage.status === 'Pending'"
-                                        [class.fa-check-circle]="selectedMessage.status === 'Approved'"
-                                        [class.fa-times-circle]="selectedMessage.status === 'Rejected'"></i>
+                                    <i [class]="getStatusIcon(selectedMessage.status)"></i>
                                     {{ translateStatus(selectedMessage.status) }}
                                 </span>
                             </div>
@@ -459,22 +469,22 @@
                                     title="Volver a la Bandeja">
                                     <i class="fas fa-arrow-left"></i>
                                 </button>
-                                <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox' && selectedMessage.status !== 'Approved'"></div>
+                                <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox' && selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed'"></div>
                                 <button class="btn-action-sm success"
                                     (click)="updateMessageStatus(selectedMessage, 'Approved')"
-                                    *ngIf="selectedMessage.status !== 'Approved' && mailboxDirection !== 'outbox'"
+                                    *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed' && mailboxDirection !== 'outbox'"
                                     title="Validar Documento">
                                     <i class="fas fa-check"></i>
                                 </button>
                                 <button class="btn-action-sm danger"
                                     (click)="updateMessageStatus(selectedMessage, 'Rejected')"
-                                    *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Rejected' && mailboxDirection !== 'outbox'"
+                                    *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed' && selectedMessage.status !== 'Rejected' && mailboxDirection !== 'outbox'"
                                     title="Anular Registro">
                                     <i class="fas fa-times"></i>
                                 </button>
                                 <button class="btn-action-sm info"
                                     (click)="updateMessageStatus(selectedMessage, 'Read')"
-                                    *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'"
+                                    *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed' && selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'"
                                     title="Marcar como Visto">
                                     <i class="fas fa-eye"></i>
                                 </button>
@@ -489,6 +499,10 @@
                             <div class="meta-item">
                                 <i class="far fa-calendar-alt"></i>
                                 <span>{{ selectedMessage.created_at | date:'medium' }}</span>
+                            </div>
+                            <div class="meta-item" *ngIf="selectedMessage.sid">
+                                <i class="fas fa-fingerprint"></i>
+                                <span class="font-mono text-xs">{{ selectedMessage.sid }}</span>
                             </div>
                         </div>
                     </div>

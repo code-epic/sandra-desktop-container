@@ -36,6 +36,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   @Input() activeConnection: any;
   @Input() config: any;
   @Input() clientId: string = "";
+  @Input() visible: boolean = true;
   @ViewChild("scrollContainer") privatescrollContainer!: ElementRef;
 
   isOpen = false;

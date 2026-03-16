@@ -1,5 +1,5 @@
 <!-- Floating Action Button -->
-<div class="chat-fab-container">
+<div class="chat-fab-container" [class.hidden]="!visible">
     <button class="chat-fab" (click)="toggleChat()">
         <div class="fab-content">
             <!-- Logo when closed, Chevron when open -->

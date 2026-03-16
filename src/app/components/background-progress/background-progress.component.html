@@ -1,0 +1,53 @@
+<div class="tasks-overlay" *ngIf="(tasks$ | async)?.length">
+    <div class="task-card fade-in-up" *ngFor="let task of tasks$ | async; trackBy: trackByTaskId" 
+     [class.completed]="task.status === 'finalizado'"
+     [class.error]="task.status === 'error'"
+     [class.processing]="task.status !== 'finalizado' && task.status !== 'error'"
+     [class.expanded]="task.isExpanded">
+        
+        <div class="task-body">
+            <div class="task-icon" [class.pulse-active]="task.status !== 'finalizado' && task.status !== 'error'">
+                <i class="fas" [ngClass]="{
+                    'fa-circle-notch fa-spin': task.status !== 'finalizado' && task.status !== 'error',
+                    'fa-check-circle': task.status === 'finalizado',
+                    'fa-exclamation-circle': task.status === 'error'
+                }"></i>
+            </div>
+            
+            <div class="task-content">
+                <div class="task-main">
+                    <span class="task-title">Ejecución de Tarea</span>
+                    <div class="task-actions">
+                        <button class="btn-sm-action" (click)="toggleExpand(task)" [title]="task.isExpanded ? 'Ver menos' : 'Ver detalle'">
+                            <i class="fas" [class.fa-chevron-down]="!task.isExpanded" [class.fa-chevron-up]="task.isExpanded"></i>
+                        </button>
+                        <button class="btn-mailbox" (click)="goToMailbox()" title="Ver en Buzón">
+                            <i class="fas fa-envelope-open-text"></i> Buzón
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="progress-bar-container" [class.indeterminate]="task.status !== 'finalizado' && task.status !== 'error'">
+                    <div class="progress-bar-fill" [style.width.%]="(task.status !== 'finalizado' && task.status !== 'error') ? 100 : task.progress"></div>
+                </div>
+                
+                <div class="task-footer">
+                    <span class="status-msg" [class.blinking]="task.status !== 'finalizado' && task.status !== 'error'">
+                        {{ (task.status === 'finalizado') ? 'Completado' : (task.status === 'error' ? 'Error' : 'Procesando...') }}
+                    </span>
+                    <button class="btn-dismiss" (click)="removeTask(task.id)" *ngIf="task.status === 'finalizado' || task.status === 'error'">
+                        Descartar
+                    </button>
+                </div>
+
+                <!-- NEW: Expanded Log Area -->
+                <div class="log-area fade-in" *ngIf="task.isExpanded">
+                    <div class="log-line" *ngFor="let log of (task.logs || []) | slice:-5">
+                        <span class="log-bullet">></span> {{ log }}
+                    </div>
+                    <div class="log-empty" *ngIf="!(task.logs?.length)">Esperando logs del proceso...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -180,6 +180,31 @@ SDC puede descargar, instalar y actualizar micro-aplicaciones (`sandra-app://`) 
 
 ---
 
+## Gestión de Tareas en Segundo Plano y Notificaciones (exec-fnx)
+
+SDC implementa un sistema avanzado para el seguimiento de tareas asíncronas de larga duración iniciadas por aplicaciones hijas o el sistema central. Este sistema garantiza la visibilidad del proceso sin interrumpir el flujo de trabajo del operador.
+
+### 1. Arquitectura de Comunicación y Flujo
+El sistema utiliza un puente híbrido entre WebSockets (comunicación externa) y eventos Tauri (comunicación interna):
+
+```mermaid
+graph TD
+    WS[Sandra Server / WebSocket] -->|exec-fnx| R[Rust Backend]
+    R -->|Event: background-task-event| A[App Shell Angular]
+    R -->|Persistencia Automática| DB[(Security Mailbox)]
+    A -->|Gestión de Estado| S[AppState Service]
+    S -->|Renderizado| UI[Modal de Progreso Frosted]
+    A -->|Notificación Final: EXEC_FNX_FINALIZADO| C[App Hija / Iframe]
+```
+
+### 2. Componentes del Sistema
+
+-   **Backend (Rust)**: El orquestador en Rust procesa los mensajes de tipo `exec-fnx`. Al detectar la finalización de una tarea, inyecta automáticamente un registro en el **Buzón de Seguridad (Mailbox)**, asegurando que el detalle completo (payload y metadatos) sea auditable históricamente.
+-   **Frontend UI (Angular)**: Un componente flotante con diseño de **Cristal Esmerilado (Glassmorphism)** proporciona feedback visual en tiempo real. Utiliza micro-animaciones para indicar el progreso y el estado final (Éxito/Error).
+-   **Notificación a Apps Hijas**: Al completar la ejecución, el Shell utiliza `MessagePorts` para enviar el evento `EXEC_FNX_FINALIZADO` junto con el detalle recolectado directamente al contexto de la aplicación que originó la petición.
+
+---
+
 ## Instalación y Desarrollo
 
 ```bash

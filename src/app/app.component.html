@@ -154,8 +154,35 @@
                        placeholder="Filtrar registros..." 
                        class="csv-inline-search">
               </div>
+
+              <!-- CONFIGURADOR DE COLUMNAS -->
+              <div class="csv-column-selector" *ngIf="showColumnSelector" (click)="$event.stopPropagation()">
+                <div class="column-selector-header" style="justify-content: center; gap: 12px; padding: 10px 0;">
+                  <button class="tool-pill-btn show-all" (click)="showAllColumns(tab)" title="Mostrar Todas">
+                    <i class="fas fa-check-double"></i>
+                    <span>Todas</span>
+                  </button>
+                  <button class="tool-pill-btn hide-all" (click)="hideAllColumns(tab)" title="Ocultar Todas">
+                    <i class="fas fa-minus-circle"></i>
+                    <span>Ninguna</span>
+                  </button>
+                </div>
+                <div class="column-list">
+                  <label class="column-item" *ngFor="let head of tab.csvHeader">
+                    <input type="checkbox" 
+                           [checked]="isColumnVisible(tab, head)" 
+                           (change)="toggleCsvColumn(tab, head)">
+                    <span class="custom-check"></span>
+                    <span class="column-name">{{ head }}</span>
+                  </label>
+                </div>
+              </div>
+
               <button class="fv-action-btn search" (click)="toggleCsvSearch()" [class.active]="showCsvSearch" title="Buscar">
                 <i class="fas fa-search"></i>
+              </button>
+              <button class="fv-action-btn config" (click)="toggleColumnSelector()" [class.active]="showColumnSelector" title="Configurar Columnas">
+                <i class="fas fa-columns"></i>
               </button>
               <button class="fv-action-btn save" (click)="savePdfToHistory(tab)" *ngIf="!tab.isSavedToHistory" title="Guardar en Historial">
                 <i class="fas fa-history"></i>
@@ -174,13 +201,22 @@
             <table class="premium-csv-table">
               <thead>
                 <tr>
-                  <th *ngFor="let head of (tab.csvHeader || [])">{{ head }}</th>
+                  <ng-container *ngFor="let head of (tab.csvHeader || []); let i = index">
+                    <th *ngIf="isColumnVisible(tab, head)" 
+                        (dblclick)="calculateColumnTotal(tab, head)"
+                        class="csv-header-interactive"
+                        title="Doble clic para calcular el total de la columna">
+                      {{ head }}
+                    </th>
+                  </ng-container>
                 </tr>
               </thead>
               <tbody>
                 <!-- Virtualized display: only first 200 rows shown for performance -->
                 <tr *ngFor="let row of (tab.csvFilteredRows || tab.csvRows || []) | slice:0:200">
-                  <td *ngFor="let cell of row">{{ cell }}</td>
+                  <ng-container *ngFor="let cell of row; let j = index">
+                    <td *ngIf="isColumnVisible(tab, tab.csvHeader ? tab.csvHeader[j] : '')">{{ cell }}</td>
+                  </ng-container>
                 </tr>
               </tbody>
             </table>
@@ -390,8 +426,7 @@
 
       <div class="modal-body-clean">
         <h3 class="modal-title-clean" style="text-align: center; margin-top: 20px;">{{ genericModal.title }}</h3>
-        <p class="modal-msg-clean" style="text-align: center; padding: 0 10px; margin-bottom: 25px;">{{
-          genericModal.message }}</p>
+        <p class="modal-msg-clean" style="text-align: center; padding: 0 10px; margin-bottom: 25px; white-space: pre-wrap;" [innerHTML]="genericModal.message"></p>
 
       </div>
       <div class="modal-actions-spread">
@@ -415,7 +450,9 @@
     (close)="showControlPanel = false">
   </app-config>
 
-  <app-chat [wsStatus]="wsStatus" [activeConnection]="activeConnection" [config]="config"
+  <app-chat *ngIf="(activeTabId$ | async) !== 'login'" 
+    [visible]="(chatVisible$ | async) === true"
+    [wsStatus]="wsStatus" [activeConnection]="activeConnection" [config]="config"
     [clientId]="clientId"></app-chat>
 
   <!-- SETUP WIZARD OVERLAY -->
@@ -564,4 +601,5 @@
     <i class="fas" [class]="snapMessage.icon || 'fa-check-circle'"></i>
     {{ snapMessage.message }}
   </div>
+  <app-background-progress></app-background-progress>
 </div>

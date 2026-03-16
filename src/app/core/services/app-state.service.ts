@@ -25,7 +25,22 @@ export interface Tab {
   csvHeader?: string[];           // Header columns for CSV viewer
   csvRows?: string[][];           // Data rows for CSV viewer
   csvFilteredRows?: string[][];   // Search results for CSV viewer
+  csvVisibleColumns?: string[];   // Visible columns for CSV viewer
+  csvSearchCache?: string[];      // Pre-computed lowercase strings for search
   type?: 'iframe' | 'pdf-viewer' | 'file-viewer' | 'csv-viewer';
+}
+
+export interface BackgroundTask {
+  id: string;
+  appId?: string;
+  title: string;
+  status: 'pending' | 'running' | 'finalizado' | 'error';
+  progress: number; // 0 to 100
+  message?: string;
+  payload?: any;
+  timestamp: Date;
+  logs?: string[];
+  isExpanded?: boolean;
 }
 
 @Injectable({
@@ -49,6 +64,14 @@ export class AppStateService {
   // Estado Global de Carga
   private globalLoadingSubject = new BehaviorSubject<{ isLoading: boolean, message: string }>({ isLoading: false, message: '' });
   globalLoading$ = this.globalLoadingSubject.asObservable();
+
+  // Tareas en segundo plano
+  private backgroundTasksSubject = new BehaviorSubject<BackgroundTask[]>([]);
+  backgroundTasks$ = this.backgroundTasksSubject.asObservable();
+
+  // Visibilidad del Chat
+  private chatVisibleSubject = new BehaviorSubject<boolean>(true);
+  chatVisible$ = this.chatVisibleSubject.asObservable();
 
   // Eventos
   public onConfigToggle = new EventEmitter<void>();
@@ -103,5 +126,59 @@ export class AppStateService {
     if (this.activeTabIdSubject.value === id) {
       this.setActiveTab('dashboard');
     }
+  }
+
+  // Gestión de Tareas
+  addTask(task: BackgroundTask) {
+    const current = this.backgroundTasksSubject.value;
+    if (!current.find(t => t.id === task.id)) {
+      const updated = [...current, { ...task, logs: task.logs || [], isExpanded: false }];
+      this.backgroundTasksSubject.next(updated);
+      this.updateChatVisibility(updated);
+    }
+  }
+
+  updateTask(id: string, updates: Partial<BackgroundTask>) {
+    const current = this.backgroundTasksSubject.value;
+    const index = current.findIndex(t => t.id === id);
+    if (index !== -1) {
+      const updated = [...current];
+      // Si llega un nuevo mensaje, agregarlo a los logs si no está
+      const newLogs = updates.message && updated[index].message !== updates.message 
+                      ? [...(updated[index].logs || []), updates.message]
+                      : updated[index].logs;
+
+      updated[index] = { ...updated[index], ...updates, logs: newLogs };
+      this.backgroundTasksSubject.next(updated);
+      this.updateChatVisibility(updated);
+    }
+  }
+
+  addLogToTask(id: string, log: string) {
+    const current = this.backgroundTasksSubject.value;
+    const index = current.findIndex(t => t.id === id);
+    if (index !== -1) {
+      const updated = [...current];
+      updated[index] = { 
+        ...updated[index], 
+        logs: [...(updated[index].logs || []), log] 
+      };
+      this.backgroundTasksSubject.next(updated);
+    }
+  }
+
+  removeTask(id: string) {
+    const updated = this.backgroundTasksSubject.value.filter(t => t.id !== id);
+    this.backgroundTasksSubject.next(updated);
+    this.updateChatVisibility(updated);
+  }
+
+  getTasksSnapshot(): BackgroundTask[] {
+    return this.backgroundTasksSubject.value;
+  }
+
+  private updateChatVisibility(tasks: BackgroundTask[]) {
+    // Si hay cualquier tarea en el modal (incluso finalizada pero visible), ocultamos el chat
+    this.chatVisibleSubject.next(tasks.length === 0);
   }
 }

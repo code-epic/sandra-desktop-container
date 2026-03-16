@@ -212,11 +212,11 @@ fn set_db_disconnected(app_handle: &AppHandle, connection_id: Option<i64>) {
 }
 
 fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64>) {
-    println!("[WS] Mensaje CRUDO recibido: {}", text);
+    // println!("[WS] Mensaje CRUDO recibido: {}", text);
 
     if let Ok(json) = serde_json::from_str::<Value>(text) {
         let msg_type = json["type"].as_str().unwrap_or("unknown");
-        println!("[WS] Tipo de mensaje detectado: {}", msg_type);
+        // println!("[WS] Tipo de mensaje detectado: {}", msg_type);
 
         match msg_type {
             "notification" => handle_notification_msg(app_handle, &json),
@@ -224,18 +224,19 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
             "chat" => handle_chat_msg(app_handle, &json),
             "operation" => handle_operation_msg(app_handle, &json),
             "welcome" => handle_welcome_msg(app_handle, &json),
+            "exec-fnx" => handle_exec_fnx_msg(app_handle, &json),
             "hsf" => handle_hsf_msg(app_handle, &json),
             _ => handle_legacy_msg(app_handle, &json),
         }
     } else {
-        println!("[WS] Falló el parseo de JSON: {}", text);
+        // println!("[WS] Falló el parseo de JSON: {}", text);
     }
 }
 
 // --- Specialized Handlers ---
 
 fn handle_notification_msg(app_handle: &AppHandle, json: &Value) {
-    println!("[WS] Procesando Notificación Nativa...");
+    // println!("[WS] Procesando Notificación Nativa...");
     let title = json["title"]
         .as_str()
         .or(json["from"].as_str())
@@ -243,13 +244,13 @@ fn handle_notification_msg(app_handle: &AppHandle, json: &Value) {
     let body = json["message"].as_str().unwrap_or("Nuevo evento detectado");
 
     show_native_notification(app_handle, title, body);
-    println!("[WS] Notificación enviada al sistema operativo.");
+    // println!("[WS] Notificación enviada al sistema operativo.");
 
     let _ = app_handle.emit("system-notification", json);
 }
 
 fn handle_access_msg(app_handle: &AppHandle, json: &Value, connection_id: Option<i64>) {
-    println!("[WS] Acceso concedido, recibiendo JWT...");
+    // println!("[WS] Acceso concedido, recibiendo JWT...");
     if let Some(jwt) = json["message"].as_str() {
         if let Some(id) = connection_id {
             if let Some(state) = app_handle.try_state::<DbState>() {
@@ -258,7 +259,7 @@ fn handle_access_msg(app_handle: &AppHandle, json: &Value, connection_id: Option
                         "UPDATE connections SET jwt = ?1 WHERE id = ?2",
                         rusqlite::params![jwt, id],
                     );
-                    println!("[WS] JWT guardado en base de datos para la conexión {}", id);
+                    // println!("[WS] JWT guardado en base de datos para la conexión {}", id);
                 }
             }
         }
@@ -272,23 +273,23 @@ fn handle_access_msg(app_handle: &AppHandle, json: &Value, connection_id: Option
         let access_payload = serde_json::json!({
             "type": "chat",
             "message": "Permisos necesarios otorgados. Acceso seguro establecido.",
-            "from": "SISTEMA",
+            "from": "Ejecución de Función",
             "jwt": jwt,
         });
         let _ = app_handle.emit("connection-authorized", json);
         let _ = app_handle.emit("chat-message", &access_payload);
     } else {
-        println!("[WS] Mensaje 'access' sin campo 'jwt'");
+        // println!("[WS] Mensaje 'access' sin campo 'jwt'");
     }
 }
 
 fn handle_chat_msg(app_handle: &AppHandle, json: &Value) {
-    println!("[WS] Redirigiendo mensaje al sistema de Chat...");
+    // println!("[WS] Redirigiendo mensaje al sistema de Chat...");
     let _ = app_handle.emit("chat-message", json);
 }
 
 fn handle_operation_msg(app_handle: &AppHandle, json: &Value) {
-    println!("[WS] Ejecutando operación de sistema...");
+    // println!("[WS] Ejecutando operación de sistema...");
     match json["cmd"].as_str() {
         Some("reboot") => execute_system_reboot(),
         Some("status") => { /* Responder con stats */ }
@@ -298,12 +299,55 @@ fn handle_operation_msg(app_handle: &AppHandle, json: &Value) {
 }
 
 fn handle_welcome_msg(app_handle: &AppHandle, json: &Value) {
-    println!("[WS] Servidor dio la bienvenida");
+    // println!("[WS] Servidor dio la bienvenida");
     let _ = app_handle.emit("server-welcome", json);
 }
 
+fn handle_exec_fnx_msg(app_handle: &AppHandle, json: &Value) {
+    // println!("[WS] Procesando tarea exec-fnx...");
+    let title = "Ejecución de Tarea";
+    let body = json["message"].as_str().unwrap_or("Procesando comando...");
+    
+    // Notificación nativa al iniciar
+    if json["status"].as_str() == Some("pending") {
+        show_native_notification(app_handle, title, body);
+    }
+    
+    // Emitir para UI en tiempo real
+    let _ = app_handle.emit("background-task-event", json);
+
+    // Si está finalizado, guardar en el buzón de seguridad (Mailbox)
+    if json["status"].as_str() == Some("finalizado") {
+        // println!("[WS] Tarea finalizada, registrando en security_mailbox");
+        
+        let sid = json["id"].as_str().or(json["appId"].as_str());
+        let title = "Ejecución de Función"; 
+        let content = json["message"].as_str().unwrap_or("Sin detalle");
+        let from = "Ejecución de Función";
+        
+        let detail = json["payload"].to_string();
+        
+        show_native_notification(app_handle, "Ejecución de Tarea", &format!("Finalizado: {}", content));
+
+        if let Some(state) = app_handle.try_state::<DbState>() {
+            if let Ok(conn) = state.0.lock() {
+                let _ = conn.execute(
+                    "INSERT INTO security_mailbox (sid, content, author, status, direction, tracking_info) 
+                     VALUES (?1, ?2, ?3, 'Completed', 'inbox', ?4)",
+                    (
+                        sid,
+                        content,
+                        Some(from),
+                        Some(detail)
+                    ),
+                );
+            }
+        }
+    }
+}
+
 fn handle_hsf_msg(app_handle: &AppHandle, json: &Value) {
-    println!("[WS] Alta Seguridad Encontrada (HSF)");
+    // println!("[WS] Alta Seguridad Encontrada (HSF)");
     let auth_id = json["message"].as_str().unwrap_or("Desconocido");
 
     show_native_notification(
@@ -316,9 +360,9 @@ fn handle_hsf_msg(app_handle: &AppHandle, json: &Value) {
 }
 
 fn handle_legacy_msg(app_handle: &AppHandle, json: &Value) {
-    println!("[WS] Tipo desconocido o legacy. Buscando 'cmd'...");
+    // println!("[WS] Tipo desconocido o legacy. Buscando 'cmd'...");
     if let Some(cmd) = json["cmd"].as_str() {
-        println!("[WS] Comando legacy encontrado: {}", cmd);
+        // println!("[WS] Comando legacy encontrado: {}", cmd);
         match cmd {
             "reboot" => execute_system_reboot(),
             "welcome" => {
@@ -327,7 +371,7 @@ fn handle_legacy_msg(app_handle: &AppHandle, json: &Value) {
             _ => println!("Comando legacy detectado: {}", cmd),
         }
     } else {
-        println!("[WS] No se pudo determinar la acción para el mensaje");
+        // println!("[WS] No se pudo determinar la acción para el mensaje");
     }
 }
 

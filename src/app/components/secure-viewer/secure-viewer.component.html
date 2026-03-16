@@ -1,4 +1,4 @@
-<div class="viewer-layout" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (contextmenu)="$event.preventDefault()">
+<div class="viewer-layout" [class.is-main-loading]="isLoading && !loadingFilePath" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (contextmenu)="$event.preventDefault()">
 
     <!-- COMPACT HEADER BAR (GREENISH THEME) -->
     <div class="secure-header-card">
@@ -27,7 +27,7 @@
 
         <div class="hdr-right">
             <div class="error-pill" *ngIf="error">{{ error }}</div>
-            <button class="btn-plus-circular" (click)="openFileDialog()" title="Abrir Documento">
+            <button class="btn-plus-circular" [class.btn-loading]="isLoading && !loadingFilePath" (click)="openFileDialog()" title="Abrir Documento">
                 <i class="fas fa-paperclip" *ngIf="!isLoading"></i>
                 <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
             </button>
@@ -45,17 +45,24 @@
         <div class="section-label" *ngIf="filteredHistory.length > 0">{{ viewerActiveTab === 'global' ? 'DOCUMENTOS
             GLOBAL' : 'CORREOS Y ARCHIVOS' }}</div>
 
-        <div class="history-list-view">
-            <div class="doc-row" *ngFor="let item of filteredHistory" (click)="openFromHistory(item)">
+        <div class="history-list-view" [class.has-loading-row]="loadingFilePath">
+            <div class="doc-row" *ngFor="let item of filteredHistory" 
+                 (click)="openFromHistory(item)"
+                 [class.loading-row]="loadingFilePath === item.file_path">
                 <!-- ICON AREA (UPDATED PDF ICON) -->
                 <div class="col-icon">
-                    <ng-container *ngIf="!getFileTypeConfig(item.file_name).isMascot; else sseMascot">
-                        <i [class]="getFileTypeConfig(item.file_name).icon"
-                            [ngClass]="getFileTypeConfig(item.file_name).colorClass"></i>
+                    <ng-container *ngIf="loadingFilePath === item.file_path; else normalIcon">
+                        <div class="custom-loader-ring"></div>
                     </ng-container>
-                    <ng-template #sseMascot>
-                        <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon"
-                            onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
+                    <ng-template #normalIcon>
+                        <ng-container *ngIf="!getFileTypeConfig(item.file_name).isMascot; else sseMascot">
+                            <i [class]="getFileTypeConfig(item.file_name).icon"
+                                [ngClass]="getFileTypeConfig(item.file_name).colorClass"></i>
+                        </ng-container>
+                        <ng-template #sseMascot>
+                            <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon"
+                                onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
+                        </ng-template>
                     </ng-template>
                 </div>
 

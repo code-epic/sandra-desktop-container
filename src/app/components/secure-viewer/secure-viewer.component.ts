@@ -17,6 +17,7 @@ export class SecureViewerComponent {
     @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
     isLoading = false;
+    loadingFilePath: string | null = null; // Track which specific path is loading
     fileName: string = '';
     error: string | null = null;
     history: any[] = [];
@@ -118,6 +119,8 @@ export class SecureViewerComponent {
     async openFileDialog() {
         try {
             this.isLoading = true;
+            this.appState.setGlobalLoading(true, "Iniciando explorador de archivos...");
+            
             const { open } = await import('@tauri-apps/plugin-dialog');
 
             const selected = await open({
@@ -128,24 +131,26 @@ export class SecureViewerComponent {
                 }]
             });
 
+            // Una vez que el explorador se cierra, quitamos el global loading inicial
+            this.appState.setGlobalLoading(false);
+
             if (selected && typeof selected === 'string') {
                 this.fileName = selected.split(/[\\/]/).pop() || selected;
+                this.loadingFilePath = selected; // Mark this as the one loading
                 
-                // --- PROACTIVE ALCHEMY VALIDATION (THE BRAKE) ---
+                // --- PROACTIVE ALCHEMY VALIDATION ---
                 try {
                     const result = await invoke<any>('verify_file_seal', { filePath: selected });
                     if (result && result.status === 'VALID') {
-                        // Mark for interception
                         this.pendingFileSelected = selected;
                         this.pendingFileResult = result;
-                        
-                        // Show the 'Wow' certification modal as a GATE
                         this.selectedCertification = result;
                         this.selectedCertification.fileName = this.fileName;
-                        this.isPendingValidation = true; // Flag for dual button footer
+                        this.isPendingValidation = true;
                         this.showCertificationModal = true;
                         this.isLoading = false;
-                        return; // BRAKE: Stop here until user confirms
+                        this.loadingFilePath = null;
+                        return;
                     }
                 } catch (certErr) {
                     console.warn("Initial cert check skipped/failed", certErr);
@@ -153,36 +158,56 @@ export class SecureViewerComponent {
 
                 if (selected.toLowerCase().endsWith('.gpg') || selected.toLowerCase().endsWith('.pgp')) {
                     this.isLoading = false;
+                    this.loadingFilePath = null;
                     this.gpgUnlockFilePath = selected;
                     this.gpgUnlockFileName = this.fileName;
                     this.gpgUnlockSaveToHistory = true;
                     this.showGpgUnlockModal = true;
                 } else {
-                    await this.loadSecureDoc(selected, true);
+                    // Small timeout to allow UI to paint loading state before blocking processing
+                    setTimeout(async () => {
+                        await this.loadSecureDoc(selected, true);
+                        this.loadingFilePath = null;
+                    }, 50);
                 }
             } else {
                 this.isLoading = false;
+                this.loadingFilePath = null;
             }
         } catch (e) {
             console.error(e);
+            this.appState.setGlobalLoading(false);
             this.error = "Error al abrir diálogo.";
             this.isLoading = false;
+            this.loadingFilePath = null;
         }
     }
 
     async openFromHistory(item: any) {
+        if (this.isLoading || this.loadingFilePath) return;
+
         this.fileName = item.file_name;
-        // item.file_path comes from DB
+        this.loadingFilePath = item.file_path;
+        this.isLoading = true;
+
         if (item.file_name.toLowerCase().endsWith('.gpg') || item.file_name.toLowerCase().endsWith('.pgp')) {
             this.isLoading = false;
+            this.loadingFilePath = null;
             this.gpgUnlockFilePath = item.file_path;
             this.gpgUnlockFileName = this.fileName;
             this.gpgUnlockSaveToHistory = false;
             this.showGpgUnlockModal = true;
         } else {
-            await this.loadSecureDoc(item.file_path, false);
-            // Re-verify certification as well
-            this.verifyDocumentCertification(item.file_path);
+            // High visibility loading for history
+            this.appState.setGlobalLoading(true, `Abriendo ${this.fileName}...`);
+            
+            setTimeout(async () => {
+                await this.loadSecureDoc(item.file_path, false);
+                // Re-verify certification as well
+                this.verifyDocumentCertification(item.file_path);
+                this.loadingFilePath = null;
+                this.appState.setGlobalLoading(false);
+            }, 100);
         }
     }
 
@@ -806,6 +831,9 @@ export class SecureViewerComponent {
 
             console.log("Loading secure doc from:", path);
 
+            // Use global loading for the heavy part
+            this.appState.setGlobalLoading(true, "Desencriptando en memoria RAM...");
+
             // 1. Rust Call (Load & Decrypt in Memory) - No PIN (Locked view by default if protected)
             const base64Data = await invoke<string>('load_sse_document', {
                 filePath: path,
@@ -897,7 +925,9 @@ export class SecureViewerComponent {
             }
 
             this.isLoading = false;
+            this.loadingFilePath = null;
             this.fileName = '';
+            this.appState.setGlobalLoading(false);
 
             // Verify Certification
             this.verifyDocumentCertification(path);
@@ -906,6 +936,8 @@ export class SecureViewerComponent {
             console.error("Error loading secure doc:", e);
             this.error = `Error: ${e}. El archivo puede haber sido movido o eliminado.`;
             this.isLoading = false;
+            this.loadingFilePath = null;
+            this.appState.setGlobalLoading(false);
         }
     }
 }

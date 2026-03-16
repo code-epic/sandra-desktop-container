@@ -6,7 +6,7 @@ export interface MailboxMessage {
     sid: string;
     content: string;
     author: string;
-    status: 'Pending' | 'Read' | 'Approved' | 'Rejected';
+    status: 'Pending' | 'Read' | 'Approved' | 'Rejected' | 'Completed';
     tracking_info?: string;
     responsible?: string;
     created_at: string;
