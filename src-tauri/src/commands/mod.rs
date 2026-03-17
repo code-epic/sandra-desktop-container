@@ -11,3 +11,4 @@ pub mod pdf;
 pub mod security;
 pub mod system;
 pub mod window;
+pub mod secure_download;

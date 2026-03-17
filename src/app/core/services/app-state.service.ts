@@ -65,9 +65,13 @@ export class AppStateService {
   private globalLoadingSubject = new BehaviorSubject<{ isLoading: boolean, message: string }>({ isLoading: false, message: '' });
   globalLoading$ = this.globalLoadingSubject.asObservable();
 
-  // Tareas en segundo plano
+  // Tareas en segundo plano (WebSocket)
   private backgroundTasksSubject = new BehaviorSubject<BackgroundTask[]>([]);
   backgroundTasks$ = this.backgroundTasksSubject.asObservable();
+
+  // Tareas HTTP (Descargas/Streaming)
+  private httpTasksSubject = new BehaviorSubject<BackgroundTask[]>([]);
+  httpTasks$ = this.httpTasksSubject.asObservable();
 
   // Visibilidad del Chat
   private chatVisibleSubject = new BehaviorSubject<boolean>(true);
@@ -96,8 +100,6 @@ export class AppStateService {
 
   setActiveTab(id: string) {
     this.activeTabIdSubject.next(id);
-    // Lógica inteligente: mantener sidebar para páginas principales, ocultar para apps
-    // Secure Viewer se agrega a estáticas.
     const staticPages = ['dashboard', 'connections', 'apps', 'security', 'monitor', 'secure-viewer'];
 
     if (!staticPages.includes(id)) {
@@ -128,7 +130,7 @@ export class AppStateService {
     }
   }
 
-  // Gestión de Tareas
+  // Gestión de Tareas (WebSocket)
   addTask(task: BackgroundTask) {
     const current = this.backgroundTasksSubject.value;
     if (!current.find(t => t.id === task.id)) {
@@ -143,14 +145,30 @@ export class AppStateService {
     const index = current.findIndex(t => t.id === id);
     if (index !== -1) {
       const updated = [...current];
-      // Si llega un nuevo mensaje, agregarlo a los logs si no está
-      const newLogs = updates.message && updated[index].message !== updates.message 
-                      ? [...(updated[index].logs || []), updates.message]
-                      : updated[index].logs;
+      const prevTask = updated[index];
+      let newLogs = prevTask.logs || [];
 
-      updated[index] = { ...updated[index], ...updates, logs: newLogs };
+      if (updates.message && updates.message !== prevTask.message) {
+        if (prevTask.message && updates.message.startsWith(prevTask.message)) {
+          newLogs = [updates.message]; 
+        } else {
+          newLogs = [...newLogs, updates.message];
+        }
+      }
+
+      updated[index] = { ...prevTask, ...updates, logs: newLogs };
       this.backgroundTasksSubject.next(updated);
       this.updateChatVisibility(updated);
+    }
+  }
+
+  updateTaskStatusOnly(id: string, updates: Partial<BackgroundTask>) {
+    const current = this.backgroundTasksSubject.value;
+    const index = current.findIndex(t => t.id === id);
+    if (index !== -1) {
+      const updated = [...current];
+      updated[index] = { ...updated[index], ...updates };
+      this.backgroundTasksSubject.next(updated);
     }
   }
 
@@ -177,8 +195,34 @@ export class AppStateService {
     return this.backgroundTasksSubject.value;
   }
 
+  // Gestión de Tareas HTTP
+  addHttpTask(task: BackgroundTask) {
+    const current = this.httpTasksSubject.value;
+    if (!current.find(t => t.id === task.id)) {
+      const updated = [...current, { ...task, isExpanded: false }];
+      this.httpTasksSubject.next(updated);
+      this.updateChatVisibility(this.backgroundTasksSubject.value);
+    }
+  }
+
+  updateHttpTask(id: string, updates: Partial<BackgroundTask>) {
+    const current = this.httpTasksSubject.value;
+    const index = current.findIndex(t => t.id === id);
+    if (index !== -1) {
+      const updated = [...current];
+      updated[index] = { ...updated[index], ...updates };
+      this.httpTasksSubject.next(updated);
+    }
+  }
+
+  removeHttpTask(id: string) {
+    const updated = this.httpTasksSubject.value.filter(t => t.id !== id);
+    this.httpTasksSubject.next(updated);
+    this.updateChatVisibility(this.backgroundTasksSubject.value);
+  }
+
   private updateChatVisibility(tasks: BackgroundTask[]) {
-    // Si hay cualquier tarea en el modal (incluso finalizada pero visible), ocultamos el chat
-    this.chatVisibleSubject.next(tasks.length === 0);
+    const httpTasks = this.httpTasksSubject.value || [];
+    this.chatVisibleSubject.next(tasks.length === 0 && httpTasks.length === 0);
   }
 }

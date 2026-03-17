@@ -1,0 +1,197 @@
+/* Copy of background-progress.component.css with modifications for HTTP position */
+
+.http-overlay {
+    position: fixed !important;
+    top: 80px !important; /* Separated from bottom tasks */
+    right: 20px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 12000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px;
+    pointer-events: none;
+    align-items: flex-end;
+}
+
+.task-card {
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    padding: 18px 22px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15),
+                0 4px 12px -2px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 320px;
+    max-width: 450px;
+    position: relative;
+    overflow: hidden;
+}
+
+.task-card.processing::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 300%;
+    height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent 0%, 
+        rgba(102, 187, 106, 0.0) 30%, 
+        rgba(102, 187, 106, 0.15) 50%, 
+        rgba(102, 187, 106, 0.0) 70%, 
+        transparent 100%
+    );
+    animation: scanline 2.5s infinite linear;
+    pointer-events: none;
+    z-index: 10;
+}
+
+@keyframes scanline {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.task-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.task-icon {
+    font-size: 1.2rem;
+    color: #3b82f6; /* Blue for HTTP */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+}
+
+.task-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.task-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1a202c;
+}
+
+.progress-bar-container {
+    height: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #3b82f6; /* Blue for HTTP */
+    border-radius: 100px;
+    transition: width 0.4s ease;
+}
+
+.task-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-msg {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.btn-dismiss {
+    background: transparent;
+    border: none;
+    color: #3b82f6;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+}
+
+.btn-dismiss:hover {
+    text-decoration: underline;
+}
+
+@keyframes iconPulse {
+    0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0)); }
+    50% { transform: scale(1.2); filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(59, 130, 246, 0)); }
+}
+
+.task-icon.pulse-active {
+    animation: iconPulse 1.5s infinite ease-in-out;
+}
+
+.status-msg.blinking {
+    animation: blinker 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    color: #3b82f6;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+}
+
+@keyframes blinker {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+.btn-sm-action {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.log-area {
+    margin-top: 10px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.7rem;
+    color: #475569;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.log-line {
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+@keyframes slideDown {
+    from { 
+        opacity: 0; 
+        transform: translateY(-20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.fade-in-up {
+    animation: slideDown 0.4s ease-out forwards;
+}

@@ -33,6 +33,7 @@ import { DesktopAppsService } from "./core/services/desktop-apps.service";
 import { ChatComponent } from "./pages/chat/chat.component";
 import { SecureViewerComponent } from "./components/secure-viewer/secure-viewer.component";
 import { BackgroundProgressComponent } from "./components/background-progress/background-progress.component";
+import { HttpProgressComponent } from "./components/background-progress/http-progress.component";
 import { SetupWizardComponent } from "./components/setup-wizard/setup-wizard.component";
 import { LoginModalComponent } from "./components/login-modal/login-modal.component";
 
@@ -70,6 +71,7 @@ interface DesktopApp {
     ChatComponent,
     SecureViewerComponent,
     BackgroundProgressComponent,
+    HttpProgressComponent,
     SetupWizardComponent,
     LoginModalComponent,
   ],
@@ -1405,6 +1407,11 @@ export class AppComponent implements OnInit {
         }
         break;
 
+      case "START_DOWNLOAD":
+        console.log('Contando las veces que paso por aqui ')
+        this.handleStartDownload(event.data);
+        break;
+
       default:
         break;
     }
@@ -2159,7 +2166,9 @@ export class AppComponent implements OnInit {
 
       // Recuperar la tarea completa con todos los logs acumulados
       const fullTask = this.appState.getTasksSnapshot().find(t => t.id === taskId);
-      const accumulatedLogs = fullTask?.logs?.join("\n") || payload.payload;
+      // Si el backend envía el bloque final en payload.payload (o message), lo usamos.
+      // Si no, recurrimos a los logs acumulados.
+      const accumulatedLogs = payload.payload || payload.message || fullTask?.logs?.join("\n");
 
       this.notifyExecFnxCompletion(payload, accumulatedLogs);
 
@@ -2199,6 +2208,96 @@ export class AppComponent implements OnInit {
       } else {
         // Fallback a broadcast global (menos recomendado pero útil como último recurso)
         window.postMessage(completionMsg, "*");
+      }
+    }
+  }
+
+  async handleStartDownload(data: any) {
+    if (!data.id || !data.trackingId) {
+      console.error("Faltan parámetros en START_DOWNLOAD", data);
+      return;
+    }
+
+    if (!this.activeConnection) {
+      this.showModal("Error", "No hay una conexión activa para descargar.");
+      return;
+    }
+
+    const taskId = `dl_${data.id}_${data.trackingId}`;
+    const task: BackgroundTask = {
+      id: taskId,
+      title: `Descarga: ${data.id}`,
+      status: 'running',
+      progress: 0,
+      message: 'Iniciando conexión segura...',
+      timestamp: new Date(),
+    };
+
+    this.appState.addHttpTask(task);
+
+    // Escuchar progreso desde Rust (Canal dedicado HTTP)
+    const unlisten = await listen('secure-download-progress', (event: any) => {
+      if (event.payload.id === taskId) {
+        this.zone.run(() => {
+          this.appState.updateHttpTask(taskId, {
+            progress: event.payload.progress,
+            message: event.payload.message,
+            status: event.payload.status
+          });
+        });
+      }
+    });
+
+    try {
+      const resultPath = await invoke<string>("procesar_descarga_segura", {
+        idNomina: data.id,
+        trackingId: data.trackingId,
+        ip: this.activeConnection.ip_address,
+        port: Number(this.activeConnection.port),
+        hash: this.activeConnection.hash || "",
+        tempAuthToken: this.activeConnection.jwt || null
+      });
+
+      this.snapService.show("Descarga Finalizada", undefined, "success");
+      console.log("Archivos guardados en:", resultPath);
+
+      // Notificar a la app hija si es necesario
+      this.notifyDownloadCompletion(data, resultPath);
+
+    } catch (error: any) {
+      console.error("Error en descarga segura:", error);
+      this.appState.updateHttpTask(taskId, {
+        status: 'error',
+        message: typeof error === 'string' ? error : (error.message || "Error desconocido")
+      });
+      this.showModal("Error de Descarga", typeof error === 'string' ? error : "Ocurrió un error al procesar la descarga.");
+    } finally {
+      unlisten();
+    }
+  }
+
+  private notifyDownloadCompletion(originalData: any, path: string) {
+    const appId = originalData.id; // Suponiendo que el ID enviado es el del App
+    if (!appId) return;
+
+    const normalizedId = appId.toLowerCase();
+    const port = this.authPorts.get(normalizedId);
+    const completionMsg = {
+      type: "DOWNLOAD_FINISHED",
+      payload: {
+        id_nomina: originalData.id_nomina,
+        trackingId: originalData.trackingId,
+        path: path
+      }
+    };
+
+    if (port) {
+      port.postMessage(completionMsg);
+    } else {
+      const iframeId = "iframe-" + appId;
+      const iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(completionMsg, "*");
       }
     }
   }

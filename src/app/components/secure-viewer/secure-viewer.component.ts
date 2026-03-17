@@ -2,6 +2,7 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AppStateService } from '../../core/services/app-state.service';
 import { FileService } from '../../core/services/file.service';
@@ -22,7 +23,12 @@ export class SecureViewerComponent {
     error: string | null = null;
     history: any[] = [];
     viewerActiveTab: 'global' | 'mailbox' = 'global';
-    viewerSearchText: string = '';
+    private _viewerSearchText: string = '';
+    get viewerSearchText() { return this._viewerSearchText; }
+    set viewerSearchText(val: string) {
+        this._viewerSearchText = val;
+        this.updateGroupedHistory();
+    }
 
     isDragging = false;
     certificationMap: Map<string, any> = new Map(); // Store certification info per path
@@ -38,11 +44,24 @@ export class SecureViewerComponent {
         private fileService: FileService
     ) {
         this.loadHistory();
+        this.setupListeners();
+    }
+
+    setTab(tab: 'global' | 'mailbox') {
+        this.viewerActiveTab = tab;
+        this.updateGroupedHistory();
+    }
+
+    async setupListeners() {
+        await listen('refresh-document-history', () => {
+            this.loadHistory();
+        });
     }
 
     async loadHistory() {
         try {
             this.history = await invoke('get_document_history');
+            this.updateGroupedHistory();
             // Proactive verification for all history items to show badges
             this.history.forEach(item => {
                 if (item.file_path) {
@@ -74,6 +93,81 @@ export class SecureViewerComponent {
         }
 
         return list;
+    }
+
+    // New state for folders
+    openFolders = new Set<string>();
+
+    // Stable grouped list
+    groupedHistory: any[] = [];
+
+    updateGroupedHistory() {
+        const list = this.filteredHistory;
+        const result: any[] = [];
+        const groupsMap = new Map<string, any>();
+
+        list.forEach((item: any) => {
+            if (item.group_name) {
+                if (!groupsMap.has(item.group_name)) {
+                    const group = {
+                        isFolder: true,
+                        name: item.group_name,
+                        items: [],
+                        opened_at: item.opened_at,
+                        isOpen: this.openFolders.has(item.group_name)
+                    };
+                    groupsMap.set(item.group_name, group);
+                    result.push(group);
+                }
+                groupsMap.get(item.group_name).items.push(item);
+            } else {
+                // Keep original reference for trackBy to work best
+                result.push({ ...item, isFolder: false });
+            }
+        });
+
+        this.groupedHistory = result;
+    }
+
+    trackByEntry(index: number, entry: any) {
+        if (entry.isFolder) return 'folder-' + entry.name;
+        return 'file-' + (entry.id || entry.file_path);
+    }
+
+    trackBySubItem(index: number, item: any) {
+        return item.id || item.file_path;
+    }
+
+    toggleFolder(groupName: string, event: Event) {
+        event.stopPropagation();
+        if (this.openFolders.has(groupName)) {
+            this.openFolders.delete(groupName);
+        } else {
+            this.openFolders.add(groupName);
+        }
+        this.updateGroupedHistory();
+    }
+
+    async deleteFolder(groupName: string, event: Event) {
+        event.stopPropagation();
+        try {
+            const { confirm: tauriConfirm } = await import('@tauri-apps/plugin-dialog');
+            const confirmDelete = await tauriConfirm(
+                `¿Estás seguro de que deseas eliminar la carpeta "${groupName}" y todos sus documentos?`,
+                { title: 'Eliminar Carpeta', kind: 'warning' }
+            );
+
+            if (confirmDelete) {
+                this.appState.setGlobalLoading(true, "Eliminando grupo de documentos...");
+                await invoke('delete_document_group', { groupName });
+                this.openFolders.delete(groupName); // Limpiar estado de apertura
+                await this.loadHistory();
+            }
+        } catch (err) {
+            console.error("Error deleting folder:", err);
+        } finally {
+            this.appState.setGlobalLoading(false);
+        }
     }
 
     getFileTypeConfig(fileName: string) {

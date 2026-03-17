@@ -111,6 +111,7 @@ pub fn run() {
             commands::history::add_document_history,
             commands::history::get_document_history,
             commands::history::delete_document_history,
+            commands::history::delete_document_group,
             commands::history::save_chat_messages,
             commands::history::get_chat_history,
             // Security Module
@@ -138,7 +139,8 @@ pub fn run() {
             commands::gpg::encrypt_gpg_symmetric_raw,
             commands::gpg::decrypt_gpg_symmetric_file_raw,
             commands::file_upload::verify_file_seal,
-            commands::file_upload::apply_alquimia_seal
+            commands::file_upload::apply_alquimia_seal,
+            commands::secure_download::procesar_descarga_segura
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

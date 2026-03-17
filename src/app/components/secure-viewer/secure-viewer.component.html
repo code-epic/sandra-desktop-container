@@ -17,10 +17,10 @@
 
         <!-- NEW TABS -->
         <div class="viewer-tabs-container">
-            <button [class.active]="viewerActiveTab === 'global'" (click)="viewerActiveTab = 'global'">
+            <button [class.active]="viewerActiveTab === 'global'" (click)="setTab('global')">
                 <i class="fas fa-globe"></i> Global
             </button>
-            <button [class.active]="viewerActiveTab === 'mailbox'" (click)="viewerActiveTab = 'mailbox'">
+            <button [class.active]="viewerActiveTab === 'mailbox'" (click)="setTab('mailbox')">
                 <i class="fas fa-envelope-open-text"></i> Mailbox
             </button>
         </div>
@@ -46,69 +46,121 @@
             GLOBAL' : 'CORREOS Y ARCHIVOS' }}</div>
 
         <div class="history-list-view" [class.has-loading-row]="loadingFilePath">
-            <div class="doc-row" *ngFor="let item of filteredHistory" 
-                 (click)="openFromHistory(item)"
-                 [class.loading-row]="loadingFilePath === item.file_path">
-                <!-- ICON AREA (UPDATED PDF ICON) -->
-                <div class="col-icon">
-                    <ng-container *ngIf="loadingFilePath === item.file_path; else normalIcon">
-                        <div class="custom-loader-ring"></div>
-                    </ng-container>
-                    <ng-template #normalIcon>
-                        <ng-container *ngIf="!getFileTypeConfig(item.file_name).isMascot; else sseMascot">
+            <ng-container *ngFor="let entry of groupedHistory; trackBy: trackByEntry">
+                
+                <!-- ENTIDAD CARPETA REDISEÑADA -->
+                <div *ngIf="entry.isFolder" class="folder-row fade-in" (click)="toggleFolder(entry.name, $event)" [class.folder-open]="entry.isOpen">
+                    <div class="folder-main-content">
+                        <div class="folder-icon-wrapper">
+                            <i class="fas" [class.fa-folder]="!entry.isOpen" [class.fa-folder-open]="entry.isOpen"></i>
+                        </div>
+                        <div class="folder-text-group">
+                            <span class="folder-name">{{ entry.name }}</span>
+                            <div class="folder-sub-info">
+                                <i class="fas fa-shield-halved"></i> Paquete de Nómina Seguro
+                                <div class="dot-separator">•</div>
+                                <span class="tag-count-inline">{{ entry.items.length }} archivos</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="folder-meta">
+                        <span class="folder-date">{{ entry.opened_at | date:'dd MMM, HH:mm' }}</span>
+                        <div class="folder-labels-group">
+                            <button class="btn-folder-delete" (click)="deleteFolder(entry.name, $event)" title="Eliminar Carpeta">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <i class="fas folder-arrow" [class.fa-chevron-right]="!entry.isOpen" [class.fa-chevron-down]="entry.isOpen"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENIDO DE CARPETA -->
+                <ng-container *ngIf="entry.isFolder && entry.isOpen">
+                    <div class="doc-row sub-row fade-in" *ngFor="let item of entry.items; trackBy: trackBySubItem" 
+                         (click)="openFromHistory(item)"
+                         [class.loading-row]="loadingFilePath === item.file_path">
+                        <div class="col-icon">
                             <i [class]="getFileTypeConfig(item.file_name).icon"
                                 [ngClass]="getFileTypeConfig(item.file_name).colorClass"></i>
+                        </div>
+                        <div class="col-info">
+                            <div class="info-primary">
+                                <span class="doc-name">{{ item.file_name }}</span>
+                            </div>
+                            <div class="info-secondary">
+                                <div class="meta-group">
+                                    <i class="fas fa-file-contract"></i> <span>{{ item.file_size }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-date"></div>
+                        <div class="col-action">
+                            <button class="btn-row-delete" (click)="deleteHistoryItem(item, $event)" title="Eliminar">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <div class="action-spacer"></div> <!-- Aligns with folder arrow -->
+                        </div>
+                    </div>
+                </ng-container>
+
+                <!-- ARCHIVO INDIVIDUAL -->
+                <div *ngIf="!entry.isFolder" class="doc-row" 
+                    (click)="openFromHistory(entry)"
+                    [class.loading-row]="loadingFilePath === entry.file_path">
+                    <div class="col-icon">
+                        <ng-container *ngIf="loadingFilePath === entry.file_path; else normalIcon">
+                            <div class="custom-loader-ring"></div>
                         </ng-container>
-                        <ng-template #sseMascot>
-                            <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon"
-                                onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
+                        <ng-template #normalIcon>
+                            <ng-container *ngIf="!getFileTypeConfig(entry.file_name).isMascot; else sseMascot">
+                                <i [class]="getFileTypeConfig(entry.file_name).icon"
+                                    [ngClass]="getFileTypeConfig(entry.file_name).colorClass"></i>
+                            </ng-container>
+                            <ng-template #sseMascot>
+                                <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon"
+                                    onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
+                            </ng-template>
                         </ng-template>
-                    </ng-template>
-                </div>
-
-                <!-- INFO AREA (REORDERED & SOFTENED) -->
-                <div class="col-info">
-                    <div class="info-primary">
-                        <span class="doc-name">{{ item.file_name }}</span>
-                        <!-- METADATA TAGS RIGHT AFTER TITLE -->
-                        <span class="meta-tag tag-protected" *ngIf="item.file_name.toLowerCase().endsWith('.sse')">
-                            <i class="fas fa-lock"></i> PROTEGIDO
-                        </span>
-                        <span class="meta-tag cert-tag fade-in" *ngIf="certificationMap.has(item.file_path)"
-                            (click)="openCertificationDetails(item, $event)">
-                            <i class="fas fa-certificate"></i> CERTIFICADO
-                        </span>
                     </div>
 
-                    <div class="info-secondary">
-                        <!-- AUTHOR & PATH GROUP -->
-                        <div class="meta-group">
-                            <i class="fas fa-shield-alt"></i> <span>Sandra System</span>
+                    <div class="col-info">
+                        <div class="info-primary">
+                            <span class="doc-name">{{ entry.file_name }}</span>
+                            <span class="meta-tag tag-protected" *ngIf="entry.file_name.toLowerCase().endsWith('.sse')">
+                                <i class="fas fa-lock"></i> PROTEGIDO
+                            </span>
+                            <span class="meta-tag cert-tag" *ngIf="certificationMap.has(entry.file_path)"
+                                (click)="openCertificationDetails(entry, $event)">
+                                <i class="fas fa-certificate"></i> CERTIFICADO
+                            </span>
                         </div>
-                        <div class="dot-separator">•</div>
-                        <div class="meta-group path-group" title="Ubicación Protegida">
-                            <i class="fas fa-hard-drive"></i> <span class="path-text">Local File</span>
+                        <div class="info-secondary">
+                            <div class="meta-group">
+                                <i class="fas fa-shield-alt"></i> <span>Sandra System</span>
+                            </div>
+                            <div class="dot-separator" *ngIf="entry.file_size">•</div>
+                            <div class="meta-group" *ngIf="entry.file_size">
+                                <i class="fas fa-database"></i> <span>{{ entry.file_size }}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- DATE AREA -->
-                <div class="col-date">
-                    {{ item.opened_at | date:'dd MMM, HH:mm' }}
-                </div>
+                    <div class="col-date">
+                        {{ entry.opened_at | date:'dd MMM, HH:mm' }}
+                    </div>
 
-                <!-- ACTIONS -->
-                <div class="col-action">
-                    <button class="btn-row-action" *ngIf="true" (click)="promptExport(item, $event)"
-                        title="Exportar Documento">
-                        <i class="fas fa-file-export"></i>
-                    </button>
-                    <button class="btn-row-delete" (click)="deleteHistoryItem(item, $event)"
-                        title="Eliminar del historial">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                    <div class="col-action">
+                        <button class="btn-row-action" (click)="promptExport(entry, $event)" title="Exportar">
+                            <i class="fas fa-file-export"></i>
+                        </button>
+                        <button class="btn-row-delete" (click)="deleteHistoryItem(entry, $event)" title="Eliminar">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <div class="action-spacer"></div> <!-- Aligns with folder arrow -->
+                    </div>
                 </div>
-            </div>
+            </ng-container>
 
             <div class="empty-state" *ngIf="filteredHistory.length === 0">
                 <div class="empty-icon-wrapper">

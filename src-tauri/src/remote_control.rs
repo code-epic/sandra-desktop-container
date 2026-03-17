@@ -321,7 +321,6 @@ fn handle_exec_fnx_msg(app_handle: &AppHandle, json: &Value) {
         // println!("[WS] Tarea finalizada, registrando en security_mailbox");
         
         let sid = json["id"].as_str().or(json["appId"].as_str());
-        let title = "Ejecución de Función"; 
         let content = json["message"].as_str().unwrap_or("Sin detalle");
         let from = "Ejecución de Función";
         

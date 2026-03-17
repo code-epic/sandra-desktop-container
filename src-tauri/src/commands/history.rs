@@ -13,6 +13,7 @@ pub struct DocumentHistoryItem {
     remote_code: Option<String>,
     source: Option<String>,
     file_hash: Option<String>,
+    group_name: Option<String>,
     opened_at: String,
 }
 
@@ -36,6 +37,7 @@ pub fn add_document_history(
     remote_code: Option<String>,
     source: Option<String>,
     mut file_hash: Option<String>,
+    group_name: Option<String>,
 ) -> Result<String, String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
@@ -101,8 +103,8 @@ pub fn add_document_history(
     };
 
     conn.execute(
-        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, file_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![file_name, final_path, file_size, remote_code, source.unwrap_or_else(|| "GLOBAL".to_string()), file_hash],
+        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, file_hash, group_name) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![file_name, final_path, file_size, remote_code, source.unwrap_or_else(|| "GLOBAL".to_string()), file_hash, group_name],
     )
     .map_err(|e| e.to_string())?;
 
@@ -114,7 +116,7 @@ pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHist
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash FROM document_history ORDER BY opened_at DESC LIMIT 50")
+        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash, group_name FROM document_history ORDER BY opened_at DESC LIMIT 50")
         .map_err(|e| e.to_string())?;
 
     let history_iter = stmt
@@ -128,6 +130,7 @@ pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHist
                 remote_code: row.get(5)?,
                 source: row.get(6)?,
                 file_hash: row.get(7)?,
+                group_name: row.get(8)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -144,7 +147,48 @@ pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHist
 pub fn delete_document_history(db_state: State<DbState>, id: i32) -> Result<(), String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
+    // Intentar borrar archivo físico si está en el vault
+    let path: Option<String> = conn
+        .query_row(
+            "SELECT file_path FROM document_history WHERE id = ?1",
+            [id],
+            |row| row.get(0),
+        )
+        .ok();
+
+    if let Some(p) = path {
+        if p.contains("sandra_vault") {
+            let _ = fs::remove_file(p);
+        }
+    }
+
     conn.execute("DELETE FROM document_history WHERE id = ?1", params![id])
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[command]
+pub fn delete_document_group(db_state: State<DbState>, group_name: String) -> Result<(), String> {
+    let conn = db_state.0.lock().map_err(|e| e.to_string())?;
+
+    // Primero obtener las rutas para intentar borrar los archivos físicos si están en el vault
+    let mut stmt = conn
+        .prepare("SELECT file_path FROM document_history WHERE group_name = ?1")
+        .map_err(|e| e.to_string())?;
+    
+    let paths_iter = stmt.query_map([&group_name], |row| row.get::<_, String>(0))
+        .map_err(|e| e.to_string())?;
+
+    for path_res in paths_iter {
+        if let Ok(path) = path_res {
+             if path.contains("sandra_vault") {
+                let _ = fs::remove_file(path);
+             }
+        }
+    }
+
+    conn.execute("DELETE FROM document_history WHERE group_name = ?1", params![group_name])
         .map_err(|e| e.to_string())?;
 
     Ok(())

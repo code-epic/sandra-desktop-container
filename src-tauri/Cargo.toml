@@ -47,6 +47,7 @@ hmac = "0.12.1"
 sequoia-openpgp = { version = "1.21.0", default-features = false, features = ["crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"] }
 rpassword = "7.3.1"
 anyhow = "1.0"
+zstd = "0.13"
 
 # Enable lopdf features explicitly to support encryption if needed, though 0.32 usually has base encryption.
 # However, errors suggest 'encrypt' method and type are missing. 
@@ -62,4 +63,4 @@ anyhow = "1.0"
 
 [dependencies.lopdf]
 version = "0.32.0"
-features = ["pom", "embed_image"] 
+features = ["pom", "embed_image"]

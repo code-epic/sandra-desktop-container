@@ -149,6 +149,9 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
             file_path TEXT NOT NULL,
             file_size TEXT,
             remote_code TEXT,
+            source TEXT DEFAULT 'GLOBAL',
+            file_hash TEXT,
+            group_name TEXT,
             opened_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
         [],
@@ -159,6 +162,7 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     let _ = conn.execute("ALTER TABLE document_history ADD COLUMN remote_code TEXT", []);
     let _ = conn.execute("ALTER TABLE document_history ADD COLUMN source TEXT DEFAULT 'GLOBAL'", []);
     let _ = conn.execute("ALTER TABLE document_history ADD COLUMN file_hash TEXT", []);
+    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN group_name TEXT", []);
 
     // Security Mailbox Table
     conn.execute(
