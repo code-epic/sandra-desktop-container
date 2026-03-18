@@ -205,6 +205,28 @@
     </div>
 </div>
 
+<!-- DELETE FOLDER CONFIRMATION MODAL -->
+<div class="modal-overlay" *ngIf="showFolderDeleteModal">
+    <div class="modal-v2 fade-in-up">
+        <div class="modal-header-v2 header-red">
+            <div class="icon-pulse-container red">
+                <i class="fas fa-folder-minus"></i>
+            </div>
+        </div>
+        <div class="modal-content-v2">
+            <h3>Eliminar Carpeta</h3>
+            <p class="msg-primary">
+                ¿Estás seguro de que deseas eliminar la carpeta <b>"{{ folderToDeleteName }}"</b> y todos sus documentos?
+                <span class="msg-secondary">Esta acción eliminará el grupo del historial y sus registros permanentes.</span>
+            </p>
+        </div>
+        <div class="modal-footer-v2">
+            <button class="btn-v2 btn-v2-secondary" (click)="cancelFolderDelete()">Cancelar</button>
+            <button class="btn-v2 btn-v2-red" (click)="confirmFolderDelete()">Eliminar</button>
+        </div>
+    </div>
+</div>
+
 <!-- UNLOCK PIN MODAL -->
 <div class="modal-overlay" *ngIf="showUnlockModal">
     <div class="modal-v2 fade-in-up">

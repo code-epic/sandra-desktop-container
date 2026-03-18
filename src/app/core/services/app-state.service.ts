@@ -27,6 +27,11 @@ export interface Tab {
   csvFilteredRows?: string[][];   // Search results for CSV viewer
   csvVisibleColumns?: string[];   // Visible columns for CSV viewer
   csvSearchCache?: string[];      // Pre-computed lowercase strings for search
+  txtContent?: string;            // Text content for TXT viewer
+  txtFilteredContent?: string;    // Search results for TXT viewer
+  txtLines?: string[];            // Full array of lines for fast processing
+  txtTotalLines?: number;         // Total exact lines count
+  txtIsTruncated?: boolean;       // Flag if the view is truncated
   type?: 'iframe' | 'pdf-viewer' | 'file-viewer' | 'csv-viewer';
 }
 

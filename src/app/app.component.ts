@@ -102,6 +102,7 @@ export class AppComponent implements OnInit {
   attemptNumber: number = 0;
   pendingTicketsCount: number = 0;
   private csvSearchSubject = new Subject<Tab>();
+  private txtSearchSubject = new Subject<Tab>();
   private backgroundTaskUnlisten?: UnlistenFn;
 
   installModal = {
@@ -112,9 +113,11 @@ export class AppComponent implements OnInit {
     success: false,
   };
 
-  // --- CSV SEARCH STATE ---
+  // --- VIEWER SEARCH STATE ---
   csvSearchQuery = "";
   showCsvSearch = false;
+  txtSearchQuery = "";
+  showTxtSearch = false;
 
   confirmModal = {
     show: false,
@@ -257,6 +260,9 @@ export class AppComponent implements OnInit {
     // --- Search Optimization Logic ---
     this.csvSearchSubject.pipe(debounceTime(400)).subscribe(tab => {
       this.executeCsvSearch(tab);
+    });
+    this.txtSearchSubject.pipe(debounceTime(400)).subscribe(tab => {
+      this.executeTxtSearch(tab);
     });
 
     setInterval(() => {
@@ -1520,6 +1526,32 @@ export class AppComponent implements OnInit {
         }
       }
 
+      let txtContent: string | undefined = undefined;
+      let txtLines: string[] | undefined = undefined;
+      let txtTotalLines: number | undefined = undefined;
+      let txtIsTruncated = false;
+
+      if (ext === "txt") {
+        this.appState.setGlobalLoading(true, "Cargando documento de texto...");
+        try {
+          const fullText = await blob.text();
+          txtLines = fullText.split(/\r?\n/);
+          txtTotalLines = txtLines.length;
+
+          if (txtLines.length > 1000) {
+            txtIsTruncated = true;
+            console.log(`⚡ [Performance] Archivo de texto grande (${txtTotalLines} lineas). Truncando vista a 1000...`);
+            txtContent = txtLines.slice(0, 1000).join("\n");
+          } else {
+            txtContent = fullText;
+          }
+        } catch (txtErr) {
+          console.error("Error reading text content:", txtErr);
+        } finally {
+          this.appState.setGlobalLoading(false);
+        }
+      }
+
       this.appState.addTab({
         id: tabId,
         name: isProtected ? fileName.replace(/\.pdf$/i, ".sse") : fileName,
@@ -1533,17 +1565,20 @@ export class AppComponent implements OnInit {
         isSavedToHistory: isSaved, // Control History Button
         showToolbar: true, // ENABLE Toolbar for API calls
         zoomLevel: 1.0, // Init Zoom
-        mimeType: blob.type, // Guardar mimeType para el visor
+        mimeType: ext === "txt" ? "text/plain" : blob.type, // Guardar mimeType para el visor
         csvHeader,
         csvRows,
         csvVisibleColumns: [...csvHeader],
-        csvSearchCache
+        csvSearchCache,
+        txtContent,
+        txtLines,
+        txtTotalLines,
+        txtIsTruncated
       });
     } catch (e) {
       console.error("Error opening document tab:", e);
     }
   }
-
   async handleSSEDownload(fileName: string, dataUri: string) {
     try {
       const base64 = dataUri.split(",")[1];
@@ -1851,6 +1886,23 @@ export class AppComponent implements OnInit {
     this.showCsvSearch = false; // Close other panel
   }
 
+  toggleTxtSearch() {
+    this.showTxtSearch = !this.showTxtSearch;
+    if (!this.showTxtSearch) {
+      this.txtSearchQuery = "";
+      const tabs = this.appState.getTabsSnapshot();
+      tabs.forEach(t => {
+        if (t.mimeType === 'text/plain') {
+          t.txtFilteredContent = undefined;
+          if (t.txtLines) {
+            t.txtTotalLines = t.txtLines.length;
+            t.txtIsTruncated = t.txtLines.length > 1000;
+          }
+        }
+      });
+    }
+  }
+
   isColumnVisible(tab: Tab, columnName: string): boolean {
     if (!tab.csvVisibleColumns) return true;
     return tab.csvVisibleColumns.includes(columnName);
@@ -1924,6 +1976,46 @@ export class AppComponent implements OnInit {
       } finally {
         if (isLargeFile) this.appState.setGlobalLoading(false);
       }
+    }, isLargeFile ? 100 : 0);
+  }
+
+  onTxtSearch(tab: Tab) {
+    this.txtSearchSubject.next(tab);
+  }
+
+  executeTxtSearch(tab: Tab) {
+    if (!tab.txtLines) return;
+    const query = this.txtSearchQuery.trim().toLowerCase();
+
+    if (!query) {
+      // Reset full view layout to original
+      const isOriginalLarge = tab.txtLines.length > 1000;
+      tab.txtIsTruncated = isOriginalLarge;
+      tab.txtTotalLines = tab.txtLines.length;
+      tab.txtFilteredContent = undefined; // Esto hace que el HTML use txtContent (el primero pre-renderizado de <= 1000 lineas o el completo si es corto)
+      return;
+    }
+
+    const isLargeFile = tab.txtLines.length > 1000;
+    if (isLargeFile) this.appState.setGlobalLoading(true, "Buscando en documento completo...");
+
+    setTimeout(() => {
+      this.zone.run(() => {
+        try {
+          const filteredLines = tab.txtLines!.filter(line => line.toLowerCase().includes(query));
+          tab.txtTotalLines = filteredLines.length;
+          
+          if (filteredLines.length > 1000) {
+            tab.txtIsTruncated = true;
+            tab.txtFilteredContent = filteredLines.slice(0, 1000).join("\n") + `\n\n--- [INFO] Se encontraron ${filteredLines.length} coincidencias. Mostrando solo las primeras 1000 para optimizar rendimiento. ---`;
+          } else {
+            tab.txtIsTruncated = false;
+            tab.txtFilteredContent = filteredLines.join("\n");
+          }
+        } finally {
+          if (isLargeFile) this.appState.setGlobalLoading(false);
+        }
+      });
     }, isLargeFile ? 100 : 0);
   }
 

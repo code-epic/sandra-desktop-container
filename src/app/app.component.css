@@ -2456,9 +2456,120 @@ iframe {
   width: 100%;
 }
 
-.fv-action-btn.search.active {
-  background: #e0f2fe;
-  color: #0284c7;
+.fv-inline-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.fv-inline-search-container .search-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.fv-inline-search-input {
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 14px 8px 34px; /* Space for the icon */
+  font-size: 0.85rem;
+  color: #1e293b;
+  outline: none;
+  width: 250px;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.fv-inline-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  width: 300px;
+}
+
+/* --- TXT VIEWER STYLES --- */
+.fv-text-content-wrapper {
+  width: 100%;
+  height: calc(100% - 16px);
+  margin-top: 16px; 
+  display: block; /* Disable flex centering */
+  text-align: left; /* Ensure it is left aligned */
+  overflow: auto;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+}
+
+.fv-txt-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 0;
+  margin-left: 20px;
+  margin-right: auto; /* Push actions to the right */
+  flex-shrink: 0;
+}
+
+.fv-txt-stats-bar .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fv-txt-stats-bar .stat-item i {
+  font-size: 1.05rem;
+  color: #64748b; /* Standard theme slate color */
+}
+
+.fv-txt-stats-bar .stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.fv-txt-stats-bar .stat-value {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.fv-txt-stats-bar .stat-label {
+  font-size: 0.65rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.fv-txt-stats-bar .stat-divider {
+  width: 1px;
+  height: 24px;
+  background: #cbd5e1;
+}
+
+.fv-txt-stats-bar .stat-item.warning i {
+  color: #d97706; /* Cleaner warning amber */
+}
+
+.fv-txt-stats-bar .stat-item.warning .stat-value {
+  color: #78350f;
+}
+
+.fv-pre-text {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #1e293b;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .csv-no-results {
@@ -2575,6 +2686,7 @@ iframe {
 
 .selector-title i {
   background: linear-gradient(135deg, #4f46e5, #10b981);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-size: 1rem;

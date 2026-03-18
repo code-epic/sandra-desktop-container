@@ -150,23 +150,29 @@ export class SecureViewerComponent {
 
     async deleteFolder(groupName: string, event: Event) {
         event.stopPropagation();
-        try {
-            const { confirm: tauriConfirm } = await import('@tauri-apps/plugin-dialog');
-            const confirmDelete = await tauriConfirm(
-                `¿Estás seguro de que deseas eliminar la carpeta "${groupName}" y todos sus documentos?`,
-                { title: 'Eliminar Carpeta', kind: 'warning' }
-            );
+        this.folderToDeleteName = groupName;
+        this.showFolderDeleteModal = true;
+    }
 
-            if (confirmDelete) {
-                this.appState.setGlobalLoading(true, "Eliminando grupo de documentos...");
-                await invoke('delete_document_group', { groupName });
-                this.openFolders.delete(groupName); // Limpiar estado de apertura
-                await this.loadHistory();
-            }
+    cancelFolderDelete() {
+        this.showFolderDeleteModal = false;
+        this.folderToDeleteName = null;
+    }
+
+    async confirmFolderDelete() {
+        if (!this.folderToDeleteName) return;
+
+        try {
+            this.appState.setGlobalLoading(true, "Eliminando grupo de documentos...");
+            await invoke('delete_document_group', { groupName: this.folderToDeleteName });
+            this.openFolders.delete(this.folderToDeleteName); // Limpiar estado de apertura
+            await this.loadHistory();
         } catch (err) {
             console.error("Error deleting folder:", err);
         } finally {
             this.appState.setGlobalLoading(false);
+            this.showFolderDeleteModal = false;
+            this.folderToDeleteName = null;
         }
     }
 
@@ -375,7 +381,9 @@ export class SecureViewerComponent {
 
     // Modal State
     showDeleteModal = false;
+    showFolderDeleteModal = false;
     itemToDelete: any = null;
+    folderToDeleteName: string | null = null;
 
     // Export & Unlock State
     showExportModal = false;
@@ -711,6 +719,47 @@ export class SecureViewerComponent {
             let dataUriPrefix = `data:${mimeType};base64,`;
             const dataUri = base64Data.startsWith('data:') ? base64Data : `${dataUriPrefix}${base64Data}`;
 
+            let csvHeaders: string[] = [];
+            let csvRows: string[][] = [];
+            if (ext === '.csv') {
+                try {
+                    const { header, rows } = await this.fileService.parseCSV(blob);
+                    if (header.length > 0) {
+                        csvHeaders = header;
+                        csvRows = rows;
+                        viewerType = 'csv-viewer';
+                    }
+                } catch (e) {
+                    console.error("CSV parse error in GPG", e);
+                }
+            }
+
+            let txtContent: string | undefined = undefined;
+            let txtLines: string[] | undefined = undefined;
+            let txtTotalLines: number | undefined = undefined;
+            let txtIsTruncated = false;
+
+            if (ext === '.txt') {
+                this.appState.setGlobalLoading(true, "Cargando documento de texto...");
+                try {
+                    const fullText = await blob.text();
+                    txtLines = fullText.split(/\r?\n/);
+                    txtTotalLines = txtLines.length;
+
+                    if (txtLines.length > 1000) {
+                        txtIsTruncated = true;
+                        console.log(`⚡ [Performance] Archivo de texto grande (${txtTotalLines} lineas). Truncando vista a 1000...`);
+                        txtContent = txtLines.slice(0, 1000).join("\n");
+                    } else {
+                        txtContent = fullText;
+                    }
+                } catch (txtErr) {
+                    console.error("Error reading text content:", txtErr);
+                } finally {
+                    this.appState.setGlobalLoading(false);
+                }
+            }
+
             this.appState.addTab({
                 id: tabId,
                 name: cleanNameOriginal,
@@ -726,8 +775,12 @@ export class SecureViewerComponent {
                 showToolbar: true,
                 zoomLevel: 1.0,
                 mimeType: mimeType,
-                csvHeader: [],
-                csvRows: []
+                csvHeader: csvHeaders,
+                csvRows: csvRows,
+                txtContent,
+                txtLines,
+                txtTotalLines,
+                txtIsTruncated
             });
 
             if (mimeType === 'text/csv') {
@@ -980,6 +1033,32 @@ export class SecureViewerComponent {
                 viewerType = 'pdf-viewer';
             }
 
+            let txtContent: string | undefined = undefined;
+            let txtLines: string[] | undefined = undefined;
+            let txtTotalLines: number | undefined = undefined;
+            let txtIsTruncated = false;
+
+            if (cleanName.endsWith('.txt')) {
+                this.appState.setGlobalLoading(true, "Cargando documento de texto...");
+                try {
+                    const fullText = await blob.text();
+                    txtLines = fullText.split(/\r?\n/);
+                    txtTotalLines = txtLines.length;
+
+                    if (txtLines.length > 1000) {
+                        txtIsTruncated = true;
+                        console.log(`⚡ [Performance] Archivo de texto grande (${txtTotalLines} lineas). Truncando vista a 1000...`);
+                        txtContent = txtLines.slice(0, 1000).join("\n");
+                    } else {
+                        txtContent = fullText;
+                    }
+                } catch (txtErr) {
+                    console.error("Error reading text content:", txtErr);
+                } finally {
+                    this.appState.setGlobalLoading(false);
+                }
+            }
+
             const tabId = 'doc-' + Date.now();
             const dataUri = base64Data.startsWith('data:') ? base64Data : `${dataUriPrefix}${base64Data}`;
 
@@ -999,7 +1078,11 @@ export class SecureViewerComponent {
                 zoomLevel: 1.0,
                 mimeType: mimeType,
                 csvHeader: csvHeaders,
-                csvRows: csvRows
+                csvRows: csvRows,
+                txtContent,
+                txtLines,
+                txtTotalLines,
+                txtIsTruncated
             });
 
             // 4. Save to History (Async)
