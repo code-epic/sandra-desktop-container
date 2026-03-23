@@ -63,6 +63,9 @@ export class AppStateService {
   private activeTabIdSubject = new BehaviorSubject<string>('dashboard');
   activeTabId$ = this.activeTabIdSubject.asObservable();
 
+  private lastDashboardSectionSubject = new BehaviorSubject<string>('dashboard');
+  lastDashboardSection$ = this.lastDashboardSectionSubject.asObservable();
+
   private openTabsSubject = new BehaviorSubject<Tab[]>([]);
   openTabs$ = this.openTabsSubject.asObservable();
 
@@ -82,11 +85,19 @@ export class AppStateService {
   private chatVisibleSubject = new BehaviorSubject<boolean>(true);
   chatVisible$ = this.chatVisibleSubject.asObservable();
 
+  // Estado de Carga del Visor Seguro (Global Blur)
+  private viewerLoadingSubject = new BehaviorSubject<boolean>(false);
+  viewerLoading$ = this.viewerLoadingSubject.asObservable();
+
   // Eventos
   public onConfigToggle = new EventEmitter<void>();
 
   setGlobalLoading(isLoading: boolean, message: string = 'Procesando...') {
     this.globalLoadingSubject.next({ isLoading, message });
+  }
+
+  setViewerLoading(isLoading: boolean) {
+    this.viewerLoadingSubject.next(isLoading);
   }
 
   toggleLeftSidebar() {
@@ -107,12 +118,17 @@ export class AppStateService {
     this.activeTabIdSubject.next(id);
     const staticPages = ['dashboard', 'connections', 'apps', 'security', 'monitor', 'secure-viewer'];
 
-    if (!staticPages.includes(id)) {
+    if (staticPages.includes(id)) {
+      this.lastDashboardSectionSubject.next(id);
+      this.leftSidebarOpenSubject.next(true);
+    } else {
       this.leftSidebarOpenSubject.next(false);
       this.rightSidebarOpenSubject.next(false);
-    } else {
-      this.leftSidebarOpenSubject.next(true);
     }
+  }
+
+  getLastDashboardSnapshot(): string {
+    return this.lastDashboardSectionSubject.value;
   }
 
   addTab(tab: Tab) {
@@ -131,7 +147,7 @@ export class AppStateService {
     const currentTabs = this.openTabsSubject.value.filter(t => t.id !== id);
     this.openTabsSubject.next(currentTabs);
     if (this.activeTabIdSubject.value === id) {
-      this.setActiveTab('dashboard');
+      this.setActiveTab(this.getLastDashboardSnapshot());
     }
   }
 

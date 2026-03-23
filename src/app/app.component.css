@@ -10,6 +10,18 @@
   overflow: hidden;
 }
 
+.global-blur,
+.global-blur * {
+  filter: blur(12px) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  transition: all 0.3s ease;
+}
+
+.global-blur {
+  opacity: 0.8;
+}
+
 /* Sidebar Estilo Compass */
 .sidebar {
   width: var(--sidebar-width);
@@ -1526,6 +1538,56 @@ iframe {
   margin-top: 8px;
   font-size: 0.85rem;
   color: #90a4ae;
+  font-weight: 400;
+}
+
+/* --- Generic Modal Content Styles (Adapted from Login) --- */
+.custom-input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(248, 250, 252, 0.5);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.custom-input-group:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.custom-input-group .input-group-prepend .input-group-text {
+  color: #64748b;
+  margin-right: 12px;
+  font-size: 1rem;
+  width: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.custom-input-group .input-label {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.custom-input-group .input-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: right;
+}
+
+.custom-input-group .input-value.success {
+  color: #10b981;
+}
+
+.custom-input-group .input-value.error {
+  color: #ef4444;
 }
 
 
@@ -2588,61 +2650,91 @@ iframe {
   color: #e2e8f0;
 }
 
-/* --- CALCULATION RESULT HIGHLIGHTS (REFINE) --- */
-.total-result-wrapper {
-  margin: 0 auto;
-  padding: 0 10px;
+/* --- PREMIUM CALCULATION DETAIL CARD (SandraDC) --- */
+.elegant-detail-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  align-items: center;
-  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  gap: 1.5px; /* Minimal gap for separation if needed */
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  margin: 15px auto;
+  width: 100%;
+  max-width: 340px;
+  animation: scaleIn 0.3s ease-out;
 }
 
-.total-result-label {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  font-weight: 500;
+.calc-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: white;
+  transition: background 0.2s ease;
+}
+
+.calc-detail-row:not(:last-child) {
+  border-bottom: 1px solid #f8fafc;
+}
+
+.calc-detail-row:hover {
+  background: #fbfcfe;
+}
+
+.detail-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.total-result-amount {
-  font-size: 3.2rem;
-  font-weight: 900;
+.detail-left i {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.detail-right {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: #1e293b;
-  line-height: 1.1;
-  letter-spacing: -2px;
-  margin: 5px 0;
+  text-align: right;
 }
 
-.total-result-amount.success {
-  color: var(--pastel-green-text, #2e7d32);
+.detail-right.amount-highlight {
+  color: #10b981;
+  font-size: 1.1rem;
+  letter-spacing: -0.5px;
 }
 
-.total-result-amount.error {
+.detail-right.error-highlight {
   color: #ef4444;
 }
 
-.total-result-meta {
-  font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 600;
+.detail-right.badge-highlight {
   background: #f1f5f9;
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-top: 5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: #475569;
 }
 
-.total-result-meta.error {
-  background: #fff1f2;
-  color: #e11d48;
+/* Reducción de márgenes para el modal de sistema para que sea más apretado */
+.activity-modal .modal-msg-clean {
+  margin-bottom: 10px !important;
 }
 
-.total-error-icon {
-  font-size: 1.8rem;
-  color: #ef4444;
-  margin-bottom: 5px;
+@keyframes scaleIn {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 /* --- CSV COLUMN SELECTOR STYLES --- */

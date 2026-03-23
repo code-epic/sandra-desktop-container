@@ -56,6 +56,10 @@ export class SecurityService {
         return invoke('get_mailbox_messages');
     }
 
+    async syncMailbox(): Promise<string[]> {
+        return invoke('sync_mailbox');
+    }
+
     async createMailboxMessage(message: Partial<MailboxMessage>) {
         return invoke('create_mailbox_message', {
             sid: message.sid,

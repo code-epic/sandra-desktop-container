@@ -206,9 +206,10 @@
 
 /* --- INNOVATIVE BLUR SYSTEM --- */
 .viewer-layout.is-main-loading .history-container,
-.viewer-layout.is-main-loading .viewer-search-bar {
-    filter: blur(10px) grayscale(0.5);
-    opacity: 0.4;
+.viewer-layout.is-main-loading .viewer-search-bar,
+.viewer-layout.is-main-loading .secure-header-card {
+    filter: blur(12px) grayscale(0.5);
+    opacity: 0.3;
     pointer-events: none;
     transform: scale(0.98);
 }
@@ -217,11 +218,15 @@
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.history-list-view.has-loading-row .doc-row:not(.loading-row) {
-    filter: blur(5px);
-    opacity: 0.3;
-    transform: scale(0.97);
-    pointer-events: none;
+.has-loading-row .doc-row:not(.loading-row),
+.has-loading-row .folder-row:not(.loading-row),
+.has-loading-row .viewer-search-bar,
+.has-loading-row .secure-header-card,
+.has-loading-row .section-label {
+    filter: blur(10px) grayscale(0.2) !important;
+    opacity: 0.35 !important;
+    transform: scale(0.99) !important;
+    pointer-events: none !important;
 }
 
 .doc-row.loading-row {

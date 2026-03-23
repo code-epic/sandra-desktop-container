@@ -77,7 +77,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   switchToDashboard() {
-    this.appState.setActiveTab("dashboard");
+    this.setActive("dashboard");
   }
 
   setActive(id: string) {

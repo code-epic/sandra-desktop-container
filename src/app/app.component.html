@@ -1,9 +1,9 @@
 <div class="sdc-container">
   <!-- Componente Sidebar Modular -->
-  <app-sidebar (onLogout)="handleGlobalLogout()" (onNavigateRequest)="handleNavigationRequest($event)"></app-sidebar>
+  <app-sidebar [class.global-blur]="isViewerLoading" (onLogout)="handleGlobalLogout()" (onNavigateRequest)="handleNavigationRequest($event)"></app-sidebar>
 
   <main class="main-stage">
-    <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'">
+    <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'" [class.global-blur]="isViewerLoading">
       <div class="header-left-group">
         <button class="icon-btn toggle-btn" (click)="toggleLeftSidebar()">
           <i class="fas fa-bars"></i>
@@ -65,7 +65,7 @@
       <app-secure-viewer *ngIf="(activeTabId$ | async) === 'secure-viewer'"></app-secure-viewer>
 
       <!-- Container Dinámico de Pestañas (Apps & Docs) -->
-      <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async)"
+      <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async); trackBy: trackByTabId"
         [hidden]="(activeTabId$ | async) !== tab.id">
 
         <!-- PROXY ACTIVE INDICATOR -->
@@ -215,7 +215,7 @@
                 <!-- Virtualized display: only first 200 rows shown for performance -->
                 <tr *ngFor="let row of (tab.csvFilteredRows || tab.csvRows || []) | slice:0:200">
                   <ng-container *ngFor="let cell of row; let j = index">
-                    <td *ngIf="isColumnVisible(tab, tab.csvHeader ? tab.csvHeader[j] : '')">{{ cell }}</td>
+                    <td *ngIf="isColumnVisible(tab, tab.csvHeader ? tab.csvHeader[j] : '')">{{ formatCsvCell(cell) }}</td>
                   </ng-container>
                 </tr>
               </tbody>
@@ -456,7 +456,7 @@
       <!-- Info Header -->
       <div class="modal-visual-header info-header" *ngIf="genericModal.type === 'info'">
         <div class="icon-pulse-wrapper info-pulse">
-          <i class="fas fa-info-circle"></i>
+          <i class="fas" [ngClass]="genericModal.infoIcon || 'fa-info-circle'"></i>
         </div>
       </div>
       <!-- Error/Warning Header -->
@@ -474,7 +474,7 @@
 
       <div class="modal-body-clean">
         <h3 class="modal-title-clean" style="text-align: center; margin-top: 20px;">{{ genericModal.title }}</h3>
-        <p class="modal-msg-clean" style="text-align: center; padding: 0 10px; margin-bottom: 25px; white-space: pre-wrap;" [innerHTML]="genericModal.message"></p>
+        <div class="modal-msg-clean" style="text-align: center; padding: 0 10px; margin-bottom: 25px;" [innerHTML]="genericModal.message"></div>
 
       </div>
       <div class="modal-actions-spread">

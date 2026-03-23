@@ -10,15 +10,16 @@ use url::Url;
 // Extensiones que SIEMPRE deben servirse desde el sistema de archivos local
 
 // Global Context for "Sticky" External Sessions (Solves missing Referer in iframes)
+use std::collections::HashMap;
 use std::sync::Mutex;
 
-#[derive(Clone, Debug)]
-struct ExternalContext {
-    target_url: String,
-    app_id: String,
+#[derive(Default)]
+struct ExternalProxyState {
+    last_app_id: Option<String>,
+    targets: HashMap<String, String>,
 }
 
-static LAST_EXTERNAL_TARGET: Mutex<Option<ExternalContext>> = Mutex::new(None);
+static PROXY_STATE: Mutex<Option<ExternalProxyState>> = Mutex::new(None);
 
 pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Response<Vec<u8>> {
     let uri = request.uri();
@@ -47,12 +48,9 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
             let decoded = urlencoding::decode(t).unwrap_or(std::borrow::Cow::Borrowed(t));
             Some(decoded.to_string())
         } else {
-            // Check Context
-            if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
-                guard
-                    .as_ref()
-                    .filter(|c| c.app_id == app_id)
-                    .map(|c| c.target_url.clone())
+            // Check Map Context
+            if let Ok(guard) = PROXY_STATE.lock() {
+                guard.as_ref().and_then(|state| state.targets.get(&app_id).cloned())
             } else {
                 None
             }
@@ -61,14 +59,13 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
         if let Some(target_url) = target_url_opt {
             // Update Context if it came from query
             if query.contains("target=") {
-                if let Ok(mut guard) = LAST_EXTERNAL_TARGET.lock() {
-                    *guard = Some(ExternalContext {
-                        target_url: target_url.clone(),
-                        app_id: app_id.clone(),
-                    });
+                if let Ok(mut guard) = PROXY_STATE.lock() {
+                    let state = guard.get_or_insert_with(ExternalProxyState::default);
+                    state.targets.insert(app_id.clone(), target_url.clone());
+                    state.last_app_id = Some(app_id.clone());
                     println!(
-                        "🧠 [Context] Set External Target: {} (App: {})",
-                        target_url, app_id
+                        "🧠 [Context] State Updated: {} -> {} (Last: {:?})",
+                        app_id, target_url, state.last_app_id
                     );
                 }
             }
@@ -147,44 +144,8 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
     // Si el usuario navegó antes a Google, asumimos que sigue ahí para peticiones dinámicas (ej: /search, /complete/search)
     // EXCLUIMOS /v1/ para que sea manejado por el API PROXY lógico siguiente (al túnel)
     if !path.contains("/v1/") {
-        if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
-            if let Some(ctx) = &*guard {
-                let target_url = &ctx.target_url;
-                if let Ok(base_url) = Url::parse(target_url) {
-                    if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
-                        let full_url_str = full_url.to_string();
-                        // NOTE: This fallback might compete with the new /external-proxy/ logic
-                        // but since we checked path.starts_with("/external-proxy") first, this handles
-                        // legacy requests or files at root (e.g. /styles.css directly at root)
-                        println!(
-                            "🚀 [Context Fallback Dynamic] Attemting to proxy dynamic req -> {}",
-                            full_url_str
-                        );
-                        // No base_href injection for pure assets?
-                        // Actually, if it's an HTML file (rare but possible), it might need it,
-                        // but we don't know the app_id easily here unless we check ctx.app_id.
-                        // Let's assume generic assets don't need base href rewrite.
-                        if let Ok(resp) = proxy_arbitrary_url(&full_url_str, None) {
-                            return resp;
-                        } else {
-                            println!(
-                                "⚠️ [Context Fallback] Failed remote fetch to {}",
-                                full_url_str
-                            );
-                        }
-                    } else {
-                        println!(
-                            "⚠️ [Context Fallback] URL Join Failed: {:?} + {:?}",
-                            base_url, path
-                        );
-                    }
-                } else {
-                    println!(
-                        "⚠️ [Context Fallback] Base URL Parse Failed: {}",
-                        target_url
-                    );
-                }
-            }
+        if let Ok(_guard) = PROXY_STATE.lock() {
+            // Logic for generic fallback if needed
         }
     }
 
@@ -243,11 +204,13 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
             }
         } else {
             // Sin Referer check... Intentar Contexto Global
-            if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
-                if let Some(ctx) = &*guard {
-                    if is_app_proxy_required(app_handle, &ctx.app_id) {
-                        should_proxy = true;
-                        // println!("🔗 [Proxy] Recovered App ID from context: {}", ctx.app_id);
+            if let Ok(guard) = PROXY_STATE.lock() {
+                if let Some(state) = &*guard {
+                    if let Some(last_id) = &state.last_app_id {
+                        if is_app_proxy_required(app_handle, last_id) {
+                            should_proxy = true;
+                            println!("🔗 [Proxy] Recovered last active App ID from context: {}", last_id);
+                        }
                     }
                 }
             }
@@ -455,26 +418,26 @@ fn serve_local_file(app_handle: &AppHandle, path: &str) -> Response<Vec<u8>> {
             }
         }
 
-        if let Ok(guard) = LAST_EXTERNAL_TARGET.lock() {
-            if let Some(ctx) = &*guard {
-                let target_url = &ctx.target_url;
-                println!(
-                    "🚀 [Local Fallback] Attempting external proxy via stored context: {}",
-                    target_url
-                );
-                if let Ok(base_url) = Url::parse(target_url) {
-                    if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
-                        let full_url_str = full_url.to_string();
-                        // println!("🚀 [Local Fallback] Attempting: {}", full_url_str);
-                        match proxy_arbitrary_url(&full_url_str, None) {
-                            Ok(resp) => return resp,
-                            Err(e) => {
-                                println!(
-                                    "⚠️ [Local Fallback] Failed remote fetch to {}: {}",
-                                    full_url_str, e
-                                );
-                                // Continue to 404 local? Or return 502?
-                                // Let's return local 404 for now as fallback chain suggests.
+        if let Ok(guard) = PROXY_STATE.lock() {
+            if let Some(state) = &*guard {
+                if let Some(last_id) = &state.last_app_id {
+                    if let Some(target_url) = state.targets.get(last_id) {
+                        println!(
+                            "🚀 [Local Fallback] Attempting external proxy via last active context: {} (App: {})",
+                            target_url, last_id
+                        );
+                        if let Ok(base_url) = Url::parse(target_url) {
+                            if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
+                                let full_url_str = full_url.to_string();
+                                match proxy_arbitrary_url(&full_url_str, None) {
+                                    Ok(resp) => return resp,
+                                    Err(e) => {
+                                        println!(
+                                            "⚠️ [Local Fallback] Failed remote fetch to {}: {}",
+                                            full_url_str, e
+                                        );
+                                    }
+                                }
                             }
                         }
                     }

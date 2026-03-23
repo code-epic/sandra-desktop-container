@@ -9,6 +9,7 @@ pub mod history;
 pub mod monitor;
 pub mod pdf;
 pub mod security;
+pub mod mailbox;
 pub mod system;
 pub mod window;
 pub mod secure_download;

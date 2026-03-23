@@ -12,7 +12,9 @@ import {
 import { AppStateService } from '../../core/services/app-state.service';
 import { FileService } from '../../core/services/file.service';
 import { SdcService } from '../../core/services/sdc.service';
+import { DataStreamService } from '../../core/services/data-stream.service';
 import { readFile } from '@tauri-apps/plugin-fs';
+import { listen } from '@tauri-apps/api/event';
 
 // Interfaz para la configuración de acceso
 interface SdcConfig {
@@ -63,6 +65,7 @@ export class SecurityComponent implements OnInit {
     cargo: 'Autorizado'
   };
   systemMac: string = '';
+  isSyncing: boolean = false; // Flag para el spinner de sincronización
   certificationMap: Map<string, any> = new Map(); // Store certification info for attachments (by path)
 
   // Pagination State
@@ -278,6 +281,7 @@ export class SecurityComponent implements OnInit {
     private appState: AppStateService,
     private fileService: FileService,
     private sdcService: SdcService,
+    private dataStreamService: DataStreamService,
     private sanitizer: DomSanitizer
   ) { }
 
@@ -289,9 +293,16 @@ export class SecurityComponent implements OnInit {
     this.loadProxyRoutes();
     this.generateUniqueCode();
     this.loadHistory();
-    this.loadDraft();
     this.extractAuthorFromJwt();
     this.loadSystemIdentity();
+
+    // Listener para refrescar el buzón cuando Rust termine una sincronización
+    listen('refresh-mailbox', () => {
+      this.loadMessages();
+    });
+
+    // Sincronización inicial al entrar
+    this.syncMailbox();
   }
 
   private async loadSystemIdentity() {
@@ -403,6 +414,8 @@ export class SecurityComponent implements OnInit {
 
   async refreshAll() {
     try {
+      this.isSyncing = true;
+      await this.securityService.syncMailbox();
       await Promise.all([
         this.loadMessages(),
         this.loadConfig(),
@@ -411,6 +424,25 @@ export class SecurityComponent implements OnInit {
       ]);
     } catch (error) {
       console.error('Error loading security data:', error);
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  async syncMailbox() {
+    if (this.isSyncing) return;
+    this.isSyncing = true;
+    try {
+      // El comando Rust ahora se encarga de todo: Manifiesto (Streaming), Descarga y ACK (Streaming)
+      const guids = await this.securityService.syncMailbox();
+      if (guids && guids.length > 0) {
+        console.log(`Sincronización completa (incluyendo ACKs) para ${guids.length} ítems.`);
+      }
+    } catch (e) {
+      console.error("Error sincronizando buzón:", e);
+    } finally {
+      this.isSyncing = false;
+      this.loadMessages();
     }
   }
 

@@ -167,11 +167,14 @@ export class AppComponent implements OnInit {
     title: string;
     message: string;
     type: "success" | "error" | "info";
-  } = { show: false, title: "", message: "", type: "info" };
+    infoIcon?: string;
+  } = { show: false, title: "", message: "", type: "info", infoIcon: "fa-info-circle" };
   exitModal = { show: false, closing: false };
   isExitConfirmed = false;
 
   globalLoading$!: Observable<{ isLoading: boolean; message: string }>;
+  viewerLoading$!: Observable<boolean>;
+  isViewerLoading = false;
 
   // Snap Message Global State
   snapMessage: SnapData | null = null;
@@ -239,6 +242,9 @@ export class AppComponent implements OnInit {
     this.globalLoading$ = this.appState.globalLoading$;
     this.rightSidebarOpen$ = this.appState.rightSidebarOpen$;
     this.leftSidebarOpen$ = this.appState.leftSidebarOpen$;
+    this.viewerLoading$ = this.appState.viewerLoading$;
+
+    this.viewerLoading$.subscribe((val) => (this.isViewerLoading = val));
 
     this.rightSidebarOpen$.subscribe((val) => (this.isInspectorOpen = val));
 
@@ -370,6 +376,13 @@ export class AppComponent implements OnInit {
 
     // Initialize Connections (Client ID and Startup logic handled in initApplication)
     // Removed redundant loadConnections here to avoid race conditions with splash flow.
+
+    // Refresh Monitor/Tickets Global Event
+    await listen("refresh-monitor-data", async () => {
+      this.zone.run(() => {
+        this.loadPendingTicketsCount();
+      });
+    });
 
     // Subscribe to App Updates
     this.desktopAppsService.appsUpdated$.subscribe(() => {
@@ -857,9 +870,9 @@ export class AppComponent implements OnInit {
       this.logger.log("FETCH", `GET ${rawUrl} [200]`, "Navigation", app.id);
     } else if (app.externalUrl && app.is_proxy_required) {
       // Caso 1: Externa Proxied (Wrap en sandra-app)
-      // Formato: sandra-app://localhost/external-proxy/{APP_ID}?target={URL}
+      // Formato: sandra-app://localhost/external-proxy/{APP_ID}/?target={URL}
       const target = encodeURIComponent(app.externalUrl);
-      rawUrl = `sandra-app://localhost/external-proxy/${app.id}?target=${target}`;
+      rawUrl = `sandra-app://localhost/external-proxy/${app.id}/?target=${target}`;
       console.log(`🛡️ [Proxy Nav] Wrapping External ${app.name} -> ${rawUrl}`);
     } else {
       // Caso 3: Local (Proxied o No, siempre usa sandra-app)
@@ -989,7 +1002,7 @@ export class AppComponent implements OnInit {
   }
 
   switchToDashboard() {
-    this.appState.setActiveTab("dashboard");
+    this.appState.setActiveTab(this.appState.getLastDashboardSnapshot());
   }
 
   loadConfig() {
@@ -1423,6 +1436,13 @@ export class AppComponent implements OnInit {
     }
   }
 
+  /**
+   * Track by function for the openTabs loop to prevent iframe recreating on every change detection.
+   */
+  trackByTabId(index: number, tab: any): string {
+    return tab.id;
+  }
+
   async handleIframeOpen(
     fileName: string,
     dataUri: string,
@@ -1689,6 +1709,7 @@ export class AppComponent implements OnInit {
     title: string,
     message: string,
     forceType?: "success" | "error" | "info",
+    infoIcon?: string,
   ) {
     let type: "success" | "error" | "info" = "info";
     const t = title.toLowerCase();
@@ -1710,7 +1731,7 @@ export class AppComponent implements OnInit {
       type = "success";
     }
 
-    this.genericModal = { show: true, title, message, type };
+    this.genericModal = { show: true, title, message, type, infoIcon: infoIcon || "fa-info-circle" };
   }
 
   closeGenericModal() {
@@ -1723,30 +1744,27 @@ export class AppComponent implements OnInit {
     let dataToDownload = tab.blobData;
     let finalFileName = tab.originalName;
 
-    // --- CSV ALCHEMY: Filter columns if viewer is CSV and has visibility configuration ---
-    if (tab.type === 'csv-viewer' && tab.csvHeader && tab.csvVisibleColumns && tab.csvRows) {
-      // Si el usuario ha filtrado columnas, generamos un nuevo CSV solo con esas
-      if (tab.csvVisibleColumns.length < tab.csvHeader.length) {
-        console.log("🧪 [Alchemy] Filtrando columnas para exportación segura...");
+    // --- CSV ALCHEMY: Filter columns and format dates for safe export ---
+    if (tab.type === 'csv-viewer' && tab.csvHeader && tab.csvRows) {
+      console.log("🧪 [Alchemy] Formateando fechas y columnas para exportación segura...");
 
-        // Mapear indices de columnas visibles
-        const visibleIndices = tab.csvVisibleColumns.map(name => tab.csvHeader!.indexOf(name));
+      const visibleCols = tab.csvVisibleColumns || tab.csvHeader;
+      const visibleIndices = visibleCols.map(name => tab.csvHeader!.indexOf(name)).filter(i => i !== -1);
 
-        // Crear nuevas filas solo con datos visibles
-        const filteredRows = tab.csvRows.map(row =>
-          visibleIndices.map(idx => row[idx]).join(",")
-        );
+      // Crear nuevas filas solo con datos visibles y formatedatos
+      const filteredRows = tab.csvRows.map(row =>
+        visibleIndices.map(idx => this.formatCsvExportCell(row[idx])).join(",")
+      );
 
-        // Unir header y filas
-        const csvContent = [
-          tab.csvVisibleColumns.join(","),
-          ...filteredRows
-        ].join("\n");
+      // Unir header y filas
+      const csvContent = [
+        visibleCols.join(","),
+        ...filteredRows
+      ].join("\n");
 
-        // Convertir a DataURI
-        dataToDownload = `data:text/csv;base64,${btoa(unescape(encodeURIComponent(csvContent)))}`;
-        console.log("✅ [Alchemy] CSV regenerado con éxito.");
-      }
+      // Convertir a DataURI
+      dataToDownload = `data:text/csv;base64,${btoa(unescape(encodeURIComponent(csvContent)))}`;
+      console.log("✅ [Alchemy] CSV regenerado con éxito.");
     }
 
     // If Protected (SSE), forceSSE = true. Else false.
@@ -1903,6 +1921,64 @@ export class AppComponent implements OnInit {
     }
   }
 
+  formatCsvCell(cell: string): string {
+    if (!cell) return cell;
+
+    // Check if it matches ISO date like 1997-07-05T00:00:00Z
+    const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
+    const match = cell.match(isoDateRegex);
+
+    if (match) {
+      const year = match[1];
+      const month = match[2];
+      const day = match[3];
+      const hour = match[4];
+      const minute = match[5];
+      const second = match[6];
+
+      // If time is 00:00:00, just return DD/MM/YYYY
+      if (hour === '00' && minute === '00' && second === '00') {
+        return `${day}/${month}/${year}`;
+      } else {
+        return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
+      }
+    }
+
+    // Check standard YYYY-MM-DD
+    const dateOnlyRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
+    const matchDateOnly = cell.match(dateOnlyRegex);
+    if (matchDateOnly) {
+      return `${matchDateOnly[3]}/${matchDateOnly[2]}/${matchDateOnly[1]}`;
+    }
+
+    return cell;
+  }
+
+  formatCsvExportCell(cell: string): string {
+    if (!cell) return cell;
+
+    // ISO date YYYY-MM-DDTHH:mm:ssZ
+    const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
+    const match = cell.match(isoDateRegex);
+
+    if (match) {
+      const year = match[1];
+      const month = match[2];
+      const day = match[3];
+      const hour = match[4];
+      const minute = match[5];
+      const second = match[6];
+
+      if (hour === '00' && minute === '00' && second === '00') {
+        return `${year}-${month}-${day}`;
+      } else {
+        return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+      }
+    }
+
+    return cell;
+  }
+
   isColumnVisible(tab: Tab, columnName: string): boolean {
     if (!tab.csvVisibleColumns) return true;
     return tab.csvVisibleColumns.includes(columnName);
@@ -2004,7 +2080,7 @@ export class AppComponent implements OnInit {
         try {
           const filteredLines = tab.txtLines!.filter(line => line.toLowerCase().includes(query));
           tab.txtTotalLines = filteredLines.length;
-          
+
           if (filteredLines.length > 1000) {
             tab.txtIsTruncated = true;
             tab.txtFilteredContent = filteredLines.slice(0, 1000).join("\n") + `\n\n--- [INFO] Se encontraron ${filteredLines.length} coincidencias. Mostrando solo las primeras 1000 para optimizar rendimiento. ---`;
@@ -2059,29 +2135,22 @@ export class AppComponent implements OnInit {
 
         if (hasStrings) {
           this.showModal(
-            "Detección de Texto",
-            `<div class="total-result-wrapper">
-              <span class="total-result-label">Error en columna "${columnName}"</span>
-              <div class="total-result-amount error">0.00</div>
-              <span class="total-result-meta error">Contiene cadenas de texto</span>
-            </div>`,
+            "Análisis de Columna",
+            `<span class="sub-text" style="margin-top: -15px;">Columna: <span style="color:#475569; font-weight:700">${columnName}</span></span><div style="margin-top: 25px; display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 0 10px;"><div class="custom-input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-exclamation-triangle"></i></span></div><div class="input-label">Estado del Análisis</div><div class="input-value error">Error de Formato</div></div><div style="padding: 10px; font-size: 0.82rem; color: #94a3b8; text-align: center; background: #fef2f2; border-radius: 8px; border: 1px solid #fee2e2;">La columna contiene datos no numéricos.</div></div>`,
             "error"
           );
         } else {
-          const formattedTotal = total.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          });
+          const formattedTotal = new Intl.NumberFormat('es-VE', {
+            style: 'currency',
+            currency: 'VES'
+          }).format(total);
 
           const count = rowsToProcess.length;
           this.showModal(
-            "Cálculo de Columna",
-            `<div class="total-result-wrapper">
-              <span class="total-result-label">Total de "${columnName}"</span>
-              <div class="total-result-amount success">${formattedTotal}</div>
-              <span class="total-result-meta">${count.toLocaleString()} registros</span>
-            </div>`,
-            "success"
+            `${columnName}`,
+            `<div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px; text-align: left; padding: 0 10px;"><div class="custom-input-group"><div class="input-group-prepend"></div><div class="input-label">Total Acumulado</div><div class="input-value success">${formattedTotal.replace('Bs.', 'Bs.')}</div></div><div class="custom-input-group"><div class="input-group-prepend"><br><br></div><div class="input-label">Registros Procesados</div><div class="input-value">${count.toLocaleString('es-VE')}</div></div></div>`,
+            "info",
+            "fa-calculator"
           );
         }
       } finally {

@@ -219,6 +219,7 @@ export class SecureViewerComponent {
     async openFileDialog() {
         try {
             this.isLoading = true;
+            this.appState.setViewerLoading(true);
             this.appState.setGlobalLoading(true, "Iniciando explorador de archivos...");
             
             const { open } = await import('@tauri-apps/plugin-dialog');
@@ -233,10 +234,12 @@ export class SecureViewerComponent {
 
             // Una vez que el explorador se cierra, quitamos el global loading inicial
             this.appState.setGlobalLoading(false);
+            this.appState.setViewerLoading(false);
 
             if (selected && typeof selected === 'string') {
                 this.fileName = selected.split(/[\\/]/).pop() || selected;
                 this.loadingFilePath = selected; // Mark this as the one loading
+                this.appState.setViewerLoading(true); // Re-activate for the actual processing
                 
                 // --- PROACTIVE ALCHEMY VALIDATION ---
                 try {
@@ -250,6 +253,7 @@ export class SecureViewerComponent {
                         this.showCertificationModal = true;
                         this.isLoading = false;
                         this.loadingFilePath = null;
+                        this.appState.setViewerLoading(false);
                         return;
                     }
                 } catch (certErr) {
@@ -259,6 +263,7 @@ export class SecureViewerComponent {
                 if (selected.toLowerCase().endsWith('.gpg') || selected.toLowerCase().endsWith('.pgp')) {
                     this.isLoading = false;
                     this.loadingFilePath = null;
+                    this.appState.setViewerLoading(false);
                     this.gpgUnlockFilePath = selected;
                     this.gpgUnlockFileName = this.fileName;
                     this.gpgUnlockSaveToHistory = true;
@@ -268,11 +273,13 @@ export class SecureViewerComponent {
                     setTimeout(async () => {
                         await this.loadSecureDoc(selected, true);
                         this.loadingFilePath = null;
+                        this.appState.setViewerLoading(false);
                     }, 50);
                 }
             } else {
                 this.isLoading = false;
                 this.loadingFilePath = null;
+                this.appState.setViewerLoading(false);
             }
         } catch (e) {
             console.error(e);
@@ -280,6 +287,7 @@ export class SecureViewerComponent {
             this.error = "Error al abrir diálogo.";
             this.isLoading = false;
             this.loadingFilePath = null;
+            this.appState.setViewerLoading(false);
         }
     }
 
@@ -289,10 +297,12 @@ export class SecureViewerComponent {
         this.fileName = item.file_name;
         this.loadingFilePath = item.file_path;
         this.isLoading = true;
+        this.appState.setViewerLoading(true);
 
         if (item.file_name.toLowerCase().endsWith('.gpg') || item.file_name.toLowerCase().endsWith('.pgp')) {
             this.isLoading = false;
             this.loadingFilePath = null;
+            this.appState.setViewerLoading(false);
             this.gpgUnlockFilePath = item.file_path;
             this.gpgUnlockFileName = this.fileName;
             this.gpgUnlockSaveToHistory = false;
@@ -307,6 +317,7 @@ export class SecureViewerComponent {
                 this.verifyDocumentCertification(item.file_path);
                 this.loadingFilePath = null;
                 this.appState.setGlobalLoading(false);
+                this.appState.setViewerLoading(false);
             }, 100);
         }
     }

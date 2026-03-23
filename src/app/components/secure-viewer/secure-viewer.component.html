@@ -1,4 +1,4 @@
-<div class="viewer-layout" [class.is-main-loading]="isLoading && !loadingFilePath" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (contextmenu)="$event.preventDefault()">
+<div class="viewer-layout" [class.is-main-loading]="isLoading && !loadingFilePath" [class.has-loading-row]="!!loadingFilePath" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (contextmenu)="$event.preventDefault()">
 
     <!-- COMPACT HEADER BAR (GREENISH THEME) -->
     <div class="secure-header-card">
@@ -45,7 +45,7 @@
         <div class="section-label" *ngIf="filteredHistory.length > 0">{{ viewerActiveTab === 'global' ? 'DOCUMENTOS
             GLOBAL' : 'CORREOS Y ARCHIVOS' }}</div>
 
-        <div class="history-list-view" [class.has-loading-row]="loadingFilePath">
+        <div class="history-list-view">
             <ng-container *ngFor="let entry of groupedHistory; trackBy: trackByEntry">
                 
                 <!-- ENTIDAD CARPETA REDISEÑADA -->

@@ -188,6 +188,23 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         [],
     );
 
+    // Índice para búsquedas rápidas por SID (Tracking)
+    let _ = conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_security_mailbox_sid ON security_mailbox(sid)",
+        [],
+    );
+
+    // Tabla de Metadatos de Sincronización
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS sync_metadata (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     // Seed Security Mailbox with Initial Campaign (Updated with Attachment)
     conn.execute(
         "INSERT INTO security_mailbox (sid, content, author, status, responsible, tracking_info) 

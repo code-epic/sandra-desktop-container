@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 import { FormsModule } from '@angular/forms';
 import { SecurityService, MailboxMessage, AuthorizationTicket } from '../../core/services/security.service';
 import { AppStateService } from '../../core/services/app-state.service';
@@ -284,6 +284,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
         try {
             await this.securityService.deleteAuthorizationTicket(this.ticketToDelete.auth_id);
             await this.loadTickets();
+            await emit('refresh-monitor-data');
         } catch (error) {
             console.error('Error deleting ticket:', error);
         } finally {
@@ -295,6 +296,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
         try {
             await this.securityService.updateAuthorizationTicketStatus(authId, status);
             await this.loadTickets();
+            await emit('refresh-monitor-data');
         } catch (error) {
             console.error('Error updating ticket status:', error);
         }

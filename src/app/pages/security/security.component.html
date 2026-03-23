@@ -65,8 +65,8 @@
                         <button class="btn-icon-mini primary" (click)="startCompose()" title="Redactar Requerimiento">
                             <i class="fas fa-pen"></i>
                         </button>
-                        <button class="btn-icon-mini" (click)="loadMessages()" title="Actualizar">
-                            <i class="fas fa-sync-alt"></i>
+                        <button class="btn-icon-mini" (click)="syncMailbox()" [disabled]="isSyncing" title="Actualizar y Sincronizar">
+                            <i class="fas fa-sync-alt" [class.fa-spin]="isSyncing"></i>
                         </button>
                     </div>
                 </div>
