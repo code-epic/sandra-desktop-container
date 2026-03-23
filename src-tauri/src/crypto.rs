@@ -3,70 +3,113 @@ use aes_gcm::{
     Aes256Gcm, Key, Nonce,
 };
 use base64::{engine::general_purpose, Engine as _};
-use rand::RngCore; // RngCore required for fill_bytes
-use std::str; // Import struct if needed, or pass as String
+use rand::RngCore;
+use argon2::{
+    password_hash::{PasswordHasher, SaltString},
+    Argon2,
+};
 
-/// Asegura que la clave tenga 32 bytes (Hash SHA256 o padding).
-/// Para compatibilidad estricta con tu ejemplo Angular "raw", esta función asume que
-/// el string de entrada YA tiene 32 caracteres (bytes) o implementas un hash previo.
-/// Aquí uso un hash simple (o slice) para seguridad si el input varía.
-/// PERO, para tu ejemplo exacto "raw import", usamos los bytes directos.
-fn get_key_bytes(secret: &str) -> Result<Key<Aes256Gcm>, String> {
-    if secret.len() != 32 {
-        return Err(format!(
-            "Secret key must be exactly 32 bytes (chars) for AES-256-GCM. Got {}",
-            secret.len()
-        ));
+pub const PACKAGE_SALT: &str = "SANDRA_SECURE_CHANNEL_V1";
+
+/// Deriva una clave de 32 bytes a partir de una semilla (MAC, Device Secret, etc)
+/// usando Argon2id para máxima seguridad "military grade".
+pub fn derive_32byte_key(seed: &str) -> Result<[u8; 32], String> {
+    let salt = SaltString::encode_b64(PACKAGE_SALT.as_bytes()).map_err(|e| e.to_string())?;
+    let argon2 = Argon2::default();
+
+    let password_hash = argon2
+        .hash_password(seed.as_bytes(), &salt)
+        .map_err(|e| e.to_string())?;
+
+    let hash_bytes = password_hash
+        .hash
+        .ok_or("Argon2 hashing failed to produce output")?;
+
+    let mut key = [0u8; 32];
+    let hash_str = hash_bytes.as_bytes();
+    if hash_str.len() >= 32 {
+        key.copy_from_slice(&hash_str[..32]);
+    } else {
+        return Err("Derived key length insufficient".into());
     }
-    Ok(*Key::<Aes256Gcm>::from_slice(secret.as_bytes()))
+
+    Ok(key)
 }
 
-pub fn encrypt_string(data: &str, secret_key: &str) -> Result<String, String> {
-    let key = get_key_bytes(secret_key)?;
+fn get_key_from_bytes(bytes: &[u8]) -> Result<Key<Aes256Gcm>, String> {
+    if bytes.len() != 32 {
+        return Err(format!("Key must be exactly 32 bytes for AES-256-GCM. Got {}", bytes.len()));
+    }
+    Ok(*Key::<Aes256Gcm>::from_slice(bytes))
+}
+
+// --- Operaciones Binarias (Raw) ---
+
+pub fn encrypt_raw(data: &[u8], key_bytes: &[u8]) -> Result<Vec<u8>, String> {
+    let key = get_key_from_bytes(key_bytes)?;
     let cipher = Aes256Gcm::new(&key);
 
-    // Generar IV (Nonce) de 96-bits (12 bytes) - Estándar GCM
     let mut nonce_bytes = [0u8; 12];
     rand::rng().fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    // Cifrar
     let ciphertext = cipher
-        .encrypt(nonce, data.as_bytes())
+        .encrypt(nonce, data)
         .map_err(|e| format!("Encryption failure: {}", e))?;
 
-    // Concatenar: IV + Ciphertext (Tag está incluido al final del ciphertext por aes-gcm crate)
-    // Nota: WebCrypto también tiende a poner el Tag al final del ciphertext.
     let mut combined = Vec::new();
     combined.extend_from_slice(&nonce_bytes);
     combined.extend_from_slice(&ciphertext);
-
-    // Base64 Encode
-    Ok(general_purpose::STANDARD.encode(combined))
+    Ok(combined)
 }
 
-pub fn decrypt_string(encrypted_base64: &str, secret_key: &str) -> Result<String, String> {
-    let key = get_key_bytes(secret_key)?;
+pub fn decrypt_raw(encrypted_data: &[u8], key_bytes: &[u8]) -> Result<Vec<u8>, String> {
+    let key = get_key_from_bytes(key_bytes)?;
     let cipher = Aes256Gcm::new(&key);
 
-    // Decodificar Base64
-    let combined = general_purpose::STANDARD
-        .decode(encrypted_base64)
-        .map_err(|e| format!("Base64 decode error: {}", e))?;
-
-    if combined.len() < 12 {
+    if encrypted_data.len() < 12 {
         return Err("Invalid data length (too short for IV)".to_string());
     }
 
-    // Extraer IV y Ciphertext
-    let (iv_bytes, ciphertext_bytes) = combined.split_at(12);
+    let (iv_bytes, ciphertext_bytes) = encrypted_data.split_at(12);
     let nonce = Nonce::from_slice(iv_bytes);
 
-    // Descifrar
-    let plaintext_bytes = cipher
+    let plaintext = cipher
         .decrypt(nonce, ciphertext_bytes)
-        .map_err(|e| format!("Decryption failure (mac check failed?): {}", e))?;
+        .map_err(|e| format!("Decryption failure: {}", e))?;
 
-    // Convertir a String
-    String::from_utf8(plaintext_bytes).map_err(|e| format!("UTF-8 conversion error: {}", e))
+    Ok(plaintext)
+}
+
+// --- Operaciones String (Base64) ---
+
+pub fn encrypt_string(data: &str, secret_key: &str) -> Result<String, String> {
+    // Si secret_key no tiene 32 bytes, intentamos derivarla para compatibilidad
+    let key_bytes = if secret_key.len() == 32 {
+        let mut b = [0u8; 32];
+        b.copy_from_slice(secret_key.as_bytes());
+        b
+    } else {
+        derive_32byte_key(secret_key)?
+    };
+
+    let encrypted = encrypt_raw(data.as_bytes(), &key_bytes)?;
+    Ok(general_purpose::STANDARD.encode(encrypted))
+}
+
+pub fn decrypt_string(encrypted_base64: &str, secret_key: &str) -> Result<String, String> {
+    let key_bytes = if secret_key.len() == 32 {
+        let mut b = [0u8; 32];
+        b.copy_from_slice(secret_key.as_bytes());
+        b
+    } else {
+        derive_32byte_key(secret_key)?
+    };
+
+    let encrypted_data = general_purpose::STANDARD
+        .decode(encrypted_base64)
+        .map_err(|e| format!("Base64 decode error: {}", e))?;
+
+    let plaintext = decrypt_raw(&encrypted_data, &key_bytes)?;
+    String::from_utf8(plaintext).map_err(|e| format!("UTF-8 conversion error: {}", e))
 }
