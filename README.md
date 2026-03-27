@@ -205,6 +205,45 @@ graph TD
 
 ---
 
+## Módulo Mailbox (Buzón de Seguridad) - SDC-Mail
+
+El sistema **SDC-Mail** es el corazón de la persistencia y comunicación asíncrona del contenedor. Ha sido refactorizado para cumplir con estándares de alta disponibilidad y seguridad criptográfica avanzada.
+
+### 1. Arquitectura Técnica (Patrones de Diseño)
+
+El módulo se organiza en una arquitectura desacoplada para garantizar mantenibilidad y testabilidad:
+
+-   **Patrón Repository**: Toda la persistencia en SQLite se centraliza en `MailboxRepository`, eliminando la dispersión de SQL en los controladores de Tauri. Maneja transacciones atómicas para asegurar la integridad de los datos.
+-   **Sync Service (Capa de Servicio)**: Gestiona la orquestación entre la API remota (Sandra Server) y la base de datos local.
+-   **Streaming NDJSON**: El procesamiento de mensajes entrantes utiliza un buffer de streaming que analiza líneas NDJSON (Newline Delimited JSON) al vuelo, permitiendo procesar miles de mensajes sin picos de consumo de memoria RAM.
+
+### 2. Optimización de Rendimiento (Concurrent Sync)
+
+Para manejar buzones con gran volumen de datos (50+ mensajes por ráfaga), SDC implementa **Descargas Concurrentes**:
+-   **Buffer Unordered**: Utiliza `futures::StreamExt::buffer_unordered(5)` para descargar hasta 5 paquetes de mensajes de forma simultánea.
+-   **ACK Segmentado**: El sistema envía confirmaciones de recepción (ACK) en lotes mediante streaming, permitiendo que el servidor libere los mensajes del nodo de origen de forma eficiente.
+-   **Cursor Incremental**: La sincronización se basa en un cursor temporal (`updated_at`) persistido en `sync_metadata`, garantizando que solo los datos nuevos viajen por la red.
+
+### 3. Modelo de Seguridad (Military-Grade Cryptography)
+
+El Mailbox implementa un sistema de cifrado de triple capa para paquetes seguros (`.sdc`):
+
+-   **Device Secret (Persistent Unique Key)**: Durante el setup inicial, SDC genera una clave única de 32 bytes aleatoria (Device Secret) almacenada en el enclave de la base de datos. Esto elimina la predecibilidad de usar solo la dirección MAC del dispositivo.
+-   **Derivación de Clave con Argon2**: La clave de cifrado AES-256-GCM se deriva dinámicamente usando **Argon2id** con un Salt de sistema (`PACKAGE_SALT`).
+-   **Dual-Key Decryption Fallback**: Para garantizar la interoperabilidad con paquetes antiguos o generados en dispositivos externos, el motor de ingesta intenta descifrar primero con el *Device Secret* y, en caso de fallo, utiliza la *MAC Address* como respaldo automático.
+
+---
+
+## Módulo de Criptografía Unificada (`src-tauri/src/crypto.rs`)
+
+SDC centraliza todas sus operaciones criptográficas en un módulo dedicado que sirve a todo el ecosistema:
+
+-   **Operaciones Binarias (`encrypt_raw` / `decrypt_raw`)**: Diseñadas para el manejo de archivos y buffers de red.
+-   **Operaciones de String (`encrypt_string` / `decrypt_string`)**: Wrappers que integran codificación Base64 para interoperabilidad con WebCrypto (Angular) y APIs de terceros.
+-   **Inyección de IV (Nonce)**: Cada operación genera un vector de inicialización único de 96-bits, concatenado al inicio del mensaje cifrado para un transporte seguro y sin estado.
+
+---
+
 ## Instalación y Desarrollo
 
 ```bash

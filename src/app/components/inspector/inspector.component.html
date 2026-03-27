@@ -1,158 +1,256 @@
-  <aside class="right-sidebar" [class.closed]="!(rightSidebarOpen$ | async)">
-    <div class="rs-header">
-      <div class="inspector-header-controls">
-          <h3>Inspector</h3>
-          <div class="inspector-actions">
-            <!-- Save Button -->
-            <button class="clear-btn-inspector save icon-btn" title="Guardar Sesión" (click)="saveInspectorLogs()" *ngIf="unsavedLogsCount > 0"><i class="fas fa-save"></i></button>
-            <!-- Clear Button -->
-            <button class="clear-btn-inspector icon-btn" title="Limpiar" (click)="clearInspectorLogs()"><i class="fas fa-trash"></i></button>
-            <!-- Close Sidebar Button (X) -->
-             <button class="close-btn-inspector icon-btn" title="Cerrar Inspector" (click)="closeInspector()"><i class="fas fa-times"></i></button>
+<aside class="inspector-panel forensic-theme"
+  [ngClass]="['dock-' + dockPosition, (rightSidebarOpen$ | async) ? '' : 'closed']">
+  <div class="rs-header">
+    <div class="title-group">
+      <i class="fas fa-search title-icon"></i>
+      <h3>Inspector Central</h3>
+    </div>
+    <div class="inspector-actions">
+      <!-- Save Button -->
+      <button class="icon-btn save" title="Guardar Sesión" (click)="saveInspectorLogs()" *ngIf="unsavedLogsCount > 0">
+        <i class="fas fa-save"></i> <span class="badge-count">{{ unsavedLogsCount }}</span>
+      </button>
+      <button class="icon-btn clear" title="Limpiar" (click)="clearInspectorLogs()"><i
+          class="fas fa-trash-alt"></i></button>
+      <!-- Dock Toggle -->
+      <button class="icon-btn dock-btn" title="Cambiar posición" (click)="toggleDock()">
+        <i class="fas" [ngClass]="dockPosition === 'right' ? 'fa-window-maximize' : 'fa-columns'"></i>
+      </button>
+      <!-- Close Sidebar Button (X) -->
+      <button class="icon-btn close-btn" title="Cerrar" (click)="closeInspector()"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+
+  <div class="rs-content block-scroll">
+    <div class="traffic-section">
+      <div class="section-title">
+        <i class="fas fa-code terminal-icon"></i> Transacciones de Consola
+      </div>
+      <div class="log-table console-table">
+        <div class="log-row" *ngFor="let log of inspectorConsoleLogs" [ngClass]="log.log_type.toLowerCase()"
+          (click)="viewLogDetails(log)">
+          <div class="log-time">{{ log.timestamp | date:'HH:mm:ss' }}</div>
+          <div class="log-badge" [ngClass]="log.log_type.toLowerCase()">{{ log.log_type }}</div>
+          <div class="log-msg">{{ log.message }}</div>
+          <div class="log-actions" title="Eliminar traza">
+            <i class="fas fa-trash-alt delete-log" (click)="deleteLog(log, $event)"></i>
           </div>
+        </div>
+        <div class="empty-state" *ngIf="inspectorConsoleLogs.length === 0">
+          <i class="fas fa-check-circle"></i> Log vacío o estado correcto.
+        </div>
       </div>
     </div>
 
-    <div class="rs-content console-theme">
-      <div class="tree-root">
-        <!-- App Root Node -->
-        <div class="tree-node expanded" (click)="toggleInspectorTree()" [style.opacity]="inspectorTreeOpen ? '1' : '0.7'">
-          <i class="fas" [class.fa-caret-down]="inspectorTreeOpen" [class.fa-caret-right]="!inspectorTreeOpen" style="width: 15px;"></i>
-          <span class="node-icon"><i class="fas fa-cube"></i></span>
-          <span class="node-label">{{ ['dashboard','connections','security','monitor','apps','secure-viewer'].includes(currentTabId) ? 'App.SDC' : currentTabId }}</span>
-        </div>
-        
-        <!-- Children (Folders) -->
-        <div class="tree-children" *ngIf="inspectorTreeOpen">
-            
-            <!-- Folder: Console Logs -->
-            <div class="folder-node" (click)="toggleConsole()">
-                <i class="fas folder-icon" [class.fa-folder-open]="inspectorConsoleOpen" [class.fa-folder]="!inspectorConsoleOpen"></i>
-                <span>Logs</span>
-            </div>
-            <div class="tree-children" *ngIf="inspectorConsoleOpen">
-                <div class="log-entry-tree" *ngFor="let log of inspectorConsoleLogs" [ngClass]="log.log_type.toLowerCase()" (click)="viewLogDetails(log)">
-                    <span class="tree-line"></span>
-                    <span class="log-icon category-icon">
-                        <i class="fas fa-info-circle" *ngIf="log.log_type === 'LOG' || log.log_type === 'INFO'"></i>
-                        <i class="fas fa-exclamation-circle" *ngIf="log.log_type === 'WARN'"></i>
-                        <i class="fas fa-times-circle" *ngIf="log.log_type === 'ERROR'"></i>
-                    </span>
-                    <div class="log-content-wrapper">
-                        <span class="log-meta">{{ log.timestamp | date:'HH:mm:ss' }}</span>
-                        <p class="log-msg">{{ log.message }}</p>
-                    </div>
-                </div>
-                 <p class="empty-folder-text" *ngIf="inspectorConsoleLogs.length === 0" style="font-size: 0.8em; color: #78909C; padding-left: 36px; margin: 4px 0;">Vacío</p>
-            </div>
-
-            <!-- Folder: Network -->
-            <div class="folder-node" (click)="toggleNetwork()">
-                <i class="fas folder-icon" [class.fa-folder-open]="inspectorNetworkOpen" [class.fa-folder]="!inspectorNetworkOpen"></i>
-                <span>Red (Fetch)</span>
-            </div>
-            <div class="tree-children" *ngIf="inspectorNetworkOpen">
-                <div class="log-entry-tree" *ngFor="let log of inspectorNetworkLogs" [ngClass]="log.log_type.toLowerCase()" (click)="viewLogDetails(log)">
-                    <span class="tree-line"></span>
-                    <span class="log-icon category-icon">
-                        <i class="fas fa-exchange-alt"></i>
-                    </span>
-                    <div class="log-content-wrapper">
-                        <span class="log-meta">{{ log.timestamp | date:'HH:mm:ss' }}</span>
-                        <p class="log-msg">{{ log.message }}</p>
-                    </div>
-                </div>
-                 <p class="empty-folder-text" *ngIf="inspectorNetworkLogs.length === 0" style="font-size: 0.8em; color: #78909C; padding-left: 36px; margin: 4px 0;">Vacío</p>
-            </div>
-
-        </div>
+    <div class="traffic-section" style="margin-bottom: 0;">
+      <div class="section-title">
+        <i class="fas fa-network-wired network-icon"></i> Trazas de Red
       </div>
-
-      <div class="empty-state" *ngIf="currentAppLogs.length === 0">
-        <i class="fas fa-check-circle success-icon" style="color: #A5D6A7;"></i>
-        <p>Todo limpio</p>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Modal Detalle Inspector -->
-  <div class="modal-overlay" *ngIf="inspectorDetailModal && selectedLog">
-    <div class="modal-card log-detail-modal">
-      <h3 class="modal-title">Detalle de Evento</h3>
-      <div class="modal-body">
-        <div class="log-detail-header">
-            <div class="detail-item">
-                <span class="label">Tipo</span>
-                <span class="badge" [ngClass]="selectedLog.log_type.toLowerCase()">{{ selectedLog.log_type }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="label">Hora</span>
-                <span class="value">{{ selectedLog.timestamp | date:'HH:mm:ss.SSS' }}</span>
-            </div>
-            <div class="detail-item" *ngIf="selectedLog.details?.status">
-                <span class="label">Estado</span>
-                <span class="status-pill" [class.error]="selectedLog.details.status >= 400">{{ selectedLog.details.status }}</span>
-            </div>
-             <div class="detail-item" *ngIf="selectedLog.details?.method">
-                <span class="label">Método</span>
-                <span class="method-pill">{{ selectedLog.details.method }}</span>
-            </div>
+      <div class="log-table network-table">
+        <div class="log-row" *ngFor="let log of inspectorNetworkLogs" [ngClass]="log.log_type.toLowerCase()"
+          (click)="viewLogDetails(log)">
+          <div class="log-time">{{ log.timestamp | date:'HH:mm:ss' }}</div>
+          <div class="log-badge" [ngClass]="log.details?.status >= 400 ? 'status-err' : 'status-ok'">
+            {{ log.details?.method || 'XHR' }} {{ log.details?.status || 0 }}
+          </div>
+          <div class="log-msg url">{{ log.details?.url }}</div>
+          <div class="log-actions" title="Eliminar traza">
+            <i class="fas fa-trash-alt delete-log" (click)="deleteLog(log, $event)"></i>
+          </div>
         </div>
-
-        <div class="detail-section" *ngIf="selectedLog.details?.url">
-            <label>Endpoint</label>
-            <div class="url-box">{{ selectedLog.details.url }}</div>
-        </div>
-
-        <div class="detail-section">
-            <label>Mensaje</label>
-            <div class="code-block message">{{ selectedLog.message }}</div>
-        </div>
-        
-        <div class="extended-details" *ngIf="selectedLog.details">
-            <div class="detail-section" *ngIf="selectedLog.details.request_headers && (selectedLog.details.request_headers | json) !== '{}'">
-                <label>Headers</label>
-                <div class="code-block headers-block"><div *ngFor="let item of selectedLog.details.request_headers | keyvalue"><span class="key">{{ item.key }}:</span> <span class="val">{{ item.value }}</span></div></div>
-            </div>
-            <div class="detail-section" *ngIf="selectedLog.details.request_payload">
-                <label>Payload</label>
-                <div class="code-block">{{ selectedLog.details.request_payload }}</div>
-            </div>
-            <div class="detail-section" *ngIf="selectedLog.details.response_body">
-                <label>Respuesta</label>
-                <div class="code-block response">{{ selectedLog.details.response_body }}</div>
-            </div>
-        </div>
-        
-        <div class="modal-actions">
-            <button class="btn-modal-cancel" (click)="closeInspectorModal()">Cerrar</button>
+        <div class="empty-state" *ngIf="inspectorNetworkLogs.length === 0">
+          <i class="fas fa-shield-alt"></i> Red silenciosa. Monitoreando.
         </div>
       </div>
     </div>
   </div>
+</aside>
 
-  <!-- Modal Confirmar Guardado -->
-  <div class="modal-overlay" *ngIf="showSaveConfirmModal">
-    <div class="modal-card">
-      <h3 class="modal-title">Guardar Registros</h3>
-      <div class="modal-body">
-        <p class="modal-message">¿Estás seguro de que deseas guardar <strong>{{ unsavedLogsCount }}</strong> registros nuevos en la base de datos?</p>
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" (click)="cancelSaveLogs()">Cancelar</button>
-          <button class="btn-modal-confirm" (click)="confirmSaveLogs()">Guardar</button>
+<!-- Modal Detalle Inspector -->
+<div class="modern-modal-overlay" *ngIf="inspectorDetailModal && selectedLog">
+  <div class="modern-modal log-detail-modal">
+    <div class="modal-header">
+      <span class="glitch-title">
+        <i class="fas fa-file-alt" style="color: var(--text-muted); margin-right: 6px;"></i> Detalle del Evento
+      </span>
+      <button class="modern-close-btn" (click)="closeInspectorModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="meta-grid">
+        <div class="meta-box blue">
+          <div class="meta-icon-box">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="meta-content">
+            <label>Fecha</label>
+            <div class="val">{{ selectedLog.timestamp | date:'yyyy-MM-dd' }}</div>
+          </div>
+        </div>
+
+        <div class="meta-box orange">
+          <div class="meta-icon-box">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div class="meta-content">
+            <label>Severidad</label>
+            <div class="val" [ngClass]="selectedLog.log_type.toLowerCase()">{{ selectedLog.log_type }}</div>
+          </div>
+        </div>
+
+        <div class="meta-box purple" *ngIf="selectedLog.details?.status">
+          <div class="meta-icon-box">
+            <i class="fas fa-server"></i>
+          </div>
+          <div class="meta-content">
+            <label>Estado</label>
+            <div class="val status-code" [class.error]="selectedLog.details.status >= 400">{{ selectedLog.details.status
+              }}</div>
+          </div>
+        </div>
+
+        <div class="meta-box gray" *ngIf="selectedLog.details?.method">
+          <div class="meta-icon-box">
+            <i class="fas fa-exchange-alt"></i>
+          </div>
+          <div class="meta-content">
+            <label>Método</label>
+            <div class="val">{{ selectedLog.details.method }}</div>
+          </div>
         </div>
       </div>
-    </div>
-  <!-- Modal Confirmar Cierre con Logs -->
-  <div class="modal-overlay" *ngIf="showCloseConfirmModal">
-    <div class="modal-card">
-      <h3 class="modal-title">Monitor de Actividad</h3>
-      <div class="modal-body">
-        <p class="modal-message">Hemos detectado tráfico de red no guardado. <br>¿Deseas registrarlo en el Monitor?</p>
-        <div class="modal-actions">
-          <button class="btn-modal-cancel" (click)="proceedCloseInspector(false)">Descartar</button>
-          <button class="btn-modal-confirm" (click)="proceedCloseInspector(true)">Guardar y Cerrar</button>
+
+      <div class="code-panel" *ngIf="selectedLog.details?.url">
+        <div class="code-panel-header">
+          <div class="meta-icon-box mini blue">
+            <i class="fas fa-link"></i>
+          </div>
+          <label>URL de Destino</label>
+          <div class="log-time-badge">
+            <i class="far fa-clock"></i> {{ selectedLog.timestamp | date:'HH:mm:ss.SSS' }}
+          </div>
         </div>
+        <div class="code-view single-line">{{ selectedLog.details.url }}</div>
+      </div>
+
+      <div class="code-panel message-panel" *ngIf="!selectedLog.details?.url">
+        <div class="code-panel-header">
+          <div class="meta-icon-box mini gray">
+            <i class="fas fa-comment-dots"></i>
+          </div>
+          <label>Mensaje Cautivo</label>
+          <div class="log-actions-right">
+            <span class="element-count" *ngIf="getJsonElementCount(selectedLog.message) !== null">
+              {{ getJsonElementCount(selectedLog.message) }} elementos
+            </span>
+            <button class="icon-btn-small" *ngIf="getJsonElementCount(selectedLog.message) !== null" (click)="copyToClipboard(selectedLog.message, 'cautivo')" title="Copiar JSON">
+              <i class="fas fa-check" style="color: #16a34a" *ngIf="copyState['cautivo']"></i>
+              <span *ngIf="copyState['cautivo']" class="copy-text">Copiado</span>
+              <i class="far fa-copy" *ngIf="!copyState['cautivo']"></i>
+            </button>
+            <div class="log-time-badge">
+              <i class="far fa-clock"></i> {{ selectedLog.timestamp | date:'HH:mm:ss.SSS' }}
+            </div>
+          </div>
+        </div>
+        <div style="position: relative;">
+          <div class="code-view" [class.json-view]="getJsonElementCount(selectedLog.message) !== null" [innerHTML]="formatJsonHtml(selectedLog.message)"></div>
+          <div class="floating-source-badge" *ngIf="getLogSource(selectedLog.message)">
+            <i class="fas fa-code-branch"></i> {{ getLogSource(selectedLog.message) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="code-panel"
+        *ngIf="selectedLog.details?.request_headers && (selectedLog.details.request_headers | json) !== '{}'">
+        <div class="code-panel-header">
+          <div class="meta-icon-box mini purple">
+            <i class="fas fa-heading"></i>
+          </div>
+          <label>Cabeceras (Headers)</label>
+        </div>
+        <div class="code-view">
+          <div *ngFor="let item of selectedLog.details.request_headers | keyvalue">
+            <span class="hdr-key">{{ item.key }}:</span> <span class="hdr-val">{{ item.value }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-panel highlight" *ngIf="selectedLog.details?.request_payload">
+        <div class="code-panel-header">
+          <div class="meta-icon-box mini mongo">
+            <i class="fas fa-paper-plane"></i>
+          </div>
+          <label>Payload Enviado</label>
+          <div class="log-actions-right">
+             <span class="element-count" *ngIf="getJsonElementCount(selectedLog.details.request_payload) !== null">
+               {{ getJsonElementCount(selectedLog.details.request_payload) }} elementos
+             </span>
+             <button class="icon-btn-small" (click)="copyToClipboard(selectedLog.details.request_payload, 'req')" title="Copiar JSON">
+              <i class="fas fa-check" style="color: #16a34a" *ngIf="copyState['req']"></i>
+              <span *ngIf="copyState['req']" class="copy-text">Copiado</span>
+              <i class="far fa-copy" *ngIf="!copyState['req']"></i>
+             </button>
+          </div>
+        </div>
+        <div class="code-view json-view" [innerHTML]="formatJsonHtml(selectedLog.details.request_payload)"></div>
+      </div>
+
+      <div class="code-panel highlight" *ngIf="selectedLog.details?.response_body">
+        <div class="code-panel-header">
+          <div class="meta-icon-box mini mongo">
+            <i class="fas fa-reply"></i>
+          </div>
+          <label>Respuesta del Servidor</label>
+          <div class="log-actions-right">
+             <span class="element-count" *ngIf="getJsonElementCount(selectedLog.details.response_body) !== null">
+               {{ getJsonElementCount(selectedLog.details.response_body) }} elementos
+             </span>
+             <button class="icon-btn-small" (click)="copyToClipboard(selectedLog.details.response_body, 'res')" title="Copiar JSON">
+              <i class="fas fa-check" style="color: #16a34a" *ngIf="copyState['res']"></i>
+              <span *ngIf="copyState['res']" class="copy-text">Copiado</span>
+              <i class="far fa-copy" *ngIf="!copyState['res']"></i>
+             </button>
+          </div>
+        </div>
+        <div class="code-view json-view" [innerHTML]="formatJsonHtml(selectedLog.details.response_body)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Guardado (Estilo Moderno/Actividad) -->
+<div class="modern-modal-overlay" *ngIf="showSaveConfirmModal">
+  <div class="modern-modal confirm-modal">
+    <div class="icon-header-avatar blue">
+      <i class="fas fa-database"></i>
+    </div>
+    <div class="confirm-content">
+      <h3 class="confirm-title">Guardar Registros</h3>
+      <p class="confirm-desc">Hemos detectado {{ unsavedLogsCount }} registros de red o consola en esta sesión.</p>
+      <p class="confirm-desc">¿Deseas almacenar el registro de conexiones en Inspector Central de forma permanente?</p>
+
+      <div class="action-row">
+        <button class="btn-cancel red" (click)="cancelSaveLogs()">Cancelar</button>
+        <button class="btn-confirm gray" (click)="confirmSaveLogs()">Guardar en BD</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cierre con Registros Volátiles (Estilo Moderno/Actividad) -->
+<div class="modern-modal-overlay" *ngIf="showCloseConfirmModal">
+  <div class="modern-modal confirm-modal">
+    <div class="icon-header-avatar blue">
+      <i class="fas fa-network-wired"></i>
+    </div>
+    <div class="confirm-content">
+      <h3 class="confirm-title">Registro de Actividad</h3>
+      <p class="confirm-desc">Hemos detectado tráfico de red en esta sesión.</p>
+      <p class="confirm-desc">¿Deseas guardar el registro de conexiones antes de cerrar la pestaña?</p>
+
+      <div class="action-row space-even">
+        <button class="btn-cancel red" (click)="proceedCloseInspector(true)">Guardar log y cerrar</button>
+        <button class="btn-confirm gray" (click)="proceedCloseInspector(false)">Cerrar sin guardar</button>
       </div>
     </div>
   </div>

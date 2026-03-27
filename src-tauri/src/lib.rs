@@ -1,6 +1,6 @@
 pub mod commands;
 pub mod crypto;
-pub mod proxy_handler;
+pub mod proxy;
 pub mod remote_control;
 pub mod sha256;
 pub mod storage;
@@ -18,7 +18,7 @@ pub fn run() {
     tauri::Builder::default()
         // .plugin(tauri_plugin_fs::init())
         .register_uri_scheme_protocol("sandra-app", |app_handle, request| {
-            proxy_handler::handle_request(app_handle.app_handle(), &request)
+            proxy::handle_request(app_handle.app_handle(), &request)
         })
         // .plugin(tauri_plugin_shell::init())
         // .plugin(tauri_plugin_dialog::init())

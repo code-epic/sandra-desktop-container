@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { AppStateService } from "./app-state.service";
 
 export interface LogEntry {
@@ -85,6 +86,21 @@ export class LoggerService {
   initialize() {
     if (this.initialized) return;
     this.initialized = true;
+
+    // Escuchar eventos nativos de Rust (Inspector Proxy)
+    listen('app:log_network', (event: any) => {
+      const payload = event.payload;
+      const entry: LogEntry = {
+        type: payload.log_type as any,
+        message: payload.message,
+        timestamp: new Date(),
+        app_id: payload.app_id || this.currentAppId,
+        source: payload.details?.source || 'Rust Proxy',
+        details: payload.details
+      };
+      this.unsavedLogs.push(entry);
+      this.logSubject.next(entry);
+    });
 
     // Listen for logs from Iframe Apps (Bridge)
     window.addEventListener('message', (event) => {
@@ -197,15 +213,6 @@ export class LoggerService {
 
     this.unsavedLogs.push(entry);
     this.logSubject.next(entry);
-
-    // AUTO-SAVE Logic: Network Errors must be reported to Monitor (DB) immediately
-    if (type === 'ERROR' && (source === 'Network' || message.includes('Fetch') || message.includes('XHR'))) {
-      this.persistBackend(type, message, null, effectiveAppId, entry.timestamp.toISOString(), source)
-        .then(id => {
-          // Determine ID or mark as saved with placeholder if void return
-          entry.id = id || -1;
-        });
-    }
   }
 
   public async persistBackend(type: string, message: string, details: any, appId: string, timestamp?: string, source?: string): Promise<number | null> {

@@ -1869,16 +1869,7 @@ export class AppComponent implements OnInit {
       if (!this.isInspectorOpen) {
         this.toggleRightSidebar();
       } else {
-        if (this.logger.hasLogs(contextId)) {
-          if (
-            confirm(
-              "Hay logs en el inspector para esta aplicación. ¿Desea guardarlos antes de cerrar?",
-            )
-          ) {
-            await this.logger.saveAllLogs(contextId);
-          }
-        }
-        this.toggleRightSidebar();
+        window.dispatchEvent(new CustomEvent('request-inspector-close'));
       }
     }
   }

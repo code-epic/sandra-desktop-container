@@ -121,9 +121,9 @@ export class AppStateService {
     if (staticPages.includes(id)) {
       this.lastDashboardSectionSubject.next(id);
       this.leftSidebarOpenSubject.next(true);
+      this.rightSidebarOpenSubject.next(false);
     } else {
       this.leftSidebarOpenSubject.next(false);
-      this.rightSidebarOpenSubject.next(false);
     }
   }
 
