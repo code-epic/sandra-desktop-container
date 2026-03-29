@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -31,10 +31,10 @@ interface SdcConfig {
   templateUrl: './security.component.html',
   styleUrls: ['./security.component.css'],
 })
-export class SecurityComponent implements OnInit {
+export class SecurityComponent implements OnInit, OnChanges {
   @Input() activeConnection: any;
 
-  activeTab: 'mailbox' | 'config' | 'proxy' = 'mailbox';
+  activeTab: 'mailbox' | 'config' | 'proxy' | 'contacts' = 'mailbox';
   currentMailbox: 'Red' | 'Entrada' | 'Salida' | 'Config' | 'Boveda' = 'Entrada';
   history: any[] = [];
 
@@ -80,7 +80,7 @@ export class SecurityComponent implements OnInit {
 
   // Autocomplete State
   availableUsers = ['Admin Central', 'Seguridad TI', 'Auditoría Interna', 'Gerencia Operativa', 'Soporte Técnico', 'Analista de Riesgos', 'Oficial de Cumplimiento'];
-  filteredUsers: string[] = [];
+  filteredUsers: any[] = [];
   showAutocomplete = false;
 
   // Sending Process State
@@ -276,6 +276,84 @@ export class SecurityComponent implements OnInit {
   };
   isEditing: boolean = false;
 
+  // --- Contacts State ---
+  contacts: any[] = [];
+  contactSearchText: string = '';
+  contactAppFilter: string = '';
+  contactAreaFilter: string = '';
+  contactView: 'grid' | 'table' = 'grid';
+  contactPage: number = 1;
+  contactPageSize: number = 12;
+  isContactsSyncing: boolean = false;
+  contactSyncMessage: string = '';
+
+  /** Storage key scoped to the active connection's hash */
+  private get contactStorageKey(): string {
+    const hash = this.activeConnection?.hash || 'offline';
+    return `sdc_contacts_${hash}`;
+  }
+
+  /** Label of the active connection shown in the tab */
+  get activeConnectionLabel(): string {
+    if (!this.activeConnection) return '';
+    return `${this.activeConnection.ip_address}:${this.activeConnection.port}`;
+  }
+
+  // Contact Form
+  showContactForm: boolean = false;
+  editingContactId: number | null = null;
+  contactForm: any = this.emptyContactForm();
+
+  // Contact Delete
+  showDeleteContactModal: boolean = false;
+  contactToDelete: any = null;
+
+  get contactApplications(): string[] {
+    return [...new Set(this.contacts.map(c => c.sistema || c.aplicacion).filter(Boolean))].sort();
+  }
+
+  get contactAreas(): string[] {
+    return [...new Set(this.contacts.map(c => c.Perfil?.descripcion || c.perfil_grupo).filter(Boolean))].sort();
+  }
+
+  get filteredContacts(): any[] {
+    let list = this.contacts;
+    if (this.contactSearchText) {
+      const q = this.contactSearchText.toLowerCase();
+      list = list.filter(c =>
+        (c.login || '').toLowerCase().includes(q) ||
+        (c.nombre || '').toLowerCase().includes(q) ||
+        (c.cargo || '').toLowerCase().includes(q) ||
+        (c.correo || '').toLowerCase().includes(q) ||
+        (c.descripcion || '').toLowerCase().includes(q) ||
+        (c.Perfil?.descripcion || '').toLowerCase().includes(q) ||
+        (c.perfil_grupo || '').toLowerCase().includes(q) ||
+        (c.sistema || '').toLowerCase().includes(q) ||
+        (c.aplicacion || '').toLowerCase().includes(q)
+      );
+    }
+    if (this.contactAppFilter) {
+      list = list.filter(c => (c.sistema || c.aplicacion) === this.contactAppFilter);
+    }
+    if (this.contactAreaFilter) {
+      list = list.filter(c => (c.Perfil?.descripcion || c.perfil_grupo) === this.contactAreaFilter);
+    }
+    return list;
+  }
+
+  get paginatedContacts(): any[] {
+    const start = (this.contactPage - 1) * this.contactPageSize;
+    return this.filteredContacts.slice(start, start + this.contactPageSize);
+  }
+
+  get totalContactPages(): number {
+    return Math.ceil(this.filteredContacts.length / this.contactPageSize) || 1;
+  }
+
+  private emptyContactForm() {
+    return { login: '', nombre: '', correo: '', descripcion: '', cargo: '', perfil_grupo: '', aplicacion: '', Perfil: { descripcion: '' } };
+  }
+
   constructor(
     private securityService: SecurityService,
     private appState: AppStateService,
@@ -295,6 +373,7 @@ export class SecurityComponent implements OnInit {
     this.loadHistory();
     this.extractAuthorFromJwt();
     this.loadSystemIdentity();
+    this.loadContactsLocal(); // load contacts for current connection on init
 
     // Listener para refrescar el buzón cuando Rust termine una sincronización
     listen('refresh-mailbox', () => {
@@ -303,6 +382,22 @@ export class SecurityComponent implements OnInit {
 
     // Sincronización inicial al entrar
     this.syncMailbox();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // When the active connection changes, reload contacts scoped to the new connection
+    if (changes['activeConnection'] && !changes['activeConnection'].firstChange) {
+      this.contacts = [];
+      this.contactSearchText = '';
+      this.contactAppFilter = '';
+      this.contactAreaFilter = '';
+      this.contactPage = 1;
+      this.loadContactsLocal();
+      // Re-sync if we're on the contacts tab
+      if (this.activeTab === 'contacts' && this.activeConnection?.hash) {
+        this.syncContacts();
+      }
+    }
   }
 
   private async loadSystemIdentity() {
@@ -408,8 +503,11 @@ export class SecurityComponent implements OnInit {
     }
   }
 
-  setTab(tab: 'mailbox' | 'config' | 'proxy') {
+  setTab(tab: 'mailbox' | 'config' | 'proxy' | 'contacts') {
     this.activeTab = tab;
+    if (tab === 'contacts' && this.contacts.length === 0) {
+      this.syncContacts();
+    }
   }
 
   async refreshAll() {
@@ -588,15 +686,80 @@ export class SecurityComponent implements OnInit {
       this.showAutocomplete = false;
       return;
     }
-    this.filteredUsers = this.availableUsers.filter(u =>
-      u.toLowerCase().includes(val) && !this.newMessage.selectedRecipients.includes(u)
-    );
+
+    // Filter from local contacts
+    const matchingContacts = this.contacts.filter(c => {
+      const match = 
+        (c.login || '').toLowerCase().includes(val) || 
+        (c.nombre || '').toLowerCase().includes(val) || 
+        (c.correo || '').toLowerCase().includes(val) || 
+        (c.cargo || '').toLowerCase().includes(val) || 
+        (c.descripcion || '').toLowerCase().includes(val) ||
+        (c.Perfil?.descripcion || '').toLowerCase().includes(val) || 
+        (c.perfil_grupo || '').toLowerCase().includes(val) || 
+        (c.aplicacion || '').toLowerCase().includes(val);
+      
+      const notSelected = 
+        !this.newMessage.selectedRecipients.includes(c.login || '') && 
+        !this.newMessage.selectedRecipients.includes(c.correo || '') &&
+        !this.newMessage.selectedRecipients.includes(c.nombre || '');
+        
+      return match && notSelected;
+    });
+
+    const groups: { [key: string]: any[] } = {};
+    matchingContacts.forEach(c => {
+      const gName = c.Perfil?.descripcion || c.perfil_grupo || 'Sin Perfil';
+      if (!groups[gName]) groups[gName] = [];
+      groups[gName].push(c);
+    });
+
+    const profiles: any[] = [];
+    const individuals: any[] = [];
+
+    // Main Sections Headers
+    const result: any[] = [];
+
+    // 1. Collect Profiles/Groups
+    Object.keys(groups).sort().forEach(groupName => {
+      profiles.push({ 
+        isHeader: true, 
+        name: groupName, 
+        isGroup: true,
+        detail: `Enviar campaña a todo el perfil (${groups[groupName].length} contactos)`
+      });
+    });
+
+    // 2. Collect Individual Users
+    matchingContacts.sort((a, b) => (a.nombre || a.login).localeCompare(b.nombre || b.login)).forEach(c => {
+      individuals.push({
+        isHeader: false,
+        name: c.nombre || c.login || c.correo,
+        detail: `${c.correo || ''} | ${c.Perfil?.descripcion || c.cargo || ''}`.trim(),
+        initials: this.getContactInitials(c.nombre || c.login || c.correo),
+        isContact: true
+      });
+    });
+
+    // Assemble final result with main separators (Individuals FIRST, then Profiles)
+    if (individuals.length > 0) {
+      result.push({ isMainSeparator: true, name: 'Contactos Individuales' });
+      result.push(...individuals);
+    }
+    if (profiles.length > 0) {
+      result.push({ isMainSeparator: true, name: 'Campaña por Perfiles (Campaña)' });
+      result.push(...profiles);
+    }
+
+    this.filteredUsers = result;
     this.showAutocomplete = this.filteredUsers.length > 0;
   }
 
-  selectUser(user: string) {
-    if (!this.newMessage.selectedRecipients.includes(user)) {
-      this.newMessage.selectedRecipients.push(user);
+  selectUser(userObj: any) {
+    if (!userObj || userObj.isMainSeparator) return;
+    const label = userObj.isGroup ? `[PERFIL] ${userObj.name}` : userObj.name;
+    if (!this.newMessage.selectedRecipients.includes(label)) {
+      this.newMessage.selectedRecipients.push(label);
     }
     this.newMessage.recipientInput = '';
     this.showAutocomplete = false;
@@ -1348,5 +1511,145 @@ export class SecurityComponent implements OnInit {
     this.deleteType = 'route';
     this.routeToDelete = route;
     this.showDeleteModal = true;
+  }
+
+  // =====================
+  // CONTACTS MODULE
+  // =====================
+
+  loadContactsLocal() {
+    try {
+      const stored = localStorage.getItem(this.contactStorageKey);
+      if (stored) this.contacts = JSON.parse(stored);
+      else this.contacts = [];
+    } catch { this.contacts = []; }
+  }
+
+  saveContactsLocal() {
+    localStorage.setItem(this.contactStorageKey, JSON.stringify(this.contacts));
+  }
+
+  async syncContacts() {
+    if (this.isContactsSyncing) return;
+    this.isContactsSyncing = true;
+
+    // First load local
+    this.loadContactsLocal();
+
+    if (!this.activeConnection?.hash) {
+      this.isContactsSyncing = false;
+      return;
+    }
+
+    try {
+      const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+      const payload = {
+        "funcion": 'SDC_CUsers',
+        "parametros": this.contactAppFilter || ''
+      };
+
+      const response: any = await invoke('api_post_request', {
+        ip: this.activeConnection.ip_address,
+        port: Number(this.activeConnection.port),
+        endpoint,
+        payload,
+        hash: this.activeConnection.hash,
+        tempAuthToken: this.activeConnection.jwt
+      });
+
+      if (response && Array.isArray(response)) {
+        // Merge remote data with local, remote takes precedence by login
+        const remoteLogins = new Set(response.map((c: any) => (c.login || c.user_name || '').toLowerCase()));
+        const localOnly = this.contacts.filter(c => !remoteLogins.has((c.login || '').toLowerCase()));
+        this.contacts = [...response, ...localOnly];
+        this.saveContactsLocal();
+      } else if (response && response.data && Array.isArray(response.data)) {
+        this.contacts = response.data;
+        this.saveContactsLocal();
+      } else if (response && response.msj === 'Ok' && response.contenido) {
+        this.contacts = Array.isArray(response.contenido) ? response.contenido : [];
+        this.saveContactsLocal();
+      }
+    } catch (e) {
+      console.warn('Contacts sync error (using local data):', e);
+    } finally {
+      this.isContactsSyncing = false;
+    }
+  }
+
+  resetContactPagination() {
+    this.contactPage = 1;
+  }
+
+  openContactForm() {
+    this.editingContactId = null;
+    this.contactForm = this.emptyContactForm();
+    this.showContactForm = true;
+  }
+
+  editContact(contact: any) {
+    this.editingContactId = contact.id || null;
+    this.contactForm = { ...contact };
+    this.showContactForm = true;
+  }
+
+  closeContactForm() {
+    this.showContactForm = false;
+    this.editingContactId = null;
+    this.contactForm = this.emptyContactForm();
+  }
+
+  saveContact() {
+    if (!this.contactForm.login) return;
+
+    // Normalize and search for existing by login
+    const targetLogin = (this.contactForm.login || '').trim().toLowerCase();
+    const existingIdx = this.contacts.findIndex(c => 
+      (c.login || '').trim().toLowerCase() === targetLogin
+    );
+
+    if (this.editingContactId) {
+      // Direct edit mode
+      const idx = this.contacts.findIndex(c => c.id === this.editingContactId);
+      if (idx !== -1) {
+        this.contacts[idx] = { ...this.contactForm, id: this.editingContactId };
+      }
+    } else if (existingIdx !== -1) {
+      // Sync/Update mode: Duplicate login detected, merge attributes
+      this.contacts[existingIdx] = { 
+        ...this.contacts[existingIdx], 
+        ...this.contactForm 
+      };
+    } else {
+      // New record mode
+      const newContact = {
+        ...this.contactForm,
+        id: Date.now()
+      };
+      this.contacts.unshift(newContact);
+    }
+
+    this.saveContactsLocal();
+    this.closeContactForm();
+  }
+
+  confirmDeleteContact(contact: any) {
+    this.contactToDelete = contact;
+    this.showDeleteContactModal = true;
+  }
+
+  executeDeleteContact() {
+    if (!this.contactToDelete) return;
+    this.contacts = this.contacts.filter(c => c.id !== this.contactToDelete.id);
+    this.saveContactsLocal();
+    this.showDeleteContactModal = false;
+    this.contactToDelete = null;
+  }
+
+  getContactInitials(name: string): string {
+    if (!name) return '?';
+    const parts = name.trim().split(/[\s._-]+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
   }
 }

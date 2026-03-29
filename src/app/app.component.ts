@@ -324,6 +324,7 @@ export class AppComponent implements OnInit {
         const s = event.payload as string;
         if (s === "connected") {
           this.wsStatus = "Conectado";
+          this.showControlPanel = false; // Ocultar configuración tras conectar con éxito
           this.checkAndPromptJwt();
         } else if (s === "disconnected") {
           this.wsStatus = "Desconectado";
@@ -600,20 +601,71 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async disconnectConnection(conn: any) {
-    if (!conn) return;
-    try {
-      await this.sdcService.disconnectFromServer(conn, this.clientId);
-      this.activeConnection = null;
-      this.wsStatus = "Desconectado"; // Optimistic update
-
-      // Update the connection in the list to reflect disconnected state
-      // (assuming getConnections reads from DB where flag is updated)
-      await this.loadConnections();
-    } catch (e) {
-      console.error("Error disconnecting", e);
-      this.showModal("Error", "Error al desconectar: " + e);
+  async disconnectConnection(conn: any, stayInConfig: boolean = false) {
+    if (!conn) {
+      if (stayInConfig) this.showControlPanel = true;
+      return;
     }
+
+    this.showQuestionModal(
+      "Confirmar Desconexión",
+      "¿Estás seguro de que deseas desconectarte? Se cerrará la sesión actual y será necesario ingresar credenciales nuevamente.",
+      "Desconectar",
+      "Mantener Conexión",
+      async () => {
+        try {
+          // 1. Desconectar físicamente del servidor (Rust)
+          await this.sdcService.disconnectFromServer(conn, this.clientId);
+          
+          // 2. Limpiar sesión local y tokens
+          this.performLocalLogout();
+
+          // 3. Actualizar lista de conexiones
+          await this.loadConnections();
+
+          // 4. Mostrar feedback al usuario
+          const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
+          this.snapService.show("Sesión Finalizada", safeEvent as any, "info", "fa-sign-out-alt");
+          
+          // 4. Decidir si cerrar o mantener el panel de control
+          if (stayInConfig) {
+            this.showControlPanel = true;
+            this.loadConnections();
+          } else {
+            this.showControlPanel = false;
+          }
+
+        } catch (e) {
+          console.error("Error al desconectar:", e);
+          this.showModal("Error", "Error al desconectar: " + e);
+        }
+      }
+    );
+  }
+
+  /**
+   * Limpia todos los rastros de la sesión actual sin cerrar la aplicación.
+   * Centraliza la lógica de "Logout" para reutilización.
+   */
+  performLocalLogout() {
+    console.log("🔐 [System] Ejecutando limpieza de sesión local...");
+    
+    // 1. Limpiar Storage de sesión
+    sessionStorage.clear();
+
+    // 2. Limpiar Token JWT según configuración de persistencia
+    const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+    storage.removeItem(this.config.access.jwtVariableName);
+
+    // 3. Resetear estados visuales
+    this.activeConnection = null;
+    this.wsStatus = "Desconectado";
+    
+    // 4. Limpiar cualquier puerto de autorización pendiente
+    this.authPorts.clear();
+
+    // 5. Redireccionar al Dashboard (Zona Pública)
+    this.appState.setActiveTab("dashboard");
   }
 
   // --- Application Lifecycle & Setup ---
@@ -759,15 +811,9 @@ export class AppComponent implements OnInit {
       this.logoutStep = "Desconectando el WebSocket";
       await new Promise(r => setTimeout(r, 800)); // Visual delay
 
-      // Step 3: Clear Storage
-      this.logoutStep = "Limpiando Storage";
-      sessionStorage.clear();
-      await new Promise(r => setTimeout(r, 800)); // Visual delay
-
-      // Step 4: Clear JWT Connections
-      this.logoutStep = "Limpiando conexiones JWT";
-      const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
-      storage.removeItem(this.config.access.jwtVariableName);
+      // Step 3 & 4: Clear Storage & JWT Connections (Unified)
+      this.logoutStep = "Limpiando rastros de sesión";
+      this.performLocalLogout();
       await new Promise(r => setTimeout(r, 800)); // Visual delay
 
       // Final Exit

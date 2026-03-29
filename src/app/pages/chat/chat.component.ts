@@ -47,8 +47,19 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   isTyping = false;
   unreadCount = 0;
   isHistoryOpen = false;
+  isContactsOpen = false; // Nueva vista de contactos
   historyGroups: any[] = [];
+  activeUsers: any[] = []; // Usuarios conectados
   private jwtCheckInterval: any;
+
+  // Estado del modal de confirmación
+  confirmModal = {
+    show: false,
+    title: '',
+    message: '',
+    type: 'single' as 'single' | 'all',
+    session: null as any
+  };
 
   constructor(
     private wsService: WebSocketService,
@@ -57,6 +68,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   ngOnInit() {
     this.loadMessagesFromStorage();
+    this.loadHistoryGroups(); // Cargar grupos al inicio
 
     // Escuchar mensajes reales del WebSocket
     this.chatSub = this.wsService.chatMessages$.subscribe(msg => {
@@ -126,7 +138,181 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.isOpen = !this.isOpen;
     if (this.isOpen) {
       this.unreadCount = 0;
+      // Forzar scroll al abrir
+      setTimeout(() => this.scrollToBottom(), 150);
     }
+  }
+
+  toggleContacts() {
+    this.isContactsOpen = !this.isContactsOpen;
+    if (this.isContactsOpen) {
+      this.loadActiveUsers();
+    }
+  }
+
+  // --- Grouped History Logic ---
+
+  /**
+   * Carga el historial de sesiones guardadas en localStorage
+   */
+  loadHistoryGroups() {
+    const saved = localStorage.getItem("sandra_chat_history");
+    if (saved) {
+      try {
+        this.historyGroups = JSON.parse(saved).sort((a: any, b: any) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+      } catch (e) {
+        console.error("Error cargando historial agrupado", e);
+        this.historyGroups = [];
+      }
+    }
+  }
+
+  /**
+   * Archiva la sesión actual y limpia la pantalla
+   */
+  archiveCurrentSession() {
+    if (this.messages.length <= 1) return; // No archivar si solo está el mensaje de bienvenida
+
+    const session = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      messages: [...this.messages],
+      preview: (this.messages[1] as any)?.message || (this.messages[0] as any)?.message || 'Sin mensajes'
+    };
+
+    const history = JSON.parse(localStorage.getItem("sandra_chat_history") || "[]");
+    history.push(session);
+    localStorage.setItem("sandra_chat_history", JSON.stringify(history));
+    
+    // Limpiar buffer actual
+    this.messages = [];
+    localStorage.removeItem("sandra_chat_buffer");
+    this.loadHistoryGroups();
+  }
+
+  /**
+   * Finaliza la sesión actual e inicia una nueva
+   */
+  startNewConversation() {
+    this.archiveCurrentSession();
+    this.messages = [];
+    this.addSystemMessage("Hola, soy Sandra. Sesión nueva iniciada. ¿En qué puedo ayudarte?");
+    this.saveMessagesToStorage();
+    this.closeHistoryModal();
+  }
+
+  /**
+   * Carga una sesión antigua del historial (Modo lectura/reemplazo)
+   */
+  viewArchivedSession(session: any) {
+    // Para simplificar, reemplazamos el buffer actual con la sesión elegida
+    this.archiveCurrentSession(); // Archivar la actual primero
+    this.messages = session.messages.map((m: any) => ({
+      ...m,
+      timestamp: new Date(m.timestamp)
+    }));
+    this.saveMessagesToStorage();
+    this.closeHistoryModal();
+    setTimeout(() => this.scrollToBottom(), 150);
+  }
+
+  /**
+   * Abre modal para eliminar una sesión específica
+   */
+  deleteSession(session: any, event: Event) {
+    event.stopPropagation();
+    this.confirmModal = {
+      show: true,
+      title: '¿Eliminar Conversación?',
+      message: 'Esta sesión se borrará permanentemente del historial de Sandra.',
+      type: 'single',
+      session: session
+    };
+  }
+
+  /**
+   * Abre modal para eliminar TODO el historial
+   */
+  clearAllHistory() {
+    this.confirmModal = {
+      show: true,
+      title: '¿Limpiar Historial?',
+      message: 'Se borrarán permanentemente todas las conversaciones guardadas. Esta acción no se puede deshacer.',
+      type: 'all',
+      session: null
+    };
+  }
+
+  /**
+   * Ejecuta la eliminación tras confirmar en el modal
+   */
+  handleConfirmDelete() {
+    if (this.confirmModal.type === 'single' && this.confirmModal.session) {
+      const index = this.historyGroups.findIndex(g => g.id === this.confirmModal.session.id);
+      if (index > -1) {
+        this.historyGroups.splice(index, 1);
+        localStorage.setItem("sandra_chat_history", JSON.stringify(this.historyGroups));
+      }
+    } else if (this.confirmModal.type === 'all') {
+      localStorage.removeItem("sandra_chat_history");
+      this.historyGroups = [];
+    }
+    this.closeConfirmModal();
+  }
+
+  closeConfirmModal() {
+    this.confirmModal.show = false;
+    this.confirmModal.session = null;
+  }
+
+  async loadActiveUsers() {
+    if (!this.activeConnection || !this.config) return;
+    try {
+      const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+      const token = storage.getItem(this.config.access.jwtVariableName);
+      const endpoint = "v1/api/sandra_get-active-sessions";
+      
+      const response = await this.sdcService.apiPostRequest(
+        this.activeConnection.ip_address,
+        this.activeConnection.port,
+        endpoint,
+        {},
+        this.activeConnection.hash,
+        token
+      );
+
+      if (response && Array.isArray(response)) {
+        this.activeUsers = response.map(u => ({
+          name: u.name || u.Username || u.User || 'Terminal',
+          uuid: u.uuid || u.ID || u.Uuid || '0000-0000',
+          initial: this.getInitials(u.name || u.Username || u.User || 'T')
+        }));
+      }
+    } catch (err) {
+      console.error("Error cargando usuarios conectados:", err);
+    }
+  }
+
+  /**
+   * Determina si el mensaje actual pertenece a un día distinto al anterior.
+   */
+  isNewDay(index: number): boolean {
+    if (index === 0) return true;
+    const current = this.messages[index].timestamp;
+    const previous = this.messages[index - 1].timestamp;
+    
+    const d1 = new Date(current);
+    const d2 = new Date(previous);
+    return d1.getFullYear() !== d2.getFullYear() ||
+           d1.getMonth() !== d2.getMonth() ||
+           d1.getDate() !== d2.getDate();
+  }
+
+  getInitials(name: string): string {
+    if (!name) return '?';
+    return name.trim().charAt(0).toUpperCase();
   }
 
   openHistoryModal() {

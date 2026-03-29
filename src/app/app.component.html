@@ -1,9 +1,9 @@
 <div class="sdc-container">
   <!-- Componente Sidebar Modular -->
-  <app-sidebar [class.global-blur]="isViewerLoading" (onLogout)="handleGlobalLogout()" (onNavigateRequest)="handleNavigationRequest($event)"></app-sidebar>
+  <app-sidebar [class.global-blur]="isViewerLoading || showControlPanel" (onLogout)="handleGlobalLogout()" (onNavigateRequest)="handleNavigationRequest($event)"></app-sidebar>
 
   <main class="main-stage">
-    <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'" [class.global-blur]="isViewerLoading">
+    <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'" [class.global-blur]="isViewerLoading || showControlPanel">
       <div class="header-left-group">
         <button class="icon-btn toggle-btn" (click)="toggleLeftSidebar()">
           <i class="fas fa-bars"></i>
@@ -51,7 +51,7 @@
     </header>
 
     <section class="content-area" [class.sidebar-left-open]="leftSidebarOpen$ | async"
-      [class.inspector-open]="rightSidebarOpen$ | async">
+      [class.inspector-open]="rightSidebarOpen$ | async" [class.global-blur]="showControlPanel">
       <!-- Página Dashboard Modular -->
       <app-dashboard *ngIf="(activeTabId$ | async) === 'dashboard'" [stats]="stats" [networkInfo]="networkInfo"
         [apps]="apps" [dbStats]="dbStats" (onInstall)="DownloadAppRepo($event)" (onOpen)="openApp($event)"
@@ -330,7 +330,7 @@
     </section>
   </main>
 
-  <app-inspector></app-inspector>
+  <app-inspector [class.global-blur]="showControlPanel"></app-inspector>
 
   <!-- Modal de Instalación/Desinstalación Elegante (installModal) -->
   <div class="modal-overlay" *ngIf="installModal.show">
@@ -500,6 +500,7 @@
 
   <app-chat *ngIf="(activeTabId$ | async) !== 'login'" 
     [visible]="(chatVisible$ | async) === true"
+    [class.global-blur]="showControlPanel"
     [wsStatus]="wsStatus" [activeConnection]="activeConnection" [config]="config"
     [clientId]="clientId"></app-chat>
 

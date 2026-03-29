@@ -10,8 +10,8 @@
         <button [class.active]="activeTab === 'mailbox'" (click)="setTab('mailbox')">
             <i class="fas fa-inbox"></i> Buzón Seguro
         </button>
-        <button [class.active]="activeTab === 'config'" (click)="setTab('config')">
-            <i class="fas fa-sliders-h"></i> Políticas y Auditoría
+        <button [class.active]="activeTab === 'contacts'" (click)="setTab('contacts')">
+            <i class="fas fa-address-book"></i> Contactos
         </button>
         <button [class.active]="activeTab === 'proxy'" (click)="setTab('proxy')">
             <i class="fas fa-network-wired"></i> Rutas Proxy
@@ -42,7 +42,8 @@
                                 <i class="fas fa-paper-plane"></i> Enviados
                             </button>
                             <button class="btn-toggle" [class.active]="mailboxDirection === 'notifications'"
-                                (click)="mailboxDirection = 'notifications'; resetPagination()" title="Notificaciones de Sistema">
+                                (click)="mailboxDirection = 'notifications'; resetPagination()"
+                                title="Notificaciones de Sistema">
                                 <i class="fas fa-bell"></i> Notificaciones
                             </button>
                         </div>
@@ -65,7 +66,8 @@
                         <button class="btn-icon-mini primary" (click)="startCompose()" title="Redactar Requerimiento">
                             <i class="fas fa-pen"></i>
                         </button>
-                        <button class="btn-icon-mini" (click)="syncMailbox()" [disabled]="isSyncing" title="Actualizar y Sincronizar">
+                        <button class="btn-icon-mini" (click)="syncMailbox()" [disabled]="isSyncing"
+                            title="Actualizar y Sincronizar">
                             <i class="fas fa-sync-alt" [class.fa-spin]="isSyncing"></i>
                         </button>
                     </div>
@@ -158,7 +160,8 @@
                                     <ng-container *ngIf="msg.author === 'Ejecución de Función'">
                                         <span class="brand-main">Ejecución de Función</span>
                                     </ng-container>
-                                    <ng-container *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
+                                    <ng-container
+                                        *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
                                         {{ (msg.sid | slice:0:40) + ((msg.sid || '').length > 40 ? '...' : '') }}
                                     </ng-container>
                                 </span>
@@ -175,7 +178,8 @@
                             <i class="fas fa-inbox"></i>
                         </div>
                         <h3>Buzón sin registros</h3>
-                        <p>No se encontraron mensajes en la bandeja de {{ mailboxDirection === 'inbox' ? 'entrada' : (mailboxDirection === 'outbox' ? 'salida' : 'notificaciones') }}.</p>
+                        <p>No se encontraron mensajes en la bandeja de {{ mailboxDirection === 'inbox' ? 'entrada' :
+                            (mailboxDirection === 'outbox' ? 'salida' : 'notificaciones') }}.</p>
                         <button class="btn-refresh-empty" (click)="loadMessages()">
                             <i class="fas fa-sync-alt"></i> Actualizar
                         </button>
@@ -220,12 +224,41 @@
                                             (input)="filterUsers()" placeholder="Añadir destinatario..."
                                             class="input-clean-v4">
                                         <div class="autocomplete-dropdown-v4" *ngIf="showAutocomplete">
-                                            <div *ngFor="let user of filteredUsers" class="autocomplete-item-v4"
-                                                (click)="selectUser(user)">
-                                                <i class="fas fa-plus"></i> {{ user }}
-                                            </div>
+                                            <ng-container *ngFor="let user of filteredUsers">
+                                                <!-- Main Section Separator -->
+                                                <div *ngIf="user.isMainSeparator" class="autocomplete-section-title">
+                                                   {{ user.name }}
+                                                </div>
+
+                                                <!-- Group/Profile Header (Campaign) -->
+                                                <div *ngIf="user.isHeader && !user.isMainSeparator" class="autocomplete-header-area selectable-group" (click)="selectUser(user)">
+                                                   <div class="header-group-icon">
+                                                      <i class="fas fa-bullhorn"></i>
+                                                   </div>
+                                                   <div class="header-group-info">
+                                                      <span class="group-title">Perfil: {{ user.name }}</span>
+                                                      <span class="group-subtitle">{{ user.detail }}</span>
+                                                   </div>
+                                                   <i class="fas fa-plus auto-plus"></i>
+                                                </div>
+
+                                                <!-- Individual Contact -->
+                                                <div *ngIf="!user.isHeader && !user.isMainSeparator" class="autocomplete-item-v4" (click)="selectUser(user)">
+                                                   <div class="auto-avatar" [class.contact-mode]="user.isContact">
+                                                       {{ user.initials }}
+                                                   </div>
+                                                   <div class="auto-info">
+                                                       <span class="auto-name">{{ user.name }}</span>
+                                                       <span class="auto-detail">{{ user.detail }}</span>
+                                                   </div>
+                                                   <i class="fas fa-plus auto-plus"></i>
+                                                </div>
+                                            </ng-container>
                                         </div>
                                     </div>
+                                    <button class="btn-address-book-v4" title="Abrir Agenda de Contactos" (click)="setTab('contacts')">
+                                        <i class="fas fa-address-book"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -249,7 +282,8 @@
                         <div class="toolbar-group fluid-group">
                             <div class="combo-wrapper-v24 font-combo">
                                 <i class="fas fa-font"></i>
-                                <select class="modern-select-v24" (change)="formatDoc('fontName', $any($event.target).value)">
+                                <select class="modern-select-v24"
+                                    (change)="formatDoc('fontName', $any($event.target).value)">
                                     <option value="Arial">Arial</option>
                                     <option value="Inter">Inter</option>
                                     <option value="Courier New">Monospace</option>
@@ -259,7 +293,8 @@
                             </div>
                             <div class="combo-wrapper-v24 size-combo">
                                 <i class="fas fa-text-height"></i>
-                                <select class="modern-select-v24" (change)="formatDoc('fontSize', $any($event.target).value)">
+                                <select class="modern-select-v24"
+                                    (change)="formatDoc('fontSize', $any($event.target).value)">
                                     <option value="1">Muy Pequeño</option>
                                     <option value="2">Pequeño</option>
                                     <option value="3" selected>Normal</option>
@@ -302,7 +337,8 @@
                         <div class="toolbar-group fluid-group">
                             <div class="combo-wrapper-v24 template-combo-v24">
                                 <i class="fas fa-file-invoice"></i>
-                                <select class="modern-select-v24" (change)="applyTemplate($any($event.target).value); $any($event.target).value = ''">
+                                <select class="modern-select-v24"
+                                    (change)="applyTemplate($any($event.target).value); $any($event.target).value = ''">
                                     <option value="" disabled selected>Esquemas / Plantillas</option>
                                     <option value="MEMO">MEMORÁNDUM</option>
                                     <option value="RADIOGRAMA">RADIOGRAMA</option>
@@ -335,9 +371,9 @@
                                 <span class="att-name">{{ att.name }}</span>
                                 <span class="att-meta-detail-v23">
                                     {{ att.extension || att.type || 'Archivo' }} • {{ att.size }}
-                                    <span class="meta-tag cert-tag-compose fade-in" 
-                                          *ngIf="certificationMap.has(att.path)" 
-                                          (click)="openCertificationDetails(att, $event)">
+                                    <span class="meta-tag cert-tag-compose fade-in"
+                                        *ngIf="certificationMap.has(att.path)"
+                                        (click)="openCertificationDetails(att, $event)">
                                         <i class="fas fa-certificate"></i> CERTIFICADO
                                     </span>
                                     <span *ngIf="att.status === 'PENDING'" class="upload-status-info pending">
@@ -457,7 +493,9 @@
                                 <h2 *ngIf="selectedMessage.author === 'Ejecución de Función'">
                                     <span class="brand-main">Ejecución de Función</span>
                                 </h2>
-                                <h2 *ngIf="selectedMessage.author !== 'HSF Ticket Seguro' && selectedMessage.author !== 'Ejecución de Función'">{{ selectedMessage.sid }}</h2>
+                                <h2
+                                    *ngIf="selectedMessage.author !== 'HSF Ticket Seguro' && selectedMessage.author !== 'Ejecución de Función'">
+                                    {{ selectedMessage.sid }}</h2>
                                 <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">
                                     <i [class]="getStatusIcon(selectedMessage.status)"></i>
                                     {{ translateStatus(selectedMessage.status) }}
@@ -469,7 +507,9 @@
                                     title="Volver a la Bandeja">
                                     <i class="fas fa-arrow-left"></i>
                                 </button>
-                                <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox' && selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed'"></div>
+                                <div class="vertical-divider"
+                                    *ngIf="mailboxDirection !== 'outbox' && selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed'">
+                                </div>
                                 <button class="btn-action-sm success"
                                     (click)="updateMessageStatus(selectedMessage, 'Approved')"
                                     *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed' && mailboxDirection !== 'outbox'"
@@ -569,9 +609,9 @@
                                         <span class="att-name">{{ att.name }}</span>
                                         <span class="att-meta-detail-v23">{{ att.extension || att.type }} • {{ att.size
                                             || (att.source === 'LOCAL' ? 'Local' : 'Vault') }}
-                                            <span class="meta-tag cert-tag-compose fade-in" 
-                                                  *ngIf="certificationMap.has(att.path || att.transfer_info?.path)" 
-                                                  (click)="openCertificationDetails(att, $event)">
+                                            <span class="meta-tag cert-tag-compose fade-in"
+                                                *ngIf="certificationMap.has(att.path || att.transfer_info?.path)"
+                                                (click)="openCertificationDetails(att, $event)">
                                                 <i class="fas fa-certificate"></i> CERTIFICADO
                                             </span>
                                         </span>
@@ -586,7 +626,192 @@
 
         </div>
 
-        <!-- CONFIG TAB -->
+        <!-- CONTACTS TAB -->
+        <div *ngIf="activeTab === 'contacts'" class="tab-pane fade-in-up contacts-tab-wrapper">
+
+            <!-- Page header with action buttons -->
+            <div class="contacts-page-header">
+                <div class="contacts-brand">
+                    <div class="contacts-brand-icon">
+                        <i class="fas fa-address-book"></i>
+                    </div>
+                    <div class="contacts-brand-text">
+                        <h2>Directorio de Contactos</h2>
+                        <p>Gestione usuarios asociados a aplicaciones y áreas del sistema</p>
+                    </div>
+                </div>
+                <div class="contacts-header-actions">
+                    <button class="btn-contact-action sync" (click)="syncContacts()" [disabled]="isContactsSyncing"
+                        title="Sincronizar desde servidor">
+                        <div class="btn-circle-anim">
+                            <i class="fas fa-sync-alt" [class.fa-spin]="isContactsSyncing"></i>
+                        </div>
+                        <span>Sincronizar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search + Filter bar -->
+            <div class="contacts-toolbar glass-card">
+                <div class="contacts-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" [(ngModel)]="contactSearchText" (ngModelChange)="resetContactPagination()"
+                        placeholder="Buscar por nombre, usuario o cargo..." class="contacts-search-input">
+                </div>
+                <div class="contacts-filter-wrap">
+                    <select [(ngModel)]="contactAppFilter" (ngModelChange)="resetContactPagination()"
+                        class="contacts-filter-select">
+                        <option value="">Todos los Sistemas</option>
+                        <option *ngFor="let app of contactApplications" [value]="app">{{ app }}</option>
+                    </select>
+                    <select [(ngModel)]="contactAreaFilter" (ngModelChange)="resetContactPagination()"
+                        class="contacts-filter-select">
+                        <option value="">Todas las Áreas</option>
+                        <option *ngFor="let area of contactAreas" [value]="area">{{ area }}</option>
+                    </select>
+                </div>
+                <div class="contacts-toolbar-right">
+                    <span class="contacts-count-badge">{{ filteredContacts.length }} contacto(s)</span>
+                    <div class="contacts-view-toggle">
+                        <button [class.active]="contactView === 'grid'" (click)="contactView = 'grid'"
+                            title="Vista en tarjetas">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button [class.active]="contactView === 'table'" (click)="contactView = 'table'"
+                            title="Vista de tabla">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UNIFIED CONTACTS CONTAINER -->
+            <div class="contacts-main-card glass-card">
+                <!-- STRIP VIEW (TIRA) -->
+                <div class="contacts-strip-list" *ngIf="contactView === 'grid' && filteredContacts.length > 0">
+                    <div *ngFor="let contact of paginatedContacts" class="contact-strip-item fade-in"
+                        [class.editing]="editingContactId === contact.id">
+                        
+                        <div class="csi-avatar-section">
+                            <div class="csi-avatar-ring">
+                                <span class="csi-initials">{{ getContactInitials(contact.nombre || contact.login) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="csi-content-main">
+                            <div class="csi-header-row">
+                                <h4 class="csi-name">{{ contact.nombre || contact.login }}</h4>
+                                <span class="csi-cargo-badge"><i class="fas fa-id-badge"></i> {{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}</span>
+                            </div>
+                            <div class="csi-info-row">
+                                <span class="csi-email" *ngIf="contact.correo">
+                                    <i class="fas fa-envelope"></i> {{ contact.correo }}
+                                    <span class="csi-login-hint">@{{ contact.login }}</span>
+                                </span>
+                                <span class="csi-desc" *ngIf="contact.descripcion">
+                                    <i class="fas fa-info-circle"></i> {{ contact.descripcion }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="csi-tags-section">
+                            <div class="csi-tag csi-tag-app" title="Sistema">
+                                <i class="fas fa-layer-group"></i> {{ contact.sistema || contact.aplicacion }}
+                            </div>
+                            <div class="csi-tag csi-tag-area" title="Perfil / Área">
+                                <i class="fas fa-sitemap"></i> {{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}
+                            </div>
+                        </div>
+
+                        <div class="csi-actions-section">
+                            <button class="csi-btn-edit" (click)="editContact(contact)" title="Editar Perfil">
+                                <i class="fas fa-pen-fancy"></i>
+                            </button>
+                            <button class="csi-btn-del" (click)="confirmDeleteContact(contact)" title="Eliminar Contacto">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABLE VIEW (STREAMLINED) -->
+                <div class="contacts-table-wrap" *ngIf="contactView === 'table' && filteredContacts.length > 0">
+                    <table class="contacts-table">
+                        <thead>
+                            <tr>
+                                <th class="col-funcionario">Funcionario</th>
+                                <th class="col-identity">ID / Correo</th>
+                                <th class="col-profile">Perfil / Área</th>
+                                <th class="col-system">Sistema</th>
+                                <th class="col-actions">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let contact of paginatedContacts" class="fade-in">
+                                <td>
+                                    <div class="table-user-cell">
+                                        <span class="table-avatar">{{ getContactInitials(contact.nombre || contact.login) }}</span>
+                                        <span class="table-username">{{ contact.nombre || contact.login }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="table-info-cell">
+                                        <span class="table-email">{{ contact.correo || '---' }}</span>
+                                        <span class="table-login-hint">@{{ contact.login }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge-cargo">{{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge-app">{{ contact.sistema || contact.aplicacion }}</span>
+                                </td>
+                                <td>
+                                    <div class="table-action-hub">
+                                        <button class="btn-icon-table edit" (click)="editContact(contact)" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-icon-table danger" (click)="confirmDeleteContact(contact)"
+                                            title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- EMPTY STATE -->
+                <div class="contacts-empty" *ngIf="filteredContacts.length === 0">
+                    <div class="empty-visual">
+                        <i class="fas fa-users-slash"></i>
+                    </div>
+                    <h3>Sin resultados coincidentes</h3>
+                    <p>No se encontraron contactos registrados con los términos o filtros aplicados hoy.</p>
+                    <button class="btn-refresh-empty" (click)="syncContacts()">
+                        <i class="fas fa-sync-alt"></i> Sincronizar Directorio
+                    </button>
+                </div>
+
+                <!-- Pagination inside card -->
+                <div class="contacts-pagination-footer" *ngIf="filteredContacts.length > contactPageSize">
+                    <div class="pagination-divider"></div>
+                    <div class="pagination-controls">
+                        <button class="btn-paginator" [disabled]="contactPage === 1" (click)="contactPage = contactPage - 1">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="pagination-info">Página {{ contactPage }} de {{ totalContactPages }}</span>
+                        <button class="btn-paginator" [disabled]="contactPage === totalContactPages"
+                            (click)="contactPage = contactPage + 1">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIG TAB (hidden from nav but preserved) -->
         <div *ngIf="activeTab === 'config'" class="tab-pane fade-in-up">
             <div class="glass-card config-panel">
                 <h3><i class="fas fa-lock"></i> Configuración de Seguridad</h3>
@@ -814,6 +1039,134 @@
     </div>
 
     <!-- Modal Visor Seguro V6 (Premium Explorer) -->
+    <!-- CONTACT FORM MODAL (refined) -->
+    <div class="modal-overlay" *ngIf="showContactForm">
+        <div class="modal-card contact-form-modal fade-in-up">
+
+            <!-- Dynamic visual header -->
+            <div class="cfm-header">
+                <!-- Live avatar showing initials as you type -->
+                <div class="cfm-avatar-wrap">
+                    <div class="cfm-avatar" [class.has-initials]="contactForm.user_name">
+                        <span *ngIf="contactForm.user_name" class="cfm-avatar-text">
+                            {{ getContactInitials(contactForm.user_name) }}
+                        </span>
+                        <i *ngIf="!contactForm.user_name" class="fas fa-user-circle cfm-avatar-icon"></i>
+                    </div>
+                    <div class="cfm-mode-badge" [class.edit-mode]="true">
+                        <i class="fas fa-user-edit"></i>
+                        Actualizar Contacto
+                    </div>
+                </div>
+
+                <!-- Active connection pill -->
+                <div class="cfm-connection-pill" *ngIf="activeConnection">
+                    <span class="cfm-conn-dot"></span>
+                    <i class="fas fa-server"></i>
+                    <span>{{ activeConnectionLabel }}</span>
+                </div>
+                <div class="cfm-connection-pill offline" *ngIf="!activeConnection">
+                    <span class="cfm-conn-dot offline"></span>
+                    <i class="fas fa-plug"></i>
+                    <span>Sin conexión activa</span>
+                </div>
+            </div>
+
+            <!-- Form Body -->
+            <div class="cfm-body">
+                <!-- Group 1: Primary Identity -->
+                <div class="cfm-row">
+                    <div class="cfm-field cfm-field-full">
+                        <label><i class="fas fa-user-circle"></i> Nombre Completo del Funcionario <span class="req">*</span></label>
+                        <input type="text" [(ngModel)]="contactForm.nombre" placeholder="Nombre completo"
+                            class="input-contact disabled-field" readonly>
+                    </div>
+                </div>
+
+                <!-- Group 2: Access & Mail -->
+                <div class="cfm-row">
+                    <div class="cfm-field">
+                        <label><i class="fas fa-id-card-alt"></i> Usuario Login</label>
+                        <input type="text" [(ngModel)]="contactForm.login" placeholder="login"
+                            class="input-contact disabled-field" readonly>
+                    </div>
+                    <div class="cfm-field">
+                        <label><i class="fas fa-envelope"></i> Correo Institucional</label>
+                        <input type="email" [(ngModel)]="contactForm.correo" placeholder="correo@mil.ve"
+                            class="input-contact disabled-field" readonly>
+                    </div>
+                </div>
+
+                <!-- Group 3: Organizational Role -->
+                <div class="cfm-row">
+                    <div class="cfm-field">
+                        <label><i class="fas fa-id-badge"></i> Cargo Oficial</label>
+                        <input type="text" [(ngModel)]="contactForm.cargo" placeholder="---"
+                            class="input-contact disabled-field" readonly>
+                    </div>
+                    <div class="cfm-field">
+                        <label><i class="fas fa-sitemap"></i> Perfil / Grupo (Área)</label>
+                        <input type="text" [value]="contactForm.Perfil?.descripcion || contactForm.perfil_grupo || '---'" 
+                            class="input-contact disabled-field" readonly title="Información oficial del área">
+                    </div>
+                </div>
+
+                <!-- Group 4: Application Context -->
+                <div class="cfm-row">
+                    <div class="cfm-field cfm-field-full">
+                        <label><i class="fas fa-layer-group"></i> Aplicación Activa</label>
+                        <input type="text" [(ngModel)]="contactForm.aplicacion" placeholder="Ej: SandraCore"
+                            class="input-contact" [class.input-filled]="contactForm.aplicacion">
+                    </div>
+                </div>
+
+                <!-- Group 5: Local Context (Editable) -->
+                <div class="cfm-row">
+                    <div class="cfm-field cfm-field-full">
+                        <label><i class="fas fa-align-left"></i> Notas Locales / Descripción Adicional</label>
+                        <input type="text" [(ngModel)]="contactForm.descripcion" 
+                            placeholder="Ej: Ubicación, teléfono interno, etc." 
+                            class="input-contact" [class.input-filled]="contactForm.descripcion">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="cfm-footer">
+                <button class="cfm-btn-save" (click)="saveContact()" [disabled]="!contactForm.login">
+                    <i class="fas fa-check"></i>
+                    Actualizar Contacto
+                </button>
+                <button class="cfm-btn-cancel" (click)="closeContactForm()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTACT DELETE CONFIRM MODAL -->
+    <div class="modal-overlay" *ngIf="showDeleteContactModal">
+        <div class="modal-card activity-modal fade-in-up">
+            <div class="modal-body-clean">
+                <div class="modal-visual-header error-header">
+                    <div class="icon-pulse-wrapper error-pulse">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                </div>
+                <h3 class="modal-title-clean">Eliminar Contacto</h3>
+                <p class="modal-msg-clean">
+                    ¿Está seguro de eliminar al contacto <strong>{{ contactToDelete?.user_name }}</strong>?
+                    <br><span class="sub-text">Esta acción eliminará el registro del directorio local.</span>
+                </p>
+                <div class="modal-actions-spread">
+                    <button class="btn-modal-confirm" (click)="executeDeleteContact()">Eliminar</button>
+                    <button class="btn-modal-cancel" (click)="showDeleteContactModal = false">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Visor Seguro V6 (Premium Explorer) -->
     <div class="modal-overlay" *ngIf="showSecureVaultModal">
         <div class="modal-card vault-modal-v6 fade-in-up">
 
@@ -903,10 +1256,10 @@
                                     <span class="file-name">{{ doc.name }}</span>
                                     <span class="tag-protected-vault"
                                         *ngIf="doc.name.toLowerCase().endsWith('.sse')">PROTECTED</span>
-                                    <span class="badge-cert-vault fade-in" 
-                                          *ngIf="certificationMap.has(doc.file_path || doc.path)"
-                                          (click)="openCertificationDetails(doc, $event)"
-                                          title="Ver Certificado de Trazabilidad">
+                                    <span class="badge-cert-vault fade-in"
+                                        *ngIf="certificationMap.has(doc.file_path || doc.path)"
+                                        (click)="openCertificationDetails(doc, $event)"
+                                        title="Ver Certificado de Trazabilidad">
                                         <i class="fas fa-certificate"></i>
                                     </span>
                                 </div>
@@ -1052,44 +1405,45 @@
             </div>
         </div>
 
-<!-- CERTIFICATION DETAILS MODAL (SHARED COMPONENT STYLE) -->
-<div class="modal-overlay" *ngIf="showCertificationModal" style="z-index: 9999;">
-    <div class="modal-v2 certification-modal fade-in-up">
-        <div class="modal-header-v2 header-emerald">
-            <div class="icon-pulse-container emerald">
-                <i class="fas fa-shield-check"></i>
-            </div>
-            <div class="seal-header-badge">SDC-ALQUIMIA VERIFIED</div>
-        </div>
-        <div class="modal-content-v2">
-            <h3>Certificación de Trazabilidad</h3>
-            <p class="msg-primary">Documento: <b>{{ selectedCertification?.fileName }}</b></p>
-            
-            <div class="certification-box">
-                <div class="cert-item">
-                    <label><i class="fas fa-fingerprint"></i> Huella Digital (Seal)</label>
-                    <div class="cert-value-raw">{{ selectedCertification?.seal }}</div>
-                </div>
-                
-                <div class="cert-grid">
-                    <div class="cert-mini-item">
-                        <label>Estado</label>
-                        <span class="val success">INTEGRIDAD_OK</span>
+        <!-- CERTIFICATION DETAILS MODAL (SHARED COMPONENT STYLE) -->
+        <div class="modal-overlay" *ngIf="showCertificationModal" style="z-index: 9999;">
+            <div class="modal-v2 certification-modal fade-in-up">
+                <div class="modal-header-v2 header-emerald">
+                    <div class="icon-pulse-container emerald">
+                        <i class="fas fa-shield-check"></i>
                     </div>
-                    <div class="cert-mini-item">
-                        <label>Protocolo</label>
-                        <span class="val">SDC-AI (Invisible)</span>
-                    </div>
+                    <div class="seal-header-badge">SDC-ALQUIMIA VERIFIED</div>
                 </div>
+                <div class="modal-content-v2">
+                    <h3>Certificación de Trazabilidad</h3>
+                    <p class="msg-primary">Documento: <b>{{ selectedCertification?.fileName }}</b></p>
 
-                <div class="cert-info-footer">
-                    <i class="fas fa-info-circle"></i>
-                    Este sello fue inyectado esteganográficamente utilizando caracteres de ancho cero, garantizando que el archivo no ha sido alterado desde su firma original.
+                    <div class="certification-box">
+                        <div class="cert-item">
+                            <label><i class="fas fa-fingerprint"></i> Huella Digital (Seal)</label>
+                            <div class="cert-value-raw">{{ selectedCertification?.seal }}</div>
+                        </div>
+
+                        <div class="cert-grid">
+                            <div class="cert-mini-item">
+                                <label>Estado</label>
+                                <span class="val success">INTEGRIDAD_OK</span>
+                            </div>
+                            <div class="cert-mini-item">
+                                <label>Protocolo</label>
+                                <span class="val">SDC-AI (Invisible)</span>
+                            </div>
+                        </div>
+
+                        <div class="cert-info-footer">
+                            <i class="fas fa-info-circle"></i>
+                            Este sello fue inyectado esteganográficamente utilizando caracteres de ancho cero,
+                            garantizando que el archivo no ha sido alterado desde su firma original.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer-v2">
+                    <button class="btn-v2 btn-v2-green" (click)="closeCertificationModal()">Cerrar Certificado</button>
                 </div>
             </div>
         </div>
-        <div class="modal-footer-v2">
-            <button class="btn-v2 btn-v2-green" (click)="closeCertificationModal()">Cerrar Certificado</button>
-        </div>
-    </div>
-</div>
