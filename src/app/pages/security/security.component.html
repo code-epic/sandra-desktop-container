@@ -227,36 +227,41 @@
                                             <ng-container *ngFor="let user of filteredUsers">
                                                 <!-- Main Section Separator -->
                                                 <div *ngIf="user.isMainSeparator" class="autocomplete-section-title">
-                                                   {{ user.name }}
+                                                    {{ user.name }}
                                                 </div>
 
                                                 <!-- Group/Profile Header (Campaign) -->
-                                                <div *ngIf="user.isHeader && !user.isMainSeparator" class="autocomplete-header-area selectable-group" (click)="selectUser(user)">
-                                                   <div class="header-group-icon">
-                                                      <i class="fas fa-bullhorn"></i>
-                                                   </div>
-                                                   <div class="header-group-info">
-                                                      <span class="group-title">Perfil: {{ user.name }}</span>
-                                                      <span class="group-subtitle">{{ user.detail }}</span>
-                                                   </div>
-                                                   <i class="fas fa-plus auto-plus"></i>
+                                                <div *ngIf="user.isHeader && !user.isMainSeparator"
+                                                    class="autocomplete-header-area selectable-group"
+                                                    (click)="selectUser(user)">
+                                                    <div class="header-group-icon">
+                                                        <i class="fas fa-bullhorn"></i>
+                                                    </div>
+                                                    <div class="header-group-info">
+                                                        <span class="group-title">Perfil: {{ user.name }}</span>
+                                                        <span class="group-subtitle">{{ user.detail }}</span>
+                                                    </div>
+                                                    <i class="fas fa-plus auto-plus"></i>
                                                 </div>
 
                                                 <!-- Individual Contact -->
-                                                <div *ngIf="!user.isHeader && !user.isMainSeparator" class="autocomplete-item-v4" (click)="selectUser(user)">
-                                                   <div class="auto-avatar" [class.contact-mode]="user.isContact">
-                                                       {{ user.initials }}
-                                                   </div>
-                                                   <div class="auto-info">
-                                                       <span class="auto-name">{{ user.name }}</span>
-                                                       <span class="auto-detail">{{ user.detail }}</span>
-                                                   </div>
-                                                   <i class="fas fa-plus auto-plus"></i>
+                                                <div *ngIf="!user.isHeader && !user.isMainSeparator"
+                                                    class="autocomplete-item-v4" (click)="selectUser(user)">
+                                                    <div class="auto-avatar" [class.contact-mode]="user.isContact">
+                                                        {{ user.initials }}
+                                                    </div>
+                                                    <div class="auto-info">
+                                                        <span class="auto-name">{{ user.name }}</span>
+                                                        <span class="auto-detail">{{ user.detail + " | " + user.profile
+                                                            }}</span>
+                                                    </div>
+                                                    <i class="fas fa-plus auto-plus"></i>
                                                 </div>
                                             </ng-container>
                                         </div>
                                     </div>
-                                    <button class="btn-address-book-v4" title="Abrir Agenda de Contactos" (click)="setTab('contacts')">
+                                    <button class="btn-address-book-v4" title="Abrir Agenda de Contactos"
+                                        (click)="setTab('contacts')">
                                         <i class="fas fa-address-book"></i>
                                     </button>
                                 </div>
@@ -457,7 +462,7 @@
                         <div class="trace-grid">
                             <div class="trace-detail-item">
                                 <label>Huella Digital (ID)</label>
-                                <span class="font-mono">{{ selectedMessage.sid || 'S/N' }}</span>
+                                <span class="font-mono">{{ getMessageGuid(selectedMessage.content) || 'N/A' }}</span>
                             </div>
                             <div class="trace-detail-item">
                                 <label>Estado de Validación</label>
@@ -542,7 +547,7 @@
                             </div>
                             <div class="meta-item" *ngIf="selectedMessage.sid">
                                 <i class="fas fa-fingerprint"></i>
-                                <span class="font-mono text-xs">{{ selectedMessage.sid }}</span>
+                                <span class="font-mono text-xs">{{ getMessageGuid(selectedMessage.content) || 'N/A' }}</span>
                             </div>
                         </div>
                     </div>
@@ -671,37 +676,30 @@
                     </select>
                 </div>
                 <div class="contacts-toolbar-right">
-                    <span class="contacts-count-badge">{{ filteredContacts.length }} contacto(s)</span>
-                    <div class="contacts-view-toggle">
-                        <button [class.active]="contactView === 'grid'" (click)="contactView = 'grid'"
-                            title="Vista en tarjetas">
-                            <i class="fas fa-th-large"></i>
-                        </button>
-                        <button [class.active]="contactView === 'table'" (click)="contactView = 'table'"
-                            title="Vista de tabla">
-                            <i class="fas fa-list"></i>
-                        </button>
-                    </div>
+                    <span class="contacts-count-badge">{{ filteredContacts.length }} contacto(s) registrados</span>
                 </div>
             </div>
 
             <!-- UNIFIED CONTACTS CONTAINER -->
             <div class="contacts-main-card glass-card">
-                <!-- STRIP VIEW (TIRA) -->
-                <div class="contacts-strip-list" *ngIf="contactView === 'grid' && filteredContacts.length > 0">
+                <!-- UNIFIED CONTACTS DIRECTORY (ULTRA-MATTE CARDS) -->
+                <div class="contacts-strip-list" *ngIf="filteredContacts.length > 0">
                     <div *ngFor="let contact of paginatedContacts" class="contact-strip-item fade-in"
-                        [class.editing]="editingContactId === contact.id">
-                        
+                        [class.editing]="editingContactId === contact.id" (click)="sendEmailToContact(contact)"
+                        title="Enviar Correo">
+
                         <div class="csi-avatar-section">
                             <div class="csi-avatar-ring">
-                                <span class="csi-initials">{{ getContactInitials(contact.nombre || contact.login) }}</span>
+                                <span class="csi-initials">{{ getContactInitials(contact.nombre || contact.login)
+                                    }}</span>
                             </div>
                         </div>
 
                         <div class="csi-content-main">
                             <div class="csi-header-row">
                                 <h4 class="csi-name">{{ contact.nombre || contact.login }}</h4>
-                                <span class="csi-cargo-badge"><i class="fas fa-id-badge"></i> {{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}</span>
+                                <span class="csi-cargo-badge"><i class="fas fa-id-badge"></i> {{
+                                    contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}</span>
                             </div>
                             <div class="csi-info-row">
                                 <span class="csi-email" *ngIf="contact.correo">
@@ -719,67 +717,21 @@
                                 <i class="fas fa-layer-group"></i> {{ contact.sistema || contact.aplicacion }}
                             </div>
                             <div class="csi-tag csi-tag-area" title="Perfil / Área">
-                                <i class="fas fa-sitemap"></i> {{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}
+                                <i class="fas fa-sitemap"></i> {{ contact.Perfil?.descripcion || contact.perfil_grupo ||
+                                '---' }}
                             </div>
                         </div>
 
                         <div class="csi-actions-section">
-                            <button class="csi-btn-edit" (click)="editContact(contact)" title="Editar Perfil">
-                                <i class="fas fa-pen-fancy"></i>
+                            <button class="csi-btn-circle-anim edit" (click)="editContact(contact)" title="Editar">
+                                <i class="fas fa-edit"></i>
                             </button>
-                            <button class="csi-btn-del" (click)="confirmDeleteContact(contact)" title="Eliminar Contacto">
-                                <i class="fas fa-trash-alt"></i>
+                            <button class="csi-btn-circle-anim delete" (click)="confirmDeleteContact(contact)"
+                                title="Eliminar">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
-                </div>
-
-                <!-- TABLE VIEW (STREAMLINED) -->
-                <div class="contacts-table-wrap" *ngIf="contactView === 'table' && filteredContacts.length > 0">
-                    <table class="contacts-table">
-                        <thead>
-                            <tr>
-                                <th class="col-funcionario">Funcionario</th>
-                                <th class="col-identity">ID / Correo</th>
-                                <th class="col-profile">Perfil / Área</th>
-                                <th class="col-system">Sistema</th>
-                                <th class="col-actions">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let contact of paginatedContacts" class="fade-in">
-                                <td>
-                                    <div class="table-user-cell">
-                                        <span class="table-avatar">{{ getContactInitials(contact.nombre || contact.login) }}</span>
-                                        <span class="table-username">{{ contact.nombre || contact.login }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="table-info-cell">
-                                        <span class="table-email">{{ contact.correo || '---' }}</span>
-                                        <span class="table-login-hint">@{{ contact.login }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge-cargo">{{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge-app">{{ contact.sistema || contact.aplicacion }}</span>
-                                </td>
-                                <td>
-                                    <div class="table-action-hub">
-                                        <button class="btn-icon-table edit" (click)="editContact(contact)" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn-icon-table danger" (click)="confirmDeleteContact(contact)"
-                                            title="Eliminar">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
 
                 <!-- EMPTY STATE -->
@@ -798,7 +750,8 @@
                 <div class="contacts-pagination-footer" *ngIf="filteredContacts.length > contactPageSize">
                     <div class="pagination-divider"></div>
                     <div class="pagination-controls">
-                        <button class="btn-paginator" [disabled]="contactPage === 1" (click)="contactPage = contactPage - 1">
+                        <button class="btn-paginator" [disabled]="contactPage === 1"
+                            (click)="contactPage = contactPage - 1">
                             <i class="fas fa-chevron-left"></i>
                         </button>
                         <span class="pagination-info">Página {{ contactPage }} de {{ totalContactPages }}</span>
@@ -1077,7 +1030,8 @@
                 <!-- Group 1: Primary Identity -->
                 <div class="cfm-row">
                     <div class="cfm-field cfm-field-full">
-                        <label><i class="fas fa-user-circle"></i> Nombre Completo del Funcionario <span class="req">*</span></label>
+                        <label><i class="fas fa-user-circle"></i> Nombre Completo del Funcionario <span
+                                class="req">*</span></label>
                         <input type="text" [(ngModel)]="contactForm.nombre" placeholder="Nombre completo"
                             class="input-contact disabled-field" readonly>
                     </div>
@@ -1106,7 +1060,8 @@
                     </div>
                     <div class="cfm-field">
                         <label><i class="fas fa-sitemap"></i> Perfil / Grupo (Área)</label>
-                        <input type="text" [value]="contactForm.Perfil?.descripcion || contactForm.perfil_grupo || '---'" 
+                        <input type="text"
+                            [value]="contactForm.Perfil?.descripcion || contactForm.perfil_grupo || '---'"
                             class="input-contact disabled-field" readonly title="Información oficial del área">
                     </div>
                 </div>
@@ -1124,9 +1079,9 @@
                 <div class="cfm-row">
                     <div class="cfm-field cfm-field-full">
                         <label><i class="fas fa-align-left"></i> Notas Locales / Descripción Adicional</label>
-                        <input type="text" [(ngModel)]="contactForm.descripcion" 
-                            placeholder="Ej: Ubicación, teléfono interno, etc." 
-                            class="input-contact" [class.input-filled]="contactForm.descripcion">
+                        <input type="text" [(ngModel)]="contactForm.descripcion"
+                            placeholder="Ej: Ubicación, teléfono interno, etc." class="input-contact"
+                            [class.input-filled]="contactForm.descripcion">
                     </div>
                 </div>
             </div>

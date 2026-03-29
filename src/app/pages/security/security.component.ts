@@ -689,21 +689,21 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     // Filter from local contacts
     const matchingContacts = this.contacts.filter(c => {
-      const match = 
-        (c.login || '').toLowerCase().includes(val) || 
-        (c.nombre || '').toLowerCase().includes(val) || 
-        (c.correo || '').toLowerCase().includes(val) || 
-        (c.cargo || '').toLowerCase().includes(val) || 
+      const match =
+        (c.login || '').toLowerCase().includes(val) ||
+        (c.nombre || '').toLowerCase().includes(val) ||
+        (c.correo || '').toLowerCase().includes(val) ||
+        (c.cargo || '').toLowerCase().includes(val) ||
         (c.descripcion || '').toLowerCase().includes(val) ||
-        (c.Perfil?.descripcion || '').toLowerCase().includes(val) || 
-        (c.perfil_grupo || '').toLowerCase().includes(val) || 
+        (c.Perfil?.descripcion || '').toLowerCase().includes(val) ||
+        (c.perfil_grupo || '').toLowerCase().includes(val) ||
         (c.aplicacion || '').toLowerCase().includes(val);
-      
-      const notSelected = 
-        !this.newMessage.selectedRecipients.includes(c.login || '') && 
+
+      const notSelected =
+        !this.newMessage.selectedRecipients.includes(c.login || '') &&
         !this.newMessage.selectedRecipients.includes(c.correo || '') &&
         !this.newMessage.selectedRecipients.includes(c.nombre || '');
-        
+
       return match && notSelected;
     });
 
@@ -722,9 +722,9 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     // 1. Collect Profiles/Groups
     Object.keys(groups).sort().forEach(groupName => {
-      profiles.push({ 
-        isHeader: true, 
-        name: groupName, 
+      profiles.push({
+        isHeader: true,
+        name: groupName,
         isGroup: true,
         detail: `Enviar campaña a todo el perfil (${groups[groupName].length} contactos)`
       });
@@ -734,8 +734,9 @@ export class SecurityComponent implements OnInit, OnChanges {
     matchingContacts.sort((a, b) => (a.nombre || a.login).localeCompare(b.nombre || b.login)).forEach(c => {
       individuals.push({
         isHeader: false,
-        name: c.nombre || c.login || c.correo,
-        detail: `${c.correo || ''} | ${c.Perfil?.descripcion || c.cargo || ''}`.trim(),
+        name: c.nombre || c.login,
+        profile: c.Perfil?.descripcion || c.perfil_grupo || 'Sin Perfil',
+        detail: `${c.login.trim().toLowerCase() + '@' + c.sistema.trim().toLowerCase() || ''}`,
         initials: this.getContactInitials(c.nombre || c.login || c.correo),
         isContact: true
       });
@@ -757,7 +758,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   selectUser(userObj: any) {
     if (!userObj || userObj.isMainSeparator) return;
-    const label = userObj.isGroup ? `[PERFIL] ${userObj.name}` : userObj.name;
+    const label = userObj.isGroup ? `[PERFIL] ${userObj.name}` : userObj.detail;
     if (!this.newMessage.selectedRecipients.includes(label)) {
       this.newMessage.selectedRecipients.push(label);
     }
@@ -1604,7 +1605,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     // Normalize and search for existing by login
     const targetLogin = (this.contactForm.login || '').trim().toLowerCase();
-    const existingIdx = this.contacts.findIndex(c => 
+    const existingIdx = this.contacts.findIndex(c =>
       (c.login || '').trim().toLowerCase() === targetLogin
     );
 
@@ -1616,9 +1617,9 @@ export class SecurityComponent implements OnInit, OnChanges {
       }
     } else if (existingIdx !== -1) {
       // Sync/Update mode: Duplicate login detected, merge attributes
-      this.contacts[existingIdx] = { 
-        ...this.contacts[existingIdx], 
-        ...this.contactForm 
+      this.contacts[existingIdx] = {
+        ...this.contacts[existingIdx],
+        ...this.contactForm
       };
     } else {
       // New record mode
@@ -1651,5 +1652,25 @@ export class SecurityComponent implements OnInit, OnChanges {
     const parts = name.trim().split(/[\s._-]+/);
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return name.substring(0, 2).toUpperCase();
+  }
+
+  sendEmailToContact(contact: any) {
+    if (!contact?.login || !contact?.sistema) return;
+
+    // Format target email
+    const email = `${contact.login.trim().toLowerCase()}@${contact.sistema.trim().toLowerCase()}`;
+    
+    // Switch to mailbox tab
+    this.activeTab = 'mailbox';
+    
+    // Only reset/start new if we weren't already composing
+    if (!this.isComposing) {
+      this.startCompose();
+    }
+
+    // Add to list if not already present
+    if (email && !this.newMessage.selectedRecipients.includes(email)) {
+      this.newMessage.selectedRecipients.push(email);
+    }
   }
 }
