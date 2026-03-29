@@ -66,6 +66,12 @@ export class SecurityComponent implements OnInit, OnChanges {
   };
   systemMac: string = '';
   isSyncing: boolean = false; // Flag para el spinner de sincronización
+
+  // Background Mail Sync State (Industrial Streaming)
+  isBgSyncing: boolean = false;
+  bgSyncProgress: number = 0;
+  bgSyncCount: number = 0;
+  bgSyncMessage: string = 'Iniciando descarga segura...';
   certificationMap: Map<string, any> = new Map(); // Store certification info for attachments (by path)
 
   // Pagination State
@@ -421,6 +427,7 @@ export class SecurityComponent implements OnInit, OnChanges {
               nombre: userData.nombre || userData.name || userData.Nombre || 'Usuario',
               usuario: userData.usuario || userData.Login || 'persona',
               correo: userData.correo || userData.email || '',
+              sistema: userData.sistema || 'consola',
               cargo: userData.cargo || userData.descripcion || (userData.Perfil ? userData.Perfil.descripcion : 'Autorizado')
             };
             this.currentAuthorName = `${this.authorProfile.nombre} (${this.authorProfile.cargo})`;
@@ -528,19 +535,117 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   async syncMailbox() {
-    if (this.isSyncing) return;
-    this.isSyncing = true;
-    try {
-      // El comando Rust ahora se encarga de todo: Manifiesto (Streaming), Descarga y ACK (Streaming)
-      const guids = await this.securityService.syncMailbox();
-      if (guids && guids.length > 0) {
-        console.log(`Sincronización completa (incluyendo ACKs) para ${guids.length} ítems.`);
+    // Redireccionamos a la nueva lógica industrial de streaming
+    this.syncMailboxStream();
+  }
+
+  /**
+   * Sincronización Industrial vía CrudStream
+   * Maneja volúmenes masivos (>500) sin bloquear la UI
+   */
+  async syncMailboxStream() {
+    if (this.isBgSyncing || !this.activeConnection || !this.authorProfile?.usuario) return;
+
+    this.isBgSyncing = true;
+    this.bgSyncProgress = 0;
+    this.bgSyncCount = 0;
+    this.bgSyncMessage = 'Iniciando descarga industrial...';
+
+    const login = (this.authorProfile.usuario || 'persona').toLowerCase();
+    const sistema = (this.authorProfile.sistema || 'consola').toLowerCase();
+    const mailId = `${login}@${sistema}`;
+
+    const endpoint = `v1/api/crudstream:${this.activeConnection.hash}`;
+    const payload = {
+      "funcion": 'SDC_CMailBoxUser',
+      "parametros": mailId
+    };
+
+    console.log(`[Streaming] Iniciando descarga para: ${mailId}`);
+
+    const subscription = this.dataStreamService.streamPostRequest<any>(
+      this.activeConnection.ip_address,
+      Number(this.activeConnection.port),
+      endpoint,
+      payload,
+      this.activeConnection.hash,
+      this.activeConnection.jwt
+    ).subscribe({
+      next: async (item) => {
+        try {
+          console.log(item);
+          // 1. Procesar y Persistir en Segundo Plano
+          await this.processDownloadedMail(item);
+
+          // 2. Actualizar Contador y Progreso
+          this.bgSyncCount++;
+          this.bgSyncProgress = Math.min((this.bgSyncCount / 500) * 100, 95); // Simulación visual si >500
+          this.bgSyncMessage = `Descargando: ${item.message_envelope.subject || 'Mensaje Seguro'}`;
+
+          // 3. Certificar Descarga (ACK)
+          this.certifyDownload(item);
+        } catch (e) {
+          console.error("Error procesando item de stream:", e);
+        }
+      },
+      error: (err) => {
+        console.error("Error en streaming de correos:", err);
+        this.isBgSyncing = false;
+        this.bgSyncMessage = 'Error en la conexión';
+        setTimeout(() => this.isBgSyncing = false, 3000);
+      },
+      complete: () => {
+        this.bgSyncProgress = 100;
+        this.bgSyncMessage = 'Sincronización Completa';
+        console.log(`[Streaming] Finalizado. Procesados ${this.bgSyncCount} correos.`);
+
+        // Refresco final de la bandeja
+        this.loadMessages();
+
+        // Ocultar modal sutilmente
+        setTimeout(() => {
+          this.isBgSyncing = false;
+        }, 2000);
       }
+    });
+  }
+
+  private async processDownloadedMail(item: any) {
+    if (!item || !item.id) return;
+
+    // Persistir en Rust DB (o local)
+    // El comando createMailboxMessage ya maneja la inserción segura
+    await this.securityService.createMailboxMessage({
+      sid: item.message_envelope?.subject || item.id,
+      content: typeof item === 'object' ? JSON.stringify(item) : item,
+      author: item.message_envelope?.author || item.manifest?.sender || 'Sandra Network',
+      responsible: this.authorProfile.usuario,
+      direction: 'inbox',
+      status: item.manifest?.estatus || 'Pending'
+    });
+  }
+
+  private async certifyDownload(item: any) {
+    // Enviamos el ACK al servidor para marcar como "descargado" e incrementar contador
+    if (!item.id || !this.activeConnection) return;
+
+    try {
+      const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+      const payload = {
+        "funcion": 'SDC_CACKMail',
+        "parametros": item.id // Usamos el ID/GUID como referencia
+      };
+
+      await invoke('api_post_request', {
+        ip: this.activeConnection.ip_address,
+        port: Number(this.activeConnection.port),
+        endpoint,
+        payload,
+        hash: this.activeConnection.hash,
+        tempAuthToken: this.activeConnection.jwt
+      });
     } catch (e) {
-      console.error("Error sincronizando buzón:", e);
-    } finally {
-      this.isSyncing = false;
-      this.loadMessages();
+      // Silencioso para no saturar logs en descargas masivas
     }
   }
 
@@ -1659,10 +1764,10 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     // Format target email
     const email = `${contact.login.trim().toLowerCase()}@${contact.sistema.trim().toLowerCase()}`;
-    
+
     // Switch to mailbox tab
     this.activeTab = 'mailbox';
-    
+
     // Only reset/start new if we weren't already composing
     if (!this.isComposing) {
       this.startCompose();

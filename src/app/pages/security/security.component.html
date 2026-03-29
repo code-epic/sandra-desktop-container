@@ -1402,3 +1402,15 @@
                 </div>
             </div>
         </div>
+<!-- MINI BACKGROUND SYNC INDICATOR (INDUSTRIAL STREAMING) -->
+<div class="bg-sync-mini-modal fade-in-up" *ngIf="isBgSyncing">
+    <div class="bg-sync-content">
+        <div class="bg-sync-info">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <span class="bg-sync-text">{{ bgSyncMessage }} ({{ bgSyncCount }} procesados)</span>
+        </div>
+        <div class="bg-sync-progress-wrap">
+            <div class="bg-sync-progress-bar" [style.width.%]="bgSyncProgress"></div>
+        </div>
+    </div>
+</div>
