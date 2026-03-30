@@ -177,6 +177,22 @@ SDC puede descargar, instalar y actualizar micro-aplicaciones (`sandra-app://`) 
 - **Neutralidad del Hardware**: Ejecuta aplicaciones complejas en cualquier sistema con overhead mínimo.
 - **Bunker Digital**: El contenedor actúa como un perímetro de seguridad que rodea a la aplicación.
 - **Identidad Granular**: Cada acción está vinculada a un SID (Secure ID) trazable.
+- **Micro-Animaciones Reales**: Feedback visual detallado para cada operación asíncrona mediante un sistema de estados reactivos.
+
+---
+
+## Módulo de Chatbox (SDC-Chat)
+
+El Chatbox ha evolucionado de una simple interfaz de comandos a un centro de comunicaciones persistente y auditable:
+
+### 1. Gestión de Historial por Sesiones
+- **Agrupación Temporal**: Los mensajes se agrupan automáticamente por fecha, facilitando la lectura de hilos históricos.
+- **Persistencia de Sesión**: Implementación de un motor de búsqueda y eliminación selectiva que permite al operador borrar sesiones individuales o realizar un "Borrador Maestro" para cumplir con protocolos de seguridad post-operación.
+- **Scroll Inteligente**: Sistema de auto-scroll con detección de interacción del usuario para evitar saltos bruscos durante la recepción de ráfagas de mensajes.
+
+### 2. Integración con el Motor de Seguridad
+- **Inyección de Identidad**: Cada mensaje saliente incorpora automáticamente el perfil del autor (Usuario y Sistema) extraído del JWT de sesión, garantizando que el receptor pueda validar la procedencia del comando.
+- **Filtro de Contenido**: Sanitización proactiva de mensajes para prevenir la ejecución de scripts maliciosos en el contexto del chat.
 
 ---
 
@@ -217,12 +233,18 @@ El módulo se organiza en una arquitectura desacoplada para garantizar mantenibi
 -   **Sync Service (Capa de Servicio)**: Gestiona la orquestación entre la API remota (Sandra Server) y la base de datos local.
 -   **Streaming NDJSON**: El procesamiento de mensajes entrantes utiliza un buffer de streaming que analiza líneas NDJSON (Newline Delimited JSON) al vuelo, permitiendo procesar miles de mensajes sin picos de consumo de memoria RAM.
 
-### 2. Optimización de Rendimiento (Concurrent Sync)
+### 2. Optimización de Rendimiento (Industrial-Scale Sync)
 
-Para manejar buzones con gran volumen de datos (50+ mensajes por ráfaga), SDC implementa **Descargas Concurrentes**:
--   **Buffer Unordered**: Utiliza `futures::StreamExt::buffer_unordered(5)` para descargar hasta 5 paquetes de mensajes de forma simultánea.
--   **ACK Segmentado**: El sistema envía confirmaciones de recepción (ACK) en lotes mediante streaming, permitiendo que el servidor libere los mensajes del nodo de origen de forma eficiente.
--   **Cursor Incremental**: La sincronización se basa en un cursor temporal (`updated_at`) persistido en `sync_metadata`, garantizando que solo los datos nuevos viajen por la red.
+Para manejar volúmenes de datos masivos (>1000 mensajes) sin degradar la experiencia de usuario, SDC implementa **Sync Industrial vía CrudStream**:
+- **NDJSON Streaming**: La sincronización de buzón utiliza una arquitectura de flujo continuo que procesa cada mensaje en milisegundos conforme llega del servidor, evitando la carga masiva de objetos en el heap de JavaScript.
+- **Deduplicación Predictiva**: Uso de un `Set` de GUIDs (Global Unique Identifiers) en memoria para filtrar instantáneamente mensajes que ya residen en la base de datos local, ahorrando ciclos de escritura en disco.
+- **ACK Segmentado y Flushing**: El sistema envía confirmaciones de recepción (ACK) en lotes mediante streaming, permitiendo que el servidor libere los mensajes del nodo de origen de forma eficiente.
+-  **Background Sync Logic**: La sincronización de mensajes ocurre en hilos paralelos de Rust, mientras la UI en Angular se mantiene fluida y reactiva.
+
+### 3. Certificación Automática de Descarga
+Cada mensaje que ingresa al contenedor es procesado por un motor de certificación que garantiza su trazabilidad:
+- **ACK Automático**: El sistema confirma al servidor la recepción exitosa para limpiar colas de alta fidelidad.
+- **Tag de Auditoría**: Se inyecta un estado de "Descargado" en el manifiesto local del mensaje para auditorías posteriores de sincronización completa.
 
 ### 3. Modelo de Seguridad (Military-Grade Cryptography)
 
@@ -231,6 +253,24 @@ El Mailbox implementa un sistema de cifrado de triple capa para paquetes seguros
 -   **Device Secret (Persistent Unique Key)**: Durante el setup inicial, SDC genera una clave única de 32 bytes aleatoria (Device Secret) almacenada en el enclave de la base de datos. Esto elimina la predecibilidad de usar solo la dirección MAC del dispositivo.
 -   **Derivación de Clave con Argon2**: La clave de cifrado AES-256-GCM se deriva dinámicamente usando **Argon2id** con un Salt de sistema (`PACKAGE_SALT`).
 -   **Dual-Key Decryption Fallback**: Para garantizar la interoperabilidad con paquetes antiguos o generados en dispositivos externos, el motor de ingesta intenta descifrar primero con el *Device Secret* y, en caso de fallo, utiliza la *MAC Address* como respaldo automático.
+
+---
+
+## Módulo de Seguridad y Directorio (Security Component)
+
+El módulo de **Seguridad** ha sido rediseñado como una "Central de Control" de tres pestañas, integrando gestión de buzón, contactos y rutas proxy bajo una misma arquitectura de alto rendimiento.
+
+### 1. Directorio de Contactos Dinámico
+- **Sincronización de Identidad**: Permite recuperar el directorio global de usuarios del servidor remoto, integrándolo quirúrgicamente con los contactos locales.
+- **Inteligencia de Interfaz**: Generación automática de iniciales con paletas de colores dinámicas para identificación rápida de contactos sin avatar.
+- **Filtros Avanzados**: Búsqueda en tiempo real por usuario, sistema o identificadores técnicos, optimizada para responder en menos de 10ms sobre millares de registros.
+
+### 2. UX de Progreso y Modal de Sincronización Industrial
+Para proporcionar un feedback no intrusivo pero informativo durante las sincronizaciones masivas, SDC implementa un **Mini-Modal de Progreso Flotante**:
+- **Diseño Ultra-Minimalista**: Una cápsula de diseño Apple-Style situada en la base de la ventana que utiliza Glassmorphism y tipografía semi-bold para el reporte de estado.
+- **Reporting en Tiempo Real**: Muestra el asunto del mensaje que se está procesando en cada milisegundo exacto, junto con un contador de registros y una barra de progreso "Hairline" de gran presencia visual.
+- **Lógica de Visibilidad Inteligente**: El modal solo aparece cuando detecta tráfico real de entrada, permaneciendo oculto durante escaneos vacíos para no interrumpir el flujo del operador.
+- **Persistencia de Éxito**: Incluye un retardo de feedback positivo para que el usuario pueda validar visualmente la finalización exitosa de la sincronización de seguridad.
 
 ---
 

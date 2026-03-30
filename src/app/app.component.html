@@ -652,4 +652,22 @@
   </div>
   <app-background-progress></app-background-progress>
   <app-http-progress></app-http-progress>
+
+  <!-- MINI BACKGROUND SYNC INDICATOR (GLOBAL / REACTIVE) -->
+  <div class="bg-sync-mini-modal" *ngIf="securityService.isSyncing$ | async">
+      <div class="bg-sync-content">
+          <div class="bg-sync-info">
+              <i class="fas fa-circle-notch fa-spin"></i>
+              <div class="bg-sync-details">
+                  <div class="bg-sync-title">{{ securityService.syncMessage$ | async }}</div>
+                  <div class="bg-sync-subtitle" *ngIf="(securityService.syncCount$ | async) || 0 > 0">
+                    {{ securityService.syncCount$ | async }} registros procesados
+                  </div>
+              </div>
+          </div>
+          <div class="bg-sync-progress-wrap">
+              <div class="bg-sync-progress-bar" [style.width.%]="securityService.syncProgress$ | async"></div>
+          </div>
+      </div>
+  </div>
 </div>

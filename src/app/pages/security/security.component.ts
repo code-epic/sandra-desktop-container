@@ -2,6 +2,7 @@ import { Component, OnInit, OnChanges, SimpleChanges, Input } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { firstValueFrom } from 'rxjs';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import {
   SecurityService,
@@ -14,7 +15,6 @@ import { FileService } from '../../core/services/file.service';
 import { SdcService } from '../../core/services/sdc.service';
 import { DataStreamService } from '../../core/services/data-stream.service';
 import { readFile } from '@tauri-apps/plugin-fs';
-import { listen } from '@tauri-apps/api/event';
 
 // Interfaz para la configuración de acceso
 interface SdcConfig {
@@ -43,36 +43,24 @@ export class SecurityComponent implements OnInit, OnChanges {
   selectedMessage: MailboxMessage | null = null;
   highlightedMessage: MailboxMessage | null = null;
   parsedContent: any = null;
-  mailboxDirection: 'inbox' | 'outbox' | 'notifications' = 'inbox'; // Novedad: Bandeja de entrada, salida o notificaciones
+  mailboxDirection: 'inbox' | 'outbox' | 'notifications' = 'inbox'; 
 
-  // Estado del Autor
+  // Estado del Autor y UI
+  authorProfile: any = { nombre: '', usuario: '', correo: '', sistema: '', cargo: '' };
   currentAuthorName: string = 'E. Admin (Sandra)';
+  systemMac: string = '';
   showTrace: boolean = false;
   isComposing: boolean = false;
-  searchText: string = ''; // Renamed from searchTerm
+  searchText: string = ''; 
   statusFilter: string = '';
   selectedIds: Set<number> = new Set<number>();
+  
+  // Modales y Estados de Acción
   showDeleteModal: boolean = false;
   messagesToDelete: MailboxMessage[] = [];
   routeToDelete: ProxyRoute | null = null;
   deleteType: 'messages' | 'route' = 'messages';
-
-  // Autor Detallado
-  authorProfile: any = {
-    nombre: 'Usuario',
-    usuario: 'xterm',
-    correo: '',
-    cargo: 'Autorizado'
-  };
-  systemMac: string = '';
-  isSyncing: boolean = false; // Flag para el spinner de sincronización
-
-  // Background Mail Sync State (Industrial Streaming)
-  isBgSyncing: boolean = false;
-  bgSyncProgress: number = 0;
-  bgSyncCount: number = 0;
-  bgSyncMessage: string = 'Iniciando descarga segura...';
-  certificationMap: Map<string, any> = new Map(); // Store certification info for attachments (by path)
+  certificationMap: Map<string, any> = new Map(); 
 
   // Pagination State
   currentPage: number = 1;
@@ -253,14 +241,20 @@ export class SecurityComponent implements OnInit, OnChanges {
     }
   }
 
+  getMessageSubject(content: string): string {
+    if (!content) return '';
+    try {
+      const parsed = JSON.parse(content);
+      return parsed?.message_envelope?.subject || parsed?.sid || '';
+    } catch { return ''; }
+  }
+
   getMessageGuid(content: string): string {
     if (!content) return '';
     try {
       const parsed = JSON.parse(content);
       return parsed?.manifest?.guid || parsed?.id || '';
-    } catch {
-      return '';
-    }
+    } catch { return ''; }
   }
 
   // Config Data
@@ -361,11 +355,10 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   constructor(
-    private securityService: SecurityService,
+    public securityService: SecurityService,
     private appState: AppStateService,
     private fileService: FileService,
     private sdcService: SdcService,
-    private dataStreamService: DataStreamService,
     private sanitizer: DomSanitizer
   ) { }
 
@@ -381,9 +374,16 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.loadSystemIdentity();
     this.loadContactsLocal(); // load contacts for current connection on init
 
-    // Listener para refrescar el buzón cuando Rust termine una sincronización
-    listen('refresh-mailbox', () => {
+    // Suscripción al trigger de refresco global (SDC Sync Pulses)
+    this.securityService.mailboxRefreshTrigger$.subscribe(() => {
       this.loadMessages();
+    });
+
+    // Suscripción al estado de sincronización global para refrescar la vista
+    this.securityService.syncStatus$.subscribe(status => {
+      if (status === 'completed') {
+        this.loadMessages();
+      }
     });
 
     // Sincronización inicial al entrar
@@ -519,7 +519,6 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   async refreshAll() {
     try {
-      this.isSyncing = true;
       await this.securityService.syncMailbox();
       await Promise.all([
         this.loadMessages(),
@@ -529,130 +528,19 @@ export class SecurityComponent implements OnInit, OnChanges {
       ]);
     } catch (error) {
       console.error('Error loading security data:', error);
-    } finally {
-      this.isSyncing = false;
     }
   }
 
   async syncMailbox() {
-    // Redireccionamos a la nueva lógica industrial de streaming
-    this.syncMailboxStream();
-  }
-
-  /**
-   * Sincronización Industrial vía CrudStream
-   * Maneja volúmenes masivos (>500) sin bloquear la UI
-   */
-  async syncMailboxStream() {
-    if (this.isBgSyncing || !this.activeConnection || !this.authorProfile?.usuario) return;
-
-    this.isBgSyncing = true;
-    this.bgSyncProgress = 0;
-    this.bgSyncCount = 0;
-    this.bgSyncMessage = 'Iniciando descarga industrial...';
-
-    const login = (this.authorProfile.usuario || 'persona').toLowerCase();
-    const sistema = (this.authorProfile.sistema || 'consola').toLowerCase();
-    const mailId = `${login}@${sistema}`;
-
-    const endpoint = `v1/api/crudstream:${this.activeConnection.hash}`;
-    const payload = {
-      "funcion": 'SDC_CMailBoxUser',
-      "parametros": mailId
-    };
-
-    console.log(`[Streaming] Iniciando descarga para: ${mailId}`);
-
-    const subscription = this.dataStreamService.streamPostRequest<any>(
-      this.activeConnection.ip_address,
-      Number(this.activeConnection.port),
-      endpoint,
-      payload,
-      this.activeConnection.hash,
-      this.activeConnection.jwt
-    ).subscribe({
-      next: async (item) => {
-        try {
-          console.log(item);
-          // 1. Procesar y Persistir en Segundo Plano
-          await this.processDownloadedMail(item);
-
-          // 2. Actualizar Contador y Progreso
-          this.bgSyncCount++;
-          this.bgSyncProgress = Math.min((this.bgSyncCount / 500) * 100, 95); // Simulación visual si >500
-          this.bgSyncMessage = `Descargando: ${item.message_envelope.subject || 'Mensaje Seguro'}`;
-
-          // 3. Certificar Descarga (ACK)
-          this.certifyDownload(item);
-        } catch (e) {
-          console.error("Error procesando item de stream:", e);
-        }
-      },
-      error: (err) => {
-        console.error("Error en streaming de correos:", err);
-        this.isBgSyncing = false;
-        this.bgSyncMessage = 'Error en la conexión';
-        setTimeout(() => this.isBgSyncing = false, 3000);
-      },
-      complete: () => {
-        this.bgSyncProgress = 100;
-        this.bgSyncMessage = 'Sincronización Completa';
-        console.log(`[Streaming] Finalizado. Procesados ${this.bgSyncCount} correos.`);
-
-        // Refresco final de la bandeja
-        this.loadMessages();
-
-        // Ocultar modal sutilmente
-        setTimeout(() => {
-          this.isBgSyncing = false;
-        }, 2000);
-      }
-    });
-  }
-
-  private async processDownloadedMail(item: any) {
-    if (!item || !item.id) return;
-
-    // Persistir en Rust DB (o local)
-    // El comando createMailboxMessage ya maneja la inserción segura
-    await this.securityService.createMailboxMessage({
-      sid: item.message_envelope?.subject || item.id,
-      content: typeof item === 'object' ? JSON.stringify(item) : item,
-      author: item.message_envelope?.author || item.manifest?.sender || 'Sandra Network',
-      responsible: this.authorProfile.usuario,
-      direction: 'inbox',
-      status: item.manifest?.estatus || 'Pending'
-    });
-  }
-
-  private async certifyDownload(item: any) {
-    // Enviamos el ACK al servidor para marcar como "descargado" e incrementar contador
-    if (!item.id || !this.activeConnection) return;
-
-    try {
-      const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
-      const payload = {
-        "funcion": 'SDC_CACKMail',
-        "parametros": item.id // Usamos el ID/GUID como referencia
-      };
-
-      await invoke('api_post_request', {
-        ip: this.activeConnection.ip_address,
-        port: Number(this.activeConnection.port),
-        endpoint,
-        payload,
-        hash: this.activeConnection.hash,
-        tempAuthToken: this.activeConnection.jwt
-      });
-    } catch (e) {
-      // Silencioso para no saturar logs en descargas masivas
-    }
+    if ((await firstValueFrom(this.securityService.isSyncing$)) || !this.activeConnection) return;
+    
+    // Iniciar sincronización industrial global mediante el servicio centralizado
+    this.securityService.startMailboxSync(this.activeConnection, this.authorProfile);
   }
 
   // --- Mailbox Logic ---
   async loadMessages() {
     this.messages = await this.securityService.getMailboxMessages();
-    this.resetPagination();
   }
 
   resetPagination() {

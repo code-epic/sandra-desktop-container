@@ -541,3 +541,94 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* --- Background Sync Mini Modal (Industrial Streaming) - Global --- */
+.bg-sync-mini-modal {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 14px;
+  padding: 12px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: slideUpIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
+.bg-sync-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.bg-sync-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bg-sync-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+}
+
+.bg-sync-title {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #1e293b;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.bg-sync-subtitle {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bg-sync-info i {
+  color: #10b981;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.bg-sync-progress-wrap {
+  width: 100%;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bg-sync-progress-bar {
+  height: 100%;
+  background: #10b981;
+  transition: width 0.6s ease-out;
+}
+
+@keyframes slideUpIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

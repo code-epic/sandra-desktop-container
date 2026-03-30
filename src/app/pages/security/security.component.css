@@ -60,7 +60,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  min-height: 500px;
+  /* Prevent total collapse */
   max-width: 100%;
   overflow-x: hidden;
 }
@@ -142,6 +143,11 @@
   margin-bottom: 1rem;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   box-sizing: border-box;
+}
+
+.glass-card.full-width {
+  min-height: 450px;
+  /* Only full tabs have stable height */
 }
 
 .glass-card:hover {
@@ -5889,73 +5895,13 @@ span.req {
   min-width: 140px;
   text-align: center;
 }
-/* --- Background Sync Mini Modal (Industrial Streaming) --- */
-.bg-sync-mini-modal {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10000;
-  min-width: 320px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(15px) saturate(160%);
-  -webkit-backdrop-filter: blur(15px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 20px;
-  padding: 12px 20px;
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.4) inset;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: slideUpIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+/* --- Background Sync Mini Modal --- Consolidado Globalmente en styles.css */
+
+.fade-tab {
+  animation: fadeTab 0.3s ease-out;
 }
 
-.bg-sync-content {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.bg-sync-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #1e293b;
-  font-weight: 700;
-  font-size: 0.88rem;
-}
-
-.bg-sync-info i {
-  color: #10b981;
-}
-
-.bg-sync-text {
-  letter-spacing: -0.01em;
-}
-
-.bg-sync-progress-wrap {
-  width: 100%;
-  height: 4px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.bg-sync-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #10b981, #34d399);
-  transition: width 0.3s ease;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
-}
-
-@keyframes slideUpIn {
-  from { opacity: 0; transform: translate(-50%, 20px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
-
-.fade-in-up {
-  animation: slideUpIn 0.5s ease-out;
+@keyframes fadeTab {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }

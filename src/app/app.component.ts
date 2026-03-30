@@ -8,6 +8,7 @@ import {
 } from "@angular/platform-browser";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { SecurityService } from "./core/services/security.service";
 import { SdcService } from "./core/services/sdc.service";
 import { LoggerService } from "./core/services/logger.service";
 import { SystemStats } from "./core/models/telemetry.model";
@@ -229,6 +230,7 @@ export class AppComponent implements OnInit {
     private titleService: Title,
     private snapService: SnapService,
     private fileService: FileService,
+    public securityService: SecurityService, 
   ) {
     // ... existing constructor logic ...
 
@@ -451,6 +453,26 @@ export class AppComponent implements OnInit {
     // Sincronizar la conexión visual para que se le permita el paso
     if (this.activeConnection) {
       this.activeConnection.jwt = token;
+      
+      // Intentar extraer el perfil del usuario del token para la sincronización
+      try {
+        const payloadPart = token.split(".")[1];
+        const decoded = JSON.parse(atob(payloadPart));
+        if (decoded.Usuario) {
+          this.activeConnection.profile = {
+            usuario: decoded.Usuario.usuario,
+            sistema: decoded.Usuario.sistema || 'consola'
+          };
+          console.log("Perfil extraído del token:", this.activeConnection.profile);
+        }
+      } catch (e) {
+        console.warn("No se pudo decodificar el perfil del token:", e);
+      }
+    }
+
+    // 3. Disparar sincronización de seguridad inmediata (Background)
+    if (this.activeConnection) {
+      this.securityService.startMailboxSync(this.activeConnection, this.activeConnection.profile || { usuario: 'root', sistema: 'admin' });
     }
 
     // Si había una redirección pendiente
