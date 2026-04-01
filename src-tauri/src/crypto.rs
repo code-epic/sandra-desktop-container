@@ -2,12 +2,12 @@ use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Key, Nonce,
 };
-use base64::{engine::general_purpose, Engine as _};
-use rand::RngCore;
 use argon2::{
     password_hash::{PasswordHasher, SaltString},
     Argon2,
 };
+use base64::{engine::general_purpose, Engine as _};
+use rand::RngCore;
 
 pub const PACKAGE_SALT: &str = "SANDRA_SECURE_CHANNEL_V1";
 
@@ -38,7 +38,10 @@ pub fn derive_32byte_key(seed: &str) -> Result<[u8; 32], String> {
 
 fn get_key_from_bytes(bytes: &[u8]) -> Result<Key<Aes256Gcm>, String> {
     if bytes.len() != 32 {
-        return Err(format!("Key must be exactly 32 bytes for AES-256-GCM. Got {}", bytes.len()));
+        return Err(format!(
+            "Key must be exactly 32 bytes for AES-256-GCM. Got {}",
+            bytes.len()
+        ));
     }
     Ok(*Key::<Aes256Gcm>::from_slice(bytes))
 }

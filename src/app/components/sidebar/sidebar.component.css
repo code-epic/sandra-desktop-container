@@ -156,3 +156,31 @@
   font-weight: 300;
   color: var(--accent-purple);
 }
+
+/* ── Items bloqueados sin JWT ── */
+.nav-item.nav-locked {
+  opacity: 0.45;
+  cursor: pointer;   /* Clickable para disparar login */
+}
+
+.nav-item.nav-locked:hover {
+  background: rgba(142, 117, 255, 0.05);
+  opacity: 0.65;
+  color: var(--accent-purple, #8e75ff);
+}
+
+.nav-lock-icon {
+  margin-left: auto;
+  font-size: 0.65rem;
+  opacity: 0.5;
+  width: auto !important;
+  transition: opacity 0.2s;
+}
+.nav-item.nav-locked:hover .nav-lock-icon {
+  opacity: 0.9;
+}
+
+/* Permite el cursor tooltip aunque pointer-events:none bloquea */
+.nav-item-protected {
+  position: relative;
+}

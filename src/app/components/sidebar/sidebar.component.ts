@@ -2,6 +2,7 @@ import {
   Component,
   OnInit,
   OnDestroy,
+  Input,
   Output,
   EventEmitter,
 } from "@angular/core";
@@ -18,8 +19,11 @@ import { Observable } from "rxjs";
   styleUrls: ["./sidebar.component.css"],
 })
 export class SidebarComponent implements OnInit, OnDestroy {
+  @Input() hasJwt: boolean = false;
+  @Input() wsConnected: boolean = false;
   @Output() onLogout = new EventEmitter<void>();
   @Output() onNavigateRequest = new EventEmitter<string>();
+  @Output() onLoginRequest = new EventEmitter<void>();   // Solicitar login JWT
 
   // Observables del estado global
   isOpen$: Observable<boolean>;
@@ -81,6 +85,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   setActive(id: string) {
+    const protectedRoutes = ['security', 'monitor', 'secure-viewer'];
+    if (protectedRoutes.includes(id) && !this.hasJwt) {
+      // En lugar de ignorar, solicitar login
+      this.onLoginRequest.emit();
+      return;
+    }
     this.onNavigateRequest.emit(id);
   }
 

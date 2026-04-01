@@ -1,103 +1,213 @@
-<!-- Floating Action Button -->
+<!-- FAB -->
 <div class="chat-fab-container" [class.hidden]="!visible">
-    <button class="chat-fab" (click)="toggleChat()">
+    <button class="chat-fab" (click)="toggleChat()"
+        [class.fab-locked]="!isLoggedIn() && !isOpen"
+        [attr.title]="!isLoggedIn() ? 'Inicia sesión para usar el chat' : 'Chat'">
         <div class="fab-content">
-            <!-- Logo when closed, Chevron when open -->
-             <img src="assets/sandra.png" alt="Sandra" class="sandra-icon-img" *ngIf="!isOpen">
-             <i class="fas fa-chevron-down" *ngIf="isOpen" style="font-size: 1.2em;"></i>
+            <img src="assets/sandra.png" alt="Sandra" class="sandra-icon-img" *ngIf="!isOpen && isLoggedIn()">
+            <i class="fas fa-lock" *ngIf="!isOpen && !isLoggedIn()"></i>
+            <i class="fas fa-chevron-down" *ngIf="isOpen"></i>
         </div>
         <div class="status-indicator" [class.online]="wsStatus === 'Conectado'"></div>
-        <div class="unread-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</div>
+        <div class="unread-badge" *ngIf="totalUnread > 0">{{ totalUnread }}</div>
     </button>
 </div>
 
-<!-- Chat Window -->
+<!-- ──────────────────────────────────────────────────
+     CHAT WINDOW
+────────────────────────────────────────────────── -->
 <div class="chat-window-container" [class.open]="isOpen" [class.hidden]="!visible">
-    
-    <!-- Header -->
+
+    <!-- ════════════════════════════════════
+         HEADER UNIFICADO
+    ════════════════════════════════════ -->
     <div class="chat-header">
+
+        <!-- Izquierda: avatar + nombre/estado -->
         <div class="header-info">
-            <div class="avatar-circle">
-                <img src="assets/sandra.png" alt="Sandra" class="avatar-img">
-                <div class="status-dot" [class.online]="wsStatus === 'Conectado'"></div>
-            </div>
+
+            <!-- AVATAR: conversations list -->
+            <ng-container *ngIf="view === 'conversations'">
+                <div class="avatar-circle">
+                    <img src="assets/sandra.png" alt="Sandra" class="avatar-img">
+                    <div class="status-dot" [class.online]="wsStatus === 'Conectado'"></div>
+                </div>
+            </ng-container>
+
+            <!-- AVATAR: chat con Sandra IA -->
+            <ng-container *ngIf="view === 'chat' && activeConv?.isSandra">
+                <div class="avatar-circle">
+                    <img src="assets/sandra.png" alt="Sandra" class="avatar-img">
+                    <div class="status-dot" [class.online]="wsStatus === 'Conectado'"></div>
+                </div>
+            </ng-container>
+
+            <!-- AVATAR: chat con usuario (letra inicial, azul) -->
+            <ng-container *ngIf="view === 'chat' && activeConv && !activeConv.isSandra">
+                <div class="avatar-circle user-avatar-header">
+                    {{ activeConv.initial }}
+                    <div class="status-dot" [class.online]="activeConv.isOnline"></div>
+                </div>
+            </ng-container>
+
+            <!-- AVATAR: contactos / historial (icono genérico) -->
+            <ng-container *ngIf="view === 'contacts' || view === 'history'">
+                <div class="avatar-icon-only">
+                    <i class="fas fa-address-book" *ngIf="view === 'contacts'"></i>
+                    <i class="fas fa-history" *ngIf="view === 'history'"></i>
+                </div>
+            </ng-container>
+
+            <!-- Texto del header -->
             <div class="header-text">
-                <h3>Sandra IA</h3>
-                <span class="status-text">{{ wsStatus }}</span>
+                <h3 *ngIf="view === 'conversations'">Mensajes</h3>
+                <h3 *ngIf="view === 'chat'">{{ activeConv?.name }}</h3>
+                <h3 *ngIf="view === 'contacts'">Agenda</h3>
+                <h3 *ngIf="view === 'history'">Historial Sandra</h3>
+                <span class="status-text" *ngIf="view === 'conversations'">{{ wsStatus }}</span>
+                <span class="status-text" *ngIf="view === 'chat' && activeConv?.isSandra">{{ wsStatus }}</span>
+                <span class="status-text online-text" *ngIf="view === 'chat' && activeConv && !activeConv.isSandra && activeConv.isOnline">En línea</span>
+                <span class="status-text" *ngIf="view === 'chat' && activeConv && !activeConv.isSandra && !activeConv.isOnline">Fuera de línea</span>
             </div>
         </div>
+
+        <!-- Derecha: acciones + back + cerrar -->
         <div class="header-actions">
-            <button class="btn-header-action" 
-                    (click)="wsStatus !== 'Desconectado' && startNewConversation()"
-                    [disabled]="wsStatus === 'Desconectado'"
-                    [class.btn-action-disabled]="wsStatus === 'Desconectado'"
-                    title="Nueva Conversación">
+
+            <!-- Conversaciones: abrir agenda y historial (solo con JWT) -->
+            <ng-container *ngIf="view === 'conversations' && isLoggedIn()">
+                <button class="btn-header-action" (click)="openContacts()"
+                    title="Agenda de Contactos">
+                    <i class="fas fa-address-book"></i>
+                </button>
+                <button class="btn-header-action" (click)="openHistory()"
+                    title="Historial">
+                    <i class="fas fa-clock-rotate-left"></i>
+                </button>
+            </ng-container>
+
+            <!-- Chat Sandra: nueva sesión -->
+            <button class="btn-header-action" *ngIf="view === 'chat' && activeConv?.isSandra"
+                (click)="startNewConversation()"
+                [disabled]="wsStatus === 'Desconectado'"
+                [class.btn-action-disabled]="wsStatus === 'Desconectado'"
+                title="Nueva Sesión">
                 <i class="fas fa-plus"></i>
             </button>
-            <button class="btn-header-action" 
-                    (click)="wsStatus !== 'Desconectado' && toggleContacts()"
-                    [disabled]="wsStatus === 'Desconectado'"
-                    [class.btn-action-disabled]="wsStatus === 'Desconectado'"
-                    title="Usuarios Conectados">
-                <i class="fas fa-users"></i>
+
+            <!-- Contactos: sync -->
+            <button class="btn-header-action" *ngIf="view === 'contacts'"
+                (click)="syncContacts()"
+                [class.spinning]="isContactsSyncing"
+                title="Sincronizar contactos">
+                <i class="fas fa-rotate"></i>
             </button>
-            <button class="btn-header-action" 
-                    (click)="wsStatus !== 'Desconectado' && openHistoryModal()"
-                    [disabled]="wsStatus === 'Desconectado'"
-                    [class.btn-action-disabled]="wsStatus === 'Desconectado'"
-                    title="Historial">
-                <i class="fas fa-history"></i>
+
+            <!-- Historial: limpiar todo -->
+            <button class="btn-header-action danger-action" *ngIf="view === 'history' && historyGroups.length > 0"
+                (click)="clearAllHistory()" title="Limpiar historial">
+                <i class="fas fa-trash"></i>
             </button>
+
+            <!-- Back: visible en contactos / historial / chat -->
+            <button class="btn-back" *ngIf="view !== 'conversations'"
+                (click)="backToList()" title="Volver">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+
+            <!-- Cerrar ventana siempre -->
             <button class="btn-close-chat" (click)="toggleChat()" title="Cerrar">
-                <i class="fas fa-times"></i>
+                <i class="fas fa-xmark"></i>
             </button>
         </div>
     </div>
 
-    <!-- Body / Messages -->
-    <div class="chat-body" #scrollContainer>
-        
-        <!-- Loading Initial State -->
+    <!-- ════════════════════════════════════
+         VISTA: LISTA DE CONVERSACIONES
+    ════════════════════════════════════ -->
+    <div class="conv-list-view" *ngIf="view === 'conversations'">
         <div class="loading-state" *ngIf="isLoading">
             <div class="spinner-circle"></div>
-            <p>Conectando con el Núcleo...</p>
+            <p>Cargando...</p>
         </div>
 
-        <!-- Disconnected Overlay -->
         <div class="disconnected-overlay" *ngIf="wsStatus === 'Desconectado' && !isLoading">
             <div class="overlay-content">
                 <i class="fas fa-wifi-slash"></i>
                 <p>Sin conexión al servidor</p>
-                <small>Las funciones remotas no están disponibles.</small>
             </div>
         </div>
 
-        <!-- Messages List -->
-        <div class="messages-list" *ngIf="!isLoading">
-            <ng-container *ngFor="let msg of messages; let i = index">
-                
-                <!-- Date Timeline Separator -->
-                <div class="date-timeline-separator" *ngIf="isNewDay(i)">
-                    <span>{{ msg.timestamp | date:'longDate' }}</span>
+        <div class="conv-list" *ngIf="!isLoading">
+            <div class="conv-item" *ngFor="let conv of visibleConversations"
+                (click)="openConversation(conv)"
+                [class.conv-active]="activeConv?.id === conv.id">
+
+                <!-- Avatar estandarizado 44x44 sin pulse -->
+                <div class="conv-avatar" [class.conv-avatar-sandra]="conv.isSandra" [class.conv-avatar-user]="!conv.isSandra">
+                    <img src="assets/sandra.png" class="conv-avatar-img" *ngIf="conv.isSandra" alt="Sandra">
+                    <span *ngIf="!conv.isSandra">{{ conv.initial }}</span>
+                    <div class="conv-dot" [class.online]="conv.isOnline"></div>
                 </div>
 
-                <div class="message-row" 
-                     [class.user-row]="msg.sender === 'user'" 
-                     [class.ai-row]="msg.sender === 'sandra'">
-                    
+                <!-- Contenido -->
+                <div class="conv-content">
+                    <div class="conv-top">
+                        <span class="conv-name">{{ conv.name }}</span>
+                        <span class="conv-time" *ngIf="conv.lastTime">{{ conv.lastTime | date:'HH:mm' }}</span>
+                    </div>
+                    <div class="conv-bottom">
+                        <span class="conv-preview">{{ conv.lastMessage || 'Sin mensajes' }}</span>
+                        <span class="conv-unread" *ngIf="conv.unread > 0">{{ conv.unread }}</span>
+                    </div>
+                </div>
+
+                <!-- Botón eliminar (solo en no-Sandra) -->
+                <button class="btn-conv-delete" *ngIf="!conv.isSandra"
+                    (click)="deleteConversation(conv, $event)" title="Eliminar conversación">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="conv-empty-hint" *ngIf="conversations.length <= 1">
+                <i class="fas fa-comments"></i>
+                <p>Abre la <strong>Agenda</strong><br>para iniciar una conversación</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         VISTA: CHAT INDIVIDUAL
+    ════════════════════════════════════ -->
+    <div class="chat-body" #scrollContainer *ngIf="view === 'chat'">
+        <div class="disconnected-overlay" *ngIf="wsStatus === 'Desconectado' && activeConv?.isSandra">
+            <div class="overlay-content">
+                <i class="fas fa-wifi-slash"></i>
+                <p>Sin conexión al servidor</p>
+            </div>
+        </div>
+
+        <div class="messages-list" *ngIf="activeConv">
+            <ng-container *ngFor="let msg of activeConv.messages; let i = index">
+                <div class="date-timeline-separator" *ngIf="isNewDay(activeConv.messages, i)">
+                    <span>{{ msg.timestamp | date:'d MMM yy' }}</span>
+                </div>
+                <div class="message-row"
+                    [class.user-row]="msg.sender === 'user'"
+                    [class.ai-row]="msg.sender === 'sandra'">
                     <div class="message-content-wrapper">
                         <div class="sender-info" *ngIf="msg.sender === 'sandra' && msg.from">
                             <span class="sender-name">{{ msg.from }}</span>
                         </div>
-                        
                         <div class="bubble-container">
-                            <div class="message-bubble" [class.user-bubble]="msg.sender === 'user'" [class.ai-bubble]="msg.sender === 'sandra'">
+                            <div class="message-bubble"
+                                [class.user-bubble]="msg.sender === 'user'"
+                                [class.ai-bubble]="msg.sender === 'sandra'">
                                 <span class="bubble-text">{{ msg.text }}<span class="typing-cursor" *ngIf="msg.isTyping"></span></span>
-                                
                                 <div class="message-meta-v2">
                                     <span class="message-time">{{ msg.timestamp | date:'HH:mm' }}</span>
                                     <span class="message-status" *ngIf="msg.sender === 'user'">
-                                        <i class="fas fa-clock shadow-pulse" *ngIf="msg.status === 'pending'" title="Pendiente"></i>
+                                        <i class="fas fa-clock shadow-pulse" *ngIf="msg.status === 'pending'"></i>
                                         <i class="fas fa-check" *ngIf="msg.status === 'sent'"></i>
                                     </span>
                                 </div>
@@ -108,123 +218,275 @@
             </ng-container>
         </div>
 
-        <!-- Global Typing Indicator (Thinking) -->
-        <div class="message-row" *ngIf="isTyping">
+        <div class="message-row" *ngIf="isTyping && activeConv?.isSandra">
             <div class="message-bubble ai-bubble typing-bubble">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
             </div>
         </div>
-    </div> <!-- End chat-body -->
+    </div>
 
-    <!-- Footer / Input -->
-    <div class="chat-footer" [class.footer-disconnected]="wsStatus === 'Desconectado' && !isLoading">
-        <!-- Disconnected blocker overlay -->
-        <div class="footer-blocker" *ngIf="wsStatus === 'Desconectado' && !isLoading">
-            <i class="fas fa-plug"></i>
-            <span>Sin conexión</span>
+    <!-- Input footer -->
+    <div class="chat-footer" *ngIf="view === 'chat'"
+        [class.footer-disconnected]="wsStatus === 'Desconectado' && !!activeConv?.isSandra">
+        <div class="footer-blocker" *ngIf="wsStatus === 'Desconectado' && activeConv?.isSandra">
+            <i class="fas fa-plug"></i><span>Sin conexión</span>
         </div>
         <div class="input-wrapper">
-            <textarea 
-                   [(ngModel)]="newMessage" 
-                   (keydown)="handleKeyDown($event)"
-                   (input)="onInput($event)"
-                   placeholder="Escribe un mensaje..." 
-                   [disabled]="wsStatus === 'Desconectado' || isLoading"
-                   rows="1"></textarea>
-            <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim() || wsStatus === 'Desconectado'">
+            <textarea
+                [(ngModel)]="newMessage"
+                (keydown)="handleKeyDown($event)"
+                (input)="onInput($event)"
+                placeholder="Escribe un mensaje..."
+                [disabled]="(wsStatus === 'Desconectado' && !!activeConv?.isSandra) || isLoading"
+                rows="1"></textarea>
+            <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim()">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
     </div>
 
-    <!-- Contacts Modal Overlay -->
-    <div class="history-modal-overlay" *ngIf="isContactsOpen" (click)="toggleContacts()">
-        <div class="history-modal contacts-modal" (click)="$event.stopPropagation()">
-            <div class="history-header">
-                <h3>Usuarios Conectados</h3>
-                <button class="btn-close-mini" (click)="toggleContacts()"><i class="fas fa-times"></i></button>
+    <!-- ════════════════════════════════════
+         VISTA: AGENDA DE CONTACTOS
+    ════════════════════════════════════ -->
+    <div class="secondary-view contacts-view" *ngIf="view === 'contacts' && isLoggedIn()">
+
+        <!-- ═══ PERFIL EXPANDIDO ════════════════════════════════ -->
+        <div class="profile-panel" *ngIf="selectedContact">
+
+            <div class="profile-panel-header">
+                <button class="profile-back-btn" (click)="closeContactProfile()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span>Perfil</span>
+                <div class="profile-status-badge" [class.badge-online]="isContactOnline(selectedContact)">
+                    <i class="fas fa-circle"></i>
+                    {{ isContactOnline(selectedContact) ? 'En línea' : 'Fuera de línea' }}
+                </div>
             </div>
-            <div class="history-body">
-                <div class="contacts-list" *ngIf="activeUsers.length > 0">
-                    <div class="contact-item fade-in" *ngFor="let user of activeUsers">
-                        <div class="contact-avatar">
-                            {{ user.initial }}
-                        </div>
-                        <div class="contact-info">
-                            <div class="contact-name">{{ user.name }}</div>
-                            <div class="contact-uuid">{{ user.uuid }}</div>
-                        </div>
+
+            <!-- Avatar hero -->
+            <div class="profile-hero">
+                <div class="profile-avatar-lg" [style.background]="getContactColor(selectedContact)">
+                    {{ getContactInitial(selectedContact) }}
+                    <div class="profile-avatar-dot" [class.dot-online]="isContactOnline(selectedContact)"></div>
+                </div>
+                <div class="profile-hero-text">
+                    <div class="profile-name">{{ getContactName(selectedContact) }}</div>
+                    <div class="profile-login" *ngIf="getContactLogin(selectedContact)">
+                        <i class="fas fa-at"></i> {{ getContactLogin(selectedContact) }}
+                    </div>
+                    <!-- Cargo como subtitle si existe -->
+                    <div class="profile-cargo-hero" *ngIf="getContactCargo(selectedContact)">
+                        {{ getContactCargo(selectedContact) }}
                     </div>
                 </div>
-                <div class="history-empty" *ngIf="activeUsers.length === 0">
-                    <i class="fas fa-user-slash"></i>
-                    <p>No se encontraron otros usuarios conectados.</p>
-                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- History Modal Overlay -->
-    <div class="history-modal-overlay" *ngIf="isHistoryOpen" (click)="closeHistoryModal()">
-        <div class="history-modal" (click)="$event.stopPropagation()">
-            <div class="history-header">
-                <h3>Historial de Sandra</h3>
-                <div class="history-header-actions">
-                    <button class="btn-clear-all" *ngIf="historyGroups.length > 0" (click)="clearAllHistory()" title="Borrar todo el historial">
-                        <i class="fas fa-trash-alt"></i>
+            <!-- Datos del perfil — todos los campos -->
+            <div class="profile-data">
+
+                <!-- Login -->
+                <div class="profile-data-row" *ngIf="getContactLogin(selectedContact)">
+                    <div class="profile-data-icon"><i class="fas fa-user-tag"></i></div>
+                    <div class="profile-data-content">
+                        <span class="profile-data-label">Usuario Login</span>
+                        <span class="profile-data-value">{{ getContactLogin(selectedContact) }}</span>
+                    </div>
+                </div>
+
+                <!-- Email / Correo institucional -->
+                <div class="profile-data-row" *ngIf="getContactEmail(selectedContact)">
+                    <div class="profile-data-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="profile-data-content">
+                        <span class="profile-data-label">Correo Institucional</span>
+                        <span class="profile-data-value">{{ getContactEmail(selectedContact) }}</span>
+                    </div>
+                </div>
+
+                <!-- Cargo -->
+                <div class="profile-data-row" *ngIf="getContactCargo(selectedContact)">
+                    <div class="profile-data-icon"><i class="fas fa-id-badge"></i></div>
+                    <div class="profile-data-content">
+                        <span class="profile-data-label">Cargo Oficial</span>
+                        <span class="profile-data-value">{{ getContactCargo(selectedContact) }}</span>
+                    </div>
+                </div>
+
+                <!-- Perfil / Grupo / Área -->
+                <div class="profile-data-row" *ngIf="getContactPerfil(selectedContact)">
+                    <div class="profile-data-icon"><i class="fas fa-sitemap"></i></div>
+                    <div class="profile-data-content">
+                        <span class="profile-data-label">Perfil / Grupo</span>
+                        <span class="profile-data-value">{{ getContactPerfil(selectedContact) }}</span>
+                    </div>
+                </div>
+
+                <!-- Aplicación activa -->
+                <div class="profile-data-row" *ngIf="getContactApp(selectedContact)">
+                    <div class="profile-data-icon"><i class="fas fa-layer-group"></i></div>
+                    <div class="profile-data-content">
+                        <span class="profile-data-label">Aplicación Activa</span>
+                        <span class="profile-data-value">{{ getContactApp(selectedContact) }}</span>
+                    </div>
+                </div>
+
+                <!-- Descripción / Notas -->
+                <div class="profile-data-row profile-data-desc" *ngIf="getContactDesc(selectedContact)">
+                    <div class="profile-data-icon"><i class="fas fa-align-left"></i></div>
+                    <div class="profile-data-content">
+                        <span class="profile-data-label">Descripción</span>
+                        <span class="profile-data-value">{{ getContactDesc(selectedContact) }}</span>
+                    </div>
+                </div>
+
+                <!-- UUID técnico -->
+                <div class="profile-data-row" *ngIf="selectedContact.uuid">
+                    <div class="profile-data-icon"><i class="fas fa-fingerprint"></i></div>
+                    <div class="profile-data-content">
+                        <span class="profile-data-label">UUID</span>
+                        <span class="profile-data-value uuid-val">{{ selectedContact.uuid | slice:0:22 }}…</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Acción principal -->
+            <button class="btn-profile-chat" (click)="startConvWithContact(selectedContact); closeContactProfile()">
+                <i class="fas fa-comment-dots"></i> Iniciar Conversación
+            </button>
+
+        </div><!-- /profile-panel -->
+
+        <!-- ═══ LISTA DE CONTACTOS ════════════════════════════════ -->
+        <ng-container *ngIf="!selectedContact">
+
+            <!-- Buscador + stats -->
+            <div class="contacts-top">
+                <div class="contact-search-bar">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="text" [(ngModel)]="contactSearch" placeholder="Buscar nombre, login, cargo...">
+                    <button class="btn-search-clear" *ngIf="contactSearch" (click)="contactSearch = ''">
+                        <i class="fas fa-xmark"></i>
                     </button>
-                    <button class="btn-close-mini" (click)="closeHistoryModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="contacts-stats" *ngIf="contacts.length > 0">
+                    <span class="stat-total">{{ contacts.length }} contactos</span>
+                    <span class="stat-sep">·</span>
+                    <span class="stat-online">
+                        <i class="fas fa-circle"></i> {{ contactsOnlineCount }} en línea
+                    </span>
                 </div>
             </div>
-            <div class="history-body">
-                <div class="history-list" *ngIf="historyGroups.length > 0">
-                    <div class="history-item fade-in" *ngFor="let group of historyGroups" (click)="viewArchivedSession(group)">
-                        <div class="history-item-icon">
-                            <i class="fas fa-comment-alt"></i>
+
+            <!-- Sync inline -->
+            <div class="sync-bar" *ngIf="isContactsSyncing">
+                <div class="sync-dot"></div>
+                <span>Sincronizando agenda...</span>
+            </div>
+
+            <!-- Lista matte -->
+            <div class="contacts-list" *ngIf="filteredContacts.length > 0">
+                <div class="contact-row fade-in" *ngFor="let contact of filteredContacts">
+
+                    <!-- Avatar -->
+                    <div class="contact-av" [style.background]="getContactColor(contact)"
+                        (click)="showContactProfile(contact, $event)">
+                        {{ getContactInitial(contact) }}
+                        <div class="contact-av-dot" *ngIf="isContactOnline(contact)"></div>
+                    </div>
+
+                    <!-- Info principal + cargo/perfil -->
+                    <div class="contact-row-info" (click)="startConvWithContact(contact)">
+                        <div class="contact-row-name">
+                            {{ getContactName(contact) }}
+                            <span class="badge-online-mini" *ngIf="isContactOnline(contact)">online</span>
                         </div>
-                        <div class="history-item-content">
-                            <div class="history-item-header">
-                                <span class="history-item-date">{{ group.date | date:'short' }}</span>
-                                <span class="history-item-badge">{{ group.messages.length }} msgs</span>
-                            </div>
-                            <div class="history-item-preview">{{ group.preview }}</div>
+                        <!-- Login -->
+                        <div class="contact-row-login" *ngIf="getContactLogin(contact)">
+                            <i class="fas fa-at"></i> {{ getContactLogin(contact) }}
                         </div>
-                        <div class="history-item-arrow">
-                            <button class="btn-delete-session" (click)="deleteSession(group, $event)" title="Eliminar esta sesión">
-                                <i class="fas fa-times-circle"></i>
-                            </button>
-                            <i class="fas fa-chevron-right"></i>
+                        <!-- Cargo + Perfil como segunda línea -->
+                        <div class="contact-row-meta">
+                            <span class="meta-cargo" *ngIf="getContactCargo(contact)">
+                                <i class="fas fa-id-badge"></i> {{ getContactCargo(contact) }}
+                            </span>
+                            <span class="meta-sep" *ngIf="getContactCargo(contact) && getContactPerfil(contact)">·</span>
+                            <span class="meta-perfil" *ngIf="getContactPerfil(contact)">
+                                {{ getContactPerfil(contact) }}
+                            </span>
                         </div>
                     </div>
+
+                    <!-- Acciones hover -->
+                    <div class="contact-row-actions">
+                        <button class="btn-contact-action" title="Ver perfil"
+                            (click)="showContactProfile(contact, $event)">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        <button class="btn-contact-action btn-contact-chat" title="Iniciar chat"
+                            (click)="startConvWithContact(contact)">
+                            <i class="fas fa-comment-dots"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="history-empty" *ngIf="historyGroups.length === 0">
-                    <i class="fas fa-calendar-alt"></i>
-                    <p>No hay conversaciones archivadas aún.</p>
+            </div>
+
+            <!-- Sin resultados -->
+            <div class="contacts-empty" *ngIf="!isContactsSyncing && filteredContacts.length === 0 && contactSearch">
+                <i class="fas fa-magnifying-glass"></i>
+                <p>Sin resultados para "<strong>{{ contactSearch }}</strong>"</p>
+            </div>
+            <div class="contacts-empty" *ngIf="!isContactsSyncing && contacts.length === 0 && !contactSearch">
+                <i class="fas fa-address-book"></i>
+                <p>Agenda vacía.<br><small>Sincroniza con el servidor.</small></p>
+            </div>
+
+        </ng-container>
+    </div>
+
+    <!-- ════════════════════════════════════
+         VISTA: HISTORIAL SANDRA IA
+    ════════════════════════════════════ -->
+    <div class="secondary-view" *ngIf="view === 'history' && isLoggedIn()">
+        <div class="history-list" *ngIf="historyGroups.length > 0">
+            <div class="history-item fade-in" *ngFor="let group of historyGroups"
+                (click)="viewArchivedSession(group)">
+                <div class="history-item-icon"><i class="fas fa-comment-alt"></i></div>
+                <div class="history-item-content">
+                    <div class="history-item-header">
+                        <span class="history-item-date">{{ group.date | date:'d MMM · HH:mm' }}</span>
+                        <span class="history-item-badge">{{ group.messages.length }} msgs</span>
+                    </div>
+                    <div class="history-item-preview">{{ group.preview }}</div>
+                </div>
+                <div class="history-item-arrow">
+                    <button class="btn-delete-session" (click)="deleteSession(group, $event)" title="Eliminar">
+                        <i class="fas fa-xmark-circle"></i>
+                    </button>
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             </div>
         </div>
+
+        <div class="history-empty" *ngIf="historyGroups.length === 0">
+            <i class="fas fa-calendar-alt"></i>
+            <p>Sin historial archivado.</p>
+        </div>
     </div>
 
-    <!-- Custom Confirmation Modal for Deletion -->
+    <!-- ════════════════════════════════════
+         MODAL CONFIRMACIÓN
+    ════════════════════════════════════ -->
     <div class="chat-confirm-modal-overlay" *ngIf="confirmModal.show">
-        <div class="modal-card activity-modal fade-in-up">
-            <div class="modal-body-clean">
-                <div class="modal-visual-header danger-header" style="justify-content: center; background: linear-gradient(135deg, #fff5f5 0%, #ffebee 100%);">
-                    <div class="icon-pulse-wrapper danger-pulse" style="color: #ff5252; box-shadow: 0 4px 15px rgba(255, 82, 82, 0.2);">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                </div>
-                <h3 class="modal-title-clean" style="text-align: center; margin-top: 20px; color: #37474f;">{{ confirmModal.title }}</h3>
-                <p class="modal-msg-clean" style="text-align: center; color: #78909c; font-size: 0.9rem; padding: 0 30px; margin-bottom: 25px;">
-                    {{ confirmModal.message }}
-                </p>
-
-                <div class="modal-actions-spread-chat" style="padding: 0 32px 32px; display: flex; gap: 12px;">
-                    <button class="btn-modal-confirm" (click)="handleConfirmDelete()" style="flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; background: #ffebee; color: #c62828; border: none; cursor: pointer;">Eliminar</button>
-                    <button class="btn-modal-cancel" (click)="closeConfirmModal()" style="flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; background: #f1f5f9; color: #475569; border: none; cursor: pointer;">Cancelar</button>
-                </div>
+        <div class="confirm-card fade-in-up">
+            <div class="confirm-icon danger">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <h3>{{ confirmModal.title }}</h3>
+            <p>{{ confirmModal.message }}</p>
+            <div class="confirm-actions">
+                <button class="btn-confirm-danger" (click)="handleConfirmDelete()">Eliminar</button>
+                <button class="btn-confirm-cancel" (click)="closeConfirmModal()">Cancelar</button>
             </div>
         </div>
     </div>

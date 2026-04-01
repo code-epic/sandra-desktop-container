@@ -30,7 +30,8 @@ impl Sha256Service {
 
     /// Computa el hash SHA-256 de un archivo en disco.
     pub fn hash_file(path: &str) -> Result<String, String> {
-        let bytes = std::fs::read(path).map_err(|e| format!("Error leyendo archivo para hash: {}", e))?;
+        let bytes =
+            std::fs::read(path).map_err(|e| format!("Error leyendo archivo para hash: {}", e))?;
         Ok(Self::hash_bytes(&bytes))
     }
 

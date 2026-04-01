@@ -18,6 +18,7 @@ import { FileService } from "./core/services/file.service";
 import { Observable, Subject } from "rxjs";
 import { debounceTime } from "rxjs/operators";
 import { SnapService, SnapData } from "./core/services/snap.service";
+import { UtilsService } from "./core/services/utils.service";
 // import { PDFDocument, rgb, degrees } from 'pdf-lib'; // REMOVED: Now handled in DownloadService/ChildApp
 
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
@@ -230,7 +231,8 @@ export class AppComponent implements OnInit {
     private titleService: Title,
     private snapService: SnapService,
     private fileService: FileService,
-    public securityService: SecurityService, 
+    public securityService: SecurityService,
+    public utils: UtilsService,
   ) {
     // ... existing constructor logic ...
 
@@ -1110,7 +1112,7 @@ export class AppComponent implements OnInit {
   }
 
   formatBytes(bytes: number): string {
-    return (bytes / 1024 ** 3).toFixed(2) + " GB";
+    return this.utils.formatBytes(bytes);
   }
 
   greet(event: SubmitEvent, name: string): void {

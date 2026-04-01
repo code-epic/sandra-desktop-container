@@ -149,28 +149,31 @@
                                         <i [class]="getStatusIcon(msg.status)" class="tag-icon"></i>
                                         {{ translateStatus(msg.status) }}
                                     </span>
-                                    <span class="gmail-date">{{ msg.created_at | date:'d MMM' }}</span>
+                                    <span class="gmail-date">{{ msg.created_at | date:'d MMM yy' }}</span>
                                 </div>
                             </div>
 
-                            <!-- Line 2: Subject & Snippet -->
+                            <!-- Line 2: Subject, Snippet & Time -->
                             <div class="gmail-main-bottom">
-                                <span class="gmail-subject">
-                                    <ng-container *ngIf="msg.author === 'HSF Ticket Seguro'">
-                                        <span class="brand-main">Notificación de Ticket</span>
-                                    </ng-container>
-                                    <ng-container *ngIf="msg.author === 'Ejecución de Función'">
-                                        <span class="brand-main">Ejecución de Función</span>
-                                    </ng-container>
-                                    <ng-container
-                                        *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
-                                        {{ (getMessageSubject(msg.content) || msg.sid | slice:0:40) + ((getMessageSubject(msg.content) || msg.sid || '').length > 40 ? '...' : '') }}
-                                    </ng-container>
-                                </span>
-                                <span class="gmail-dash">&nbsp;-&nbsp;</span>
-                                <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
-                                    (getMessageSnippet(msg.content).length > 80 ?
-                                    '...' : '') }}</span>
+                                <div class="gmail-bottom-content">
+                                    <span class="gmail-subject">
+                                        <ng-container *ngIf="msg.author === 'HSF Ticket Seguro'">
+                                            <span class="brand-main">Notificación de Ticket</span>
+                                        </ng-container>
+                                        <ng-container *ngIf="msg.author === 'Ejecución de Función'">
+                                            <span class="brand-main">Ejecución de Función</span>
+                                        </ng-container>
+                                        <ng-container
+                                            *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
+                                            {{ (getMessageSubject(msg.content) || msg.sid | slice:0:40) + ((getMessageSubject(msg.content) || msg.sid || '').length > 40 ? '...' : '') }}
+                                        </ng-container>
+                                    </span>
+                                    <span class="gmail-dash">&nbsp;-&nbsp;</span>
+                                    <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
+                                        (getMessageSnippet(msg.content).length > 80 ?
+                                        '...' : '') }}</span>
+                                </div>
+                                <span class="gmail-time">{{ msg.created_at | date:'h:mm:ss a' }}</span>
                             </div>
                         </div>
                     </div>

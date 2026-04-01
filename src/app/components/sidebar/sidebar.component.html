@@ -10,6 +10,7 @@
     </div>
 
     <nav class="nav-menu">
+        <!-- Items SIEMPRE accesibles -->
         <div class="nav-item" [class.active]="(activeTab$ | async) === 'dashboard'" (click)="switchToDashboard()">
             <i class="fas fa-th-large"></i> <span>Dashboard</span>
         </div>
@@ -20,20 +21,38 @@
         <div class="nav-item" [class.active]="(activeTab$ | async) === 'apps'" (click)="setActive('apps')">
             <i class="fas fa-globe"></i> <span>Aplicaciones</span>
         </div>
-        <div class="nav-item" [class.active]="(activeTab$ | async) === 'security'" (click)="setActive('security')">
-            <i class="fas fa-shield-alt"></i> <span>Seguridad</span>
+
+        <!-- Items PROTEGIDOS — requieren JWT -->
+        <div class="nav-item nav-item-protected"
+            [class.active]="(activeTab$ | async) === 'security'"
+            [class.nav-locked]="!hasJwt"
+            (click)="setActive('security')"
+            [attr.title]="!hasJwt ? 'Requiere autenticación JWT' : 'Seguridad'">
+            <i class="fas fa-shield-alt"></i>
+            <span>Seguridad</span>
+            <i class="fas fa-lock nav-lock-icon" *ngIf="!hasJwt"></i>
         </div>
-        <div class="nav-item" [class.active]="(activeTab$ | async) === 'monitor'" (click)="setActive('monitor')">
-            <i class="fas fa-desktop"></i> <span>Monitor</span>
+        <div class="nav-item nav-item-protected"
+            [class.active]="(activeTab$ | async) === 'monitor'"
+            [class.nav-locked]="!hasJwt"
+            (click)="setActive('monitor')"
+            [attr.title]="!hasJwt ? 'Requiere autenticación JWT' : 'Monitor'">
+            <i class="fas fa-desktop"></i>
+            <span>Monitor</span>
+            <i class="fas fa-lock nav-lock-icon" *ngIf="!hasJwt"></i>
         </div>
 
         <div class="nav-spacer"></div>
-
         <div class="nav-divider"></div>
 
-        <div class="nav-item" [class.active]="(activeTab$ | async) === 'secure-viewer'"
-            (click)="setActive('secure-viewer')">
-            <i class="fas fa-file-shield"></i> <span>Visor Seguro</span>
+        <div class="nav-item nav-item-protected"
+            [class.active]="(activeTab$ | async) === 'secure-viewer'"
+            [class.nav-locked]="!hasJwt"
+            (click)="setActive('secure-viewer')"
+            [attr.title]="!hasJwt ? 'Requiere autenticación JWT' : 'Visor Seguro'">
+            <i class="fas fa-file-shield"></i>
+            <span>Visor Seguro</span>
+            <i class="fas fa-lock nav-lock-icon" *ngIf="!hasJwt"></i>
         </div>
 
         <div class="nav-item help-item" [class.active]="(activeTab$ | async) === 'wiki-help'" (click)="openWikiHelp()">

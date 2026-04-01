@@ -179,6 +179,36 @@
   border: 1px solid rgba(46, 125, 50, 0.2);
 }
 
+/* ── Pill JWT pendiente: conectado sin autenticar ── */
+.jwt-pending-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 152, 0, 0.1);
+  color: #e65100;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.82em;
+  font-weight: 600;
+  border: 1px solid rgba(255, 152, 0, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: jwtPulse 2.5s ease-in-out infinite;
+  -webkit-app-region: no-drag;
+}
+.jwt-pending-pill:hover {
+  background: rgba(255, 152, 0, 0.18);
+  border-color: rgba(255, 152, 0, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 81, 0, 0.15);
+}
+.jwt-pending-pill i { font-size: 0.8em; }
+
+@keyframes jwtPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
 .connection-pill {
   background: #fff;
   padding: 6px 16px;

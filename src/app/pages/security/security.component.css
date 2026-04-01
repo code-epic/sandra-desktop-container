@@ -566,8 +566,18 @@ select.input-dark.filter-select {
 .gmail-main-bottom {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   min-width: 0;
+  gap: 8px;
+}
+
+.gmail-bottom-content {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .gmail-author {
@@ -581,12 +591,30 @@ select.input-dark.filter-select {
   min-width: 0;
 }
 
+.gmail-date-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
 .gmail-date {
   font-size: 0.75rem;
   font-weight: 600;
   color: #475569;
   text-align: right;
   white-space: nowrap;
+}
+
+.gmail-time {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #94A3B8;
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
 }
 
 .gmail-subject {

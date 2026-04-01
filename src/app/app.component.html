@@ -1,6 +1,11 @@
 <div class="sdc-container">
   <!-- Componente Sidebar Modular -->
-  <app-sidebar [class.global-blur]="isViewerLoading || showControlPanel" (onLogout)="handleGlobalLogout()" (onNavigateRequest)="handleNavigationRequest($event)"></app-sidebar>
+  <app-sidebar [class.global-blur]="isViewerLoading || showControlPanel"
+    [hasJwt]="!!getJwtToken()"
+    (onLogout)="handleGlobalLogout()"
+    (onNavigateRequest)="handleNavigationRequest($event)"
+    (onLoginRequest)="checkAndPromptJwt()">
+  </app-sidebar>
 
   <main class="main-stage">
     <header class="stage-header" [class.connected-anim]="wsStatus === 'Conectado'" [class.global-blur]="isViewerLoading || showControlPanel">
@@ -35,7 +40,14 @@
       </div>
 
       <div class="header-right-group">
-        
+
+        <!-- Pill JWT pendiente: conectado sin autenticar -->
+        <div class="jwt-pending-pill" *ngIf="wsStatus === 'Conectado' && !getJwtToken()"
+          (click)="checkAndPromptJwt()" title="Iniciar sesión para acceder a módulos protegidos">
+          <i class="fas fa-lock"></i>
+          <span>Iniciar Sesión</span>
+        </div>
+
         <div class="ticket-indicator fade-in" *ngIf="pendingTicketsCount > 0" (click)="selectTab('monitor')" title="Tickets Pendientes">
           <i class="fas fa-ticket-alt"></i>
           <span class="ticket-count">{{ pendingTicketsCount }}</span>
@@ -59,10 +71,10 @@
         (onIpClick)="showIpInfo()" (onMacClick)="showMacInfo()"></app-dashboard>
 
       <app-connections *ngIf="(activeTabId$ | async) === 'connections'"></app-connections>
-      <app-security *ngIf="(activeTabId$ | async) === 'security'" [activeConnection]="activeConnection"></app-security>
-      <app-monitor *ngIf="(activeTabId$ | async) === 'monitor'"></app-monitor>
+      <app-security *ngIf="(activeTabId$ | async) === 'security' && !!getJwtToken()" [activeConnection]="activeConnection"></app-security>
+      <app-monitor *ngIf="(activeTabId$ | async) === 'monitor' && !!getJwtToken()"></app-monitor>
       <app-desktop-apps *ngIf="(activeTabId$ | async) === 'apps'"></app-desktop-apps>
-      <app-secure-viewer *ngIf="(activeTabId$ | async) === 'secure-viewer'"></app-secure-viewer>
+      <app-secure-viewer *ngIf="(activeTabId$ | async) === 'secure-viewer' && !!getJwtToken()"></app-secure-viewer>
 
       <!-- Container Dinámico de Pestañas (Apps & Docs) -->
       <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async); trackBy: trackByTabId"
@@ -498,11 +510,15 @@
     (close)="showControlPanel = false">
   </app-config>
 
-  <app-chat *ngIf="(activeTabId$ | async) !== 'login'" 
+  <app-chat *ngIf="(activeTabId$ | async) !== 'login'"
     [visible]="(chatVisible$ | async) === true"
     [class.global-blur]="showControlPanel"
-    [wsStatus]="wsStatus" [activeConnection]="activeConnection" [config]="config"
-    [clientId]="clientId"></app-chat>
+    [wsStatus]="wsStatus"
+    [activeConnection]="activeConnection"
+    [config]="config"
+    [clientId]="clientId"
+    [hasJwt]="!!getJwtToken()">
+  </app-chat>
 
   <!-- SETUP WIZARD OVERLAY -->
   <app-setup-wizard *ngIf="showSetupWizard" [stats]="stats" [networkInfo]="networkInfo"
