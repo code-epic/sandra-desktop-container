@@ -22,7 +22,7 @@ interface ChatMessage {
   from?: string;
   timestamp: Date;
   isTyping?: boolean;
-  status?: "sent" | "pending" | "error";
+  status?: "sent" | "pending" | "sending" | "error";
 }
 
 interface Conversation {
@@ -130,7 +130,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   constructor(
     private wsService: WebSocketService,
     private sdcService: SdcService
-  ) {}
+  ) { }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -186,9 +186,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   get filteredContacts(): Contact[] {
-    if (!this.contactSearch.trim()) return this.contacts;
+    const validContacts = this.contacts.filter(c => {
+      const login = this.getContactLogin(c).toLowerCase();
+      return login !== 'xterm' && login !== (this.clientId || '').toLowerCase();
+    });
+    if (!this.contactSearch.trim()) return validContacts;
     const q = this.contactSearch.toLowerCase();
-    return this.contacts.filter((c) =>
+    return validContacts.filter((c) =>
       (c.name || c.nombre || c.user_name || c.login || "").toLowerCase().includes(q) ||
       (c.login || "").toLowerCase().includes(q) ||
       (c.area || "").toLowerCase().includes(q)
@@ -196,14 +200,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   get contactsOnlineCount(): number {
-    return this.contacts.filter((c) => this.isContactOnline(c)).length;
+    return this.contacts.filter((c) => {
+      const login = this.getContactLogin(c).toLowerCase();
+      return this.isContactOnline(c) && login !== 'xterm' && login !== (this.clientId || '').toLowerCase();
+    }).length;
   }
 
   /** Color de avatar basado en la inicial (paleta SDC matte) */
   getContactColor(c: Contact): string {
     const colors = [
-      '#7cac80','#64b5f6','#f06292','#ffb74d','#9575cd',
-      '#4db6ac','#e57373','#aed581','#4dd0e1','#ff8a65'
+      '#7cac80', '#64b5f6', '#f06292', '#ffb74d', '#9575cd',
+      '#4db6ac', '#e57373', '#aed581', '#4dd0e1', '#ff8a65'
     ];
     const name = this.getContactName(c);
     const idx = name.charCodeAt(0) % colors.length;
@@ -253,8 +260,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   isContactOnline(c: Contact): boolean {
     const login = this.getContactLogin(c).toLowerCase();
+    if (!login && !c.uuid) return false;
     return this.activeUsers.some(
-      (u) => (u.name || "").toLowerCase() === login || (u.uuid || "") === c.uuid
+      (u) => {
+        if (login && (u.name || "").toLowerCase() === login) return true;
+        if (c.uuid && (u.uuid || "") === c.uuid) return true;
+        return false;
+      }
     );
   }
 
@@ -295,7 +307,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   async syncContacts() {
     if (this.isContactsSyncing) return;
     this.isContactsSyncing = true;
-    this.loadContactsLocal();
+    
+    // Limpia la agenda antigua forzosamente
+    this.contacts = [];
+    this.activeUsers = [];
+    localStorage.removeItem(this.contactStorageKey);
 
     if (!this.activeConnection?.hash) {
       this.isContactsSyncing = false;
@@ -303,41 +319,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
 
     try {
-      const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
-      const payload = {
-        funcion: "SDC_CUsers",
-        parametros: this.contactAppFilter || "",
-      };
-
-      const response: any = await invoke("api_post_request", {
-        ip: this.activeConnection.ip_address,
-        port: Number(this.activeConnection.port),
-        endpoint,
-        payload,
-        hash: this.activeConnection.hash,
-        tempAuthToken: this.activeConnection.jwt,
-      });
-
-      if (response && Array.isArray(response)) {
-        const remoteLogins = new Set(response.map((c: any) => (c.login || c.user_name || "").toLowerCase()));
-        const localOnly = this.contacts.filter(
-          (c) => !remoteLogins.has((c.login || "").toLowerCase())
-        );
-        this.contacts = [...response, ...localOnly];
-        this.saveContactsLocal();
-      } else if (response?.data && Array.isArray(response.data)) {
-        this.contacts = response.data;
-        this.saveContactsLocal();
-      } else if (response?.msj === "Ok" && response.contenido) {
-        this.contacts = Array.isArray(response.contenido) ? response.contenido : [];
-        this.saveContactsLocal();
-      }
-
-      // Cargar sesiones activas SOLO si hay JWT válido
       if (this.isLoggedIn()) {
         await this.loadActiveUsers();
       } else {
-        this.activeUsers = [];   // Limpiar cualquier dato previo
+        this.activeUsers = [];
       }
     } catch (e) {
       console.warn("Contacts sync error:", e);
@@ -348,29 +333,47 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   async loadActiveUsers() {
     if (!this.activeConnection || !this.config) return;
-    if (!this.isLoggedIn()) { this.activeUsers = []; return; }  // Guard JWT
+    if (!this.isLoggedIn()) { this.activeUsers = []; return; }
     try {
       const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
-      const response = await this.sdcService.apiPostRequest(
+      const response = await this.sdcService.apiGetRequest(
         this.activeConnection.ip_address,
         this.activeConnection.port,
-        "v1/api/sandra_get-active-sessions",
-        {},
+        "v1/api/sandra_sessions",
         this.activeConnection.hash,
         token
       );
-      if (response && Array.isArray(response)) {
-        this.activeUsers = response.map((u: any) => ({
+      
+      let activeList: any[] = [];
+      if (response && response.type === "clients_list" && Array.isArray(response.message)) {
+          activeList = response.message.filter((c: any) => c.status === "online");
+      } else if (response && Array.isArray(response)) {
+          activeList = response;
+      }
+
+      if (response) {
+        this.activeUsers = activeList.map((u: any) => ({
           name: u.name || u.Username || u.User || "Terminal",
-          uuid: u.uuid || u.ID || u.Uuid || "",
+          uuid: u.id || u.uuid || u.ID || u.Uuid || "",
           initial: (u.name || u.Username || "T").charAt(0).toUpperCase(),
         }));
+        
+        this.contacts = activeList.map((c: any) => ({
+          login: c.name || c.Username,
+          name: c.name || c.Username,
+          uuid: c.id || c.uuid || c.ID,
+          descripcion: c.id || c.uuid || c.ID,
+          cargo: c.mac_address || "",
+          isOnline: true
+        }));
+        this.saveContactsLocal();
+
         this.conversations.forEach((c) => {
-          c.isOnline = c.isSandra || this.activeUsers.some((u) => u.uuid === c.id);
+          c.isOnline = c.isSandra || this.activeUsers.some((u) => u.uuid === c.id || (u.name || "").toLowerCase() === (c.login || "").toLowerCase());
         });
       }
-    } catch {}
+    } catch { }
   }
 
   // ─── Persistence ──────────────────────────────────────────────────────────
@@ -392,7 +395,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         try {
           sandraConv.messages = JSON.parse(raw).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
           this.updatePreview(sandraConv);
-        } catch {}
+        } catch { }
       }
     }
     const convListKey = `sdc_chat_convs_${this.activeConnection?.id || "default"}`;
@@ -412,10 +415,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
             try {
               conv.messages = JSON.parse(msgRaw).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
               this.updatePreview(conv);
-            } catch {}
+            } catch { }
           }
         }
-      } catch {}
+      } catch { }
     }
   }
 
@@ -522,7 +525,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.newMessage = "";
     this.resetTextareaHeight();
 
-    const msg: ChatMessage = { text: userText, sender: "user", timestamp: new Date(), status: "pending" };
+    const msg: ChatMessage = { text: userText, sender: "user", timestamp: new Date(), status: "sending" };
     conv.messages.push(msg);
     this.saveConversation(conv);
 
@@ -538,6 +541,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private async deliverToSandra(msg: ChatMessage, conv: Conversation) {
     if (!this.activeConnection || !this.config) { msg.status = "pending"; return; }
+    msg.status = "sending";
     try {
       const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
@@ -556,6 +560,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private async deliverToUser(msg: ChatMessage, conv: Conversation) {
     if (!this.activeConnection || !this.config) { msg.status = "pending"; return; }
+    msg.status = "sending";
     try {
       const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
@@ -563,7 +568,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       await this.sdcService.apiPostRequest(
         this.activeConnection.ip_address, this.activeConnection.port,
         "v1/api/sandra_send-message",
-        { Type: "chat", To: conv.login || conv.id, Message: msg.text, From: "" },
+        { Type: "chat", To: conv.login, Message: msg.text, From: "" },
         this.activeConnection.hash, token
       );
       msg.status = "sent";
@@ -710,7 +715,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       if (this.scrollContainer) {
         this.scrollContainer.nativeElement.scrollTo({ top: this.scrollContainer.nativeElement.scrollHeight, behavior: "auto" });
       }
-    } catch {}
+    } catch { }
   }
 
   handleKeyDown(event: KeyboardEvent) {

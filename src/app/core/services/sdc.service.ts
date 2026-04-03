@@ -69,7 +69,13 @@ export class SdcService {
     return await invoke('get_or_create_client_id');
   }
 
+  async apiGetRequest(ip: string, port: number, endpoint: string, hash: string, tempAuthToken: string | null = null): Promise<any> {
+    console.log('apiGetRequest', ip, port, endpoint, hash, tempAuthToken);
+    return await invoke('api_get_request', { ip, port, endpoint, hash, tempAuthToken });
+  }
+
   async apiPostRequest(ip: string, port: number, endpoint: string, payload: any, hash: string, tempAuthToken: string | null = null): Promise<any> {
+    console.log('apiPostRequest', ip, port, endpoint, payload, hash, tempAuthToken);
     return await invoke('api_post_request', { ip, port, endpoint, payload, hash, tempAuthToken });
   }
 }
