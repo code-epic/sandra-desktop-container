@@ -188,7 +188,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   get filteredContacts(): Contact[] {
     const validContacts = this.contacts.filter(c => {
       const login = this.getContactLogin(c).toLowerCase();
-      return login !== 'xterm' && login !== (this.clientId || '').toLowerCase();
+      return login !== 'xterm' &&
+        login !== (this.clientId || '').toLowerCase() &&
+        (c.uuid || '').toLowerCase() !== (this.clientId || '').toLowerCase();
     });
     if (!this.contactSearch.trim()) return validContacts;
     const q = this.contactSearch.toLowerCase();
@@ -202,7 +204,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   get contactsOnlineCount(): number {
     return this.contacts.filter((c) => {
       const login = this.getContactLogin(c).toLowerCase();
-      return this.isContactOnline(c) && login !== 'xterm' && login !== (this.clientId || '').toLowerCase();
+      return this.isContactOnline(c) &&
+        login !== 'xterm' &&
+        login !== (this.clientId || '').toLowerCase() &&
+        (c.uuid || '').toLowerCase() !== (this.clientId || '').toLowerCase();
     }).length;
   }
 
@@ -307,7 +312,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   async syncContacts() {
     if (this.isContactsSyncing) return;
     this.isContactsSyncing = true;
-    
+
     // Limpia la agenda antigua forzosamente
     this.contacts = [];
     this.activeUsers = [];
@@ -344,12 +349,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.activeConnection.hash,
         token
       );
-      
+
       let activeList: any[] = [];
       if (response && response.type === "clients_list" && Array.isArray(response.message)) {
-          activeList = response.message.filter((c: any) => c.status === "online");
+        activeList = response.message.filter((c: any) => c.status === "online");
       } else if (response && Array.isArray(response)) {
-          activeList = response;
+        activeList = response;
       }
 
       if (response) {
@@ -358,7 +363,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           uuid: u.id || u.uuid || u.ID || u.Uuid || "",
           initial: (u.name || u.Username || "T").charAt(0).toUpperCase(),
         }));
-        
+
         this.contacts = activeList.map((c: any) => ({
           login: c.name || c.Username,
           name: c.name || c.Username,
@@ -565,10 +570,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
       if (!token) { msg.status = "pending"; return; }
+      console.log(this.activeUsers)
+      const me = this.activeUsers.find(u => u.uuid === this.clientId);
+      const fromName = me ? me.name : this.clientId;
+
       await this.sdcService.apiPostRequest(
         this.activeConnection.ip_address, this.activeConnection.port,
         "v1/api/sandra_send-message",
-        { Type: "chat", To: conv.login, Message: msg.text, From: "" },
+        { Type: "chat", To: conv.login, Message: msg.text, From: fromName },
         this.activeConnection.hash, token
       );
       msg.status = "sent";
