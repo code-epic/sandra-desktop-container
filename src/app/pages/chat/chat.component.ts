@@ -35,6 +35,7 @@ interface Conversation {
   lastMessage?: string;
   lastTime?: Date;
   isOnline: boolean;
+  login?: string;
 }
 
 interface Contact {
@@ -398,12 +399,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const raw = localStorage.getItem(convListKey);
     if (raw) {
       try {
-        const savedConvs: Array<{ id: string; name: string; initial: string }> = JSON.parse(raw);
+        const savedConvs: Array<{ id: string; name: string; initial: string; login?: string }> = JSON.parse(raw);
         for (const sc of savedConvs) {
           if (sc.id === "sandra") continue;
           let conv = this.conversations.find((c) => c.id === sc.id);
           if (!conv) {
-            conv = { id: sc.id, name: sc.name, initial: sc.initial, isSandra: false, messages: [], unread: 0, isOnline: false };
+            conv = { id: sc.id, name: sc.name, initial: sc.initial, login: sc.login, isSandra: false, messages: [], unread: 0, isOnline: false };
             this.conversations.push(conv);
           }
           const msgRaw = localStorage.getItem(this.storageKey(sc.id));
@@ -420,7 +421,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private saveConvList() {
     const key = `sdc_chat_convs_${this.activeConnection?.id || "default"}`;
-    localStorage.setItem(key, JSON.stringify(this.conversations.map((c) => ({ id: c.id, name: c.name, initial: c.initial }))));
+    localStorage.setItem(key, JSON.stringify(this.conversations.map((c) => ({ id: c.id, name: c.name, initial: c.initial, login: c.login }))));
   }
 
   private updatePreview(conv: Conversation) {
@@ -494,12 +495,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const id = contact.uuid || contact.login || contact.user_name || this.getContactName(contact);
     const name = this.getContactName(contact);
     const initial = this.getContactInitial(contact);
+    const login = this.getContactLogin(contact);
 
     let conv = this.conversations.find((c) => c.id === id);
     if (!conv) {
-      conv = { id, name, initial, isSandra: false, messages: [], unread: 0, isOnline: this.isContactOnline(contact) };
+      conv = { id, name, initial, login, isSandra: false, messages: [], unread: 0, isOnline: this.isContactOnline(contact) };
       this.conversations.push(conv);
       this.saveConvList();
+    } else {
+      if (!conv.login && login) {
+        conv.login = login;
+        this.saveConvList();
+      }
     }
     this.openConversation(conv);
   }
@@ -556,7 +563,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       await this.sdcService.apiPostRequest(
         this.activeConnection.ip_address, this.activeConnection.port,
         "v1/api/sandra_send-message",
-        { Type: "chat", To: conv.id, Message: msg.text, From: this.clientId },
+        { Type: "chat", To: conv.login || conv.id, Message: msg.text, From: "" },
         this.activeConnection.hash, token
       );
       msg.status = "sent";

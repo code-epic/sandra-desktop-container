@@ -67,7 +67,7 @@
                 <span class="status-text" *ngIf="view === 'conversations'">{{ wsStatus }}</span>
                 <span class="status-text" *ngIf="view === 'chat' && activeConv?.isSandra">{{ wsStatus }}</span>
                 <span class="status-text online-text" *ngIf="view === 'chat' && activeConv && !activeConv.isSandra && activeConv.isOnline">En línea</span>
-                <span class="status-text" *ngIf="view === 'chat' && activeConv && !activeConv.isSandra && !activeConv.isOnline">Fuera de línea</span>
+                <span class="status-text" *ngIf="view === 'chat' && activeConv && !activeConv.isSandra && !activeConv.isOnline">{{ activeConv.login ? '@' + activeConv.login : 'Fuera de línea' }}</span>
             </div>
         </div>
 
