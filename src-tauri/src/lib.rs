@@ -50,6 +50,7 @@ pub fn run() {
             app.manage(WsStatus(Mutex::new("disconnected".to_string())));
             // println!("✅ [Tauri] Setup finalizado correctamente.");
 
+            /* 
             #[cfg(target_os = "windows")]
             if let Some(window) = app.get_webview_window("main") {
                 // Esto le dice al motor de Edge (WebView2) que ignore errores de SSL en localhost
@@ -62,6 +63,7 @@ pub fn run() {
                         .add_ProcessFailed(|_, _| Ok(()));
                 });
             }
+            */
 
             Ok(())
         })
