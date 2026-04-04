@@ -1726,36 +1726,37 @@ export class SecurityComponent implements OnInit, OnChanges {
     const crudEndpoint = `v1/api/crud:${this.activeConnection.hash}`;
 
     try {
-      const response: any = await invoke('api_post_request', {
-        ip: this.activeConnection.ip_address,
-        port: Number(this.activeConnection.port),
-        endpoint: crudEndpoint,
-        payload: {
+      const response: any = await this.sdcService.apiPostRequest(
+        this.activeConnection.ip_address,
+        Number(this.activeConnection.port),
+        crudEndpoint,
+        {
           funcion: 'SDC_CUsersMacAddress',
           parametros: macParam
         },
-        hash: this.activeConnection.hash,
-        tempAuthToken: this.activeConnection.jwt
-      });
+        this.activeConnection.hash,
+        this.activeConnection.jwt
+      );
 
       // 3. Despachar señales sdc_sync vía WebSocket para cada usuario online
       if (Array.isArray(response)) {
         for (const item of response) {
           if (item.status === 'online' && item.user_id) {
-            await invoke('api_post_request', {
-              ip: this.activeConnection.ip_address,
-              port: Number(this.activeConnection.port),
-              endpoint: 'v1/api/sandra_send-message',
-              payload: {
+            console.log("Enviando señal de sincronización a usuario:", item.login, item.user_id);
+            await this.sdcService.apiPostRequest(
+              this.activeConnection.ip_address,
+              Number(this.activeConnection.port),
+              'v1/api/sandra_send-message',
+              {
                 Type: 'sdc_sync',
                 ID: item.user_id,
                 Message: `UPD:${messageId}`,
                 From: this.authorProfile.usuario,
                 To: item.login || item.nombre_usuario || 'destinatario'
               },
-              hash: this.activeConnection.hash,
-              tempAuthToken: this.activeConnection.jwt
-            });
+              this.activeConnection.hash,
+              this.activeConnection.jwt
+            );
           }
         }
       }

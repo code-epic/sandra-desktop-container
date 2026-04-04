@@ -79,10 +79,41 @@ export class SecurityService {
 
     constructor(private dataStreamService: DataStreamService) {
         // Escucha global de refresco desde Rust (Remote Control o Sync Interno)
-        listen('refresh-mailbox', () => {
+        listen('refresh-mailbox', async () => {
             console.log("[Service] Señal de refresco recibida de Rust");
+
+            // Despachar sonido doble de notificación (Refuerzo auditivo)
+            this.playDoubleNotificationSound();
+
             this._mailboxRefreshTrigger.next();
         });
+    }
+
+    private playDoubleNotificationSound() {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+            
+            const playTone = (freq: number, startTime: number, vol: number, dur: number) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+                osc.start(startTime);
+                osc.stop(startTime + dur);
+            };
+
+            const now = ctx.currentTime;
+            // Tono 1: La5 (880Hz)
+            playTone(880, now, 0.1, 0.3);
+            // Tono 2: Do6 (1046.5Hz) con delay de 150ms para el efecto "doble"
+            playTone(1046.5, now + 0.15, 0.12, 0.4);
+        } catch { }
     }
 
     setSyncState(syncing: boolean, message: string = '', progress: number = 0, count: number = 0) {

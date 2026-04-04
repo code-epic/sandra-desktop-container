@@ -227,6 +227,7 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
             "exec-fnx" => handle_exec_fnx_msg(app_handle, &json),
             "hsf" => handle_hsf_msg(app_handle, &json),
             "sdc_sync" => {
+                show_native_notification(app_handle, "Sandra Secure Mailbox", "Tienes correo pendiente por verificar en tu buzón seguro.");
                 let _ = app_handle.emit("refresh-mailbox", ());
             },
             _ => handle_legacy_msg(app_handle, &json),
