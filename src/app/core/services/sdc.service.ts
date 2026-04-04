@@ -78,4 +78,8 @@ export class SdcService {
     console.log('apiPostRequest', ip, port, endpoint, payload, hash, tempAuthToken);
     return await invoke('api_post_request', { ip, port, endpoint, payload, hash, tempAuthToken });
   }
+
+  async getSetupStatus(): Promise<any> {
+    return await invoke('get_setup_status');
+  }
 }

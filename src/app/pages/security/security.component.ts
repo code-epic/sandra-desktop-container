@@ -33,8 +33,10 @@ interface SdcConfig {
 })
 export class SecurityComponent implements OnInit, OnChanges {
   @Input() activeConnection: any;
+  machineName: string = 'Sandra Node';
 
   activeTab: 'mailbox' | 'config' | 'proxy' | 'contacts' = 'mailbox';
+  clientId: string = '';
   currentMailbox: 'Red' | 'Entrada' | 'Salida' | 'Config' | 'Boveda' = 'Entrada';
   history: any[] = [];
 
@@ -377,7 +379,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     // Suscripción al trigger de refresco global (SDC Sync Pulses)
     this.securityService.mailboxRefreshTrigger$.subscribe(() => {
-      this.loadMessages();
+      this.syncMailbox();
     });
 
     // Suscripción al estado de sincronización global para refrescar la vista
@@ -411,8 +413,15 @@ export class SecurityComponent implements OnInit, OnChanges {
     try {
       const stats = await this.sdcService.getSystemTelemetry();
       this.systemMac = stats.mac_address || '00:00:00:00:00:00';
+      this.clientId = await this.sdcService.getClientId();
+
+      // Load machine identity from setup
+      const setup = await this.sdcService.getSetupStatus();
+      if (setup && setup.machine_name) {
+        this.machineName = setup.machine_name;
+      }
     } catch (e) {
-      console.warn("No se pudo obtener MAC para el sello", e);
+      console.warn("No se pudo obtener identidad del sistema", e);
     }
   }
 
@@ -421,7 +430,13 @@ export class SecurityComponent implements OnInit, OnChanges {
       try {
         const payloadPart = this.activeConnection.jwt.split('.')[1];
         if (payloadPart) {
-          const decodedPayload = JSON.parse(atob(payloadPart));
+          // JWT utiliza Base64Url (sustituir '-' por '+' y '_' por '/')
+          // Añadir padding '=' si es necesario para atob en todos los motores
+          let base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+          while (base64.length % 4) {
+            base64 += '=';
+          }
+          const decodedPayload = JSON.parse(atob(base64));
           const userData = decodedPayload.Usuario;
           if (userData) {
             this.authorProfile = {
@@ -435,7 +450,7 @@ export class SecurityComponent implements OnInit, OnChanges {
           }
         }
       } catch (e) {
-        console.warn("No se pudo extraer autor del JWT, usando default", e);
+        console.warn("No se pudo extraer autor del JWT (Base64Url Fix):", e);
       }
     }
   }
@@ -1006,15 +1021,17 @@ export class SecurityComponent implements OnInit, OnChanges {
         version: '0.1.6-SEC',
         timestamp: new Date().toISOString(),
         guid: dynamicMessageId,
-        sender: this.currentAuthorName || 'Sandra Desktop Client',
-        login: `SDC-Seal(Signed by ${this.authorProfile.usuario} ${this.authorProfile.nombre} (${this.authorProfile.cargo}) (${this.systemMac}))`,
+        sender: this.machineName || this.activeConnection?.name || 'Sandra Node',
+        login: this.authorProfile.usuario,
+        macaddress: this.systemMac,
+        uuid: this.clientId,
         estatus: 'Pending',
         para: this.newMessage.selectedRecipients,
         download_count: 0
       },
       message_envelope: {
         subject: this.newMessage.sid,
-        author: this.currentAuthorName,
+        author: this.machineName || this.activeConnection?.name,
         recipients: this.newMessage.selectedRecipients,
         body: this.editorContent,
         attachments: processedAttachments
@@ -1751,7 +1768,7 @@ export class SecurityComponent implements OnInit, OnChanges {
                 type: 'sdc_sync',
                 clientId: item.user_id,
                 message: `UPD:${messageId}`,
-                from: "",
+                from: this.authorProfile.usuario,
                 to: item.login || item.nombre_usuario || 'destinatario'
               },
               this.activeConnection.hash,
