@@ -1031,7 +1031,7 @@ export class SecurityComponent implements OnInit, OnChanges {
       },
       message_envelope: {
         subject: this.newMessage.sid,
-        author: this.machineName || this.activeConnection?.name,
+        author: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
         recipients: this.newMessage.selectedRecipients,
         body: this.editorContent,
         attachments: processedAttachments
@@ -1563,8 +1563,13 @@ export class SecurityComponent implements OnInit, OnChanges {
   loadContactsLocal() {
     try {
       const stored = localStorage.getItem(this.contactStorageKey);
-      if (stored) this.contacts = JSON.parse(stored);
-      else this.contacts = [];
+      if (stored) {
+        const all = JSON.parse(stored);
+        const myId = `${this.authorProfile.usuario}`.toLowerCase();
+        this.contacts = all.filter((c: any) => (c.login || '').toLowerCase() !== myId);
+      } else {
+        this.contacts = [];
+      }
     } catch { this.contacts = []; }
   }
 
@@ -1604,13 +1609,18 @@ export class SecurityComponent implements OnInit, OnChanges {
         // Merge remote data with local, remote takes precedence by login
         const remoteLogins = new Set(response.map((c: any) => (c.login || c.user_name || '').toLowerCase()));
         const localOnly = this.contacts.filter(c => !remoteLogins.has((c.login || '').toLowerCase()));
-        this.contacts = [...response, ...localOnly];
+        const all = [...response, ...localOnly];
+        const myId = `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase();
+        this.contacts = all.filter(c => (c.login || '').toLowerCase() !== myId);
         this.saveContactsLocal();
       } else if (response && response.data && Array.isArray(response.data)) {
-        this.contacts = response.data;
+        const myId = `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase();
+        this.contacts = response.data.filter((c: any) => (c.login || '').toLowerCase() !== myId);
         this.saveContactsLocal();
       } else if (response && response.msj === 'Ok' && response.contenido) {
-        this.contacts = Array.isArray(response.contenido) ? response.contenido : [];
+        const arr = Array.isArray(response.contenido) ? response.contenido : [];
+        const myId = `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase();
+        this.contacts = arr.filter((c: any) => (c.login || '').toLowerCase() !== myId);
         this.saveContactsLocal();
       }
     } catch (e) {
