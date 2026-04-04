@@ -1748,11 +1748,11 @@ export class SecurityComponent implements OnInit, OnChanges {
               Number(this.activeConnection.port),
               'v1/api/sandra_send-message',
               {
-                Type: 'sdc_sync',
-                ID: item.user_id,
-                Message: `UPD:${messageId}`,
-                From: this.authorProfile.usuario,
-                To: item.login || item.nombre_usuario || 'destinatario'
+                type: 'sdc_sync',
+                clientId: item.user_id,
+                message: `UPD:${messageId}`,
+                from: "",
+                to: item.login || item.nombre_usuario || 'destinatario'
               },
               this.activeConnection.hash,
               this.activeConnection.jwt
