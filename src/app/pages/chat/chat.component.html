@@ -44,8 +44,8 @@
 
             <!-- AVATAR: chat con usuario (letra inicial, azul) -->
             <ng-container *ngIf="view === 'chat' && activeConv && !activeConv.isSandra">
-                <div class="avatar-circle user-avatar-header">
-                    {{ activeConv.initial }}
+                <div class="avatar-circle" [style.background]="!activeConv.isSandra ? getColorForName(activeConv.name) : ''" style="border: none;">
+                    <span style="color: white; font-weight: 800;">{{ activeConv.initial }}</span>
                     <div class="status-dot" [class.online]="activeConv.isOnline"></div>
                 </div>
             </ng-container>
@@ -144,9 +144,9 @@
                 [class.conv-active]="activeConv?.id === conv.id">
 
                 <!-- Avatar estandarizado 44x44 sin pulse -->
-                <div class="conv-avatar" [class.conv-avatar-sandra]="conv.isSandra" [class.conv-avatar-user]="!conv.isSandra">
-                    <img src="assets/sandra.png" class="conv-avatar-img" *ngIf="conv.isSandra" alt="Sandra">
-                    <span *ngIf="!conv.isSandra">{{ conv.initial }}</span>
+                <div class="conv-avatar" [class.conv-avatar-sandra]="conv.isSandra" [class.conv-avatar-user]="!conv.isSandra" [style.background]="!conv.isSandra ? getColorForName(conv.name) : ''" [style.border]="!conv.isSandra ? 'none' : ''">
+                    <img src="assets/sandra_pastel.png" class="conv-avatar-img" *ngIf="conv.isSandra" alt="Sandra">
+                    <span *ngIf="!conv.isSandra" style="color: white; font-weight: 800;">{{ conv.initial }}</span>
                     <div class="conv-dot" [class.online]="conv.isOnline"></div>
                 </div>
 
@@ -154,7 +154,10 @@
                 <div class="conv-content">
                     <div class="conv-top">
                         <span class="conv-name">{{ conv.name }}</span>
-                        <span class="conv-time" *ngIf="conv.lastTime">{{ conv.lastTime | date:'HH:mm' }}</span>
+                        <div class="conv-time-box" *ngIf="conv.lastTime">
+                            <span class="time-date">{{ conv.lastTime | date:'ddMMMyy' | uppercase }}</span>
+                            <span class="time-hour">{{ conv.lastTime | date:'h:mm a' | lowercase }}</span>
+                        </div>
                     </div>
                     <div class="conv-bottom">
                         <span class="conv-preview">{{ conv.lastMessage || 'Sin mensajes' }}</span>
@@ -240,7 +243,7 @@
                 [disabled]="(wsStatus === 'Desconectado' && !!activeConv?.isSandra) || isLoading"
                 rows="1"></textarea>
             <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim()">
-                <i class="fas fa-paper-plane"></i>
+                <i class="fas fa-arrow-up"></i>
             </button>
         </div>
     </div>

@@ -116,7 +116,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     show: false,
     title: "",
     message: "",
-    type: "single" as "single" | "all",
+    type: "single" as "single" | "all" | "conversation",
     session: null as any,
   };
 
@@ -211,15 +211,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }).length;
   }
 
-  /** Color de avatar basado en la inicial (paleta SDC matte) */
-  getContactColor(c: Contact): string {
+  /** Color de avatar basado en nombre (paleta SDC matte) */
+  getColorForName(name: string): string {
+    if (!name) return '#a3aca5';
+    // Paleta SDC: Grises y verdes formales, mates y delicados
     const colors = [
-      '#7cac80', '#64b5f6', '#f06292', '#ffb74d', '#9575cd',
-      '#4db6ac', '#e57373', '#aed581', '#4dd0e1', '#ff8a65'
+      '#8fa396', '#98a8a0', '#a3aca5', '#889e93', '#9eb0a8',
+      '#a0acab', '#91a198', '#8b9b92', '#b2bbb6', '#8d9c94'
     ];
-    const name = this.getContactName(c);
     const idx = name.charCodeAt(0) % colors.length;
     return colors[idx];
+  }
+
+  getContactColor(c: Contact): string {
+    return this.getColorForName(this.getContactName(c));
   }
 
   showContactProfile(contact: Contact, event: Event) {
@@ -484,17 +489,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.view = this.activeConv ? 'chat' : 'conversations';
   }
 
-  /** Elimina una conversación (no se puede eliminar Sandra) */
+  /** Elimina una conversación usando el modal global */
   deleteConversation(conv: Conversation, event: Event) {
     event.stopPropagation();
     if (conv.isSandra) return; // Proteger conv Sandra
-    this.conversations = this.conversations.filter((c) => c.id !== conv.id);
-    localStorage.removeItem(this.storageKey(conv.id));
-    this.saveConvList();
-    if (this.activeConv?.id === conv.id) {
-      this.activeConv = null;
-      this.view = 'conversations';
-    }
+    this.confirmModal = {
+      show: true, title: "¿Eliminar Contacto?",
+      message: `¿Seguro que deseas eliminar el historial local con ${conv.name}?`,
+      type: "conversation", session: conv,
+    };
   }
 
   // ─── Start conversation from contact ──────────────────────────────────────
@@ -533,6 +536,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const msg: ChatMessage = { text: userText, sender: "user", timestamp: new Date(), status: "sending" };
     conv.messages.push(msg);
     this.saveConversation(conv);
+    this.playSendSound();
 
     if (conv.isSandra) {
       this.isTyping = true;
@@ -571,6 +575,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       const token = storage.getItem(this.config.access.jwtVariableName);
       if (!token) { msg.status = "pending"; return; }
       console.log(this.activeUsers)
+
       const me = this.activeUsers.find(u => u.uuid === this.clientId);
       const fromName = me ? me.name : this.clientId;
 
@@ -586,11 +591,122 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private routeIncomingMessage(from: string, text: string) {
-    let conv = this.conversations.find((c) => c.id === from || c.name.toLowerCase() === from.toLowerCase());
+    // 0. Interceptar bots de sistema para forzarlos al canal de Sandra IA
+    if (from === "xterm" || from === "sandra-core") {
+      let conv = this.getSandraConv();
+      if (conv) {
+        if (!this.isOpen || this.activeConv?.id !== conv.id) conv.unread++;
+        this.typeWriterEffect(text, from, conv);
+        this.playNotificationSound();
+      }
+      return;
+    }
+
+    // 1. Tratar de ubicar la conversacion por id, name o login
+    let conv = this.conversations.find((c) => 
+       c.id === from || 
+       c.name.toLowerCase() === from.toLowerCase() || 
+       (c.login || "").toLowerCase() === from.toLowerCase()
+    );
+
+    // 2. Si no existe, buscar el contacto en la Agenda y auto-crearla
+    if (!conv) {
+      const contact = this.contacts.find(c => 
+         c.uuid === from || 
+         (c.login || "").toLowerCase() === from.toLowerCase() || 
+         (c.name || "").toLowerCase() === from.toLowerCase()
+      );
+      
+      if (contact) {
+        this.startConvWithContact(contact);
+        conv = this.conversations.find((c) => c.id === (contact.uuid || this.getContactLogin(contact)));
+      } else if (from && from !== "sandra-core") {
+        // 3. Crear conversacion fantasma si el contacto no existe en la agenda pero nos habla
+        conv = {
+          id: from,
+          name: from,
+          initial: from.charAt(0).toUpperCase(),
+          login: from,
+          isSandra: false,
+          messages: [],
+          unread: 0,
+          isOnline: true
+        };
+        this.conversations.push(conv);
+        this.saveConvList();
+      }
+    }
+
+    // 4. Si TODO falla (ej. from='sandra-core' o fallo extremo), enviar a Sandra IA
     if (!conv) conv = this.getSandraConv();
     if (!conv) return;
+
     if (!this.isOpen || this.activeConv?.id !== conv.id) conv.unread++;
     this.typeWriterEffect(text, from, conv);
+    this.playNotificationSound();
+  }
+
+  private getAudioContext(): any {
+    const w = window as any;
+    if (!w._sharedAudioCtx) {
+      const AudioContext = window.AudioContext || w.webkitAudioContext;
+      if (AudioContext) w._sharedAudioCtx = new AudioContext();
+    }
+    const ctx = w._sharedAudioCtx;
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  private playSendSound() {
+    try {
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } catch { }
+  }
+
+  private playNotificationSound() {
+    try {
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+      
+      const playTone = (freq: number, startTime: number, duration: number, volume: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        // Onda 'sine' (senoidal) para suavidad tipo "cristal"
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        
+        gain.gain.setValueAtTime(0, startTime);
+        // Ataque ultra rápido para darle "punch" inicial (UI moderno)
+        gain.gain.linearRampToValueAtTime(volume, startTime + 0.015);
+        // Decaimiento sutil para simular acústica
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = ctx.currentTime;
+      // Doble tono moderno tipo iMessage / Telegram. Subimos el volumen a 0.3 y 0.4.
+      playTone(659.25, now, 0.15, 0.3);         // Mi (E5)
+      playTone(880.00, now + 0.12, 0.30, 0.4);  // La (A5)
+
+    } catch(e) {}
   }
 
   private checkAndSendPendingMessages() {
@@ -697,7 +813,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   handleConfirmDelete() {
-    if (this.confirmModal.type === "single" && this.confirmModal.session) {
+    if (this.confirmModal.type === "conversation" && this.confirmModal.session) {
+      const conv = this.confirmModal.session;
+      this.conversations = this.conversations.filter((c) => c.id !== conv.id);
+      localStorage.removeItem(this.storageKey(conv.id));
+      this.saveConvList();
+      if (this.activeConv?.id === conv.id) {
+        this.activeConv = null;
+        this.view = 'conversations';
+      }
+    } else if (this.confirmModal.type === "single" && this.confirmModal.session) {
       const idx = this.historyGroups.findIndex((g) => g.id === this.confirmModal.session.id);
       if (idx > -1) {
         this.historyGroups.splice(idx, 1);
@@ -733,14 +858,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   onInput(event: any) {
     const ta = event.target;
-    ta.style.height = "40px";
-    ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
   }
 
   private resetTextareaHeight() {
     setTimeout(() => {
       const ta = document.querySelector(".input-wrapper textarea") as HTMLTextAreaElement;
-      if (ta) ta.style.height = "40px";
+      if (ta) ta.style.height = "auto";
     }, 0);
   }
 }

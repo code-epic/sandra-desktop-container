@@ -43,7 +43,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   selectedMessage: MailboxMessage | null = null;
   highlightedMessage: MailboxMessage | null = null;
   parsedContent: any = null;
-  mailboxDirection: 'inbox' | 'outbox' | 'notifications' = 'inbox'; 
+  mailboxDirection: 'inbox' | 'outbox' | 'notifications' = 'inbox';
 
   // Estado del Autor y UI
   authorProfile: any = { nombre: '', usuario: '', correo: '', sistema: '', cargo: '' };
@@ -51,16 +51,16 @@ export class SecurityComponent implements OnInit, OnChanges {
   systemMac: string = '';
   showTrace: boolean = false;
   isComposing: boolean = false;
-  searchText: string = ''; 
+  searchText: string = '';
   statusFilter: string = '';
   selectedIds: Set<number> = new Set<number>();
-  
+
   // Modales y Estados de Acción
   showDeleteModal: boolean = false;
   messagesToDelete: MailboxMessage[] = [];
   routeToDelete: ProxyRoute | null = null;
   deleteType: 'messages' | 'route' = 'messages';
-  certificationMap: Map<string, any> = new Map(); 
+  certificationMap: Map<string, any> = new Map();
 
   // Pagination State
   currentPage: number = 1;
@@ -329,7 +329,8 @@ export class SecurityComponent implements OnInit, OnChanges {
         (c.Perfil?.descripcion || '').toLowerCase().includes(q) ||
         (c.perfil_grupo || '').toLowerCase().includes(q) ||
         (c.sistema || '').toLowerCase().includes(q) ||
-        (c.aplicacion || '').toLowerCase().includes(q)
+        (c.aplicacion || '').toLowerCase().includes(q) ||
+        (c.firmadigital?.direccionmac || '').toLowerCase().includes(q)
       );
     }
     if (this.contactAppFilter) {
@@ -533,7 +534,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   async syncMailbox() {
     if ((await firstValueFrom(this.securityService.isSyncing$)) || !this.activeConnection) return;
-    
+
     // Iniciar sincronización industrial global mediante el servicio centralizado
     this.securityService.startMailboxSync(this.activeConnection, this.authorProfile);
   }
@@ -670,6 +671,35 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   cancelCompose() {
     this.isComposing = false;
+  }
+
+  replyMessage(msg: MailboxMessage) {
+    this.startCompose();
+    // 1. Asignar Destinatario
+    this.newMessage.selectedRecipients = [msg.author];
+
+    // 2. Formatear Asunto
+    const currentSubject = this.getMessageSubject(msg.content) || msg.sid || 'Requerimiento';
+    this.newMessage.sid = currentSubject.toUpperCase().startsWith('RE:') ? currentSubject : `Re: ${currentSubject}`;
+
+    // 3. Formatear Cita del mensaje anterior
+    const oldContent = this.parsedContent?.message_envelope?.body ||
+      this.parsedContent?.payload?.body_content ||
+      this.getMessageSnippet(msg.content);
+
+    const dateStr = new Date(msg.created_at).toLocaleString();
+
+    this.editorInitialContent = `<br><br>
+        <div class="gmail_quote" style="font-family: Arial, sans-serif; color: #555;">
+            <blockquote style="margin: 0 0 0 0.8ex; border-left: 2px solid #7cac80; padding-left: 1ex;">
+                <div style="color: #888; font-size: 0.9em; margin-bottom: 8px;">
+                    El ${dateStr}, <strong>${msg.author}</strong> escribió:
+                </div>
+                ${oldContent}
+            </blockquote>
+        </div>`;
+
+    this.editorContent = this.editorInitialContent;
   }
 
   filterUsers() {
@@ -1011,10 +1041,12 @@ export class SecurityComponent implements OnInit, OnChanges {
         hash: this.activeConnection.hash,
         tempAuthToken: this.activeConnection.jwt
       };
-
       try {
         await invoke('api_post_request', invokeOptions);
         console.log("Mensaje sincronizado exitosamente con el backend.");
+
+        // Despachar señal de sincronización en tiempo real (sdc_sync)
+        this.notifyRecipientsOfSync(this.newMessage.selectedRecipients, dynamicMessageId);
       } catch (remoteError) {
         console.error("Fallo al sincronizar con sys-mailbox remoto, se guardará solo local.", remoteError);
         // Opcional: mostrar un Toast "Enviado con advertencia de sincronización"
@@ -1664,6 +1696,71 @@ export class SecurityComponent implements OnInit, OnChanges {
     // Add to list if not already present
     if (email && !this.newMessage.selectedRecipients.includes(email)) {
       this.newMessage.selectedRecipients.push(email);
+    }
+  }
+
+  maskMacAddress(mac: string): string {
+    if (!mac) return '';
+    const parts = mac.split(':');
+    if (parts.length > 3) {
+      return `${parts[0]}:${parts[1]}:XX:XX:${parts[parts.length - 2]}:${parts[parts.length - 1]}`;
+    }
+    // Fallback if not standard MAC
+    return mac.length > 8 ? `${mac.substring(0, 5)}...${mac.substring(mac.length - 3)}` : mac;
+  }
+
+  private async notifyRecipientsOfSync(recipients: string[], messageId: string) {
+    if (!recipients?.length || !this.activeConnection?.hash) return;
+
+    // 1. Mapear destinatarios (logins) a direcciones MAC desde la agenda local
+    const macs = recipients.map(r => {
+      const login = r.split('@')[0].toLowerCase();
+      const contact = this.contacts.find(c => (c.login || c.user_name || '').toLowerCase() === login);
+      return contact?.firmadigital?.direccionmac;
+    }).filter(m => !!m);
+
+    if (macs.length === 0) return;
+
+    // 2. Consultar IDs de conexión (user_id) para esas MACs
+    const macParam = `array##${macs.map(m => `"${m}"`).join(',')}`;
+    const crudEndpoint = `v1/api/crud:${this.activeConnection.hash}`;
+
+    try {
+      const response: any = await invoke('api_post_request', {
+        ip: this.activeConnection.ip_address,
+        port: Number(this.activeConnection.port),
+        endpoint: crudEndpoint,
+        payload: {
+          funcion: 'SDC_CUsersMacAddress',
+          parametros: macParam
+        },
+        hash: this.activeConnection.hash,
+        tempAuthToken: this.activeConnection.jwt
+      });
+
+      // 3. Despachar señales sdc_sync vía WebSocket para cada usuario online
+      if (Array.isArray(response)) {
+        for (const item of response) {
+          if (item.status === 'online' && item.user_id) {
+            await invoke('api_post_request', {
+              ip: this.activeConnection.ip_address,
+              port: Number(this.activeConnection.port),
+              endpoint: 'v1/api/sandra_send-message',
+              payload: {
+                Type: 'sdc_sync',
+                ID: item.user_id,
+                Message: `UPD:${messageId}`,
+                From: this.authorProfile.usuario,
+                To: item.login || item.nombre_usuario || 'destinatario'
+              },
+              hash: this.activeConnection.hash,
+              tempAuthToken: this.activeConnection.jwt
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Sync notification failed (background trace):', e);
     }
   }
 }

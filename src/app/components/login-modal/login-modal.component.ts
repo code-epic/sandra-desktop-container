@@ -231,7 +231,7 @@ export class LoginModalComponent implements OnInit {
     }
   }
 
-  handleSuccess(token: string) {
+  async handleSuccess(token: string) {
     this.verified = true;
     this.loading = false;
 
@@ -240,6 +240,47 @@ export class LoginModalComponent implements OnInit {
       localStorage.setItem(this.variableName, token);
     } else {
       sessionStorage.setItem(this.variableName, token);
+    }
+
+    // Extraction of login from JWT and MAC Address update
+    try {
+      // 1. Extraer el login del usuario del JWT
+      const payloadPart = token.split(".")[1];
+      const decodedPayload = JSON.parse(atob(payloadPart)).Usuario;
+      const login = decodedPayload.usuario || decodedPayload.Login || this.usuario;
+
+      // 2. Obtener la MAC Address del sistema
+      const stats: any = await invoke("get_system_telemetry");
+      const macAddress = stats.mac_address || "00:00:00:00:00:00";
+
+      // 3. Obtener el hash para el endpoint
+      let currentHash = localStorage.getItem("sdc_ui_config")
+        ? JSON.parse(localStorage.getItem("sdc_ui_config")!).connection_hash
+        : "";
+      if (!currentHash) {
+        currentHash = await invoke("get_hash_preview", {
+          accountName: this.usuario,
+        });
+      }
+
+      // 4. Actualizar MAC Address mediante el endpoint v1/api/crud:{hash}
+      const crudEndpoint = `v1/api/crud:${currentHash}`;
+      const crudPayload = {
+        funcion: "SDC_UUserMacAddress",
+        parametros: `${login},${macAddress}`,
+      };
+
+      await invoke("api_post_request", {
+        ip: this.ipAddress,
+        port: this.port,
+        endpoint: crudEndpoint,
+        payload: crudPayload,
+        hash: currentHash,
+        tempAuthToken: token,
+      });
+      console.log("MAC Address updated successfully");
+    } catch (err) {
+      console.error("Error updating MAC address during login success phase:", err);
     }
 
     // Sync to SQLite (Connections table)

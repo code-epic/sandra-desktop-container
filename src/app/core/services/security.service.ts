@@ -178,6 +178,7 @@ export class SecurityService {
         // Limpiar contador previo y activar visual inmediatamente
         this._syncCount.next(0);
         this.setSyncState(true, 'Iniciando sincronización...', 5, 0);
+        this.startAmbientSyncSound();
 
         // 1. Cargar mensajes locales para de-duplicación
         try {
@@ -234,6 +235,7 @@ export class SecurityService {
             },
             error: (err) => {
                 console.error("Error en streaming service:", err);
+                this.stopAmbientSyncSound();
                 this.setSyncState(false);
             },
             complete: () => {
@@ -241,6 +243,8 @@ export class SecurityService {
                 if (this._isSyncing.value) {
                     this._syncProgress.next(100);
                     this._syncMessage.next('Sincronizado');
+                    this.stopAmbientSyncSound();
+                    this.playSyncCompleteSound();
                     setTimeout(() => this.setSyncState(false), 1200);
                 }
             }
@@ -248,6 +252,99 @@ export class SecurityService {
     }
 
     // -- Private Helper Methods --
+
+    private getAudioContext(): any {
+        const w = window as any;
+        if (!w._sharedAudioCtx) {
+            const AudioContext = window.AudioContext || w.webkitAudioContext;
+            if (AudioContext) w._sharedAudioCtx = new AudioContext();
+        }
+        const ctx = w._sharedAudioCtx;
+        if (ctx && ctx.state === 'suspended') ctx.resume();
+        return ctx;
+    }
+
+    private syncAmbientOscillator: any = null;
+    private syncAmbientGain: any = null;
+
+    private startAmbientSyncSound() {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+            
+            if (this.syncAmbientOscillator) this.stopAmbientSyncSound();
+            
+            const osc = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            // Frecuencias para crear un 'drone' atmosférico elegante (espacial/tech)
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(65.41, ctx.currentTime); // C2
+
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(130.81, ctx.currentTime); // C3
+            
+            osc.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+            
+            // Fade-in extremadamente suave y volumen bajísimo
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.015, ctx.currentTime + 1.5);
+            
+            osc.start();
+            osc2.start();
+            
+            this.syncAmbientOscillator = [osc, osc2];
+            this.syncAmbientGain = gain;
+        } catch { }
+    }
+
+    private stopAmbientSyncSound() {
+        try {
+            if (!this.syncAmbientGain || !this.syncAmbientOscillator) return;
+            const ctx = this.getAudioContext();
+            
+            // Elegante fade out
+            this.syncAmbientGain.gain.linearRampToValueAtTime(0, ctx?.currentTime + 0.8);
+            
+            const [o1, o2] = this.syncAmbientOscillator;
+            
+            setTimeout(() => {
+                try { o1.stop(); o2.stop(); } catch{}
+            }, 1000);
+
+            this.syncAmbientOscillator = null;
+            this.syncAmbientGain = null;
+        } catch { }
+    }
+
+    private playSyncCompleteSound() {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+            const playTone = (freq: number, startTime: number, vol: number) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(vol, startTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.8);
+                osc.start(startTime);
+                osc.stop(startTime + 0.8);
+            };
+            const now = ctx.currentTime;
+            // Arpegio cuásar ascendente de cristal (muy corporativo)
+            playTone(523.25, now, 0.04);        // C5
+            playTone(659.25, now + 0.1, 0.03);  // E5
+            playTone(783.99, now + 0.2, 0.04);  // G5
+            playTone(1046.50, now + 0.35, 0.06);// C6 (resonante final)
+        } catch { }
+    }
 
     private getMessageGuid(content: string): string | null {
         try {

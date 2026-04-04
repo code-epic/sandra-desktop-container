@@ -68,7 +68,8 @@
                         <button class="btn-icon-mini primary" (click)="startCompose()" title="Redactar Requerimiento">
                             <i class="fas fa-pen"></i>
                         </button>
-                        <button class="btn-icon-mini" (click)="syncMailbox()" [disabled]="securityService.isSyncing$ | async"
+                        <button class="btn-icon-mini" (click)="syncMailbox()"
+                            [disabled]="securityService.isSyncing$ | async"
                             title="Actualizar Buzón y Sincronizar (Industrial)">
                             <i class="fas fa-sync-alt" [class.fa-spin]="securityService.isSyncing$ | async"></i>
                         </button>
@@ -165,7 +166,9 @@
                                         </ng-container>
                                         <ng-container
                                             *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
-                                            {{ (getMessageSubject(msg.content) || msg.sid | slice:0:40) + ((getMessageSubject(msg.content) || msg.sid || '').length > 40 ? '...' : '') }}
+                                            {{ (getMessageSubject(msg.content) || msg.sid | slice:0:40) +
+                                            ((getMessageSubject(msg.content) || msg.sid || '').length > 40 ? '...' : '')
+                                            }}
                                         </ng-container>
                                     </span>
                                     <span class="gmail-dash">&nbsp;-&nbsp;</span>
@@ -517,6 +520,11 @@
                                     title="Volver a la Bandeja">
                                     <i class="fas fa-arrow-left"></i>
                                 </button>
+                                <div class="vertical-divider" *ngIf="mailboxDirection !== 'outbox'"></div>
+                                <button class="btn-action-sm primary" (click)="replyMessage(selectedMessage)"
+                                    *ngIf="mailboxDirection !== 'outbox'" title="Responder Mensaje">
+                                    <i class="fas fa-reply"></i>
+                                </button>
                                 <div class="vertical-divider"
                                     *ngIf="mailboxDirection !== 'outbox' && selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed'">
                                 </div>
@@ -726,6 +734,13 @@
                                 <i class="fas fa-sitemap"></i> {{ contact.Perfil?.descripcion || contact.perfil_grupo ||
                                 '---' }}
                             </div>
+                        </div>
+
+                        <div class="csi-mac-section" *ngIf="contact.firmadigital?.direccionmac">
+                            <i class="fas fa-desktop"></i>
+                            <span class="mac-badge" title="Dispositivo Confiado (MAC Verified)">
+                                {{ maskMacAddress(contact.firmadigital.direccionmac) }}
+                            </span>
                         </div>
 
                         <div class="csi-actions-section">
