@@ -3326,7 +3326,8 @@ input:checked+.slider {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.15); /* Darker backdrop for better contrast */
+  background: rgba(15, 23, 42, 0.15);
+  /* Darker backdrop for better contrast */
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
   z-index: 9999;
@@ -3340,10 +3341,11 @@ input:checked+.slider {
   max-width: 440px;
   width: 90%;
   background: white;
-  border-radius: 32px; /* Ultra-rounded premium feel */
+  border-radius: 32px;
+  /* Ultra-rounded premium feel */
   padding: 3.5rem 2.5rem;
   text-align: center;
-  box-shadow: 
+  box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(255, 255, 255, 0.6) inset;
   animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -5125,7 +5127,8 @@ input:checked+.slider {
   transition: all 0.2s ease;
   position: relative;
   gap: 1.5rem;
-  cursor: pointer; /* Indicar interactividad */
+  cursor: pointer;
+  /* Indicar interactividad */
 }
 
 .contact-strip-item:hover {
@@ -5178,7 +5181,8 @@ input:checked+.slider {
 .csi-cargo-badge {
   font-size: 0.68rem;
   font-weight: 700;
-  background: #fdfae6; /* Matte yellow */
+  background: #fdfae6;
+  /* Matte yellow */
   color: #856404;
   border: 1px solid #f9f3c2;
   padding: 2px 10px;
@@ -5307,16 +5311,30 @@ input:checked+.slider {
   overflow: hidden;
 }
 
-.csi-btn-circle-anim.edit { color: #94a3b8; }
-.csi-btn-circle-anim.delete { color: #94a3b8; }
+.csi-btn-circle-anim.edit {
+  color: #94a3b8;
+}
+
+.csi-btn-circle-anim.delete {
+  color: #94a3b8;
+}
 
 .csi-btn-circle-anim:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.csi-btn-circle-anim.edit:hover { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
-.csi-btn-circle-anim.delete:hover { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
+.csi-btn-circle-anim.edit:hover {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #a5d6a7;
+}
+
+.csi-btn-circle-anim.delete:hover {
+  background: #fff1f2;
+  color: #e11d48;
+  border-color: #fecdd3;
+}
 
 .contact-tag-v2.app {
   background: #ecfdf5;
@@ -5761,7 +5779,8 @@ span.req {
 .contacts-table-wrap {
   width: 100%;
   max-width: 100%;
-  overflow-x: scroll !important; /* Force visibility as requested */
+  overflow-x: scroll !important;
+  /* Force visibility as requested */
   overflow-y: hidden;
   display: block;
   min-width: 0;
@@ -5797,11 +5816,26 @@ span.req {
 }
 
 /* Explicit pixel portions to prevent gap/drift */
-.col-funcionario { width: 220px; }
-.col-identity { width: 250px; }
-.col-profile { width: auto; } /* Flexible expander */
-.col-system { width: 140px; }
-.col-actions { width: 120px; }
+.col-funcionario {
+  width: 220px;
+}
+
+.col-identity {
+  width: 250px;
+}
+
+.col-profile {
+  width: auto;
+}
+
+/* Flexible expander */
+.col-system {
+  width: 140px;
+}
+
+.col-actions {
+  width: 120px;
+}
 
 .contacts-table th {
   background: #f8fafc;
@@ -5956,6 +5990,7 @@ span.req {
   min-width: 140px;
   text-align: center;
 }
+
 /* --- Background Sync Mini Modal --- Consolidado Globalmente en styles.css */
 
 .fade-tab {
@@ -5963,6 +5998,13 @@ span.req {
 }
 
 @keyframes fadeTab {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

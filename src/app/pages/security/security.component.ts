@@ -259,6 +259,31 @@ export class SecurityComponent implements OnInit, OnChanges {
     } catch { return ''; }
   }
 
+  getMessageMacAddress(content: string): string {
+    if (!content) return '';
+    try {
+      const parsed = JSON.parse(content);
+      return parsed?.manifest?.macaddress || '';
+    } catch { return ''; }
+  }
+
+  getMessageUuid(content: string): string {
+    if (!content) return '';
+    try {
+      const parsed = JSON.parse(content);
+      return parsed?.manifest?.uuid || parsed?.manifest?.guid || '';
+    } catch { return ''; }
+  }
+
+  maskUuid(uuid: string): string {
+    if (!uuid) return '';
+    // Show first 8 and last 4 for traceability but hide middle
+    if (uuid.length > 12) {
+      return `${uuid.substring(0, 8)}...${uuid.substring(uuid.length - 4)}`;
+    }
+    return uuid;
+  }
+
   // Config Data
   config: SecurityConfig = {
     id: 0,

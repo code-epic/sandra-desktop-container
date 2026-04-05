@@ -199,9 +199,6 @@
                     [class.user-row]="msg.sender === 'user'"
                     [class.ai-row]="msg.sender === 'sandra'">
                     <div class="message-content-wrapper">
-                        <div class="sender-info" *ngIf="msg.sender === 'sandra' && msg.from">
-                            <span class="sender-name">{{ msg.from }}</span>
-                        </div>
                         <div class="bubble-container">
                             <div class="message-bubble"
                                 [class.user-bubble]="msg.sender === 'user'"

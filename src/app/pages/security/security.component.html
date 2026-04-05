@@ -508,7 +508,7 @@
                                 </h2>
                                 <h2
                                     *ngIf="selectedMessage.author !== 'HSF Ticket Seguro' && selectedMessage.author !== 'Ejecución de Función'">
-                                    {{ selectedMessage.sid }}</h2>
+                                    {{ getMessageSubject(selectedMessage.content) }}</h2>
                                 <span class="status-badge" [ngClass]="getStatusClass(selectedMessage.status)">
                                     <i [class]="getStatusIcon(selectedMessage.status)"></i>
                                     {{ translateStatus(selectedMessage.status) }}
@@ -560,8 +560,12 @@
                             </div>
                             <div class="meta-item" *ngIf="selectedMessage.sid">
                                 <i class="fas fa-fingerprint"></i>
-                                <span class="font-mono text-xs">{{ getMessageGuid(selectedMessage.content) || 'N/A'
-                                    }}</span>
+                                <span class="font-mono text-xs" [title]="getMessageUuid(selectedMessage.content)">{{ maskUuid(getMessageUuid(selectedMessage.content)) || 'N/A' }}</span>
+                                <ng-container *ngIf="getMessageMacAddress(selectedMessage.content)">
+                                    <span class="meta-divider" style="margin: 0 8px; opacity: 0.3;">|</span>
+                                    <i class="fas fa-desktop"></i>
+                                    <span class="font-mono text-xs">{{ maskMacAddress(getMessageMacAddress(selectedMessage.content)) }}</span>
+                                </ng-container>
                             </div>
                         </div>
                     </div>
