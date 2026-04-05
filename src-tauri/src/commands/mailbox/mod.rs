@@ -24,12 +24,12 @@ pub async fn mailbox_download_attachment(
     port: u16,
     hash: String,
     temp_auth_token: Option<String>,
-    message_guid: String,
+    _message_guid: String,
     remote_code: String,
     file_name: String,
     user_login: String,
 ) -> Result<String, String> {
-    let task_id = format!("dl_att_{}", remote_code);
+    let _task_id = format!("dl_att_{}", remote_code);
     let hash_id = format!(
         "SDC-AUTO-{}",
         if hash.len() >= 8 { &hash[0..8] } else { &hash }
