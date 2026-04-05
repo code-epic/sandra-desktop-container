@@ -1,18 +1,18 @@
-pub mod types;
 pub mod repository;
 pub mod sync_service;
+pub mod types;
 
+use crate::crypto;
 use crate::storage::DbState;
-use tauri::{State, AppHandle, Emitter, Manager};
+use futures_util::StreamExt;
+use reqwest::Client;
 use std::fs;
 use std::io::Write;
-use crate::crypto;
-use reqwest::Client;
-use futures_util::StreamExt;
+use tauri::{AppHandle, Emitter, Manager, State};
 
-pub use self::types::*;
 pub use self::repository::MailboxRepository;
 pub use self::sync_service::SyncService;
+pub use self::types::*;
 
 // --- Commands: Mailbox ---
 
@@ -30,18 +30,28 @@ pub async fn mailbox_download_attachment(
     user_login: String,
 ) -> Result<String, String> {
     let task_id = format!("dl_att_{}", remote_code);
-    let hash_id = format!("SDC-AUTO-{}", if message_guid.len() >= 8 { &message_guid[0..8] } else { &message_guid });
-    
-    let url = format!("https://{}:{}/v1/api/dw/{}/{}", ip, port, hash_id, remote_code);
-    
+    let hash_id = format!(
+        "SDC-AUTO-{}",
+        if hash.len() >= 8 { &hash[0..8] } else { &hash }
+    );
+
+    let url = format!(
+        "https://{}:{}/v1/api/dw/{}/{}",
+        ip, port, hash_id, remote_code
+    );
+
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
         .map_err(|e| format!("Client builder error: {}", e))?;
 
     // Usar la lógica de headers de api.rs (get_auth_headers es privado, así que replicamos lo esencial)
-    let secret = if hash.len() >= 32 { &hash[0..32] } else { &hash };
-    
+    let secret = if hash.len() >= 32 {
+        &hash[0..32]
+    } else {
+        &hash
+    };
+
     // Auth Headers
     let stats = crate::commands::monitor::collect_system_stats();
     let context_val = serde_json::json!({
@@ -55,7 +65,8 @@ pub async fn mailbox_download_attachment(
     let encoded_device_context = crate::sha256::Sha256Service::encrypt_device_context(
         &serde_json::Value::String(encoded_b64),
         secret,
-    ).map_err(|e| format!("Crypto error: {}", e))?;
+    )
+    .map_err(|e| format!("Crypto error: {}", e))?;
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -68,7 +79,10 @@ pub async fn mailbox_download_attachment(
     headers.insert("X-Timestamp", timestamp.parse().unwrap());
     headers.insert("Web-API-key", secret.parse().unwrap());
     if let Some(token) = temp_auth_token {
-        headers.insert(reqwest::header::AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
+        headers.insert(
+            reqwest::header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
     }
 
     let res = client
@@ -94,23 +108,34 @@ pub async fn mailbox_download_attachment(
 
         if total_size > 0 {
             let progress = (downloaded as f32 / total_size as f32 * 100.0) as u32;
-            let _ = app_handle.emit("mailbox-download-progress", serde_json::json!({
-                "remote_code": remote_code,
-                "progress": progress,
-                "status": "downloading"
-            }));
+            let _ = app_handle.emit(
+                "mailbox-download-progress",
+                serde_json::json!({
+                    "remote_code": remote_code,
+                    "progress": progress,
+                    "status": "downloading"
+                }),
+            );
         }
     }
 
+    // --- Validación de Contenido (Sandra Backend Error Handling) ---
+    // Si el servidor Go no encuentra el archivo pero responde 200 con un string de error.
+    if buffer.starts_with(b"El documento fall\xc3\xb3") {
+        return Err("El documento no se encuentra disponible en el servidor.".to_string());
+    }
+
     // 2. Preparar Directorio Vault
-    let mut vault_path = app_handle.path().app_data_dir()
+    let mut vault_path = app_handle
+        .path()
+        .app_data_dir()
         .map_err(|e| format!("AppDataDir error: {}", e))?;
     vault_path.push("sandra_vault");
     if !vault_path.exists() {
         fs::create_dir_all(&vault_path).map_err(|e| e.to_string())?;
     }
     vault_path.push(&remote_code);
-    
+
     fs::write(&vault_path, &buffer).map_err(|e| format!("File write error: {}", e))?;
 
     // 3. Registrar en Historial
@@ -127,20 +152,27 @@ pub async fn mailbox_download_attachment(
         ],
     ).map_err(|e| format!("DB Error: {}", e))?;
 
-    let _ = app_handle.emit("mailbox-download-progress", serde_json::json!({
-        "remote_code": remote_code,
-        "progress": 100,
-        "status": "completed"
-    }));
+    let _ = app_handle.emit(
+        "mailbox-download-progress",
+        serde_json::json!({
+            "remote_code": remote_code,
+            "progress": 100,
+            "status": "completed"
+        }),
+    );
 
     Ok(vault_path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
-pub fn get_mailbox_messages(state: State<DbState>, user_login: String) -> Result<Vec<MailboxMessage>, String> {
+pub fn get_mailbox_messages(
+    state: State<DbState>,
+    user_login: String,
+) -> Result<Vec<MailboxMessage>, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
-    repo.get_all_messages(&user_login).map_err(|e: rusqlite::Error| e.to_string())
+    repo.get_all_messages(&user_login)
+        .map_err(|e: rusqlite::Error| e.to_string())
 }
 
 #[tauri::command]
@@ -162,9 +194,11 @@ pub fn ingest_secure_package(
     // 1. Intentar con Device Secret (Nuevo estándar)
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
-    let device_secret = repo.get_or_create_device_secret().map_err(|e| e.to_string())?;
+    let device_secret = repo
+        .get_or_create_device_secret()
+        .map_err(|e| e.to_string())?;
     let key_bytes = crypto::derive_32byte_key(&device_secret)?;
-    
+
     let mut plaintext = crypto::decrypt_raw(&encrypted_data, &key_bytes).ok();
 
     // 2. Fallback a MAC (Legacy / Externo)
@@ -177,10 +211,11 @@ pub fn ingest_secure_package(
         }
     }
 
-    let final_plaintext = plaintext.ok_or("Decryption failed. No valid key found (Secret or MAC).")?;
+    let final_plaintext =
+        plaintext.ok_or("Decryption failed. No valid key found (Secret or MAC).")?;
 
-    let messages: Vec<MailboxMessage> =
-        serde_json::from_slice(&final_plaintext).map_err(|e| format!("Invalid JSON payload: {}", e))?;
+    let messages: Vec<MailboxMessage> = serde_json::from_slice(&final_plaintext)
+        .map_err(|e| format!("Invalid JSON payload: {}", e))?;
 
     let mut imported = 0;
     let mut skipped = 0;
@@ -201,8 +236,9 @@ pub fn ingest_secure_package(
             "inbox",
             msg.responsible,
             Some(tracking_info),
-            Some(user_login.clone())
-        ).map_err(|e: rusqlite::Error| e.to_string())?;
+            Some(user_login.clone()),
+        )
+        .map_err(|e: rusqlite::Error| e.to_string())?;
         imported += 1;
     }
 
@@ -252,8 +288,9 @@ pub fn create_mailbox_message(
         &unwrapped_dir,
         responsible,
         None,
-        user_login
-    ).map_err(|e: rusqlite::Error| e.to_string())
+        user_login,
+    )
+    .map_err(|e: rusqlite::Error| e.to_string())
 }
 
 #[tauri::command]
@@ -265,12 +302,14 @@ pub fn update_mailbox_status(
 ) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
-    repo.update_status(id, &status, tracking_info).map_err(|e: rusqlite::Error| e.to_string())
+    repo.update_status(id, &status, tracking_info)
+        .map_err(|e: rusqlite::Error| e.to_string())
 }
 
 #[tauri::command]
 pub fn delete_mailbox_message(state: State<DbState>, id: i64) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
-    repo.delete_message(id).map_err(|e: rusqlite::Error| e.to_string())
+    repo.delete_message(id)
+        .map_err(|e: rusqlite::Error| e.to_string())
 }

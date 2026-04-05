@@ -485,23 +485,49 @@ export class SecurityService {
         try {
             // Intentar recuperar de la conexión activa en localStorage
             const activeConn = localStorage.getItem('active_connection');
-            if (activeConn) {
-                const conn = JSON.parse(activeConn);
-                if (conn.jwt) {
-                    const payload = JSON.parse(atob(conn.jwt.split('.')[1]));
-                    return payload.Usuario?.usuario || payload.usuario || 'default';
-                }
-            }
-
-            // Fallback: Buscar cualquier JWT en el almacenamiento
-            const jwt = localStorage.getItem('jwt') || sessionStorage.getItem('jwt');
+            const jwt = activeConn ? JSON.parse(activeConn).jwt : (localStorage.getItem('jwt') || sessionStorage.getItem('jwt'));
+            
             if (jwt) {
-                const payload = JSON.parse(atob(jwt.split('.')[1]));
-                return payload.Usuario?.usuario || payload.usuario || 'default';
+                const payload = this.safeDecodeJWT(jwt);
+                if (payload) {
+                    return payload.Usuario?.usuario || payload.usuario || payload.Login || 'default';
+                }
             }
         } catch (e) {
             console.warn("Error extrayendo usuario del JWT:", e);
         }
         return 'default';
+    }
+
+    /**
+     * Decodifica el payload de un JWT (Base64URL) de forma segura.
+     */
+    private safeDecodeJWT(token: string): any {
+        try {
+            const parts = token.split('.');
+            if (parts.length < 2) return null;
+            const base64Url = parts[1];
+
+            // Reemplazo de caracteres Base64URL a Base64 estándar
+            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+
+            // Añadir relleno (padding) si es necesario
+            const pad = base64.length % 4;
+            if (pad) {
+                if (pad === 1) return null;
+                base64 += new Array(5 - pad).join('=');
+            }
+
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+            );
+
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
     }
 }

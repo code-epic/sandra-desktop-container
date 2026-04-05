@@ -1258,7 +1258,7 @@
                                     <span class="file-name">{{ doc.name }}</span>
                                     <span class="tag-protected-vault"
                                         *ngIf="doc.name.toLowerCase().endsWith('.sse')">PROTECTED</span>
-                                    <span class="badge-cert-vault fade-in"
+                                    <span class="badge-cert-vault"
                                         *ngIf="certificationMap.has(doc.file_path || doc.path)"
                                         (click)="openCertificationDetails(doc, $event)"
                                         title="Ver Certificado de Trazabilidad">

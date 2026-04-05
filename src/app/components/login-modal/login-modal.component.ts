@@ -107,19 +107,19 @@ export class LoginModalComponent implements OnInit {
         tempAuthToken: null,
       });
 
-      if (response && response.token !== "") {
+        if (response && response.token !== "") {
         const token = response.token;
         // Decodificar el JWT para verificar si requiere 2FA (TOTP)
         let totpRequired = false;
         try {
-          const payloadPart = token.split(".")[1];
-          const decodedPayload = JSON.parse(atob(payloadPart)).Usuario;
+          const decodedPayload = this.decodeJWT(token);
+          const usuarioData = decodedPayload?.Usuario || decodedPayload;
           // Si el JWT contiene un atributo 'token' no vacío, significa que el login requiere 2FA
-          console.log("Decoded payload:", decodedPayload);
+          console.log("Decoded payload:", usuarioData);
           if (
-            decodedPayload &&
-            decodedPayload.token &&
-            String(decodedPayload.token).trim() !== ""
+            usuarioData &&
+            usuarioData.token &&
+            String(usuarioData.token).trim() !== ""
           ) {
             totpRequired = true;
           }
@@ -245,9 +245,9 @@ export class LoginModalComponent implements OnInit {
     // Extraction of login from JWT and MAC Address update
     try {
       // 1. Extraer el login del usuario del JWT
-      const payloadPart = token.split(".")[1];
-      const decodedPayload = JSON.parse(atob(payloadPart)).Usuario;
-      const login = decodedPayload.usuario || decodedPayload.Login || this.usuario;
+      const decodedPayload = this.decodeJWT(token);
+      const usuarioData = decodedPayload?.Usuario || decodedPayload;
+      const login = usuarioData.usuario || usuarioData.Login || usuarioData.usuario_login || this.usuario;
 
       // 2. Obtener la MAC Address del sistema
       const stats: any = await invoke("get_system_telemetry");
@@ -351,5 +351,37 @@ export class LoginModalComponent implements OnInit {
     let val = "";
     inputs.forEach((input) => (val += input.value));
     return val;
+  }
+
+  /**
+   * Decodifica el payload de un JWT (Base64URL) de forma segura.
+   */
+  private decodeJWT(token: string): any {
+    try {
+      const base64Url = token.split(".")[1];
+      if (!base64Url) return null;
+
+      // Reemplazo de caracteres Base64URL a Base64 estándar
+      let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+
+      // Añadir relleno (padding) si es necesario
+      const pad = base64.length % 4;
+      if (pad) {
+        if (pad === 1) throw new Error("Invalid base64 string");
+        base64 += new Array(5 - pad).join("=");
+      }
+
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join(""),
+      );
+
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error("Critical error decoding JWT:", e);
+      return null;
+    }
   }
 }

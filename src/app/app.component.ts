@@ -295,8 +295,12 @@ export class AppComponent implements OnInit {
 
   async loadPendingTicketsCount() {
     try {
-      const tickets: any[] = await invoke("get_authorization_tickets");
-      this.pendingTicketsCount = tickets.filter(t => t.status === "pendiente").length;
+      const tickets: any[] = await invoke("get_authorization_tickets", {
+        userLogin: this.securityService.getCurrentUserLogin(),
+      });
+      this.pendingTicketsCount = tickets.filter(
+        (t) => t.status === "pendiente",
+      ).length;
     } catch (e) {
       console.warn("Error al cargar tickets pendientes:", e);
     }
