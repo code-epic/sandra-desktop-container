@@ -1068,6 +1068,7 @@ export class SecurityComponent implements OnInit, OnChanges {
         guid: dynamicMessageId,
         sender: this.machineName || this.activeConnection?.name || 'Sandra Node',
         login: this.authorProfile.usuario,
+        hash: this.activeConnection?.hash,
         macaddress: this.systemMac,
         uuid: this.clientId,
         estatus: 'Pending',
@@ -1500,11 +1501,11 @@ export class SecurityComponent implements OnInit, OnChanges {
       }) as string;
 
       console.log("Download complete:", localPath);
-      
+
       // Auto-open after download
       const updatedAtt = { ...att, path: localPath, source: 'VAULT' };
       this.openAttachment(updatedAtt);
-      
+
     } catch (e) {
       console.error("Error downloading attachment", e);
       this.downloadingStatus.delete(att.remote_code);
