@@ -15,10 +15,10 @@ pub use self::sync_service::SyncService;
 // --- Commands: Mailbox ---
 
 #[tauri::command]
-pub fn get_mailbox_messages(state: State<DbState>) -> Result<Vec<MailboxMessage>, String> {
+pub fn get_mailbox_messages(state: State<DbState>, user_login: String) -> Result<Vec<MailboxMessage>, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
-    repo.get_all_messages().map_err(|e: rusqlite::Error| e.to_string())
+    repo.get_all_messages(&user_login).map_err(|e: rusqlite::Error| e.to_string())
 }
 
 #[tauri::command]
@@ -33,6 +33,7 @@ pub async fn sync_mailbox(
 pub fn ingest_secure_package(
     state: State<DbState>,
     file_path: String,
+    user_login: String,
 ) -> Result<IngestReport, String> {
     let encrypted_data = fs::read(&file_path).map_err(|e| format!("Error reading file: {}", e))?;
 
@@ -64,7 +65,7 @@ pub fn ingest_secure_package(
 
     for msg in messages {
         let sid = msg.sid.clone().unwrap_or_default();
-        if repo.message_exists(&sid).unwrap_or(false) {
+        if repo.message_exists(&sid, &user_login).unwrap_or(false) {
             skipped += 1;
             continue;
         }
@@ -77,7 +78,8 @@ pub fn ingest_secure_package(
             "Pending",
             "inbox",
             msg.responsible,
-            Some(tracking_info)
+            Some(tracking_info),
+            Some(user_login.clone())
         ).map_err(|e: rusqlite::Error| e.to_string())?;
         imported += 1;
     }
@@ -114,6 +116,7 @@ pub fn create_mailbox_message(
     author: Option<String>,
     responsible: Option<String>,
     direction: Option<String>,
+    user_login: Option<String>,
 ) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
@@ -126,7 +129,8 @@ pub fn create_mailbox_message(
         "Pending",
         &unwrapped_dir,
         responsible,
-        None
+        None,
+        user_login
     ).map_err(|e: rusqlite::Error| e.to_string())
 }
 

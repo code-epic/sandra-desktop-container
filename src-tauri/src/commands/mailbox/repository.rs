@@ -10,13 +10,13 @@ impl<'a> MailboxRepository<'a> {
         Self { conn }
     }
 
-    pub fn get_all_messages(&self) -> Result<Vec<MailboxMessage>> {
+    pub fn get_all_messages(&self, user_login: &str) -> Result<Vec<MailboxMessage>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, sid, content, author, status, tracking_info, responsible, created_at, updated_at, is_read, direction \
-             FROM security_mailbox ORDER BY created_at DESC"
+            "SELECT id, sid, content, author, status, tracking_info, responsible, created_at, updated_at, is_read, direction, user_login \
+             FROM security_mailbox WHERE user_login = ?1 OR user_login IS NULL ORDER BY created_at DESC"
         )?;
 
-        let messages = stmt.query_map([], |row| {
+        let messages = stmt.query_map([user_login], |row| {
             Ok(MailboxMessage {
                 id: row.get(0)?,
                 sid: row.get(1)?,
@@ -29,6 +29,7 @@ impl<'a> MailboxRepository<'a> {
                 updated_at: row.get(8)?,
                 is_read: row.get(9)?,
                 direction: row.get(10).unwrap_or(Some("inbox".to_string())),
+                user_login: row.get(11)?,
                 attachments: {
                     let info: Option<String> = row.get(5)?;
                     if let Some(json_str) = info {
@@ -43,10 +44,10 @@ impl<'a> MailboxRepository<'a> {
         Ok(messages)
     }
 
-    pub fn message_exists(&self, sid: &str) -> Result<bool> {
+    pub fn message_exists(&self, sid: &str, user_login: &str) -> Result<bool> {
         let count: i64 = self.conn.query_row(
-            "SELECT COUNT(1) FROM security_mailbox WHERE sid = ?1",
-            [sid],
+            "SELECT COUNT(1) FROM security_mailbox WHERE sid = ?1 AND user_login = ?2",
+            [sid, user_login],
             |row| row.get(0),
         )?;
         Ok(count > 0)
@@ -61,11 +62,12 @@ impl<'a> MailboxRepository<'a> {
         direction: &str,
         responsible: Option<String>,
         tracking_info: Option<String>,
+        user_login: Option<String>,
     ) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO security_mailbox (sid, content, author, status, direction, responsible, tracking_info) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            (sid, content, author, status, direction, responsible, tracking_info),
+            "INSERT INTO security_mailbox (sid, content, author, status, direction, responsible, tracking_info, user_login) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            (sid, content, author, status, direction, responsible, tracking_info, user_login),
         )?;
         Ok(())
     }

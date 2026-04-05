@@ -1696,6 +1696,10 @@ export class AppComponent implements OnInit {
       await invoke("add_document_history", {
         fileName: finalName,
         filePath: path,
+        fileSize: 'Local',
+        remoteCode: '',
+        source: 'GLOBAL',
+        userLogin: this.securityService.getCurrentUserLogin()
       });
       this.showModal(
         "Descarga Completada",
@@ -1757,6 +1761,10 @@ export class AppComponent implements OnInit {
       await invoke("add_document_history", {
         fileName: savedName,
         filePath: fullPath,
+        fileSize: 'LocalCache',
+        remoteCode: tab.id,
+        source: 'APP_CACHE',
+        userLogin: this.securityService.getCurrentUserLogin()
       });
 
       // HIDE HISTORY BUTTON

@@ -517,7 +517,8 @@
     [activeConnection]="activeConnection"
     [config]="config"
     [clientId]="clientId"
-    [hasJwt]="!!getJwtToken()">
+    [hasJwt]="!!getJwtToken()"
+    [userProfile]="activeConnection?.profile">
   </app-chat>
 
   <!-- SETUP WIZARD OVERLAY -->

@@ -3,6 +3,7 @@ import { Subject } from 'rxjs';
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { AppStateService } from "./app-state.service";
+import { SecurityService } from "./security.service";
 
 export interface LogEntry {
   id?: number; // Added for tracking persistence
@@ -12,6 +13,7 @@ export interface LogEntry {
   app_id: string; // The Application ID (e.g. 'gdoc')
   source: string; // The Origin/Module (e.g. 'Bridge', 'Fetch', 'System')
   details?: any;
+  user_login?: string;
 }
 
 @Injectable({
@@ -28,7 +30,10 @@ export class LoggerService {
   private currentAppId: string = 'App.SDC';
   private unsavedLogs: LogEntry[] = [];
 
-  constructor(private appState: AppStateService) {
+  constructor(
+    private appState: AppStateService,
+    private securityService: SecurityService
+  ) {
     this.appState.activeTabId$.subscribe(id => {
       // Expanded system tabs list to include 'apps' and 'secure-viewer'
       if (['dashboard', 'connections', 'security', 'monitor', 'system', 'apps', 'secure-viewer'].includes(id)) {
@@ -228,7 +233,8 @@ export class LoggerService {
           message: message,
           details: details,
           source: source || 'System',
-          timestamp: timestamp
+          timestamp: timestamp,
+          user_login: this.securityService.getCurrentUserLogin()
         }
       });
       // Return a dummy ID to indicate success to the frontend
@@ -241,5 +247,12 @@ export class LoggerService {
 
   log(type: 'INFO' | 'ERROR' | 'WARN' | 'SUCCESS' | 'FETCH' | 'XHR', message: string, source: string = 'System', appId?: string) {
     this.persistLog(type, message, source, appId || this.currentAppId);
+  }
+
+  async getAppLogs(appId: string): Promise<LogEntry[]> {
+    return await invoke('get_app_logs', { 
+      appId, 
+      userLogin: this.securityService.getCurrentUserLogin() 
+    });
   }
 }

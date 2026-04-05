@@ -6,6 +6,7 @@ import { listen } from '@tauri-apps/api/event';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AppStateService } from '../../core/services/app-state.service';
 import { FileService } from '../../core/services/file.service';
+import { SecurityService } from '../../core/services/security.service';
 
 @Component({
     selector: 'app-secure-viewer',
@@ -41,7 +42,8 @@ export class SecureViewerComponent {
     constructor(
         private sanitizer: DomSanitizer,
         private appState: AppStateService,
-        private fileService: FileService
+        private fileService: FileService,
+        private securityService: SecurityService // Inyectado para obtener user_login
     ) {
         this.loadHistory();
         this.setupListeners();
@@ -60,7 +62,7 @@ export class SecureViewerComponent {
 
     async loadHistory() {
         try {
-            this.history = await invoke('get_document_history');
+            this.history = await invoke('get_document_history', { userLogin: this.securityService.getCurrentUserLogin() });
             this.updateGroupedHistory();
             // Proactive verification for all history items to show badges
             this.history.forEach(item => {
@@ -816,7 +818,8 @@ export class SecureViewerComponent {
                     fileSize: 'Locked',
                     remoteCode: '',
                     source: 'GLOBAL',
-                    fileHash: fileHash
+                    fileHash: fileHash,
+                    userLogin: this.securityService.getCurrentUserLogin()
                 })
                     .then(() => this.loadHistory())
                     .catch(err => console.error("Error saving history:", err));
@@ -1106,7 +1109,8 @@ export class SecureViewerComponent {
                     fileSize: fileSize,
                     remoteCode: remoteCode,
                     source: 'GLOBAL',
-                    fileHash: fileHash
+                    fileHash: fileHash,
+                    userLogin: this.securityService.getCurrentUserLogin()
                 })
                     .then(() => this.loadHistory())
                     .catch(err => console.error("Error saving history:", err));

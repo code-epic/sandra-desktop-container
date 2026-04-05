@@ -31,6 +31,7 @@ pub struct AuthorizationTicket {
     pub status: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub user_login: Option<String>,
 }
 
 // --- Commands: Config ---
@@ -168,11 +169,12 @@ pub fn register_authorization_ticket(
     auth_id: String,
     payload: String,
     content: String,
+    user_login: Option<String>,
 ) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT INTO authorization_tickets (auth_id, payload, content) VALUES (?1, ?2, ?3)",
-        (auth_id, payload, content),
+        "INSERT INTO authorization_tickets (auth_id, payload, content, user_login) VALUES (?1, ?2, ?3, ?4)",
+        (auth_id, payload, content, user_login),
     )
     .map_err(|e| e.to_string())?;
     Ok(())
@@ -181,14 +183,15 @@ pub fn register_authorization_ticket(
 #[tauri::command]
 pub fn get_authorization_tickets(
     state: State<DbState>,
+    user_login: String,
 ) -> Result<Vec<AuthorizationTicket>, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT auth_id, payload, content, status, created_at, updated_at FROM authorization_tickets ORDER BY created_at DESC")
+        .prepare("SELECT auth_id, payload, content, status, created_at, updated_at, user_login FROM authorization_tickets WHERE user_login = ?1 OR user_login IS NULL ORDER BY created_at DESC")
         .map_err(|e| e.to_string())?;
 
     let tickets = stmt
-        .query_map([], |row| {
+        .query_map([user_login], |row| {
             Ok(AuthorizationTicket {
                 auth_id: row.get(0)?,
                 payload: row.get(1)?,
@@ -196,6 +199,7 @@ pub fn get_authorization_tickets(
                 status: row.get(3)?,
                 created_at: row.get(4)?,
                 updated_at: row.get(5)?,
+                user_login: row.get(6)?,
             })
         })
         .map_err(|e| e.to_string())?
@@ -211,7 +215,7 @@ pub fn get_authorization_ticket_by_id(
 ) -> Result<AuthorizationTicket, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     conn.query_row(
-        "SELECT auth_id, payload, content, status, created_at, updated_at FROM authorization_tickets WHERE auth_id = ?1",
+        "SELECT auth_id, payload, content, status, created_at, updated_at, user_login FROM authorization_tickets WHERE auth_id = ?1",
         [auth_id],
         |row| {
             Ok(AuthorizationTicket {
@@ -221,6 +225,7 @@ pub fn get_authorization_ticket_by_id(
                 status: row.get(3)?,
                 created_at: row.get(4)?,
                 updated_at: row.get(5)?,
+                user_login: row.get(6)?,
             })
         },
     )
@@ -258,6 +263,7 @@ pub fn process_hsf_authorization(
     state: State<DbState>,
     auth_id: String,
     key: String,
+    user_login: String,
 ) -> Result<String, String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
 
@@ -294,8 +300,8 @@ pub fn process_hsf_authorization(
 
     // Guardar en DB (Mailbox interno)
     conn.execute(
-        "INSERT INTO security_mailbox (sid, content, author, responsible, status, direction) VALUES (?1, ?2, ?3, 'System', 'Approved', 'inbox')",
-        (Some(auth_id.clone()), Some(notify_content.clone()), Some("HSF Ticket Seguro".to_string())),
+        "INSERT INTO security_mailbox (sid, content, author, responsible, status, direction, user_login) VALUES (?1, ?2, ?3, 'System', 'Approved', 'inbox', ?4)",
+        (Some(auth_id.clone()), Some(notify_content.clone()), Some("HSF Ticket Seguro".to_string()), Some(user_login)),
     ).ok();
 
     // Notificación Nativa (OS)

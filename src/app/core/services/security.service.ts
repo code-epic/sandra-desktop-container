@@ -16,6 +16,7 @@ export interface MailboxMessage {
     updated_at: string;
     is_read: boolean;
     direction?: 'inbox' | 'outbox';
+    user_login?: string;
     attachments?: Array<{
         name: string;
         type: 'PDF' | 'SSE';
@@ -151,8 +152,8 @@ export class SecurityService {
     }
 
     // --- Mailbox ---
-    async getMailboxMessages(): Promise<MailboxMessage[]> {
-        return invoke('get_mailbox_messages');
+    async getMailboxMessages(userLogin: string): Promise<MailboxMessage[]> {
+        return invoke('get_mailbox_messages', { userLogin });
     }
 
     async syncMailbox(): Promise<string[]> {
@@ -165,7 +166,8 @@ export class SecurityService {
             content: message.content,
             author: message.author,
             responsible: message.responsible,
-            direction: message.direction || 'outbox'
+            direction: message.direction || 'outbox',
+            userLogin: message.user_login
         });
     }
 
@@ -212,8 +214,8 @@ export class SecurityService {
     }
 
     // --- Authorization Tickets ---
-    async getAuthorizationTickets(): Promise<AuthorizationTicket[]> {
-        return invoke('get_authorization_tickets');
+    async getAuthorizationTickets(userLogin: string): Promise<AuthorizationTicket[]> {
+        return invoke('get_authorization_tickets', { userLogin });
     }
 
     async deleteAuthorizationTicket(authId: string) {
@@ -239,7 +241,7 @@ export class SecurityService {
 
         // 1. Cargar mensajes locales para de-duplicación
         try {
-            const existing = await this.getMailboxMessages();
+            const existing = await this.getMailboxMessages(authorProfile.usuario);
             this.existingGuids = new Set(existing.map(m => this.getMessageGuid(m.content)?.toLowerCase()).filter((g): g is string => !!g));
             // También añadir los sid por si acaso
             existing.forEach(m => { if(m.sid) this.existingGuids.add(m.sid.toLowerCase()); });
@@ -421,7 +423,8 @@ export class SecurityService {
             content: JSON.stringify(item),
             author: item.message_envelope?.from || item.message_envelope?.author || item.manifest?.sender || item.author || 'Unknown',
             responsible: item.message_envelope?.to || item.responsible || 'persona.consola',
-            direction: 'inbox'
+            direction: 'inbox',
+            user_login: this.activeSyncConnection?.jwt_payload?.usuario || this.activeSyncConnection?.user || 'default'
         });
     }
 
@@ -462,5 +465,33 @@ export class SecurityService {
         } catch (e) {
             console.error("Error enviando batch ACKs:", e);
         }
+    }
+
+    /**
+     * Obtiene el identificador del usuario activo desde el JWT almacenado.
+     * Útil para segregación de datos en componentes que no tienen acceso directo al payload.
+     */
+    getCurrentUserLogin(): string {
+        try {
+            // Intentar recuperar de la conexión activa en localStorage
+            const activeConn = localStorage.getItem('active_connection');
+            if (activeConn) {
+                const conn = JSON.parse(activeConn);
+                if (conn.jwt) {
+                    const payload = JSON.parse(atob(conn.jwt.split('.')[1]));
+                    return payload.Usuario?.usuario || payload.usuario || 'default';
+                }
+            }
+
+            // Fallback: Buscar cualquier JWT en el almacenamiento
+            const jwt = localStorage.getItem('jwt') || sessionStorage.getItem('jwt');
+            if (jwt) {
+                const payload = JSON.parse(atob(jwt.split('.')[1]));
+                return payload.Usuario?.usuario || payload.usuario || 'default';
+            }
+        } catch (e) {
+            console.warn("Error extrayendo usuario del JWT:", e);
+        }
+        return 'default';
     }
 }

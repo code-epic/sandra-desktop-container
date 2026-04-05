@@ -38,6 +38,8 @@ export class MonitorComponent implements OnInit, OnDestroy {
     filterText = '';
     apps: string[] = ['App.SDC'];
     currentAppFilter = 'all';
+    currentUserLogin: string = 'default';
+
 
 
 
@@ -96,6 +98,16 @@ export class MonitorComponent implements OnInit, OnDestroy {
                     this.appState.setActiveTab('dashboard');
                     return false;
                 }
+
+                // Extraer usuario del JWT para filtrado de datos
+                try {
+                    if (token) {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        this.currentUserLogin = payload.Usuario?.[ 'usuario' ] || payload.usuario || 'default';
+                    }
+                } catch (e) {
+                    this.currentUserLogin = 'default';
+                }
             } catch (e) {
                 console.error("Error validando auth en Monitor", e);
                 this.appState.setActiveTab('dashboard');
@@ -127,7 +139,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
     async loadTickets() {
         this.loadingTickets = true;
         try {
-            const result = await this.securityService.getAuthorizationTickets();
+            const result = await this.securityService.getAuthorizationTickets(this.currentUserLogin);
             this.tickets = result.map(t => {
                 if (t.created_at && t.created_at.length === 19 && t.created_at.includes(' ')) {
                     t.created_at = t.created_at.replace(' ', 'T') + 'Z';

@@ -65,7 +65,8 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
             message TEXT NOT NULL,      -- El contenido del log o la URL del fetch
             details TEXT,               -- JSON estructurado
             source TEXT,                -- Origen del log (ej: 'Console', 'Network')
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            user_login TEXT             -- Usuario que generó el log
         )",
         [],
     )
@@ -91,7 +92,8 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    // Migración silenciosa: Intentar añadir columna details si no existe
+    // Migración silenciosa: Añadir soporte para WSS Custom (Para DBs antiguas)
+    let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN user_login TEXT", []);
     let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN details TEXT", []);
     // Migración silenciosa: Añadir columna source si no existe
     let _ = conn.execute("ALTER TABLE app_logs ADD COLUMN source TEXT", []);
@@ -141,37 +143,8 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         [],
     );
 
-    // Tabla Historial de Documentos Seguros
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS document_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            file_name TEXT NOT NULL,
-            file_path TEXT NOT NULL,
-            file_size TEXT,
-            remote_code TEXT,
-            source TEXT DEFAULT 'GLOBAL',
-            file_hash TEXT,
-            group_name TEXT,
-            opened_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )",
-        [],
-    )
-    .map_err(|e| e.to_string())?;
-
-    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN file_size TEXT", []);
-    let _ = conn.execute(
-        "ALTER TABLE document_history ADD COLUMN remote_code TEXT",
-        [],
-    );
-    let _ = conn.execute(
-        "ALTER TABLE document_history ADD COLUMN source TEXT DEFAULT 'GLOBAL'",
-        [],
-    );
-    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN file_hash TEXT", []);
-    let _ = conn.execute(
-        "ALTER TABLE document_history ADD COLUMN group_name TEXT",
-        [],
-    );
+    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN group_name TEXT", []);
+    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN user_login TEXT", []);
 
     // Security Mailbox Table
     conn.execute(
@@ -185,7 +158,8 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
             responsible TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            is_read BOOLEAN DEFAULT 0
+            is_read BOOLEAN DEFAULT 0,
+            user_login TEXT
         )",
         [],
     )
@@ -202,6 +176,11 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         "CREATE INDEX IF NOT EXISTS idx_security_mailbox_sid ON security_mailbox(sid)",
         [],
     );
+
+    // Migraciones silenciosas: Añadir user_login a tablas CORE
+    let _ = conn.execute("ALTER TABLE security_mailbox ADD COLUMN user_login TEXT", []);
+    let _ = conn.execute("ALTER TABLE authorization_tickets ADD COLUMN user_login TEXT", []);
+    let _ = conn.execute("ALTER TABLE chat_history ADD COLUMN user_login TEXT", []);
 
     // Tabla de Metadatos de Sincronización
     conn.execute(
@@ -324,7 +303,8 @@ pub fn recreate_app_logs_table(conn: &rusqlite::Connection) -> Result<(), String
             message TEXT NOT NULL,
             details TEXT,
             source TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            user_login TEXT
         )",
         [],
     )

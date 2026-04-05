@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::commands::api::{api_get_request, api_get_raw_request, api_post_raw_request};
 use super::repository::MailboxRepository;
 use super::types::*;
+use base64::{engine::general_purpose, Engine as _};
 
 pub struct SyncService;
 
@@ -33,6 +34,22 @@ impl SyncService {
 
         let jwt = jwt.ok_or("Sesión expirada (JWT faltante)")?;
         let hash = hash.unwrap_or_default();
+
+        // Extraer usuario del JWT para segregación
+        let user_login = {
+            let parts: Vec<&str> = jwt.split('.').collect();
+            if parts.len() > 1 {
+                let payload_b64 = parts[1];
+                if let Ok(decoded) = general_purpose::STANDARD_NO_PAD.decode(payload_b64) {
+                    if let Ok(val) = serde_json::from_slice::<serde_json::Value>(&decoded) {
+                        val["Usuario"]["usuario"].as_str()
+                            .or(val["usuario"].as_str())
+                            .unwrap_or("default")
+                            .to_string()
+                    } else { "default".to_string() }
+                } else { "default".to_string() }
+            } else { "default".to_string() }
+        };
 
         // 2. Obtener cursor incremental
         let cursor = {
@@ -78,7 +95,7 @@ impl SyncService {
             let conn = state.0.lock().map_err(|e| e.to_string())?;
             let repo = MailboxRepository::new(&conn);
             manifest_items.into_iter()
-                .filter(|item| !repo.message_exists(&item.guid).unwrap_or(false))
+                .filter(|item| !repo.message_exists(&item.guid, &user_login).unwrap_or(false))
                 .collect()
         };
 
@@ -90,6 +107,7 @@ impl SyncService {
         let ip_arc = Arc::new(ip);
         let hash_arc = Arc::new(hash);
         let jwt_arc = Arc::new(jwt);
+        let user_login_arc = Arc::new(user_login);
 
         let mut guids_received = Vec::new();
 
@@ -101,6 +119,7 @@ impl SyncService {
                 let port = port;
                 let hash = Arc::clone(&hash_arc);
                 let jwt = Arc::clone(&jwt_arc);
+                let user_login = Arc::clone(&user_login_arc);
                 let app = app_handle.clone();
 
                 async move {
@@ -129,7 +148,8 @@ impl SyncService {
                                 "Pending",
                                 "inbox",
                                 None,
-                                None
+                                None,
+                                Some((*user_login).clone())
                             ).map_err(|e| e.to_string())?;
 
                             let _ = app.emit("sync-item-received", &item.guid);

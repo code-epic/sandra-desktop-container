@@ -11,6 +11,7 @@ pub struct AppLog {
     pub details: Option<Value>,
     pub source: Option<String>,
     pub timestamp: Option<String>,
+    pub user_login: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -64,8 +65,8 @@ pub async fn save_app_log(state: tauri::State<'_, DbState>, log: AppLog) -> Resu
     };
 
     conn.execute(
-        "INSERT INTO app_logs (app_id, log_type, message, details, source) VALUES (?1, ?2, ?3, ?4, ?5)",
-        rusqlite::params![&log.app_id, &log.log_type, &log.message, details_str, &log.source],
+        "INSERT INTO app_logs (app_id, log_type, message, details, source, user_login) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![&log.app_id, &log.log_type, &log.message, details_str, &log.source, &log.user_login],
     )
     .map_err(|e| e.to_string())?;
     Ok(())
@@ -75,18 +76,19 @@ pub async fn save_app_log(state: tauri::State<'_, DbState>, log: AppLog) -> Resu
 pub async fn get_app_logs(
     state: tauri::State<'_, DbState>,
     app_id: String,
+    user_login: Option<String>,
 ) -> Result<Vec<AppLog>, String> {
     let conn = state.0.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT id, app_id, log_type, message, details, source, timestamp 
-         FROM app_logs WHERE app_id = ?1 
+            "SELECT id, app_id, log_type, message, details, source, timestamp, user_login 
+         FROM app_logs WHERE app_id = ?1 AND (user_login = ?2 OR user_login IS NULL)
          ORDER BY id DESC LIMIT 100",
         )
         .map_err(|e| e.to_string())?;
 
     let log_iter = stmt
-        .query_map([&app_id], |row: &rusqlite::Row| {
+        .query_map([&app_id, &user_login.unwrap_or_default()], |row: &rusqlite::Row| {
             // Deserializar details de String a Value
             let details_str: Option<String> = row.get(4)?;
             let details_val: Option<Value> = match details_str {
@@ -102,6 +104,7 @@ pub async fn get_app_logs(
                 details: details_val,
                 source: row.get(5).unwrap_or(None),
                 timestamp: Some(row.get(6)?),
+                user_login: row.get(7).unwrap_or(None),
             })
         })
         .map_err(|e| e.to_string())?;

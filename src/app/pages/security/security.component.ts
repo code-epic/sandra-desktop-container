@@ -541,7 +541,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   async loadHistory() {
     try {
-      this.history = await invoke('get_document_history');
+      this.history = await invoke('get_document_history', { userLogin: this.securityService.getCurrentUserLogin() });
       // Trigger lazy verification for history items
       this.history.forEach(doc => {
         if (doc.file_path) this.verifyAttachmentCertification(doc.file_path);
@@ -581,7 +581,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   // --- Mailbox Logic ---
   async loadMessages() {
-    this.messages = await this.securityService.getMailboxMessages();
+    this.messages = await this.securityService.getMailboxMessages(this.authorProfile.usuario);
   }
 
   resetPagination() {
@@ -1000,7 +1000,8 @@ export class SecurityComponent implements OnInit, OnChanges {
                 filePath: att.path,
                 fileSize: att.size,
                 remoteCode: att.remoteCode || '',
-                source: 'MAILBOX'
+                source: 'MAILBOX',
+                userLogin: this.securityService.getCurrentUserLogin()
               }).then((finalPath: any) => {
                 if (finalPath) att.path = finalPath;
               }).catch(e => console.warn("Historial local no actualizado", e));
@@ -1098,10 +1099,11 @@ export class SecurityComponent implements OnInit, OnChanges {
       // 2. Persist locally to the Outbox
       await this.securityService.createMailboxMessage({
         sid: this.newMessage.sid,
-        content: JSON.stringify(securePackageV23, null, 2),
-        author: this.currentAuthorName,
-        responsible: this.newMessage.selectedRecipients.join(', '),
-        direction: 'outbox'
+        content: JSON.stringify(securePackageV23),
+        author: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
+        responsible: this.newMessage.selectedRecipients.join(', ') || 'Draft',
+        direction: 'outbox',
+        user_login: this.authorProfile.usuario
       });
 
       this.cancelCompose();
@@ -1326,7 +1328,8 @@ export class SecurityComponent implements OnInit, OnChanges {
           filePath: selected,
           fileSize: 'Local',
           remoteCode: '',
-          source: 'GLOBAL'
+          source: 'GLOBAL',
+          userLogin: this.securityService.getCurrentUserLogin()
         });
         await this.loadHistory();
       }

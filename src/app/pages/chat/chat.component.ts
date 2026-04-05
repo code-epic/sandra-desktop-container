@@ -6,6 +6,8 @@ import {
   ViewChild,
   ElementRef,
   AfterViewChecked,
+  OnChanges,
+  SimpleChanges
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -73,7 +75,7 @@ interface Contact {
   templateUrl: "./chat.component.html",
   styleUrls: ["./chat.component.css"],
 })
-export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
+export class ChatComponent implements OnInit, OnChanges, OnDestroy, AfterViewChecked {
   private chatSub?: Subscription;
 
   @Input() wsStatus: string = "Desconectado";
@@ -81,7 +83,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @Input() config: any;
   @Input() clientId: string = "";
   @Input() visible: boolean = true;
-  @Input() hasJwt: boolean = false;   // Fuente única de verdad del JWT (desde app.component)
+  @Input() hasJwt: boolean = false;
+  @Input() userProfile: any; // Perfil del usuario activo (usuario, sistema)
 
   @ViewChild("scrollContainer") scrollContainer!: ElementRef;
 
@@ -122,9 +125,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private jwtCheckInterval: any;
 
-  // ── Storage key ligado a la conexión activa
+  private get userSuffix(): string {
+    return this.userProfile?.usuario || 'guest';
+  }
+
+  // ── Storage key ligado a la conexión activa y AL USUARIO
   private get contactStorageKey(): string {
-    return `sdc_contacts_${this.activeConnection?.id || "default"}`;
+    return `sdc_contacts_${this.activeConnection?.id || "default"}_${this.userSuffix}`;
   }
 
   constructor(
@@ -161,6 +168,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.selectedContact = null;
       }
     }, 5000);
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['userProfile'] && !changes['userProfile'].firstChange) {
+      this.loadAllConversations();
+      this.loadHistoryGroups();
+      this.loadContactsLocal();
+    }
   }
 
   ngOnDestroy() {
@@ -389,7 +404,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // ─── Persistence ──────────────────────────────────────────────────────────
 
   private storageKey(id: string) {
-    return `sdc_chat_${this.activeConnection?.id || "default"}_${id}`;
+    return `sdc_chat_${this.activeConnection?.id || "default"}_${this.userSuffix}_${id}`;
   }
 
   private saveConversation(conv: Conversation) {
@@ -408,7 +423,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         } catch { }
       }
     }
-    const convListKey = `sdc_chat_convs_${this.activeConnection?.id || "default"}`;
+    const convListKey = `sdc_chat_convs_${this.activeConnection?.id || "default"}_${this.userSuffix}`;
     const raw = localStorage.getItem(convListKey);
     if (raw) {
       try {
@@ -433,7 +448,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private saveConvList() {
-    const key = `sdc_chat_convs_${this.activeConnection?.id || "default"}`;
+    const key = `sdc_chat_convs_${this.activeConnection?.id || "default"}_${this.userSuffix}`;
     localStorage.setItem(key, JSON.stringify(this.conversations.map((c) => ({ id: c.id, name: c.name, initial: c.initial, login: c.login }))));
   }
 
@@ -574,7 +589,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
       if (!token) { msg.status = "pending"; return; }
-      console.log(this.activeUsers)
 
       const me = this.activeUsers.find(u => u.uuid === this.clientId);
       const fromName = me ? me.name : this.clientId;
@@ -714,8 +728,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const pending = this.activeConv.messages.filter((m) => m.sender === "user" && m.status === "pending");
     if (pending.length > 0) {
       pending.forEach((msg) => {
-        if (this.activeConv?.isSandra) this.deliverToSandra(msg, this.activeConv);
-        else if (this.activeConv) this.deliverToUser(msg, this.activeConv);
+        if (this.activeConv?.isSandra) this.deliverToSandra(msg, this.activeConv!);
+        else if (this.activeConv) this.deliverToUser(msg, this.activeConv!);
       });
     }
   }
@@ -754,8 +768,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // ─── History ───────────────────────────────────────────────────────────────
 
+  private get historyKey(): string {
+    return `sandra_chat_history_${this.userSuffix}`;
+  }
+
   loadHistoryGroups() {
-    const raw = localStorage.getItem("sandra_chat_history");
+    const raw = localStorage.getItem(this.historyKey);
     if (raw) {
       try {
         this.historyGroups = JSON.parse(raw).sort(
@@ -774,9 +792,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       messages: [...sandra.messages],
       preview: sandra.messages.find((m) => m.sender === "user")?.text.slice(0, 60) || "Sin mensajes",
     };
-    const history = JSON.parse(localStorage.getItem("sandra_chat_history") || "[]");
+    const history = JSON.parse(localStorage.getItem(this.historyKey) || "[]");
     history.push(session);
-    localStorage.setItem("sandra_chat_history", JSON.stringify(history));
+    localStorage.setItem(this.historyKey, JSON.stringify(history));
     sandra.messages = [];
     localStorage.removeItem(this.storageKey("sandra"));
     this.addSystemMessage(sandra, "Nueva sesión iniciada. ¿En qué puedo ayudarte?");
@@ -826,10 +844,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       const idx = this.historyGroups.findIndex((g) => g.id === this.confirmModal.session.id);
       if (idx > -1) {
         this.historyGroups.splice(idx, 1);
-        localStorage.setItem("sandra_chat_history", JSON.stringify(this.historyGroups));
+        localStorage.setItem(this.historyKey, JSON.stringify(this.historyGroups));
       }
     } else if (this.confirmModal.type === "all") {
-      localStorage.removeItem("sandra_chat_history");
+      localStorage.removeItem(this.historyKey);
       this.historyGroups = [];
     }
     this.closeConfirmModal();

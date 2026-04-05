@@ -19,12 +19,13 @@ pub struct DocumentHistoryItem {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ChatHistoryItem {
-    id: Option<i32>,
-    text: String,
-    sender: String,
-    sender_name: Option<String>,
-    timestamp: String,
-    session_id: Option<String>,
+    pub id: Option<i32>,
+    pub text: String,
+    pub sender: String,
+    pub sender_name: Option<String>,
+    pub timestamp: String,
+    pub session_id: Option<String>,
+    pub user_login: Option<String>,
 }
 
 #[command]
@@ -38,6 +39,7 @@ pub fn add_document_history(
     source: Option<String>,
     mut file_hash: Option<String>,
     group_name: Option<String>,
+    user_login: Option<String>,
 ) -> Result<String, String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
@@ -48,12 +50,12 @@ pub fn add_document_history(
         }
     }
 
-    // 2. Verificar si el Hash ya existe en el historial
+    // 2. Verificar si el Hash ya existe en el historial para ESTE usuario
     if let Some(ref h) = file_hash {
         let existing_path: Option<String> = conn
             .query_row(
-                "SELECT file_path FROM document_history WHERE file_hash = ?1",
-                [h],
+                "SELECT file_path FROM document_history WHERE file_hash = ?1 AND (user_login = ?2 OR user_login IS NULL)",
+                [h, user_login.as_deref().unwrap_or("")],
                 |row| row.get(0),
             )
             .ok();
@@ -103,8 +105,8 @@ pub fn add_document_history(
     };
 
     conn.execute(
-        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, file_hash, group_name) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        params![file_name, final_path, file_size, remote_code, source.unwrap_or_else(|| "GLOBAL".to_string()), file_hash, group_name],
+        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, file_hash, group_name, user_login) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![file_name, final_path, file_size, remote_code, source.unwrap_or_else(|| "GLOBAL".to_string()), file_hash, group_name, user_login],
     )
     .map_err(|e| e.to_string())?;
 
@@ -112,15 +114,15 @@ pub fn add_document_history(
 }
 
 #[command]
-pub fn get_document_history(db_state: State<DbState>) -> Result<Vec<DocumentHistoryItem>, String> {
+pub fn get_document_history(db_state: State<DbState>, user_login: String) -> Result<Vec<DocumentHistoryItem>, String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash, group_name FROM document_history ORDER BY opened_at DESC LIMIT 50")
+        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash, group_name FROM document_history WHERE user_login = ?1 OR user_login IS NULL ORDER BY opened_at DESC LIMIT 50")
         .map_err(|e| e.to_string())?;
 
     let history_iter = stmt
-        .query_map([], |row| {
+        .query_map([user_login], |row| {
             Ok(DocumentHistoryItem {
                 id: row.get(0)?,
                 file_name: row.get(1)?,
@@ -204,8 +206,8 @@ pub fn save_chat_messages(
 
     for msg in messages {
         tx.execute(
-            "INSERT INTO chat_history (text, sender, sender_name, timestamp, session_id) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![msg.text, msg.sender, msg.sender_name, msg.timestamp, msg.session_id],
+            "INSERT INTO chat_history (text, sender, sender_name, timestamp, session_id, user_login) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![msg.text, msg.sender, msg.sender_name, msg.timestamp, msg.session_id, msg.user_login],
         )
         .map_err(|e| e.to_string())?;
     }
@@ -219,15 +221,16 @@ pub fn get_chat_history(
     db_state: State<DbState>,
     limit: i32,
     offset: i32,
+    user_login: String,
 ) -> Result<Vec<ChatHistoryItem>, String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, text, sender, sender_name, timestamp, session_id FROM chat_history ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2")
+        .prepare("SELECT id, text, sender, sender_name, timestamp, session_id, user_login FROM chat_history WHERE user_login = ?1 OR user_login IS NULL ORDER BY timestamp DESC LIMIT ?2 OFFSET ?3")
         .map_err(|e| e.to_string())?;
 
     let history_iter = stmt
-        .query_map(params![limit, offset], |row| {
+        .query_map(params![user_login, limit, offset], |row| {
             Ok(ChatHistoryItem {
                 id: Some(row.get(0)?),
                 text: row.get(1)?,
@@ -235,6 +238,7 @@ pub fn get_chat_history(
                 sender_name: row.get(3)?,
                 timestamp: row.get(4)?,
                 session_id: row.get(5)?,
+                user_login: row.get(6)?,
             })
         })
         .map_err(|e| e.to_string())?;
