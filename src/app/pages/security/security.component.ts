@@ -2,8 +2,9 @@ import { Component, OnInit, OnChanges, SimpleChanges, Input } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { firstValueFrom } from 'rxjs';
+import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import {
   SecurityService,
   MailboxMessage,
@@ -89,6 +90,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   viewerSearchText: string = '';
   showCertificationModal = false;
   selectedCertification: any = null;
+  downloadingStatus: Map<string, number> = new Map();
 
   // Rich Text Editor Content (Hidden Model)
   editorContent = '';
@@ -390,20 +392,35 @@ export class SecurityComponent implements OnInit, OnChanges {
     private sanitizer: DomSanitizer
   ) { }
 
-  ngOnInit(): void {
+  async ngOnInit() {
     if (!this.checkAuth()) return;
 
+    // 1. Initial Load (Unified)
+    await this.loadConfig();
     this.loadMessages();
-    this.loadConfig();
+    this.loadHistory();
     this.loadProxyRoutes();
     this.generateUniqueCode();
-    this.loadHistory();
     this.extractAuthorFromJwt();
     this.loadSystemIdentity();
-    this.loadContactsLocal(); // load contacts for current connection on init
+    this.loadContactsLocal();
 
-    // Suscripción al trigger de refresco global (SDC Sync Pulses)
-    this.securityService.mailboxRefreshTrigger$.subscribe(() => {
+    // 2. Event Listeners
+    listen('mailbox-download-progress', (event: any) => {
+      const { remote_code, progress, status } = event.payload;
+      this.downloadingStatus.set(remote_code, progress);
+      if (status === 'completed') {
+        setTimeout(() => this.downloadingStatus.delete(remote_code), 3000);
+        this.loadHistory(); // Refresh history to update UI indicators
+      }
+    });
+
+    // 3. Reactive Streams
+    // Suscripción al trigger de refresco global (SDC Sync Pulses) con debounce para evitar sobrecarga
+    this.securityService.mailboxRefreshTrigger$.pipe(
+      debounceTime(2000)
+    ).subscribe(() => {
+      console.log("[Security] Ejecutando sincronización por trigger");
       this.syncMailbox();
     });
 
@@ -1437,6 +1454,60 @@ export class SecurityComponent implements OnInit, OnChanges {
       case 'Read': return 'Leído';
       case 'Pending': return 'Pendiente';
       default: return status;
+    }
+  }
+
+  // --- Attachment Helpers ---
+
+  isAttachmentDownloaded(att: any): boolean {
+    if (!att || !att.remote_code) return false;
+    return this.history.some(h => h.remote_code === att.remote_code);
+  }
+
+  hasPendingDownloads(msg: MailboxMessage): boolean {
+    if (!msg || !msg.content) return false;
+    try {
+      const parsed = JSON.parse(msg.content);
+      const atts = parsed?.message_envelope?.attachments || parsed?.payload?.attachments || [];
+      if (!Array.isArray(atts)) return false;
+      return atts.some(att => !this.isAttachmentDownloaded(att));
+    } catch { return false; }
+  }
+
+  async downloadAttachment(att: any, msg: MailboxMessage) {
+    if (this.isAttachmentDownloaded(att)) {
+      this.openAttachment(att);
+      return;
+    }
+
+    const guid = this.getMessageGuid(msg.content);
+    if (!guid) {
+      console.error("No GUID found for message, cannot download");
+      return;
+    }
+
+    try {
+      this.downloadingStatus.set(att.remote_code, 0);
+      const localPath = await invoke('mailbox_download_attachment', {
+        ip: this.activeConnection.ip_address,
+        port: this.activeConnection.port,
+        hash: this.activeConnection.hash,
+        tempAuthToken: this.activeConnection.jwt,
+        messageGuid: guid,
+        remoteCode: att.remote_code,
+        fileName: att.name,
+        userLogin: this.securityService.getCurrentUserLogin()
+      }) as string;
+
+      console.log("Download complete:", localPath);
+      
+      // Auto-open after download
+      const updatedAtt = { ...att, path: localPath, source: 'VAULT' };
+      this.openAttachment(updatedAtt);
+      
+    } catch (e) {
+      console.error("Error downloading attachment", e);
+      this.downloadingStatus.delete(att.remote_code);
     }
   }
 

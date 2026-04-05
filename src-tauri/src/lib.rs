@@ -118,6 +118,7 @@ pub fn run() {
             commands::history::save_chat_messages,
             commands::history::get_chat_history,
             // Mailbox Module
+            commands::mailbox::mailbox_download_attachment,
             commands::mailbox::get_mailbox_messages,
             commands::mailbox::sync_mailbox,
             commands::mailbox::create_mailbox_message,

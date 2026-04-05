@@ -142,8 +142,9 @@
                                 </span>
                                 <div class="gmail-top-right">
                                     <span class="att-indicator-badge" *ngIf="getAttachmentCount(msg.content) > 0"
-                                        title="Contiene adjuntos">
-                                        <i class="fas fa-paperclip"></i>
+                                        [class.pending-dl]="hasPendingDownloads(msg)"
+                                        [title]="hasPendingDownloads(msg) ? 'Contiene adjuntos pendientes de descarga' : 'Contiene adjuntos descargados'">
+                                        <i class="fas" [class.fa-paperclip]="!hasPendingDownloads(msg)" [class.fa-cloud-download-alt]="hasPendingDownloads(msg)"></i>
                                         <span class="att-count">{{ getAttachmentCount(msg.content) }}</span>
                                     </span>
                                     <span class="status-tag" [ngClass]="getStatusClass(msg.status)">
@@ -624,14 +625,22 @@
                             <div class="attachment-viewer-list-v24">
                                 <div *ngFor="let att of (parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments)"
                                     class="att-pill-modern interactive fade-in"
-                                    [ngClass]="att.source === 'LOCAL' || (att.viewer_config && !att.viewer_config.isProtected) ? 'source-local' : 'source-vault'"
-                                    (click)="openAttachment(att)" title="Ver Documento">
+                                    [ngClass]="{
+                                        'source-local': isAttachmentDownloaded(att),
+                                        'source-vault': !isAttachmentDownloaded(att),
+                                        'is-downloading': downloadingStatus.has(att.remote_code)
+                                    }"
+                                    (click)="isAttachmentDownloaded(att) ? openAttachment(att) : downloadAttachment(att, selectedMessage)" 
+                                    [title]="isAttachmentDownloaded(att) ? 'Ver Documento' : 'Descargar Documento'">
+                                    
                                     <i [class]="getFileTypeConfig(att.name).icon"
                                         [ngClass]="getFileTypeConfig(att.name).colorClass"></i>
+                                    
                                     <div class="att-info-block-v23">
                                         <span class="att-name">{{ att.name }}</span>
-                                        <span class="att-meta-detail-v23">{{ att.extension || att.type }} • {{ att.size
-                                            || (att.source === 'LOCAL' ? 'Local' : 'Vault') }}
+                                        <span class="att-meta-detail-v23">
+                                            {{ att.extension || att.type }} • {{ att.size || (isAttachmentDownloaded(att) ? 'Local' : 'Servidor') }}
+                                            
                                             <span class="meta-tag cert-tag-compose fade-in"
                                                 *ngIf="certificationMap.has(att.path || att.transfer_info?.path)"
                                                 (click)="openCertificationDetails(att, $event)">
@@ -639,7 +648,20 @@
                                             </span>
                                         </span>
                                     </div>
-                                    <i class="fas fa-external-link-alt action-icon"></i>
+
+                                    <!-- Action Icon / Progress -->
+                                    <div class="att-action-state">
+                                        <i *ngIf="isAttachmentDownloaded(att)" class="fas fa-external-link-alt action-icon"></i>
+                                        <i *ngIf="!isAttachmentDownloaded(att) && !downloadingStatus.has(att.remote_code)" class="fas fa-cloud-download-alt action-icon download-pulse"></i>
+                                        <div *ngIf="downloadingStatus.has(att.remote_code)" class="mini-spinner-v24">
+                                            <i class="fas fa-circle-notch fa-spin"></i>
+                                        </div>
+                                    </div>
+
+                                    <!-- Elegant Progress Bar (Neon) -->
+                                    <div class="pill-progress-bar" *ngIf="downloadingStatus.has(att.remote_code)">
+                                        <div class="progress-fill" [style.width.%]="downloadingStatus.get(att.remote_code)"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

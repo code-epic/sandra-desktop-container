@@ -3,16 +3,138 @@ pub mod repository;
 pub mod sync_service;
 
 use crate::storage::DbState;
-use tauri::State;
+use tauri::{State, AppHandle, Emitter, Manager};
 use std::fs;
 use std::io::Write;
 use crate::crypto;
+use reqwest::Client;
+use futures_util::StreamExt;
 
 pub use self::types::*;
 pub use self::repository::MailboxRepository;
 pub use self::sync_service::SyncService;
 
 // --- Commands: Mailbox ---
+
+#[tauri::command]
+pub async fn mailbox_download_attachment(
+    app_handle: AppHandle,
+    state: State<'_, DbState>,
+    ip: String,
+    port: u16,
+    hash: String,
+    temp_auth_token: Option<String>,
+    message_guid: String,
+    remote_code: String,
+    file_name: String,
+    user_login: String,
+) -> Result<String, String> {
+    let task_id = format!("dl_att_{}", remote_code);
+    let hash_id = format!("SDC-AUTO-{}", if message_guid.len() >= 8 { &message_guid[0..8] } else { &message_guid });
+    
+    let url = format!("https://{}:{}/v1/api/dw/{}/{}", ip, port, hash_id, remote_code);
+    
+    let client = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|e| format!("Client builder error: {}", e))?;
+
+    // Usar la lógica de headers de api.rs (get_auth_headers es privado, así que replicamos lo esencial)
+    let secret = if hash.len() >= 32 { &hash[0..32] } else { &hash };
+    
+    // Auth Headers
+    let stats = crate::commands::monitor::collect_system_stats();
+    let context_val = serde_json::json!({
+        "os_info": stats.os_info,
+        "mac_address": stats.mac_address,
+        "network": stats.local_ip
+    });
+    let context_str = serde_json::to_string(&context_val).unwrap_or_default();
+    use base64::{engine::general_purpose, Engine as _};
+    let encoded_b64 = general_purpose::STANDARD.encode(context_str);
+    let encoded_device_context = crate::sha256::Sha256Service::encrypt_device_context(
+        &serde_json::Value::String(encoded_b64),
+        secret,
+    ).map_err(|e| format!("Crypto error: {}", e))?;
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+        .to_string();
+
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert("X-Device-Context", encoded_device_context.parse().unwrap());
+    headers.insert("X-Timestamp", timestamp.parse().unwrap());
+    headers.insert("Web-API-key", secret.parse().unwrap());
+    if let Some(token) = temp_auth_token {
+        headers.insert(reqwest::header::AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
+    }
+
+    let res = client
+        .get(&url)
+        .headers(headers)
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?;
+
+    if !res.status().is_success() {
+        return Err(format!("HTTP Error: {}", res.status()));
+    }
+
+    let total_size = res.content_length().unwrap_or(0);
+    let mut downloaded: u64 = 0;
+    let mut buffer = Vec::new();
+    let mut stream = res.bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item.map_err(|e| format!("Stream error: {}", e))?;
+        buffer.extend_from_slice(&chunk);
+        downloaded += chunk.len() as u64;
+
+        if total_size > 0 {
+            let progress = (downloaded as f32 / total_size as f32 * 100.0) as u32;
+            let _ = app_handle.emit("mailbox-download-progress", serde_json::json!({
+                "remote_code": remote_code,
+                "progress": progress,
+                "status": "downloading"
+            }));
+        }
+    }
+
+    // 2. Preparar Directorio Vault
+    let mut vault_path = app_handle.path().app_data_dir()
+        .map_err(|e| format!("AppDataDir error: {}", e))?;
+    vault_path.push("sandra_vault");
+    if !vault_path.exists() {
+        fs::create_dir_all(&vault_path).map_err(|e| e.to_string())?;
+    }
+    vault_path.push(&remote_code);
+    
+    fs::write(&vault_path, &buffer).map_err(|e| format!("File write error: {}", e))?;
+
+    // 3. Registrar en Historial
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, user_login) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![
+            file_name,
+            vault_path.to_string_lossy().to_string(),
+            format!("{:.2} MB", buffer.len() as f32 / 1024.0 / 1024.0),
+            remote_code,
+            "MAILBOX",
+            user_login
+        ],
+    ).map_err(|e| format!("DB Error: {}", e))?;
+
+    let _ = app_handle.emit("mailbox-download-progress", serde_json::json!({
+        "remote_code": remote_code,
+        "progress": 100,
+        "status": "completed"
+    }));
+
+    Ok(vault_path.to_string_lossy().to_string())
+}
 
 #[tauri::command]
 pub fn get_mailbox_messages(state: State<DbState>, user_login: String) -> Result<Vec<MailboxMessage>, String> {

@@ -76,6 +76,8 @@ export class SecurityService {
 
     private lastProgressUpdate = 0;
     private readonly UI_THROTTLE_MS = 150;
+    private activeSyncConnection: any = null;
+    private activeSyncAuthor: any = null;
     private existingGuids = new Set<string>();
 
     constructor(private dataStreamService: DataStreamService) {
@@ -233,11 +235,10 @@ export class SecurityService {
 
     // --- Sync Methods (Industrial-Scale Streaming) ---
 
-    private activeSyncConnection: any;
-
     async startMailboxSync(activeConnection: any, authorProfile: any) {
         if (this._isSyncing.value || !activeConnection || !authorProfile?.usuario) return;
         this.activeSyncConnection = activeConnection;
+        this.activeSyncAuthor = authorProfile;
 
         // Limpiar contador previo y activar visual inmediatamente
         this._syncCount.next(0);
@@ -423,13 +424,17 @@ export class SecurityService {
         // manifest.guid es la CLAVE (sid) para de-duplicación y rastreo auditado
         const guid = item.manifest?.guid || item.id || String(Date.now());
         
+        // Determinar el login del usuario para la segregación de datos. 
+        // Priorizamos el perfil activo que inició la sincronización.
+        const userLogin = this.activeSyncAuthor?.usuario || 'default';
+
         await this.createMailboxMessage({
             sid: String(guid),
             content: JSON.stringify(item),
             author: item.message_envelope?.from || item.message_envelope?.author || item.manifest?.sender || item.author || 'Unknown',
             responsible: item.message_envelope?.to || item.responsible || 'persona.consola',
             direction: 'inbox',
-            user_login: this.activeSyncConnection?.jwt_payload?.usuario || this.activeSyncConnection?.user || 'default'
+            user_login: userLogin
         });
     }
 
