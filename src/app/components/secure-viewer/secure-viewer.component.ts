@@ -163,7 +163,7 @@ export class SecureViewerComponent {
 
     async confirmFolderDelete() {
         if (!this.folderToDeleteName) return;
-
+        this.securityService.playDeleteSound();
         try {
             this.appState.setGlobalLoading(true, "Eliminando grupo de documentos...");
             await invoke('delete_document_group', { groupName: this.folderToDeleteName });
@@ -959,7 +959,7 @@ export class SecureViewerComponent {
 
     async confirmDelete() {
         if (!this.itemToDelete) return;
-
+        this.securityService.playDeleteSound();
         try {
             // 1. Delete physical file if possible
             if (this.itemToDelete.file_path) {

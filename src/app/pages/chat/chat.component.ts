@@ -15,6 +15,7 @@ import { WebSocketService } from "../../core/services/websocket.service";
 import { SdcService } from "../../core/services/sdc.service";
 import { Subscription } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
+import { SecurityService } from "../../core/services/security.service";
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -136,7 +137,8 @@ export class ChatComponent implements OnInit, OnChanges, OnDestroy, AfterViewChe
 
   constructor(
     private wsService: WebSocketService,
-    private sdcService: SdcService
+    private sdcService: SdcService,
+    private securityService: SecurityService
   ) { }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
@@ -831,6 +833,7 @@ export class ChatComponent implements OnInit, OnChanges, OnDestroy, AfterViewChe
   }
 
   handleConfirmDelete() {
+    this.securityService.playDeleteSound();
     if (this.confirmModal.type === "conversation" && this.confirmModal.session) {
       const conv = this.confirmModal.session;
       this.conversations = this.conversations.filter((c) => c.id !== conv.id);

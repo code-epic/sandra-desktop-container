@@ -12,6 +12,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { SdcService } from "../../core/services/sdc.service";
 import { SnapService } from "../../core/services/snap.service";
+import { SecurityService } from "../../core/services/security.service";
 
 interface Connection {
   id?: number;
@@ -89,6 +90,7 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private sdcService: SdcService,
     private snapService: SnapService,
+    private securityService: SecurityService
   ) {}
 
   requestConfirm(
@@ -316,6 +318,7 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
       "Eliminar Conexión",
       "¿Estás seguro de que deseas eliminar este perfil de conexión permanentemente?",
       async () => {
+        this.securityService.playDeleteSound();
         try {
           await invoke("delete_connection", { id });
           await this.loadSavedConnections();

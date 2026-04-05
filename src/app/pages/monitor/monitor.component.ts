@@ -293,6 +293,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
 
     async confirmDeleteTicket() {
         if (!this.ticketToDelete) return;
+        this.securityService.playDeleteSound();
         try {
             await this.securityService.deleteAuthorizationTicket(this.ticketToDelete.auth_id);
             await this.loadTickets();

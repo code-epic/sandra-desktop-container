@@ -96,23 +96,28 @@ export class SecurityService {
             if (!ctx) return;
             const now = ctx.currentTime;
             
-            // Simple and elegant delete sound (clean pitch drop)
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(180, now); 
-            osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
-            
-            gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-            
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            
-            osc.start();
-            osc.stop(now + 0.2);
+            const playTone = (freq: number, startTime: number, vol: number, dur: number, type: OscillatorType = 'sine') => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(freq, startTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.5, startTime + dur);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+                osc.start(startTime);
+                osc.stop(startTime + dur);
+            };
+
+            // Triple-Action Slate Delete Sound (Efecto De-rez)
+            // 1. Pulso inicial seco (Pop)
+            playTone(220, now, 0.08, 0.1, 'square');
+            // 2. Pulso medio (Thud)
+            playTone(110, now + 0.05, 0.12, 0.2, 'sine');
+            // 3. Resonancia final (Dissolve)
+            playTone(55, now + 0.12, 0.1, 0.4, 'sine');
         } catch {}
     }
 

@@ -831,6 +831,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   removeRecipient(index: number) {
+    this.securityService.playDeleteSound();
     this.newMessage.selectedRecipients.splice(index, 1);
   }
 
@@ -1722,6 +1723,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   executeDeleteContact() {
     if (!this.contactToDelete) return;
+    this.securityService.playDeleteSound();
     this.contacts = this.contacts.filter(c => c.id !== this.contactToDelete.id);
     this.saveContactsLocal();
     this.showDeleteContactModal = false;
