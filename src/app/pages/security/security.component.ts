@@ -638,6 +638,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   async confirmDelete() {
+    this.securityService.playDeleteSound();
     if (this.deleteType === 'messages') {
       if (!this.messagesToDelete.length) return;
       const idsToDelete = new Set(this.messagesToDelete.map(m => m.id));

@@ -89,6 +89,32 @@ export class SecurityService {
         });
     }
 
+    playDeleteSound() {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            
+            // Simple and elegant delete sound (clean pitch drop)
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(180, now); 
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+            
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.start();
+            osc.stop(now + 0.2);
+        } catch {}
+    }
+
     private playDoubleNotificationSound() {
         try {
             const ctx = this.getAudioContext();
