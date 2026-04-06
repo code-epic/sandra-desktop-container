@@ -1,5 +1,5 @@
 import { Component, OnInit, NgZone, HostListener } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { CommonModule, NgIf } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
   DomSanitizer,
@@ -60,6 +60,7 @@ interface DesktopApp {
   standalone: true,
   imports: [
     CommonModule,
+    NgIf,
     FormsModule,
     SidebarComponent,
     DashboardComponent,

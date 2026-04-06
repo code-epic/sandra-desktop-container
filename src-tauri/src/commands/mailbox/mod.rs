@@ -135,9 +135,12 @@ pub async fn mailbox_download_attachment(
     if file_name.to_lowercase().ends_with(".zst") {
         buffer = zstd::decode_all(&buffer[..])
             .map_err(|e| format!("Error descomprimiendo adjunto (zstd): {}", e))?;
-        // Remover extensión .zst para el registro local
-        file_name = file_name[..file_name.len() - 4].to_string();
+        // Remover extensión .zst para el registro local de forma agresiva
+        file_name = file_name.replace(".zst", "").replace(".ZST", "");
     }
+
+    // Normalizar remote_code para la ruta física eliminando residuos .zst
+    let clean_remote_code = remote_code.replace(".zst", "").replace(".ZST", "");
 
     // 2. Preparar Directorio Vault
     let mut vault_path = app_handle
@@ -149,12 +152,12 @@ pub async fn mailbox_download_attachment(
         fs::create_dir_all(&vault_path).map_err(|e| e.to_string())?;
     }
     
-    // Extraer extensión del file_name (ahora limpio de .zst si existía)
+    // Extraer extensión del file_name (ahora garantizado sin .zst)
     let extension = std::path::Path::new(&file_name).extension().and_then(|e| e.to_str()).unwrap_or("");
-    let final_name = if !extension.is_empty() && !remote_code.ends_with(extension) {
-        format!("{}.{}", remote_code, extension)
+    let final_name = if !extension.is_empty() && !clean_remote_code.ends_with(extension) {
+        format!("{}.{}", clean_remote_code, extension)
     } else {
-        remote_code.clone()
+        clean_remote_code.clone()
     };
     vault_path.push(&final_name);
 
@@ -168,7 +171,7 @@ pub async fn mailbox_download_attachment(
             file_name,
             vault_path.to_string_lossy().to_string(),
             format!("{:.2} MB", buffer.len() as f32 / 1024.0 / 1024.0),
-            remote_code,
+            remote_code, // Mantener el remote_code original del mensaje para que el frontend lo localice
             "MAILBOX",
             user_login
         ],

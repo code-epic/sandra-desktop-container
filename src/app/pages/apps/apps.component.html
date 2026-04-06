@@ -132,7 +132,7 @@
             <!-- ROW 1: CONNECTIVITY -->
             <div class="section-row">
                 <h5 class="col-header">Conexión y Origen</h5>
-                <div class="row-grid-2">
+                <div class="row-grid-3">
                     <!-- URL Input Card -->
                     <div class="input-card">
                         <div class="input-label"><i class="fas fa-link"></i> URL Destino / Endpoint</div>
@@ -145,6 +145,14 @@
                         <div class="input-label"><i class="fab fa-git-alt"></i> Repositorio Fuente</div>
                         <input type="text" [(ngModel)]="currentApp.repo" placeholder="git@github.com:..."
                             class="input-field-clean" autocomplete="off" autocapitalize="off">
+                    </div>
+
+                    <!-- Base Path Card -->
+                    <div class="input-card">
+                        <div class="input-label"><i class="fas fa-folder-tree"></i> Contexto (Base Path)</div>
+                        <input type="text" [(ngModel)]="currentApp.base_path" placeholder="Ej: /gdoc/"
+                            class="input-field-clean monospace" autocomplete="off" autocapitalize="off" 
+                            title="Obligatorio si la app busca activos en subcarpetas.">
                     </div>
                 </div>
             </div>

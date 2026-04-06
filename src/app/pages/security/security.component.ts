@@ -1498,21 +1498,37 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   async openAttachment(att: any) {
-    const ext = (att.extension || att.type || '').toUpperCase();
-    let path = att.transfer_info?.path || att.path || att.file_path;
-
-    // Si sabemos que está descargado (en el buzón), buscar SIEMPRE en el historial local por remote_code
-    // para evitar punteros a UUIDs temporales o incorrectos
-    if (att.remote_code) {
-      const historyItem = this.history.find(h => h.remote_code === att.remote_code);
-      if (historyItem && historyItem.file_path) {
-        const historyPath = historyItem.file_path;
-        if (path !== historyPath) {
-          console.log(`Puntero de archivo corregido por historial (${att.remote_code}): ${path} -> ${historyPath}`);
-          path = historyPath;
+    this.appState.setViewerLoading(true);
+    // Pequeño delay para permitir que Angular renderice el overlay antes del procesamiento pesado
+    await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      // 0. Limpiar nombre de .zst para visor y metadatos
+      let cleanName = att.name || 'documento';
+      let rawExt = (att.extension || att.type || '').toUpperCase();
+      
+      if (cleanName.toLowerCase().endsWith('.zst')) {
+        cleanName = cleanName.substring(0, cleanName.length - 4);
+        // Recalcular extensión original si la recibida era ZST
+        if (rawExt === 'ZST' || rawExt === '.ZST') {
+          rawExt = cleanName.split('.').pop()?.toUpperCase() || 'FILE';
         }
       }
-    }
+
+      const ext = rawExt;
+      let path = att.transfer_info?.path || att.path || att.file_path;
+
+      // Si sabemos que está descargado (en el buzón), buscar SIEMPRE en el historial local por remote_code
+      // para evitar punteros a UUIDs temporales o incorrectos
+      if (att.remote_code) {
+        const historyItem = this.history.find(h => h.remote_code === att.remote_code);
+        if (historyItem && historyItem.file_path) {
+          const historyPath = historyItem.file_path;
+          if (path !== historyPath) {
+            console.log(`Puntero de archivo corregido por historial (${att.remote_code}): ${path} -> ${historyPath}`);
+            path = historyPath;
+          }
+        }
+      }
 
     // NORMALIZACIÓN DE RUTA: Si la ruta contiene sandra_vault, asegurar que coincida con el usuario actual
     if (path && path.includes('sandra_vault')) {
@@ -1522,11 +1538,13 @@ export class SecurityComponent implements OnInit, OnChanges {
         if (vaultIdx !== -1 && vaultIdx + 1 < parts.length) {
           let fileName = parts[vaultIdx + 1];
           
-          // Si tenemos remote_code, el archivo REAL en el vault debe ser remote_code (+ extensión si aplica)
+          // Si tenemos remote_code, el archivo REAL en el vault debe ser remote_code (limpio) (+ extensión si aplica)
           if (att.remote_code) {
              const vaultExt = fileName.split('.').pop() || '';
-             const rcBase = att.remote_code.split('.')[0];
-             fileName = vaultExt ? `${rcBase}.${vaultExt}` : rcBase;
+             // Limpiar .zst del código remoto para coincidir con el guardado en Rust
+             const cleanRC = att.remote_code.replace(/\.zst/gi, '');
+             const rcBase = cleanRC.split('.')[0];
+             fileName = vaultExt && vaultExt.toLowerCase() !== 'zst' ? `${rcBase}.${vaultExt}` : rcBase;
           }
 
           const currentDataDir = await appDataDir();
@@ -1629,8 +1647,8 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     if (isSSE || isPDF) {
       this.appState.addTab({
-        id: `doc-${att.id}-${att.name}`,
-        name: att.name,
+        id: `doc-${att.id}-${cleanName}`,
+        name: cleanName,
         icon: isSSE ? 'fas fa-shield-halved' : 'fas fa-file-pdf',
         type: 'pdf-viewer',
         isProtected: isSSE,
@@ -1642,8 +1660,8 @@ export class SecurityComponent implements OnInit, OnChanges {
     } else if (ext === 'CSV') {
       if (csvHeaders.length > 0) {
         this.appState.addTab({
-          id: `csv-${att.id}-${att.name}`,
-          name: att.name,
+          id: `csv-${att.id}-${cleanName}`,
+          name: cleanName,
           icon: 'fas fa-table-list',
           type: 'csv-viewer',
           content: content,
@@ -1657,8 +1675,8 @@ export class SecurityComponent implements OnInit, OnChanges {
       } else {
         // Fallback a visor de texto si el parsing de CSV falló
         this.appState.addTab({
-          id: `file-${att.id}-${att.name}`,
-          name: att.name,
+          id: `file-${att.id}-${cleanName}`,
+          name: cleanName,
           icon: 'fas fa-file-csv',
           type: 'file-viewer',
           content: content,
@@ -1670,8 +1688,8 @@ export class SecurityComponent implements OnInit, OnChanges {
       }
     } else if (ext === 'TXT' || isImage) {
       this.appState.addTab({
-        id: `file-${att.id}-${att.name}`,
-        name: att.name,
+        id: `file-${att.id}-${cleanName}`,
+        name: cleanName,
         icon: isImage ? 'fas fa-image' : 'fas fa-file-alt',
         type: 'file-viewer',
         content: content,
@@ -1687,8 +1705,8 @@ export class SecurityComponent implements OnInit, OnChanges {
     } else {
       // General Fallback
       this.appState.addTab({
-        id: `file-${att.id}-${att.name}`,
-        name: att.name,
+        id: `file-${att.id}-${cleanName}`,
+        name: cleanName,
         icon: 'fas fa-file',
         type: 'file-viewer',
         content: content,
@@ -1697,6 +1715,9 @@ export class SecurityComponent implements OnInit, OnChanges {
         filePath: path,
         showToolbar: true
       });
+    }
+    } finally {
+      this.appState.setViewerLoading(false);
     }
   }
 

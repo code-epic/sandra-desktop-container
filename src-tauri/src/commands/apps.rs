@@ -123,13 +123,14 @@ pub struct DesktopApp {
     pub token: Option<String>,
     pub is_proxy_required: bool,
     pub is_external_browser: bool,
+    pub base_path: Option<String>,
 }
 
 #[tauri::command]
 pub async fn get_all_apps(state: tauri::State<'_, DbState>) -> Result<Vec<DesktopApp>, String> {
     let conn = state.0.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT id, app_id, name, icon, repo, external_url, is_installed, is_favorite, description, username, password, token, is_proxy_required, is_external_browser FROM desktop_apps ORDER BY name ASC")
+        .prepare("SELECT id, app_id, name, icon, repo, external_url, is_installed, is_favorite, description, username, password, token, is_proxy_required, is_external_browser, base_path FROM desktop_apps ORDER BY name ASC")
         .map_err(|e| e.to_string())?;
 
     let rows = stmt
@@ -149,6 +150,7 @@ pub async fn get_all_apps(state: tauri::State<'_, DbState>) -> Result<Vec<Deskto
                 token: row.get(11).unwrap_or(None),
                 is_proxy_required: row.get(12).unwrap_or(false),
                 is_external_browser: row.get(13).unwrap_or(false),
+                base_path: row.get(14).unwrap_or(None),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -165,7 +167,7 @@ pub async fn get_all_apps(state: tauri::State<'_, DbState>) -> Result<Vec<Deskto
 pub async fn create_app(state: tauri::State<'_, DbState>, app: DesktopApp) -> Result<i64, String> {
     let conn = state.0.lock().unwrap();
     conn.execute(
-        "INSERT INTO desktop_apps (app_id, name, icon, repo, external_url, is_installed, is_favorite, description, username, password, token, is_proxy_required, is_external_browser) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        "INSERT INTO desktop_apps (app_id, name, icon, repo, external_url, is_installed, is_favorite, description, username, password, token, is_proxy_required, is_external_browser, base_path) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
         (
             &app.app_id,
             &app.name,
@@ -180,6 +182,7 @@ pub async fn create_app(state: tauri::State<'_, DbState>, app: DesktopApp) -> Re
             &app.token,
             &app.is_proxy_required,
             &app.is_external_browser,
+            &app.base_path,
         ),
     )
     .map_err(|e| e.to_string())?;
@@ -191,7 +194,7 @@ pub async fn create_app(state: tauri::State<'_, DbState>, app: DesktopApp) -> Re
 pub async fn update_app(state: tauri::State<'_, DbState>, app: DesktopApp) -> Result<(), String> {
     let conn = state.0.lock().unwrap();
     conn.execute(
-        "UPDATE desktop_apps SET name = ?1, icon = ?2, repo = ?3, external_url = ?4, is_installed = ?5, is_favorite = ?6, description = ?7, username = ?8, password = ?9, token = ?10, is_proxy_required = ?12, is_external_browser = ?13 WHERE app_id = ?11",
+        "UPDATE desktop_apps SET name = ?1, icon = ?2, repo = ?3, external_url = ?4, is_installed = ?5, is_favorite = ?6, description = ?7, username = ?8, password = ?9, token = ?10, is_proxy_required = ?12, is_external_browser = ?13, base_path = ?14 WHERE app_id = ?11",
         (
             &app.name,
             &app.icon,
@@ -206,6 +209,7 @@ pub async fn update_app(state: tauri::State<'_, DbState>, app: DesktopApp) -> Re
             &app.app_id,
             &app.is_proxy_required,
             &app.is_external_browser,
+            &app.base_path,
         ),
     )
     .map_err(|e| e.to_string())?;

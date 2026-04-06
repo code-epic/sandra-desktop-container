@@ -17,6 +17,7 @@ export interface DesktopApp {
   token?: string;
   is_proxy_required?: boolean;
   is_external_browser?: boolean; // New attribute for Free Browser Mode
+  base_path?: string; // SRE context: base path for github apps (ej: /gdoc/)
   action?: string; // Optional for mapped actions like 'toggleCP'
 }
 

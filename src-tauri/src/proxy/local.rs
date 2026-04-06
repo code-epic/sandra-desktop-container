@@ -10,53 +10,63 @@ use super::utils::create_error_response;
 pub fn serve_local_file(app_handle: &AppHandle, path: &str) -> Response<Vec<u8>> {
     let app_dir = app_handle.path().app_data_dir().expect("Error al obtener AppData");
     let clean_path = path.trim_start_matches('/');
+    
+    // 1. Determinar el AppId y el AssetPath inicial
+    let parts: Vec<&str> = clean_path.splitn(2, '/').collect();
+    let initial_app_segment = if parts.is_empty() { "" } else { parts[0] };
+    let asset_path = if parts.len() == 2 { parts[1] } else { "" };
 
-    let file_path = if path.ends_with('/') {
-        let app_id = clean_path.trim_end_matches('/');
-        app_dir.join("apps").join(app_id).join("dist").join("index.html")
+    let mut resolved_id = initial_app_segment.to_string();
+
+    // 2. Intentar buscar el archivo directamente en la carpeta del app_id
+    let mut file_path = if asset_path.is_empty() {
+        app_dir.join("apps").join(&resolved_id).join("dist").join("index.html")
     } else {
-        let parts: Vec<&str> = clean_path.splitn(2, '/').collect();
-        if parts.len() == 2 {
-            let app_id = parts[0];
-            let asset_path = parts[1];
-            app_dir.join("apps").join(app_id).join("dist").join(asset_path)
-        } else {
-            app_dir.join("apps").join(clean_path)
-        }
+        app_dir.join("apps").join(&resolved_id).join("dist").join(asset_path)
     };
 
-    if !file_path.exists() {
-        if std::path::Path::new(path).extension().is_none() {
-            let clean_path = path.trim_start_matches('/');
-            let parts: Vec<&str> = clean_path.splitn(2, '/').collect();
-            if !parts.is_empty() {
-                let app_id = parts[0];
-                let index_path = app_dir.join("apps").join(app_id).join("dist").join("index.html");
-
-                if index_path.exists() {
-                    if let Ok(content) = fs::read(&index_path) {
-                        return Response::builder()
-                            .header(CONTENT_TYPE, "text/html")
-                            .header("Access-Control-Allow-Origin", "*")
-                            .body(content)
-                            .unwrap_or_else(|_| create_error_response(500, "Error building response"));
-                    }
+    // 3. Soporte para Base Path: Si no existe, buscar si el primer segmento es un 'base_path' configurado
+    if !file_path.exists() && !resolved_id.is_empty() {
+        if let Some(db_state) = app_handle.try_state::<crate::storage::DbState>() {
+            if let Ok(conn) = db_state.0.lock() {
+                let mut stmt = conn.prepare("SELECT app_id FROM desktop_apps WHERE base_path = ?1 AND is_installed = 1").unwrap();
+                let actual_app_id_opt: Option<String> = stmt.query_row([&resolved_id], |row| row.get(0)).ok();
+                
+                if let Some(real_id) = actual_app_id_opt {
+                    println!("🎯 [Local Proxy] Refinando ruta: /{} -> App: {} (via base_path match)", resolved_id, real_id);
+                    resolved_id = real_id;
+                    file_path = if asset_path.is_empty() {
+                        app_dir.join("apps").join(&resolved_id).join("dist").join("index.html")
+                    } else {
+                        app_dir.join("apps").join(&resolved_id).join("dist").join(asset_path)
+                    };
                 }
             }
         }
+    }
 
+    // 4. Fallback final: Si el archivo sigue sin existir, intentar servir index.html (SPA Fallback)
+    if !file_path.exists() {
+        if std::path::Path::new(path).extension().is_none() && !resolved_id.is_empty() {
+             let index_path = app_dir.join("apps").join(&resolved_id).join("dist").join("index.html");
+             if index_path.exists() {
+                 file_path = index_path;
+             }
+        }
+    }
+
+    // 5. Si todavia no existe, probar si hay un fallback de Proxy Externo activo (Configurado desde handle_request)
+    if !file_path.exists() {
         if let Ok(guard) = PROXY_STATE.lock() {
             if let Some(state) = &*guard {
-                // If we have a fallback external proxy
                 if let Some(last_id) = &state.last_app_id {
                     if let Some(target_url) = state.targets.get(last_id) {
-                        println!("🚀 [Local Fallback] Attempting external proxy via last active context: {} (App: {})", target_url, last_id);
                         if let Ok(base_url) = Url::parse(target_url) {
                             if let Ok(full_url) = base_url.join(path.trim_start_matches('/')) {
                                 let full_url_str = full_url.to_string();
                                 match proxy_arbitrary_url(app_handle, last_id, &full_url_str, None) {
                                     Ok(resp) => return resp,
-                                    Err(e) => println!("⚠️ [Local Fallback] Failed remote fetch to {}: {}", full_url_str, e),
+                                    Err(_) => {}
                                 }
                             }
                         }
@@ -64,10 +74,10 @@ pub fn serve_local_file(app_handle: &AppHandle, path: &str) -> Response<Vec<u8>>
                 }
             }
         }
-
         return create_error_response(404, &format!("Local file not found: {:?}", file_path));
     }
 
+    // 6. Servir el archivo final
     match fs::read(&file_path) {
         Ok(content) => {
             let extension = file_path.extension().and_then(|s| s.to_str()).unwrap_or("");

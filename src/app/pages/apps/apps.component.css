@@ -1,9 +1,10 @@
 /* Container & Grid */
 .apps-container {
-  padding: 40px;
-  height: 100%;
+  padding: 24px 32px;
+  height: 100vh;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: overlay;
+  /* Use overlay for minimalist scrollbar */
   background: transparent;
 }
 
@@ -11,7 +12,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 80px;
+  margin-bottom: 32px;
 }
 
 .header h2 {
@@ -46,9 +47,8 @@
 
 .apps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  /* Más compactas y angostas */
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
 }
 
 /* === Ported Dashboard Card Styles === */
@@ -64,13 +64,21 @@
   overflow: hidden;
   border: 1px solid #f1f3f5;
   height: 180px;
+  cursor: pointer;
 }
 
 .app-tile:hover {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 16px 36px rgba(46, 125, 50, 0.08);
-  border-color: #c8e6c9;
+  /* Sombra verde sutil */
+  border-top-color: #c8e6c9;
+  border-right-color: #c8e6c9;
+  border-bottom-color: #c8e6c9;
   background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f8fb 100%);
+}
+
+.app-tile.installed:hover {
+  border-left-color: var(--pastel-green-text);
 }
 
 .app-tile:active .tile-icon {
@@ -94,19 +102,26 @@
 }
 
 .tile-icon {
-  width: 46px;
-  height: 46px;
-  background: transparent;
+  width: 50px;
+  height: 50px;
+  background: var(--pastel-green-bg, #e8f5e9);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.7rem;
-  color: #90a4ae;
+  font-size: 1.5rem;
+  color: var(--pastel-green-text, #2e7d32);
   border: 1px solid #c8e6c9;
   box-shadow: 0 4px 10px rgba(76, 175, 80, 0.1);
   transition: all 0.3s ease;
   flex-shrink: 0;
+}
+
+/* Solo las apps instaladas tienen el fondo verde fuerte como en el Dashboard si se requiere */
+.app-tile.installed .tile-icon {
+  background: #66bb6a;
+  color: white;
+  border-color: transparent;
 }
 
 .app-tile:hover .tile-icon {
@@ -128,6 +143,10 @@
   font-weight: 700;
   color: #37474f;
   letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .tile-info .meta {
@@ -142,14 +161,14 @@
   left: 0;
   width: 100%;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-  border-top: 1px solid rgba(0, 0, 0, 0.03);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
   z-index: 10;
   box-sizing: border-box;
 }
@@ -176,9 +195,9 @@
 }
 
 .btn-smart:hover {
-  background: #c8e6c9;
+  background: var(--pastel-green-text);
+  color: white;
   transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(46, 125, 50, 0.1);
 }
 
 .btn-smart.full-width {
@@ -212,8 +231,8 @@
 }
 
 .icon-smart.delete:hover {
-  background: #fff3e0;
-  color: #ffb74d;
+  background: #fff5f5;
+  color: #ff5252;
 }
 
 .status-dot {
@@ -1717,6 +1736,12 @@ input:checked+.slider:before {
 .row-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.row-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
 }
 

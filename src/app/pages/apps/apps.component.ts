@@ -46,6 +46,7 @@ export class AppsComponent implements OnInit {
       is_external_browser: false,
       repo: "",
       external_url: "",
+      base_path: "",
     };
   }
 
@@ -112,6 +113,11 @@ export class AppsComponent implements OnInit {
     if (!this.currentApp.app_id || !this.currentApp.name) {
       alert("App ID and Name are required");
       return;
+    }
+
+    // Normalizar base_path (remover slashes laterales para match en proxy)
+    if (this.currentApp.base_path) {
+      this.currentApp.base_path = this.currentApp.base_path.trim().replace(/^\/|\/$/g, '');
     }
 
     try {

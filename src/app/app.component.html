@@ -97,7 +97,7 @@
         <iframe *ngIf="(!tab.type || tab.type === 'iframe') && !tab.isExternalMode" [id]="'iframe-' + tab.id"
           [src]="tab.url" frameborder="0"
           allow="autoplay; camera; microphone; clipboard-read; clipboard-write; display-capture; geolocation; gamepad; accelerometer; gyroscope; magnetometer; payment; usb; vr; xr-spatial-tracking"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-downloads-without-user-activation allow-modals allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-storage-access-by-user-activation allow-pointer-lock allow-orientation-lock"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-storage-access-by-user-activation allow-pointer-lock"
           referrerpolicy="no-referrer-when-downgrade" (load)="onIframeLoad(tab.id)">
         </iframe>
 
@@ -105,7 +105,7 @@
         <iframe *ngIf="(!tab.type || tab.type === 'iframe') && tab.isExternalMode" [id]="'iframe-ext-' + tab.id"
           [src]="tab.url" frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; clipboard-read; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation allow-top-navigation-by-user-activation allow-downloads allow-downloads-without-user-activation allow-popups-to-escape-sandbox allow-top-navigation"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation allow-top-navigation-by-user-activation allow-downloads allow-popups-to-escape-sandbox allow-top-navigation"
           referrerpolicy="no-referrer-when-downgrade" (load)="onIframeLoad(tab.id)">
         </iframe>
         <!-- PDF-VIEWER ORIGINAL (Para PDF y SSE) -->
@@ -686,5 +686,16 @@
               <div class="bg-sync-progress-bar" [style.width.%]="securityService.syncProgress$ | async"></div>
           </div>
       </div>
+  </div>
+
+  <!-- PREMIUM DOCUMENT LOADING OVERLAY (GLOBAL) -->
+  <div class="doc-loading-overlay fade-in" *ngIf="isViewerLoading">
+    <div class="loader-content">
+      <div class="premium-spinner"></div>
+      <div class="loader-text">
+        <span class="main-loader-msg">Procesando Documento</span>
+        <span class="sub-loader-msg">Cifrado de Capa y Preparación de Visor</span>
+      </div>
+    </div>
   </div>
 </div>
