@@ -17,6 +17,7 @@ import { FileService } from '../../core/services/file.service';
 import { SdcService } from '../../core/services/sdc.service';
 import { DataStreamService } from '../../core/services/data-stream.service';
 import { readFile } from '@tauri-apps/plugin-fs';
+import { MAIL_TEMPLATES, TemplateData } from './templates/mail-templates';
 
 // Interfaz para la configuración de acceso
 interface SdcConfig {
@@ -1019,6 +1020,12 @@ export class SecurityComponent implements OnInit, OnChanges {
               }
 
               att.size = event.body?.size || 'V24-Ready';
+
+              // Sincronizar nombre con estándar .zst para que el paquete seguro lo refleje
+              if (att.name && !att.name.toLowerCase().endsWith(".zst")) {
+                att.name += ".zst";
+              }
+
               // Guardar en historial local como subida exitosa
               invoke('add_document_history', {
                 fileName: att.name,
@@ -1140,89 +1147,52 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   applyTemplate(type: string) {
-    if (!type) return;
+    if (!type || !MAIL_TEMPLATES[type]) return;
 
-    let templateHtml = '';
-    const now = new Date().toLocaleDateString();
-    const user = this.authorProfile.nombre || 'Personal Autorizado';
-    const cargo = this.authorProfile.cargo || 'Funcionario';
+    const data: TemplateData = {
+      user: this.authorProfile.nombre || 'Personal Autorizado',
+      cargo: this.authorProfile.cargo || 'Funcionario',
+      date: new Date().toLocaleDateString()
+    };
 
-    switch (type) {
-      case 'MEMO':
-        templateHtml = `
-          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <p style="text-align: center; font-weight: bold; font-size: 1.2rem; text-decoration: underline; margin-bottom: 25px;">MEMORÁNDUM Nro: SND-2024-${Math.floor(Math.random() * 1000)}</p>
-            <p><strong>PARA:</strong> Destinatario Principal</p>
-            <p><strong>DE:</strong> ${user} (${cargo})</p>
-            <p><strong>FECHA:</strong> ${now}</p>
-            <p><strong>ASUNTO:</strong> Notificación de Seguridad Operativa</p>
-            <hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 20px 0;">
-            <p>Por medio de la presente, se informa que...</p>
-            <br><br>
-            <p>Atentamente,</p>
-            <p><strong>${user}</strong></p>
-          </div>
-        `;
-        break;
-      case 'RADIOGRAMA':
-        templateHtml = `
-          <div style="font-family: 'Courier New', monospace; padding: 20px; background-color: #f8fafc; border: 2px solid #64748b;">
-            <p><strong>PRIORIDAD:</strong> MÁXIMA / CIFRADO</p>
-            <p><strong>ORIGEN:</strong> Sandra Core Terminal V24</p>
-            <p><strong>FECHA/HORA:</strong> ${new Date().toLocaleString()}</p>
-            <p><strong>TEXTO:</strong></p>
-            <p style="padding: 15px; border-left: 4px solid #1e293b;">SOLICITO VERIFICACIÓN DE CREDENCIALES EN EL NODO...</p>
-          </div>
-        `;
-        break;
-      case 'COMUNICADO':
-        templateHtml = `
-          <div style="font-family: Inter, sans-serif; text-align: center; padding: 30px; border: 4px double #66BB6A;">
-            <h1 style="color: #66BB6A; margin-bottom: 5px;">COMUNICADO OFICIAL</h1>
-            <p style="font-style: italic; color: #64748b;">División de Seguridad Sandra</p>
-            <br>
-            <p style="text-align: justify; line-height: 1.6;">Se hace de conocimiento general que las políticas de acceso han sido actualizadas conforme al protocolo...</p>
-          </div>
-        `;
-        break;
-      case 'REUNION':
-        templateHtml = `
-          <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2 style="border-bottom: 2px solid #66BB6A; padding-bottom: 10px;">MINUTA DE REUNIÓN - ${now}</h2>
-            <p><strong>ASISTENTES:</strong> ${user}, ...</p>
-            <p><strong>OBJETIVO:</strong> Seguimiento de Incidencias Criticas</p>
-            <h3>1. TEMAS TRATADOS</h3>
-            <ul><li>Punto A...</li><li>Punto B...</li></ul>
-            <h3>2. ACUERDOS</h3>
-            <p>Se acuerda implementar...</p>
-          </div>
-        `;
-        break;
-      case 'CAMPAÑA':
-        templateHtml = `
-          <div style="background: linear-gradient(to right, #f0fdf4, #ffffff); padding: 25px; border-radius: 12px; border: 1px solid #bcf0da;">
-            <h2 style="color: #065f46;">PLAN DE CAMPAÑA: OPERACIÓN ESCUDO</h2>
-            <p><strong>OBJETIVO:</strong> Mitigación de brechas de integridad en bases de datos.</p>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-              <tr style="background: #ecfdf5;">
-                <th style="padding: 10px; border: 1px solid #d1fae5;">Fase</th>
-                <th style="padding: 10px; border: 1px solid #d1fae5;">Acción</th>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border: 1px solid #d1fae5;">Detección</td>
-                <td style="padding: 10px; border: 1px solid #d1fae5;">Escaneo de Nodos Pasivos</td>
-              </tr>
-            </table>
-          </div>
-        `;
-        break;
-    }
+    const templateHtml = MAIL_TEMPLATES[type](data);
 
     if (templateHtml) {
       this.editorContent = templateHtml;
       this.editorInitialContent = templateHtml;
       this.saveDraft();
     }
+  }
+
+  printCurrentTemplate() {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Impresión de Documento Sandra</title>
+          <style>
+            body { margin: 0; padding: 0; background: #fff; }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 0; }
+              .sandra-template { border: none !important; box-shadow: none !important; width: 100% !important; max-width: 100% !important; }
+            }
+          </style>
+        </head>
+        <body>
+          ${this.editorContent}
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   }
 
   formatDoc(cmd: string, val?: string) {

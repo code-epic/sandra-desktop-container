@@ -31,6 +31,10 @@ pub async fn process_and_upload(
     // 3. Alquimia: Inyectar Semilla SDC
     let file_bytes = apply_alquimia_seal_bytes(file_bytes, &file_path, user_name, &mac)?;
 
+    // 4. Compresión Zstd (.zst)
+    let file_bytes = zstd::encode_all(&file_bytes[..], 3)
+        .map_err(|e| format!("Error comprimiendo (zstd): {}", e))?;
+
     // 4. Preparar Cabeceras de Seguridad (Igual que api_post_request)
     if let Ok(conn) = state.0.lock() {
         if let Ok(db_hash) = conn.query_row(
@@ -96,10 +100,16 @@ pub async fn process_and_upload(
         .build()
         .map_err(|e| format!("Client error: {}", e))?;
 
-    let file_name = std::path::Path::new(&file_path)
+    let mut file_name = std::path::Path::new(&file_path)
         .file_name()
         .and_then(|n| n.to_str())
-        .unwrap_or("upload.sdc");
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "upload.sdc".to_string());
+
+    // Añadir extensión .zst si no la tiene (Sandra Industrial Standard)
+    if !file_name.ends_with(".zst") {
+        file_name.push_str(".zst");
+    }
 
     // Extraer valores para el formulario desde metadata
     let identificador = metadata

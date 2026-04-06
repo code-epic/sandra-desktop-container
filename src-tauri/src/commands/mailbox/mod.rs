@@ -129,6 +129,16 @@ pub async fn mailbox_download_attachment(
         return Err("El documento no se encuentra disponible en el servidor.".to_string());
     }
 
+    // --- Soporte Zstd (.zst) ---
+    let mut file_name = file_name;
+    let mut buffer = buffer;
+    if file_name.to_lowercase().ends_with(".zst") {
+        buffer = zstd::decode_all(&buffer[..])
+            .map_err(|e| format!("Error descomprimiendo adjunto (zstd): {}", e))?;
+        // Remover extensión .zst para el registro local
+        file_name = file_name[..file_name.len() - 4].to_string();
+    }
+
     // 2. Preparar Directorio Vault
     let mut vault_path = app_handle
         .path()
@@ -139,7 +149,7 @@ pub async fn mailbox_download_attachment(
         fs::create_dir_all(&vault_path).map_err(|e| e.to_string())?;
     }
     
-    // Extraer extensión del file_name
+    // Extraer extensión del file_name (ahora limpio de .zst si existía)
     let extension = std::path::Path::new(&file_name).extension().and_then(|e| e.to_str()).unwrap_or("");
     let final_name = if !extension.is_empty() && !remote_code.ends_with(extension) {
         format!("{}.{}", remote_code, extension)

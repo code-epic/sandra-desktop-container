@@ -354,6 +354,7 @@
                                 <select class="modern-select-v24"
                                     (change)="applyTemplate($any($event.target).value); $any($event.target).value = ''">
                                     <option value="" disabled selected>Esquemas / Plantillas</option>
+                                    <option value="PUNTO_CUENTA">PUNTO DE CUENTA</option>
                                     <option value="MEMO">MEMORÁNDUM</option>
                                     <option value="RADIOGRAMA">RADIOGRAMA</option>
                                     <option value="COMUNICADO">COMUNICADO</option>
@@ -361,6 +362,10 @@
                                     <option value="CAMPAÑA">PLAN DE CAMPAÑA</option>
                                 </select>
                             </div>
+                            <div class="toolbar-divider"></div>
+                            <button class="tool-btn print-btn" (click)="printCurrentTemplate()" title="Imprimir / Exportar PDF">
+                                <i class="fas fa-print"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -546,6 +551,10 @@
                                     *ngIf="selectedMessage.status !== 'Approved' && selectedMessage.status !== 'Completed' && selectedMessage.status !== 'Read' && mailboxDirection !== 'outbox'"
                                     title="Marcar como Visto">
                                     <i class="fas fa-eye"></i>
+                                </button>
+                                <div class="vertical-divider"></div>
+                                <button class="btn-action-sm secondary" (click)="printCurrentTemplate()" title="Imprimir Documento">
+                                    <i class="fas fa-print"></i>
                                 </button>
                             </div>
                         </div>
