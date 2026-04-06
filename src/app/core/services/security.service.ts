@@ -71,7 +71,7 @@ export class SecurityService {
     private _syncCount = new BehaviorSubject<number>(0);
     syncCount$ = this._syncCount.asObservable();
 
-    private _mailboxRefreshTrigger = new Subject<void>();
+    private _mailboxRefreshTrigger = new Subject<string | undefined>();
     public mailboxRefreshTrigger$ = this._mailboxRefreshTrigger.asObservable();
 
     private lastProgressUpdate = 0;
@@ -82,13 +82,13 @@ export class SecurityService {
 
     constructor(private dataStreamService: DataStreamService) {
         // Escucha global de refresco desde Rust (Remote Control o Sync Interno)
-        listen('refresh-mailbox', async () => {
-            console.log("[Service] Señal de refresco recibida de Rust");
+        listen('refresh-mailbox', async (event: any) => {
+            console.log("[Service] Señal de refresco recibida de Rust:", event.payload);
 
             // Despachar sonido doble de notificación (Refuerzo auditivo)
             this.playDoubleNotificationSound();
 
-            this._mailboxRefreshTrigger.next();
+            this._mailboxRefreshTrigger.next(event.payload);
         });
     }
 
@@ -97,29 +97,55 @@ export class SecurityService {
             const ctx = this.getAudioContext();
             if (!ctx) return;
             const now = ctx.currentTime;
-            
-            const playTone = (freq: number, startTime: number, vol: number, dur: number, type: OscillatorType = 'sine') => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = type;
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.frequency.setValueAtTime(freq, startTime);
-                osc.frequency.exponentialRampToValueAtTime(freq * 0.5, startTime + dur);
-                gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(vol, startTime + 0.01);
-                gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
-                osc.start(startTime);
-                osc.stop(startTime + dur);
-            };
 
-            // Triple-Action Slate Delete Sound (Efecto De-rez)
-            // 1. Pulso inicial seco (Pop)
-            playTone(220, now, 0.08, 0.1, 'square');
-            // 2. Pulso medio (Thud)
-            playTone(110, now + 0.05, 0.12, 0.2, 'sine');
-            // 3. Resonancia final (Dissolve)
-            playTone(55, now + 0.12, 0.1, 0.4, 'sine');
+            // 1. Generación de Ruido Blanco para la textura de "rasgado"
+            const bufferSize = ctx.sampleRate * 0.35;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noiseSource = ctx.createBufferSource();
+            noiseSource.buffer = buffer;
+
+            // 2. Filtro de Paso Alto (High-pass) para el brillo "Modern Trash"
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(3200, now);
+            filter.Q.setValueAtTime(1.2, now);
+
+            // 3. Envolvente de Ganancia (Cuchilla/Rasgado)
+            const gain = ctx.createGain();
+            noiseSource.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+
+            // Perfil de volumen: Ataque seco -> caída rápida -> pulso de rasgado final
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.12, now + 0.005); // Snap inicial
+            gain.gain.linearRampToValueAtTime(0.04, now + 0.08);  // Caída intermedia
+            gain.gain.exponentialRampToValueAtTime(0.08, now + 0.15); // Re-impulso "rasgado"
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // Final
+
+            noiseSource.start(now);
+            noiseSource.stop(now + 0.35);
+
+            // 4. Componente Tonal de Soporte (Brillo metálico sutil)
+            const resonance = ctx.createOscillator();
+            const resGain = ctx.createGain();
+            resonance.type = 'sine';
+            resonance.frequency.setValueAtTime(4400, now);
+            resonance.connect(resGain);
+            resGain.connect(ctx.destination);
+            
+            resGain.gain.setValueAtTime(0, now);
+            resGain.gain.linearRampToValueAtTime(0.015, now + 0.02);
+            resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            
+            resonance.start(now);
+            resonance.stop(now + 0.12);
+
         } catch {}
     }
 
@@ -160,7 +186,7 @@ export class SecurityService {
 
     // --- Mailbox ---
     async getMailboxMessages(userLogin: string): Promise<MailboxMessage[]> {
-        return invoke('get_mailbox_messages', { userLogin });
+        return invoke('get_mailbox_messages', { userLogin: userLogin.toLowerCase() });
     }
 
     async syncMailbox(): Promise<string[]> {
@@ -174,7 +200,7 @@ export class SecurityService {
             author: message.author,
             responsible: message.responsible,
             direction: message.direction || 'outbox',
-            userLogin: message.user_login
+            userLogin: message.user_login || 'persona'
         });
     }
 
@@ -222,7 +248,7 @@ export class SecurityService {
 
     // --- Authorization Tickets ---
     async getAuthorizationTickets(userLogin: string): Promise<AuthorizationTicket[]> {
-        return invoke('get_authorization_tickets', { userLogin });
+        return invoke('get_authorization_tickets', { userLogin: userLogin.toLowerCase() });
     }
 
     async deleteAuthorizationTicket(authId: string) {
@@ -490,7 +516,8 @@ export class SecurityService {
             if (jwt) {
                 const payload = this.safeDecodeJWT(jwt);
                 if (payload) {
-                    return payload.Usuario?.usuario || payload.usuario || payload.Login || 'default';
+                    const login = payload.Usuario?.usuario || payload.usuario || payload.Login || 'default';
+                    return login.toLowerCase();
                 }
             }
         } catch (e) {

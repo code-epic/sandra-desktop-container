@@ -32,14 +32,18 @@ pub async fn mailbox_download_attachment(
     let _task_id = format!("dl_att_{}", remote_code);
     let hash_id = format!(
         "SDC-AUTO-{}",
-        if hash.len() >= 8 { &hash[0..8] } else { &hash }
+        if _message_guid.len() >= 8 {
+            &_message_guid[0..8]
+        } else {
+            &_message_guid
+        }
     );
 
     let url = format!(
         "https://{}:{}/v1/api/dw/{}/{}",
         ip, port, hash_id, remote_code
     );
-
+    println!("Downloading attachment from: {}", url);
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
@@ -134,7 +138,15 @@ pub async fn mailbox_download_attachment(
     if !vault_path.exists() {
         fs::create_dir_all(&vault_path).map_err(|e| e.to_string())?;
     }
-    vault_path.push(&remote_code);
+    
+    // Extraer extensión del file_name
+    let extension = std::path::Path::new(&file_name).extension().and_then(|e| e.to_str()).unwrap_or("");
+    let final_name = if !extension.is_empty() && !remote_code.ends_with(extension) {
+        format!("{}.{}", remote_code, extension)
+    } else {
+        remote_code.clone()
+    };
+    vault_path.push(&final_name);
 
     fs::write(&vault_path, &buffer).map_err(|e| format!("File write error: {}", e))?;
 

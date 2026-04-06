@@ -5,6 +5,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { appDataDir, join } from '@tauri-apps/api/path';
 import {
   SecurityService,
   MailboxMessage,
@@ -436,6 +437,11 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // Detectar cambios en el perfil del autor para sincronizar el buzón
+    if (changes['authorProfile'] && this.authorProfile?.usuario) {
+      this.syncMailbox();
+    }
+
     // When the active connection changes, reload contacts scoped to the new connection
     if (changes['activeConnection'] && !changes['activeConnection'].firstChange) {
       this.contacts = [];
@@ -448,6 +454,7 @@ export class SecurityComponent implements OnInit, OnChanges {
       if (this.activeTab === 'contacts' && this.activeConnection?.hash) {
         this.syncContacts();
       }
+      this.syncMailbox(); // También sincronizar buzón al cambiar conexión
     }
   }
 
@@ -1481,28 +1488,36 @@ export class SecurityComponent implements OnInit, OnChanges {
       return;
     }
 
-    const guid = this.getMessageGuid(msg.content);
+    const parsedContent = this.parseJsonContent(msg.content);
+    const guid = parsedContent?.manifest?.hash || this.getMessageGuid(msg.content);
     if (!guid) {
-      console.error("No GUID found for message, cannot download");
+      console.error("No GUID or Hash found for message, cannot download");
       return;
     }
 
     try {
+      console.log("Downloading attachment:", att);
+      console.log("Message GUID:", guid);
+      console.log("Remote Code:", att.remote_code);
+
       this.downloadingStatus.set(att.remote_code, 0);
       const localPath = await invoke('mailbox_download_attachment', {
         ip: this.activeConnection.ip_address,
-        port: this.activeConnection.port,
+        port: Number(this.activeConnection.port),
         hash: this.activeConnection.hash,
         tempAuthToken: this.activeConnection.jwt,
         messageGuid: guid,
         remoteCode: att.remote_code,
         fileName: att.name,
-        userLogin: this.securityService.getCurrentUserLogin()
+        userLogin: this.securityService.getCurrentUserLogin() || 'persona'
       }) as string;
 
       console.log("Download complete:", localPath);
 
-      // Auto-open after download
+      // Refresh history to ensure the local index knows about the new file
+      await this.loadHistory();
+
+      // Auto-open after download with the correct path
       const updatedAtt = { ...att, path: localPath, source: 'VAULT' };
       this.openAttachment(updatedAtt);
 
@@ -1514,7 +1529,51 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   async openAttachment(att: any) {
     const ext = (att.extension || att.type || '').toUpperCase();
-    const path = att.transfer_info?.path || att.path;
+    let path = att.transfer_info?.path || att.path || att.file_path;
+
+    // Si sabemos que está descargado (en el buzón), buscar SIEMPRE en el historial local por remote_code
+    // para evitar punteros a UUIDs temporales o incorrectos
+    if (att.remote_code) {
+      const historyItem = this.history.find(h => h.remote_code === att.remote_code);
+      if (historyItem && historyItem.file_path) {
+        const historyPath = historyItem.file_path;
+        if (path !== historyPath) {
+          console.log(`Puntero de archivo corregido por historial (${att.remote_code}): ${path} -> ${historyPath}`);
+          path = historyPath;
+        }
+      }
+    }
+
+    // NORMALIZACIÓN DE RUTA: Si la ruta contiene sandra_vault, asegurar que coincida con el usuario actual
+    if (path && path.includes('sandra_vault')) {
+      try {
+        const parts = path.split(/[/\\]/);
+        const vaultIdx = parts.indexOf('sandra_vault');
+        if (vaultIdx !== -1 && vaultIdx + 1 < parts.length) {
+          let fileName = parts[vaultIdx + 1];
+          
+          // Si tenemos remote_code, el archivo REAL en el vault debe ser remote_code (+ extensión si aplica)
+          if (att.remote_code) {
+             const vaultExt = fileName.split('.').pop() || '';
+             const rcBase = att.remote_code.split('.')[0];
+             fileName = vaultExt ? `${rcBase}.${vaultExt}` : rcBase;
+          }
+
+          const currentDataDir = await appDataDir();
+          
+          // Intentar normalizar la ruta base
+          const normalizedPath = await join(currentDataDir, 'sandra_vault', fileName);
+          
+          // Verificación extra: si el archivo físico tiene extensión pero la ruta no, o viceversa, corregir
+          if (path !== normalizedPath) {
+            console.log(`Normalizando ruta de bóveda: ${path} -> ${normalizedPath}`);
+            path = normalizedPath;
+          }
+        }
+      } catch (pathErr) {
+        console.warn("Error normalizando ruta de bóveda:", pathErr);
+      }
+    }
 
     const isImage = ['PNG', 'JPG', 'JPEG', 'GIF'].includes(ext);
     const isPDF = ext === 'PDF';
@@ -1528,17 +1587,62 @@ export class SecurityComponent implements OnInit, OnChanges {
     else if (ext === 'TXT') mimeType = 'text/plain';
 
     let content: any = null;
+    let csvHeaders: string[] = [];
+    let csvRows: string[][] = [];
+    let txtContent: string | undefined = undefined;
+    let txtLines: string[] | undefined = undefined;
+    let txtTotalLines: number | undefined = undefined;
+    let txtIsTruncated = false;
 
     // Use Blob strategy for any file that is local/vault to avoid protocol issues (like unsupported URL error)
     const isLocalOrVault = att.source === 'LOCAL' || att.source === 'VAULT' ||
       (att.transfer_info && (att.transfer_info.source === 'LOCAL' || att.transfer_info.source === 'VAULT')) ||
-      (path && path.includes('sandra_vault'));
+      (path && (path.includes('sandra_vault') || path.includes('AppData'))) ||
+      this.isAttachmentDownloaded(att);
 
     if (att.status === 'PENDING' || att.status === 'UPLOADING' || isLocalOrVault) {
       try {
-        const bytes = await readFile(path);
-        const blob = new Blob([bytes], { type: mimeType });
+        let blob: Blob;
+        try {
+          // Intentar usar comando Rust para saltar restricciones de scope de JS (forbidden path)
+          const base64 = await invoke<string>('load_sse_document', { filePath: path });
+          const binaryString = atob(base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+          blob = new Blob([bytes], { type: mimeType });
+          console.log("Archivo leído exitosamente vía Rust Command.");
+        } catch (err) {
+          console.warn("Fallo load_sse_document, reintentando con readFile estándar:", err);
+          const bytes = await readFile(path);
+          blob = new Blob([bytes], { type: mimeType });
+        }
         content = this.sanitizer.bypassSecurityTrustResourceUrl(URL.createObjectURL(blob));
+
+        // Procesamiento extra para CSV y TXT (Para integrarse con csv-viewer y file-viewer premium)
+        if (ext === 'CSV') {
+          try {
+            const { header, rows } = await this.fileService.parseCSV(blob);
+            csvHeaders = header;
+            csvRows = rows;
+          } catch (csvErr) { console.error("Error parsing CSV:", csvErr); }
+        } else if (ext === 'TXT') {
+          try {
+            const fullText = await blob.text();
+            txtLines = fullText.split(/\r?\n/);
+            txtTotalLines = txtLines.length;
+            if (txtTotalLines > 1000) {
+              txtIsTruncated = true;
+              txtContent = txtLines.slice(0, 1000).join("\n");
+            } else {
+              txtContent = fullText;
+            }
+          } catch (txtErr) { console.error("Error reading TXT:", txtErr); }
+        } else if (ext === 'CSV') {
+          // También preparar txtContent como fallback para CSV
+          try {
+            txtContent = await blob.text();
+          } catch (csvTxtErr) { console.error("Error reading CSV as text:", csvTxtErr); }
+        }
       } catch (e) {
         console.error("Error reading file for preview via Blob strategy", e);
         // Fallback to convertFileSrc
@@ -1553,50 +1657,75 @@ export class SecurityComponent implements OnInit, OnChanges {
       this.verifyAttachmentCertification(path);
     }
 
-    if (isSSE) {
+    if (isSSE || isPDF) {
       this.appState.addTab({
-        id: `secure-doc-${att.name}`,
+        id: `doc-${att.id}-${att.name}`,
         name: att.name,
-        icon: 'assets/icons/lock.svg',
+        icon: isSSE ? 'fas fa-shield-halved' : 'fas fa-file-pdf',
         type: 'pdf-viewer',
-        isProtected: true,
+        isProtected: isSSE,
         content: content,
         mimeType: mimeType,
-        filePath: path
+        filePath: path,
+        showToolbar: true
       });
-    } else if (isPDF) {
+    } else if (ext === 'CSV') {
+      if (csvHeaders.length > 0) {
+        this.appState.addTab({
+          id: `csv-${att.id}-${att.name}`,
+          name: att.name,
+          icon: 'fas fa-table-list',
+          type: 'csv-viewer',
+          content: content,
+          mimeType: 'text/csv',
+          isProtected: false,
+          filePath: path,
+          csvHeader: csvHeaders,
+          csvRows: csvRows,
+          showToolbar: true
+        });
+      } else {
+        // Fallback a visor de texto si el parsing de CSV falló
+        this.appState.addTab({
+          id: `file-${att.id}-${att.name}`,
+          name: att.name,
+          icon: 'fas fa-file-csv',
+          type: 'file-viewer',
+          content: content,
+          mimeType: 'text/plain',
+          isProtected: false,
+          filePath: path,
+          txtContent: "No se pudieron detectar encabezados válidos en el CSV. Mostrando como texto.\n\n" + (txtContent || '')
+        });
+      }
+    } else if (ext === 'TXT' || isImage) {
       this.appState.addTab({
-        id: `doc-${att.name}`,
+        id: `file-${att.id}-${att.name}`,
         name: att.name,
-        icon: 'assets/icons/pdf.svg',
-        type: 'pdf-viewer',
-        content: content,
-        mimeType: mimeType,
-        isProtected: false,
-        filePath: path
-      });
-    } else if (isImage) {
-      this.appState.addTab({
-        id: `img-${att.name}`,
-        name: att.name,
-        icon: 'assets/icons/file.svg',
+        icon: isImage ? 'fas fa-image' : 'fas fa-file-alt',
         type: 'file-viewer',
         content: content,
         mimeType: mimeType,
         isProtected: false,
-        filePath: path
+        filePath: path,
+        txtContent,
+        txtLines,
+        txtTotalLines,
+        txtIsTruncated,
+        showToolbar: true
       });
     } else {
       // General Fallback
       this.appState.addTab({
-        id: `file-${att.name}`,
+        id: `file-${att.id}-${att.name}`,
         name: att.name,
-        icon: 'assets/icons/file.svg',
+        icon: 'fas fa-file',
         type: 'file-viewer',
         content: content,
         mimeType: mimeType,
         isProtected: false,
-        filePath: path
+        filePath: path,
+        showToolbar: true
       });
     }
   }
