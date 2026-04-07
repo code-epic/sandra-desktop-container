@@ -10,7 +10,28 @@
 
 SDC no es simplemente un lanzador de aplicaciones; es un **Orquestador de Entornos Seguros**. Su propósito es abstraer la complejidad del sistema operativo subyacente (macOS, Linux, Windows) para ofrecer una interfaz unificada, segura y controlada donde las aplicaciones empresariales críticas pueden ejecutarse sin interferencias externas.
 
-El futuro de SDC apunta hacia la **Computación Descentralizada y Privada**, donde el contenedor gestiona no solo la ejecución de la UI, sino también la identidad soberana del usuario, las llaves criptográficas y la persistencia de datos local-first, eliminando la dependencia absoluta de la nube para operaciones sensibles.
+El futuro de SDC apunta hacia la **Computación Descentralizada y Privada**, donde el contenedor gestiona no solo la ejecución de la UI, sino también la identidad soberana del usuario, las llaves criptográficas y la persistencia de datos local-first, eliminando la dependencia absoluta de la nube para operaciones sensibles. En sus versiones más recientes, SDC ha integrado capacidades de **Compresión Avanzada (Zstandard)** y **Orquestación de Rutas Dinámicas** para una agilidad operativa sin precedentes.
+
+---
+
+## Innovaciones Recientes
+
+### 1. Orquestación de Despliegue Flexible (`Base Path` Support)
+SDC ha evolucionado su motor de resolución de archivos para soportar aplicaciones con estructuras de directorios complejas. 
+- **Enrutamiento Inteligente**: El proxy interno (`sandra-app://`) ahora es capaz de resolver activos y rutas SPA (Single Page Applications) incluso cuando la aplicación está desplegada en subdirectorios profundos (ej. `dist/`, `build/`).
+- **Configuración de Contexto**: Cada aplicación puede definir un `base_path` personalizado, permitiendo que clones de repositorios de GitHub y compilaciones personalizadas funcionen instantáneamente sin modificar el código fuente original.
+- **Normalización Automática**: El motor de persistencia normaliza las rutas para evitar conflictos de "slash" duplicados, garantizando la integridad de la carga de recursos (JS, CSS, Imágenes).
+
+### 2. Compresión de Documentos de Alto Rendimiento (Zstandard)
+Para el manejo de documentos pesados y transferencias de buzón a gran escala, SDC integra el algoritmo **Zstandard (Zstd)** desarrollado por Facebook:
+- **Rendimiento Industrial**: Ofrece ratios de compresión superiores a Gzip con una velocidad de descompresión en tiempo real, permitiendo que documentos de cientos de megabytes se carguen instantáneamente en el visor seguro.
+- **Optimización de Almacenamiento**: Reduce la huella en disco de la base de datos segura y los paquetes `.sdc`, optimizando el uso de recursos en terminales con almacenamiento limitado.
+
+### 3. Experiencia de Usuario Unificada (Dashboard & Apps Sync)
+La interfaz ha sido refinada para ofrecer una transición fluida entre la supervisión y la ejecución:
+- **Grilla de 4 Columnas**: Un layout simétrico y equilibrado que maximiza el uso del área visible, eliminando desplazamientos innecesarios.
+- **Estética "Elite Glass"**: Aplicación de técnicas de diseño premium (difuminado de fondo de 10px, degradados radiales neumáticos) que unifican el estilo de las tarjetas de aplicaciones con los indicadores de telemetría del Dashboard.
+- **Feedback Sensorial**: Micro-animaciones refinadas (elevación de tarjetas, overlays inteligentes) que proporcionan una respuesta táctil visual a cada interacción del operador.
 
 ---
 
@@ -171,6 +192,13 @@ El módulo **Monitor** utiliza `sysinfo` para extraer métricas de bajo nivel (C
 ### Sistema de Actualizaciones Atómicas y Virtualización de Puente
 
 SDC puede descargar, instalar y actualizar micro-aplicaciones (`sandra-app://`) desde repositorios remotos seguros. Además, cuenta con un **Motor de Parcheo en Caliente** que inyecta capas de seguridad en aplicaciones legacy al vuelo (corrección de WebSockets, normalización de protocolos y bypass seguro de CORS).
+
+### Proxy de Resolución Dinámica (SDC Intelligent Proxy)
+
+El núcleo de Rust implementa un proxy inverso local de ultra-baja latencia que intercepta todas las peticiones al protocolo `sandra-app`. Este componente es el responsable de:
+- **Resolución de Activos**: Mapeo transparente de peticiones web a archivos físicos en el sistema, manejando automáticamente tipos MIME y cabeceras de caché.
+- **Soporte SPA (Single Page App)**: Redirección automática de rutas desconocidas al `index.html` de la aplicación correspondiente, permitiendo el uso de enrutamiento basado en navegador sin necesidad de configuración adicional.
+- **Aislamiento de Origen**: Cada aplicación reside en su propio sandbox de origen, impidiendo el acceso cruzado a datos (Side-channel attacks protection).
 
 ### Beneficios del Ecosistema SDC
 

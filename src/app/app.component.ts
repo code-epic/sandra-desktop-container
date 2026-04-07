@@ -358,7 +358,8 @@ export class AppComponent implements OnInit {
 
           const decryptedData = await invoke<string>("process_hsf_authorization", {
             authId: rawAuthId, // Enviar el original a Rust por si acaso la DB es case-sensitive
-            key
+            key,
+            userLogin: this.securityService.getCurrentUserLogin()
           });
 
           this.pendingTicketsCount = Math.max(0, this.pendingTicketsCount - 1);
