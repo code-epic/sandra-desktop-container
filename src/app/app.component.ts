@@ -102,6 +102,8 @@ export class AppComponent implements OnInit {
   ];
 
   wsStatus: ConnectionStatus = "Desconectado";
+  machineNameMain: string = "Sandra";
+  machineNameSuffix: string = "DC";
   attemptNumber: number = 0;
   pendingTicketsCount: number = 0;
   private csvSearchSubject = new Subject<Tab>();
@@ -731,9 +733,21 @@ export class AppComponent implements OnInit {
         }, 2000);
       } else {
         // Configurado -> Intentar conexión
+        if (setupStatus.machine_name) {
+          const name = setupStatus.machine_name;
+          const parts = name.split(/[-_]/);
+          if (parts.length > 1) {
+            this.machineNameMain = parts[0];
+            this.machineNameSuffix = parts.slice(1).join("-");
+          } else {
+            this.machineNameMain = name;
+            this.machineNameSuffix = "";
+          }
+        }
         await invoke("emit_splash_status", {
           message: `Bienvenido, ${setupStatus.machine_name}`,
         });
+      }
 
         // Cargar conexiones existentes
         await this.loadConnections();
@@ -792,7 +806,6 @@ export class AppComponent implements OnInit {
         setTimeout(async () => {
           await invoke("close_splash");
         }, 2000);
-      }
     } catch (e) {
       console.error("Error during initApplication:", e);
       // Fallback: cerrar splash para no bloquear al usuario
