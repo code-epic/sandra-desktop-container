@@ -1614,11 +1614,10 @@ input:checked+.slider:before {
 
 /* Attachments Section Minimal Footer (V24) */
 .attachments-footer-minimal-v24 {
-  padding: 0 0 1.5rem 0;
-  background: linear-gradient(to bottom, #ffffff 0%, #f4f8ff 100%);
+  padding: 0.25rem 0;
+  background: transparent; /* Removido gradient para estilo foro unificado */
   width: 100%;
   border-top: none;
-  /* Solid line removed as requested */
 }
 
 /* Elegant Dashed Divider with Centered Text */
@@ -1626,14 +1625,12 @@ input:checked+.slider:before {
   display: flex;
   align-items: center;
   text-align: center;
-  color: #64748b;
+  color: #94A3B8; /* Más sutil */
   font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
-  font-weight: 700;
-  padding-top: 0;
-  /* Reset padding to align perfectly with border-top */
-  margin: 1.2rem 0;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin: 0.5rem 0; /* Padding hiper-reducido */
 }
 
 .attachment-divider-v24::before,
@@ -1658,10 +1655,10 @@ input:checked+.slider:before {
 .attachment-viewer-list-v24 {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-start;
-  padding: 0 2rem;
-  /* Pills kept away from edges */
+  padding: 0;
+  /* Alineado limpio en foro */
 }
 
 .att-pill-modern.interactive {
@@ -6105,3 +6102,292 @@ span.req {
   transform: scale(1.2);
   color: #00b0ff;
 }
+
+/* ========================================= */
+/* FORUM TIMELINE VIEW (GLASSMORPHISM & PASTELS) */
+/* ========================================= */
+
+.workflow-thread-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: rgba(250, 250, 250, 0.5); /* Muy sutil */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.01);
+  border: 1px solid #F1F5F9;
+  transition: all 0.3s ease;
+}
+
+.workflow-thread-view.border-action-pending {
+  border-left: 3px solid rgba(16, 185, 129, 0.4); /* Verde pastel suave */
+}
+
+/* Glassmorphism Banners */
+.workflow-badge-banner {
+  padding: 10px 18px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.workflow-badge-banner .fw-bold {
+  font-weight: 800;
+}
+
+/* Soft Status Colors */
+.status-banner-pendiente, .status-banner-abierto {
+  background: rgba(220, 252, 231, 0.6); /* Verde clarito con alpha */
+  color: #166534;
+  border-bottom-color: rgba(187, 247, 208, 0.8);
+}
+
+.status-banner-completado, .status-banner-aprobado {
+  background: rgba(239, 246, 255, 0.6); /* Azul clarito */
+  color: #1e3a8a;
+  border-bottom-color: rgba(191, 219, 254, 0.8);
+}
+
+.status-banner-rechazado, .status-banner-cerrado {
+  background: rgba(254, 242, 242, 0.6); /* Rojo clarito */
+  color: #991b1b;
+  border-bottom-color: rgba(254, 202, 202, 0.8);
+}
+
+/* Workflow Hub (Control Panel) */
+.workflow-control-hub {
+  padding: 18px 24px;
+  background: rgba(255, 255, 255, 0.85); /* Semitransparente */
+  border-bottom: 1px solid #EEF2F6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+
+.w-hub-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.w-hub-info h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-family: 'Nunito', sans-serif;
+  color: #1E293B;
+  font-weight: 700;
+}
+
+.w-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #64748B;
+  background: rgba(241, 245, 249, 0.8);
+  padding: 3px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  align-self: flex-start;
+  border: 1px solid #E2E8F0;
+}
+
+.w-hub-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Espaciado uniforme para círculos */
+}
+
+/* Redefined action buttons inside the hub: Circular & Icon Only */
+.w-hub-actions .btn-action-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.w-hub-actions .btn-action-circle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.w-hub-actions .btn-action-circle.btn-back {
+  color: #64748B;
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+}
+.w-hub-actions .btn-action-circle.btn-back:hover { background: #E2E8F0; }
+
+.w-hub-actions .btn-action-circle.primary {
+  background: rgba(239, 246, 255, 0.9);
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+.w-hub-actions .btn-action-circle.primary:hover { background: #bfdbfe; }
+
+.w-hub-actions .btn-action-circle.success {
+  background: rgba(220, 252, 231, 0.9);
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+.w-hub-actions .btn-action-circle.success:hover { background: #bbf7d0; }
+
+.w-hub-actions .btn-action-circle.danger {
+  background: rgba(254, 242, 242, 0.9);
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.w-hub-actions .btn-action-circle.danger:hover { background: #fecaca; }
+
+.w-hub-actions .btn-action-circle.warning {
+  background: rgba(255, 251, 235, 0.9);
+  color: #d97706;
+  border-color: #fde68a;
+}
+.w-hub-actions .btn-action-circle.warning:hover { background: #fde68a; }
+
+.mx-2 {
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+/* Forum Timeline Container */
+.forum-timeline-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px; /* Margen suavizado y reducido */
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Menos espacio entre nodos */
+  background: transparent;
+}
+
+/* Forum Card (Linear layout) */
+.forum-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #EEF2F6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+  overflow: hidden; /* For attachments sticking out */
+}
+
+/* Border highlights based on answer type */
+.forum-card.node-base {
+  border-top: 3px solid #3b82f6; /* Azul suave base */
+}
+
+.forum-card.aprobacion {
+  border-left: 3px solid #34d399; /* Emerald 400 */
+}
+
+.forum-card.rechazo {
+  border-left: 3px solid #fb7185; /* Rose 400 */
+}
+
+/* Card Header */
+.forum-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(248, 250, 252, 0.6); /* Very soft gray-blue */
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.f-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px; /* Soft square, more forum-like */
+  background: #E2E8F0;
+  color: #64748B;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.f-avatar i.fa-flag {
+  color: #3b82f6;
+}
+
+.f-avatar.avatar-sent {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.f-avatar.avatar-received {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.f-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.f-author {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: capitalize;
+}
+
+.f-author.text-sent {
+  color: #059669; /* Green author name if sent */
+}
+
+.f-time {
+  font-size: 0.7rem;
+  color: #94A3B8;
+}
+
+/* Card Body */
+.forum-card-body {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  color: #1E293B;
+  line-height: 1.5;
+}
+
+.f-content {
+  word-wrap: break-word;
+}
+
+/* Remove margin for paragraph tags inside HTML content to avoid huge gaps */
+.f-content p {
+  margin-block-start: 0.5em;
+  margin-block-end: 0.5em;
+}
+
+/* Fix global spacing */
+.mt-3 {
+  margin-top: 0.5rem;
+}
+
+.standard-mail-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+

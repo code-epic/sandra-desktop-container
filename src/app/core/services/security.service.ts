@@ -24,6 +24,28 @@ export interface MailboxMessage {
     }>;
 }
 
+export interface IWorkflowStatus {
+    id_referencia_doc: string;
+    tipo: 'Soporte' | 'Seguimiento' | 'Autorización';
+    estado: 'ABIERTO' | 'PENDIENTE' | 'APROBADO' | 'RECHAZADO' | 'CERRADO' | 'COMPLETADO';
+    requiere_accion: boolean;
+}
+
+export interface IHiloRespuesta {
+    id_mensaje: string;
+    remitente: string;
+    cuerpo: string;
+    timestamp: Date | string;
+    tipo_respuesta: 'comentario' | 'aprobacion' | 'rechazo';
+}
+
+export interface ICorreoWorkflow {
+    workflow?: IWorkflowStatus;
+    hilos?: IHiloRespuesta[];
+    es_cadena?: boolean;
+}
+
+
 export interface SecurityConfig {
     id: number;
     password_format_regex: string;
@@ -92,88 +114,121 @@ export class SecurityService {
         });
     }
 
+    private getAudioContext(): AudioContext | null {
+        const w = window as any;
+        if (!w._sharedAudioCtx) {
+            const AudioContext = window.AudioContext || w.webkitAudioContext;
+            if (AudioContext) w._sharedAudioCtx = new AudioContext();
+        }
+        const ctx = w._sharedAudioCtx as AudioContext | undefined;
+        if (!ctx) return null;
+        // Resume synchronously - browsers allow this during user gesture
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+        return ctx;
+    }
+
     playDeleteSound() {
-        try {
-            const ctx = this.getAudioContext();
-            if (!ctx) return;
-            const now = ctx.currentTime;
+        const ctx = this.getAudioContext();
+        if (!ctx) return;
+        
+        // Ensure context is running (synchronous resume during user gesture)
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+        
+        const now = ctx.currentTime;
 
-            // 1. Generación de Ruido Blanco para la textura de "rasgado"
-            const bufferSize = ctx.sampleRate * 0.35;
-            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
-            }
+        // Tono principal descendente suave (swoosh elegante)
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.18);
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
+        oscGain.gain.setValueAtTime(0, now);
+        oscGain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
 
-            const noiseSource = ctx.createBufferSource();
-            noiseSource.buffer = buffer;
+        // Armónico superior para brillo sutil
+        const osc2 = ctx.createOscillator();
+        const osc2Gain = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1200, now);
+        osc2.frequency.exponentialRampToValueAtTime(400, now + 0.15);
+        osc2.connect(osc2Gain);
+        osc2Gain.connect(ctx.destination);
+        osc2Gain.gain.setValueAtTime(0, now);
+        osc2Gain.gain.linearRampToValueAtTime(0.03, now + 0.015);
+        osc2Gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc2.start(now);
+        osc2.stop(now + 0.15);
 
-            // 2. Filtro de Paso Alto (High-pass) para el brillo "Modern Trash"
-            const filter = ctx.createBiquadFilter();
-            filter.type = 'highpass';
-            filter.frequency.setValueAtTime(3200, now);
-            filter.Q.setValueAtTime(1.2, now);
+        // Ruido suave filtrado para textura de aire
+        const bufferSize = ctx.sampleRate * 0.15;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(2000, now);
+        noiseFilter.Q.value = 0.7;
+        const noiseGain = ctx.createGain();
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noiseGain.gain.setValueAtTime(0, now);
+        noiseGain.gain.linearRampToValueAtTime(0.02, now + 0.01);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        noise.start(now);
+        noise.stop(now + 0.15);
 
-            // 3. Envolvente de Ganancia (Cuchilla/Rasgado)
-            const gain = ctx.createGain();
-            noiseSource.connect(filter);
-            filter.connect(gain);
-            gain.connect(ctx.destination);
-
-            // Perfil de volumen: Ataque seco -> caída rápida -> pulso de rasgado final
-            gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.12, now + 0.005); // Snap inicial
-            gain.gain.linearRampToValueAtTime(0.04, now + 0.08);  // Caída intermedia
-            gain.gain.exponentialRampToValueAtTime(0.08, now + 0.15); // Re-impulso "rasgado"
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // Final
-
-            noiseSource.start(now);
-            noiseSource.stop(now + 0.35);
-
-            // 4. Componente Tonal de Soporte (Brillo metálico sutil)
-            const resonance = ctx.createOscillator();
-            const resGain = ctx.createGain();
-            resonance.type = 'sine';
-            resonance.frequency.setValueAtTime(4400, now);
-            resonance.connect(resGain);
-            resGain.connect(ctx.destination);
-            
-            resGain.gain.setValueAtTime(0, now);
-            resGain.gain.linearRampToValueAtTime(0.015, now + 0.02);
-            resGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-            
-            resonance.start(now);
-            resonance.stop(now + 0.12);
-
-        } catch {}
+        // Click final sutil de confirmación
+        const click = ctx.createOscillator();
+        const clickGain = ctx.createGain();
+        click.type = 'sine';
+        click.frequency.setValueAtTime(600, now + 0.12);
+        click.connect(clickGain);
+        clickGain.connect(ctx.destination);
+        clickGain.gain.setValueAtTime(0, now + 0.12);
+        clickGain.gain.linearRampToValueAtTime(0.04, now + 0.125);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        click.start(now + 0.12);
+        click.stop(now + 0.18);
     }
 
     private playDoubleNotificationSound() {
-        try {
-            const ctx = this.getAudioContext();
-            if (!ctx) return;
-            
-            const playTone = (freq: number, startTime: number, vol: number, dur: number) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.frequency.setValueAtTime(freq, startTime);
-                gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
-                osc.start(startTime);
-                osc.stop(startTime + dur);
-            };
+        const ctx = this.getAudioContext();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+        
+        const playTone = (freq: number, startTime: number, vol: number, dur: number) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+            osc.start(startTime);
+            osc.stop(startTime + dur);
+        };
 
-            const now = ctx.currentTime;
-            // Tono 1: La5 (880Hz)
-            playTone(880, now, 0.1, 0.3);
-            // Tono 2: Do6 (1046.5Hz) con delay de 150ms para el efecto "doble"
-            playTone(1046.5, now + 0.15, 0.12, 0.4);
-        } catch { }
+        const now = ctx.currentTime;
+        playTone(880, now, 0.1, 0.3);
+        playTone(1046.5, now + 0.15, 0.12, 0.4);
     }
 
     setSyncState(syncing: boolean, message: string = '', progress: number = 0, count: number = 0) {
@@ -344,17 +399,6 @@ export class SecurityService {
 
     // -- Private Helper Methods --
 
-    private getAudioContext(): any {
-        const w = window as any;
-        if (!w._sharedAudioCtx) {
-            const AudioContext = window.AudioContext || w.webkitAudioContext;
-            if (AudioContext) w._sharedAudioCtx = new AudioContext();
-        }
-        const ctx = w._sharedAudioCtx;
-        if (ctx && ctx.state === 'suspended') ctx.resume();
-        return ctx;
-    }
-
     private syncAmbientOscillator: any = null;
     private syncAmbientGain: any = null;
 
@@ -362,6 +406,10 @@ export class SecurityService {
         try {
             const ctx = this.getAudioContext();
             if (!ctx) return;
+            
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(() => {});
+            }
             
             if (this.syncAmbientOscillator) this.stopAmbientSyncSound();
             
@@ -396,9 +444,10 @@ export class SecurityService {
         try {
             if (!this.syncAmbientGain || !this.syncAmbientOscillator) return;
             const ctx = this.getAudioContext();
+            if (!ctx) return;
             
             // Elegante fade out
-            this.syncAmbientGain.gain.linearRampToValueAtTime(0, ctx?.currentTime + 0.8);
+            this.syncAmbientGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
             
             const [o1, o2] = this.syncAmbientOscillator;
             
@@ -414,6 +463,10 @@ export class SecurityService {
     private playSyncCompleteSound() {
         try {
             const ctx = this.getAudioContext();
+            if (!ctx) return;
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(() => {});
+            }
             if (!ctx) return;
             const playTone = (freq: number, startTime: number, vol: number) => {
                 const osc = ctx.createOscillator();

@@ -362,6 +362,18 @@
                                     <option value="CAMPAÑA">PLAN DE CAMPAÑA</option>
                                 </select>
                             </div>
+                            
+                            <!-- WORKFLOW SELECTOR -->
+                            <div class="combo-wrapper-v24 template-combo-v24 ml-2" *ngIf="!selectedMessage || (selectedMessage && !parsedContent?.workflow)">
+                                <i class="fas fa-project-diagram"></i>
+                                <select class="modern-select-v24" [(ngModel)]="nuevoWorkflowTipo" title="Definir tipo de Hilo Conversacional">
+                                    <option value="">Sin Seguimiento</option>
+                                    <option value="Soporte">Soporte Técnico</option>
+                                    <option value="Seguimiento">Seguimiento de Tarea</option>
+                                    <option value="Autorización">Flujo de Autorización</option>
+                                </select>
+                            </div>
+
                             <div class="toolbar-divider"></div>
                             <button class="tool-btn print-btn" (click)="printCurrentTemplate()" title="Imprimir / Exportar PDF">
                                 <i class="fas fa-print"></i>
@@ -455,7 +467,136 @@
 
                 <!-- Detail View (Wrapped in *ngIf) -->
                 <div *ngIf="selectedMessage" class="msg-detail-view fade-in">
-                    <!-- Subdued Governance Ribbon (Dropdown Header) -->
+                    
+                    <!-- WORKFLOW / THREAD VIEW -->
+                    <div *ngIf="parsedContent?.workflow" class="workflow-thread-view fade-in" [ngClass]="{'border-action-pending': parsedContent?.workflow?.estado === 'PENDIENTE'}">
+                        <!-- Workflow Header Banner -->
+                        <div class="workflow-badge-banner" [ngClass]="'status-banner-' + parsedContent?.workflow?.estado?.toLowerCase()">
+                            <i class="fas fa-sitemap"></i> <span class="fw-bold">Flujo:</span> {{ parsedContent?.workflow?.tipo }} - {{ parsedContent?.workflow?.estado }}
+                        </div>
+                        
+                        <!-- Control Panel / Actions for Workflow -->
+                        <div class="workflow-control-hub">
+                            <div class="w-hub-info">
+                                <h3>{{ getMessageSubject(selectedMessage.content) }}</h3>
+                                <span class="w-meta">Ref: {{ parsedContent?.workflow?.id_referencia_doc || getMessageGuid(selectedMessage.content) }}</span>
+                                <span class="w-meta ml-2" title="Tiempo de vida del Flujo" *ngIf="parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CERRADO'">
+                                    <i class="fas fa-clock"></i> {{ getWorkflowUptime(selectedMessage.created_at) }} activo
+                                </span>
+                            </div>
+                            <div class="w-hub-actions">
+                                <button class="btn-action-circle btn-back" (click)="backToMailbox()" title="Volver a la Bandeja">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                
+                                <div class="vertical-divider mx-2"></div>
+
+                                <!-- Botón Novedad (Responder) para todos si está abierto -->
+                                <button class="btn-action-circle primary" 
+                                        (click)="replyMessage(selectedMessage)" 
+                                        title="Añadir Novedad al Hilo" 
+                                        *ngIf="parsedContent?.workflow?.estado !== 'CERRADO' && parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CANCELADO'">
+                                    <i class="fas fa-reply"></i>
+                                </button>
+                                
+                                <!-- Botones de Autoridad (Solo si NO es el creador del hilo) -->
+                                <button class="btn-action-circle success" 
+                                        *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0].toLowerCase()"
+                                        (click)="updateWorkflowStatus('APROBADO', selectedMessage)"
+                                        title="Terminar y Autorizar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-action-circle danger" 
+                                        *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0].toLowerCase()"
+                                        (click)="updateWorkflowStatus('RECHAZADO', selectedMessage)"
+                                        title="Terminar y Denegar">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                
+                                <!-- Botón de Cancelar Flujo (Solo si SÍ es el creador del hilo) -->
+                                <button class="btn-action-circle warning" 
+                                        *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0].toLowerCase()"
+                                        (click)="updateWorkflowStatus('CANCELADO', selectedMessage)"
+                                        title="Cancelar Flujo">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Thread Body (FORUM STYLE) -->
+                        <div class="forum-timeline-container">
+                            <!-- Base Message (First node) -->
+                            <div class="forum-card node-base">
+                                <div class="forum-card-header">
+                                    <div class="f-avatar"><i class="fas fa-flag"></i></div>
+                                    <div class="f-meta">
+                                        <span class="f-author">{{ selectedMessage.author }}</span>
+                                        <span class="f-time">{{ selectedMessage.created_at | date:'medium' }}</span>
+                                    </div>
+                                </div>
+                                <div class="forum-card-body">
+                                    <div class="f-content" [innerHTML]="parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content || selectedMessage.content">
+                                    </div>
+
+                                    <!-- ATTACHMENTS FOR BASE NODE -->
+                                    <ng-container *ngIf="parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments">
+                                        <div class="attachments-footer-minimal-v24 fade-in mt-3"
+                                            *ngIf="(parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments).length > 0">
+                                            
+                                            <div class="attachment-divider-v24">
+                                                <span><i class="fas fa-paperclip"></i> Anexos Originales</span>
+                                            </div>
+
+                                            <div class="attachment-viewer-list-v24">
+                                                <div *ngFor="let att of (parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments)"
+                                                    class="att-pill-modern interactive fade-in"
+                                                    [ngClass]="{
+                                                        'source-local': isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0],
+                                                        'source-vault': !isAttachmentDownloaded(att) && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0],
+                                                        'is-downloading': downloadingStatus.has(att.remote_code)
+                                                    }"
+                                                    (click)="(isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? openAttachment(att) : downloadAttachment(att, selectedMessage)" 
+                                                    [title]="(isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? 'Ver Documento' : 'Descargar Documento'">
+                                                    
+                                                    <i [class]="getFileTypeConfig(att.name).icon"
+                                                        [ngClass]="getFileTypeConfig(att.name).colorClass"></i>
+                                                    
+                                                    <div class="att-info-block-v23">
+                                                        <span class="att-name">{{ (att.name || '').replace('.zst', '').replace('.ZST', '') }}</span>
+                                                        <span class="att-meta-detail-v23">
+                                                            {{ att.extension || att.type }} • {{ att.size || ((isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? 'Local' : 'Servidor') }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+                                </div>
+                            </div>
+
+                            <!-- Dynamic replies array (Forum Cards) -->
+                            <ng-container *ngIf="parsedContent?.hilos?.length > 0">
+                                <div *ngFor="let hilo of parsedContent.hilos" class="forum-card fade-in" [ngClass]="hilo.tipo_respuesta">
+                                    <div class="forum-card-header">
+                                        <div class="f-avatar" [ngClass]="hilo.remitente === authorProfile.usuario ? 'avatar-sent' : 'avatar-received'">
+                                            <span class="initials">{{ getContactInitials(hilo.remitente) }}</span>
+                                        </div>
+                                        <div class="f-meta">
+                                            <span class="f-author" [ngClass]="hilo.remitente === authorProfile.usuario ? 'text-sent' : ''">{{ hilo.remitente }}</span>
+                                            <span class="f-time">{{ hilo.timestamp | date:'medium' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="forum-card-body">
+                                        <div class="f-content" [innerHTML]="hilo.cuerpo"></div>
+                                    </div>
+                                </div>
+                            </ng-container>
+                        </div>
+                    </div>
+
+                    <!-- STANDARD EMAIL VIEW -->
+                    <div *ngIf="!parsedContent?.workflow" class="standard-mail-wrapper fade-in">
+                        <!-- Subdued Governance Ribbon (Dropdown Header) -->
                     <div class="governance-ribbon clickable" (click)="toggleTrace()" [class.expanded]="showTrace">
                         <div class="ribbon-summary">
                             <i class="fas fa-fingerprint"></i>
@@ -675,6 +816,7 @@
                             </div>
                         </div>
                     </ng-container>
+                    </div> <!-- EN STANDARD EMAILS -->
                 </div>
             </div>
 

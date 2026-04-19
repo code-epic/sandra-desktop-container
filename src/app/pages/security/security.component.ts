@@ -46,6 +46,28 @@ export class SecurityComponent implements OnInit, OnChanges {
   // Mailbox Data
   messages: MailboxMessage[] = [];
   selectedMessage: MailboxMessage | null = null;
+
+  // Helper para contador de vida del Workflow
+  getWorkflowUptime(createdAtStr: string): string {
+    if (!createdAtStr) return '';
+    try {
+      const createdDate = new Date(createdAtStr);
+      if (isNaN(createdDate.getTime())) return '';
+      const diffMs = new Date().getTime() - createdDate.getTime();
+      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHrs / 24);
+      
+      if (diffDays > 0) {
+        return `${diffDays}d ${diffHrs % 24}h`;
+      } else if (diffHrs > 0) {
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        return `${diffHrs}h ${diffMins}m`;
+      } else {
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        return `${diffMins} min`;
+      }
+    } catch { return ''; }
+  }
   highlightedMessage: MailboxMessage | null = null;
   parsedContent: any = null;
   mailboxDirection: 'inbox' | 'outbox' | 'notifications' = 'inbox';
@@ -733,6 +755,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.editorInitialContent = ''; // Clear initial content
     this.sendProgress = 0;
     this.isSending = false;
+    this.nuevoWorkflowTipo = ''; // Resetear estado de workflow
   }
 
   cancelCompose() {
@@ -970,8 +993,10 @@ export class SecurityComponent implements OnInit, OnChanges {
   cancelReauth() {
     this.showReauthModal = false;
     this.reauthPassword = '';
-    this.isSending = false;
   }
+
+  // Seguimiento y Workflow
+  nuevoWorkflowTipo: string = '';
 
   async performDeferredUpload(att: any, progressCallback: (p: number) => void): Promise<void> {
     att.status = 'UPLOADING';
@@ -1075,6 +1100,47 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     const dynamicMessageId = crypto.randomUUID();
 
+    // INTERCEPTO: Hilo de Workflow / Aprobación
+    if (this.selectedMessage && this.parsedContent?.workflow) {
+      const nuevoHilo = {
+        id_mensaje: dynamicMessageId,
+        remitente: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
+        cuerpo: this.editorContent,
+        timestamp: new Date().toISOString(),
+        tipo_respuesta: 'comentario' as const
+      };
+
+      if (!this.parsedContent.hilos) this.parsedContent.hilos = [];
+      this.parsedContent.hilos.push(nuevoHilo);
+
+      try {
+        // Enviar a MongoDB 
+        await this.upsertCorreoWorkflow(this.parsedContent);
+
+        // Guardar Localmente para Offline
+        const updatedContentString = JSON.stringify(this.parsedContent);
+        this.selectedMessage.content = updatedContentString;
+        
+        // Emulamos un update eliminando y recreando con el nuevo contenido
+        await this.securityService.deleteMailboxMessage(this.selectedMessage.id);
+        await this.securityService.createMailboxMessage({
+          ...this.selectedMessage,
+          content: updatedContentString
+        });
+
+        this.cancelCompose();
+        await this.loadMessages();
+        
+        // Seleccionamos de nuevo para refrescar UI
+        const reloaded = this.messages.find(m => m.sid === this.selectedMessage?.sid);
+        if(reloaded) this.selectMessage(reloaded);
+
+      } catch (e) {
+        console.error('Error al procesar hilo de workflow:', e);
+      }
+      return; // Fin de flujo workflow
+    }
+
     const securePackageV23 = {
       manifest: {
         version: '0.1.6-SEC',
@@ -1097,6 +1163,17 @@ export class SecurityComponent implements OnInit, OnChanges {
         attachments: processedAttachments
       }
     };
+
+    // Inyección condicional si el usuario inicializó un nuevo Hilo
+    if (this.nuevoWorkflowTipo && this.nuevoWorkflowTipo !== '') {
+      (securePackageV23 as any).workflow = {
+        id_referencia_doc: dynamicMessageId,
+        tipo: this.nuevoWorkflowTipo,
+        estado: 'PENDIENTE',
+        requiere_accion: true
+      };
+      (securePackageV23 as any).hilos = [];
+    }
 
     try {
       // 1. Send to Remote Sys-Mailbox Collection
@@ -1143,6 +1220,85 @@ export class SecurityComponent implements OnInit, OnChanges {
       await this.loadMessages();
     } catch (e) {
       console.error('Failed to save message locally', e);
+    }
+  }
+
+  // --- WORKFLOW / THREADING LOGIC --- //
+
+  async upsertCorreoWorkflow(correoActualizado: any) {
+    if (!this.activeConnection?.hash) throw new Error("No active connection hash");
+
+    const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+    const payload = {
+      "funcion": 'SDC_UUsers',
+      "valores": JSON.stringify({
+        "coleccion": "comunicaciones_internas",
+        "operacion": "UPSERT",
+        "filtro": {
+          "workflow.id_referencia_doc": correoActualizado.workflow.id_referencia_doc
+        },
+        "datos": {
+          "workflow.estado": correoActualizado.workflow.estado,
+          "workflow.requiere_accion": false,
+          "hilos": correoActualizado.hilos,
+          "ultima_modificacion": new Date().toISOString()
+        }
+      })
+    };
+
+    return invoke('api_post_request', {
+      ip: this.activeConnection.ip_address,
+      port: Number(this.activeConnection.port),
+      endpoint: endpoint,
+      payload: payload,
+      hash: this.activeConnection.hash,
+      tempAuthToken: this.activeConnection.jwt
+    });
+  }
+
+  async updateWorkflowStatus(decision: 'APROBADO' | 'RECHAZADO' | 'CERRADO' | 'COMPLETADO' | 'CANCELADO', msg: MailboxMessage) {
+    if (!this.parsedContent?.workflow) return;
+
+    this.appState.setViewerLoading(true);
+    try {
+      this.parsedContent.workflow.estado = decision;
+
+      const nuevoHilo = {
+        id_mensaje: crypto.randomUUID(),
+        remitente: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
+        cuerpo: `<p><strong>Decisión de Flujo:</strong> Autoridad ha dictaminado estado <strong>${decision}</strong>.</p>`,
+        timestamp: new Date().toISOString(),
+        tipo_respuesta: (decision === 'APROBADO' || decision === 'COMPLETADO') ? 'aprobacion' : 'rechazo' as const
+      };
+
+      if (!this.parsedContent.hilos) this.parsedContent.hilos = [];
+      this.parsedContent.hilos.push(nuevoHilo);
+
+      await this.upsertCorreoWorkflow(this.parsedContent);
+
+      const updatedContentString = JSON.stringify(this.parsedContent);
+      msg.content = updatedContentString;
+      msg.status = (decision === 'APROBADO' || decision === 'COMPLETADO') ? 'Approved' : 'Rejected';
+
+      // Update SQLite Table attributes
+      await this.securityService.updateMailboxStatus(msg.id, msg.status, msg.tracking_info);
+
+      // Re-create to persist full content body
+      await this.securityService.deleteMailboxMessage(msg.id);
+      await this.securityService.createMailboxMessage({
+        ...msg,
+        content: updatedContentString
+      });
+
+      await this.loadMessages();
+      
+      const reloaded = this.messages.find(m => m.sid === msg.sid);
+      if(reloaded) this.selectMessage(reloaded);
+
+    } catch (error) {
+      console.error("Error validando flujo de trabajo", error);
+    } finally {
+      this.appState.setViewerLoading(false);
     }
   }
 
@@ -1448,6 +1604,12 @@ export class SecurityComponent implements OnInit, OnChanges {
       const parsed = JSON.parse(msg.content);
       const atts = parsed?.message_envelope?.attachments || parsed?.payload?.attachments || [];
       if (!Array.isArray(atts)) return false;
+      
+      const authorId = parsed?.message_envelope?.author?.split('@')[0]?.toLowerCase();
+      if (authorId === this.authorProfile.usuario.toLowerCase()) {
+         return false; // El emisor local nunca tiene descargas pendientes de sus propios archivos
+      }
+
       return atts.some(att => !this.isAttachmentDownloaded(att));
     } catch { return false; }
   }
@@ -1538,8 +1700,10 @@ export class SecurityComponent implements OnInit, OnChanges {
         if (vaultIdx !== -1 && vaultIdx + 1 < parts.length) {
           let fileName = parts[vaultIdx + 1];
           
-          // Si tenemos remote_code, el archivo REAL en el vault debe ser remote_code (limpio) (+ extensión si aplica)
-          if (att.remote_code) {
+          // Si tenemos remote_code, NO SOBRESCRIBIR si somos el remitente que adjuntó el original
+          const isSender = this.selectedMessage && this.selectedMessage.author && this.authorProfile.usuario.toLowerCase() === this.selectedMessage.author.split('@')[0].toLowerCase();
+          
+          if (att.remote_code && !isSender) {
              const vaultExt = fileName.split('.').pop() || '';
              // Limpiar .zst del código remoto para coincidir con el guardado en Rust
              const cleanRC = att.remote_code.replace(/\.zst/gi, '');
