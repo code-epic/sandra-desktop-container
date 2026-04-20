@@ -21,7 +21,7 @@
         "visible": false,
         "minWidth": 1024,
         "minHeight": 768,
-        "additionalBrowserArgs": "--ignore-certificate-errors"
+        "additionalBrowserArgs": "--ignore-certificate-errors --disable-gpu --disable-software-rasterizer"
       },
       {
         "width": 750,
@@ -31,7 +31,8 @@
         "label": "splashscreen",
         "center": true,
         "transparent": true,
-        "alwaysOnTop": true
+        "alwaysOnTop": true,
+        "additionalBrowserArgs": "--ignore-certificate-errors --disable-gpu --disable-software-rasterizer"
       }
     ],
     "security": {
