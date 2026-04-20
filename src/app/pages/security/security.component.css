@@ -3266,6 +3266,10 @@ input:checked+.slider {
   font-size: 0.68rem;
   color: #94a3b8;
   margin-top: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Espacio entre el texto y el badge */
+  flex-wrap: nowrap;
 }
 
 .att-pill-modern i {
@@ -6367,6 +6371,19 @@ span.req {
   font-size: 0.95rem;
   color: #1E293B;
   line-height: 1.5;
+  max-height: 500px; /* Evita hilos infinitos */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.forum-card-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.forum-card-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
 
 .f-content {
@@ -6374,10 +6391,41 @@ span.req {
 }
 
 /* Remove margin for paragraph tags inside HTML content to avoid huge gaps */
-.f-content p {
-  margin-block-start: 0.5em;
-  margin-block-end: 0.5em;
+.w-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
 }
+
+.w-badge {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.w-ref-badge {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.w-uptime-badge {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
+
+.w-uptime-badge i {
+  font-size: 0.6rem;
+}
+
 
 /* Fix global spacing */
 .mt-3 {
@@ -6391,3 +6439,513 @@ span.req {
   min-height: 0;
 }
 
+/* Analysis Report System V23 (Formal/Corporate) */
+.analysis-report-v23 {
+  margin: 24px auto;
+  max-width: 850px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff !important;
+  border-radius: 6px;
+  color: #334155;
+  font-family: 'Inter', -apple-system, sans-serif;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  display: block !important;
+  line-height: normal;
+}
+
+.ar-header {
+  background: #f8fafc;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ar-header strong {
+  font-size: 13px;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ar-body {
+  padding: 20px;
+  background: #fafafa;
+}
+
+.ar-footer {
+  background: #f1f5f9;
+  padding: 6px 16px;
+  font-size: 9px;
+  color: #64748b;
+  border-top: 1px solid #e2e8f0;
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* --- AUDIT REPORT V7 (MINIMALIST TABLE) --- */
+.report-v7 {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.header-tag {
+  font-size: 9px;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.ar-stats-table-v7 {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.ar-stats-table-v7 td {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  font-size: 11px;
+}
+
+.ar-stats-table-v7 .lbl {
+  background: #f8fafc;
+  color: #64748b;
+  width: 30%;
+  font-weight: 500;
+}
+
+.ar-stats-table-v7 .val {
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 700;
+  text-align: right;
+}
+
+.ar-structure-v7 {
+  margin-top: 15px;
+}
+
+.struct-title {
+  font-size: 9px;
+  font-weight: 800;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.struct-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.struct-pill {
+  font-size: 10px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+}
+
+.struct-pill.more {
+  background: transparent;
+  border-style: dashed;
+  color: #94a3b8;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-verified {
+  color: #059669;
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+}
+
+.ar-row {
+  display: flex !important;
+  justify-content: space-between;
+  font-size: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 6px 0;
+}
+
+.ar-row .label { color: #64748b; }
+.ar-row .value { font-weight: 700; color: #1e293b; }
+
+.ar-struct-box {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #475569;
+  line-height: 1.6;
+  background: #f8fafc !important;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+}
+
+.ar-totals-box {
+  margin-top: 15px;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.ar-total-row {
+  display: flex !important;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(34, 197, 94, 0.2);
+}
+
+/* --- VAULT EXPLORER V6 PREMIUM ENHANCEMENTS --- */
+.explorer-header-v6 {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 24px;
+}
+
+.explorer-list-header-v6 {
+  display: grid !important;
+  grid-template-columns: 2fr 100px 100px 120px;
+  padding: 12px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.file-row-v6 {
+  display: grid !important;
+  grid-template-columns: 2fr 100px 100px 120px;
+  padding: 12px 24px;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.file-row-v6:hover {
+  background-color: #f0fdf4;
+}
+
+.file-row-v6.is-nomina {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(to right, #f0fdf4, transparent);
+}
+
+.col-name-info {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.name-row-v6 {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* --- VAULT EXPLORER V6 GROUPING STYLES --- */
+.group-header-v6 {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.group-header-v6:hover {
+  background: #f1f5f9;
+}
+
+.group-left-v6 {
+  display: flex !important;
+  align-items: center;
+  gap: 16px;
+}
+
+.group-info-v6 {
+  display: flex !important;
+  flex-direction: column;
+}
+
+.group-title-v6 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.group-subtitle-v6 {
+  font-size: 11px;
+  color: #64748b;
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.group-subtitle-v6 i {
+  color: #10b981;
+}
+
+.group-right-v6 {
+  display: flex !important;
+  align-items: center;
+  gap: 20px;
+}
+
+.group-date-v6 {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.group-actions-v6 {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  color: #94a3b8;
+}
+
+.btn-group-action-v6 {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-group-action-v6:hover.delete {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.group-nested-items-v6 {
+  background: #ffffff;
+  border-left: 4px solid #e2e8f0;
+  margin-left: 32px;
+}
+
+.file-row-v6.nested {
+  padding-left: 16px;
+  background: transparent;
+}
+
+.nested-icon {
+  transform: scale(0.85);
+}
+
+.nested-name {
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.size-text-small {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.btn-item-delete-v6 {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.btn-item-delete-v6:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+
+.badge-cert-vault-v2 {
+  color: #10b981;
+  font-size: 11px;
+  animation: pulse-soft-v6 2s infinite;
+}
+
+.tag-nomina-vault {
+  background: #10b981;
+  color: white;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-row-v6 {
+  display: flex !important;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.col-size-info {
+  display: flex !important;
+  flex-direction: column;
+}
+
+.size-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.type-text {
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.col-date-info {
+  display: flex !important;
+  flex-direction: column;
+  text-align: right;
+}
+
+.date-main {
+  font-size: 12px;
+  color: #475569;
+}
+
+.date-sub {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+@keyframes pulse-soft-v6 {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* --- VAULT EXPLORER V7 PREMIUM REFINEMENTS --- */
+.row-v7, .nested-v7, .header-v7 {
+  padding: 16px 24px;
+  grid-template-columns: 2fr 120px 150px !important;
+}
+
+.meta-sub-row-v7 {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.meta-source-v7 {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.meta-divider-v7 {
+  opacity: 0.3;
+}
+
+.pill-cert-v7 {
+  background: #10b981;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+.pill-protected-v7 {
+  background: #f59e0b;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-code-v7 {
+  font-size: 11px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.date-main-v7 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.row-actions-v7 {
+  display: flex !important;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.mascot-container-v7 {
+  width: 36px;
+  height: 36px;
+  background: #f0fdf4;
+  border-radius: 10px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.sandra-icon-v7 {
+  width: 100%;
+  height: auto;
+  object-fit: contain !important;
+}
+
+/* --- VAULT ANALYSIS REPORT V7 (ULTRA ROBUST) --- 
+   Nota: Estilos movidos a styles.css para soporte de inyección HTML universal
+*/

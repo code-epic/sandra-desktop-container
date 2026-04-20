@@ -48,22 +48,46 @@ pub fn run() {
             app.manage(DbState(Mutex::new(conn)));
             app.manage(ConnectionTask(Mutex::new(None)));
             app.manage(WsStatus(Mutex::new("disconnected".to_string())));
-            // println!("✅ [Tauri] Setup finalizado correctamente.");
 
-            /* 
+            // FALLBACK DE SEGURIDAD PARA WINDOWS:
+            // Si por alguna razón el frontend falla al cerrar el splash, 
+            // lo cerramos nosotros después de un tiempo prudencial para no bloquear al usuario.
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+                if let Some(splash) = app_handle.get_webview_window("splashscreen") {
+                    let _ = splash.close();
+                }
+                if let Some(main) = app_handle.get_webview_window("main") {
+                    let _ = main.show();
+                    let _ = main.set_focus();
+                }
+            });
+
             #[cfg(target_os = "windows")]
-            if let Some(window) = app.get_webview_window("main") {
-                // Esto le dice al motor de Edge (WebView2) que ignore errores de SSL en localhost
-                // Útil si tu iframe apunta a servicios locales con certificados auto-firmados.
-                let _ = window.with_webview(|webview| unsafe {
-                    let _ = webview
-                        .controller()
-                        .CoreWebView2()
-                        .unwrap()
-                        .add_ProcessFailed(|_, _| Ok(()));
-                });
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    // Prevenir fallos catastróficos por GPU/Renderer
+                    let _ = window.with_webview(|webview| {
+                        #[cfg(target_os = "windows")]
+                        unsafe {
+                            let _ = webview
+                                .controller()
+                                .CoreWebView2()
+                                .unwrap()
+                                .add_ProcessFailed(
+                                    &tauri::webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2ProcessFailedEventHandler::with_closure(
+                                        move |_, _| {
+                                            println!("⚠️ [WebView2] Proceso de renderizado falló. Intentando recuperar...");
+                                            Ok(())
+                                        },
+                                    ),
+                                    &mut Default::default(),
+                                );
+                        }
+                    });
+                }
             }
-            */
 
             Ok(())
         })

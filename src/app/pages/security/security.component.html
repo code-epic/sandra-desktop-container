@@ -479,10 +479,14 @@
                         <div class="workflow-control-hub">
                             <div class="w-hub-info">
                                 <h3>{{ getMessageSubject(selectedMessage.content) }}</h3>
-                                <span class="w-meta">Ref: {{ parsedContent?.workflow?.id_referencia_doc || getMessageGuid(selectedMessage.content) }}</span>
-                                <span class="w-meta ml-2" title="Tiempo de vida del Flujo" *ngIf="parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CERRADO'">
-                                    <i class="fas fa-clock"></i> {{ getWorkflowUptime(selectedMessage.created_at) }} activo
-                                </span>
+                                <div class="w-meta-group">
+                                    <span class="w-badge w-ref-badge">
+                                        Ref: {{ parsedContent?.workflow?.id_referencia_doc || getMessageGuid(selectedMessage.content) }}
+                                    </span>
+                                    <span class="w-badge w-uptime-badge" *ngIf="parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CERRADO'">
+                                         <i class="fas fa-clock"></i> {{ getWorkflowUptime(selectedMessage.created_at) }} activo
+                                    </span>
+                                </div>
                             </div>
                             <div class="w-hub-actions">
                                 <button class="btn-action-circle btn-back" (click)="backToMailbox()" title="Volver a la Bandeja">
@@ -535,7 +539,7 @@
                                     </div>
                                 </div>
                                 <div class="forum-card-body">
-                                    <div class="f-content" [innerHTML]="parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content || selectedMessage.content">
+                                    <div class="f-content" [innerHTML]="getSafeHtml(parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content || selectedMessage.content)">
                                     </div>
 
                                     <!-- ATTACHMENTS FOR BASE NODE -->
@@ -587,7 +591,7 @@
                                         </div>
                                     </div>
                                     <div class="forum-card-body">
-                                        <div class="f-content" [innerHTML]="hilo.cuerpo"></div>
+                                        <div class="f-content" [innerHTML]="getSafeHtml(hilo.cuerpo)"></div>
                                     </div>
                                 </div>
                             </ng-container>
@@ -729,7 +733,7 @@
                             <div *ngIf="parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content"
                                 class="msg-content-html fade-in">
                                 <div
-                                    [innerHTML]="parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content">
+                                    [innerHTML]="getSafeHtml(parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content)">
                                 </div>
                             </div>
 
@@ -755,8 +759,7 @@
                             </div>
 
                             <!-- Case C: Plain Text Content -->
-                            <div *ngIf="!parsedContent" class="msg-content-text">
-                                {{ selectedMessage.content }}
+                            <div *ngIf="!parsedContent" class="msg-content-text" [innerHTML]="getSafeHtml(selectedMessage.content)">
                             </div>
                         </div>
 
@@ -787,7 +790,7 @@
                                         [ngClass]="getFileTypeConfig(att.name).colorClass"></i>
                                     
                                     <div class="att-info-block-v23">
-                                        <span class="att-name">{{ att.name }}</span>
+                                        <span class="att-name">{{ att.name.replace('.zst', '').replace('.ZST', '') }}</span>
                                         <span class="att-meta-detail-v23">
                                             {{ att.extension || att.type }} • {{ att.size || (isAttachmentDownloaded(att) ? 'Local' : 'Servidor') }}
                                             
@@ -1378,54 +1381,123 @@
                 <!-- Main Content Area -->
                 <div class="explorer-content-v6">
                     <div class="explorer-breadcrumb-v6">
-                        <span>Vault</span>
+                        <span class="breadcrumb-link">Vault</span>
                         <i class="fas fa-chevron-right"></i>
-                        <span class="breadcrumb-active">{{ viewerActiveTab === 'global' ? 'Global' : 'Mailbox' }}</span>
+                        <span class="breadcrumb-active">
+                            {{ viewerActiveTab === 'global' ? 'Global' : 'Mailbox' }}
+                        </span>
                     </div>
 
                     <!-- Header de Columnas -->
-                    <div class="explorer-list-header-v6">
+                    <div class="explorer-list-header-v6 header-v7">
                         <div class="col-name">Nombre del Documento</div>
-                        <div class="col-code" *ngIf="viewerActiveTab === 'mailbox'">Código Seguro</div>
-                        <div class="col-size">Tipo</div>
-                        <div class="col-date">Fecha Registro</div>
+                        <div class="col-code" *ngIf="viewerActiveTab === 'mailbox'">Código / Transacción</div>
+                        <div class="col-date text-right">Fecha Registro</div>
                     </div>
 
                     <!-- Scrollable List -->
                     <div class="explorer-scroll-v6">
-                        <div *ngFor="let doc of filteredSecureDocs" class="file-row-v6" (click)="selectSecureDoc(doc)">
-                            <div class="col-name-info">
-                                <div class="col-icon-vault">
-                                    <ng-container *ngIf="!getFileTypeConfig(doc.name).isMascot; else sseMascot">
-                                        <i [class]="getFileTypeConfig(doc.name).icon"
-                                            [ngClass]="getFileTypeConfig(doc.name).colorClass"></i>
-                                    </ng-container>
-                                    <ng-template #sseMascot>
-                                        <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon-vault"
-                                            onerror="this.src=''; this.className='fallback-icon fas fa-file-shield'">
-                                    </ng-template>
+                        
+                        <ng-container *ngFor="let entry of filteredSecureDocs">
+                            <!-- RENDER GROUP (NOMINA PACKAGE) -->
+                            <ng-container *ngIf="entry.isGroup">
+                                <div class="group-header-v6" (click)="toggleGroup(entry.id)">
+                                    <div class="group-left-v6">
+                                        <div class="group-icon-v6">
+                                            <i class="fas fa-folder" style="font-size: 24px; color: #64748b;"></i>
+                                        </div>
+                                        <div class="group-info-v6">
+                                            <div class="group-title-v6">{{ entry.name }}</div>
+                                            <div class="group-subtitle-v6">
+                                                <i class="fas fa-shield-halved"></i> Paquete de Documentos SDC • 
+                                                <strong>{{ entry.items.length }} archivos</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="group-right-v6">
+                                        <span class="group-date-v6">{{ entry.date | date:'dd MMM, HH:mm' }}</span>
+                                        <div class="group-actions-v6">
+                                            <i class="fas" [class.fa-chevron-down]="!expandedGroups.has(entry.id)" [class.fa-chevron-up]="expandedGroups.has(entry.id)"></i>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="name-meta">
-                                    <span class="file-name">{{ doc.name }}</span>
-                                    <span class="tag-protected-vault"
-                                        *ngIf="doc.name.toLowerCase().endsWith('.sse')">PROTECTED</span>
-                                    <span class="badge-cert-vault"
-                                        *ngIf="certificationMap.has(doc.file_path || doc.path)"
-                                        (click)="openCertificationDetails(doc, $event)"
-                                        title="Ver Certificado de Trazabilidad">
-                                        <i class="fas fa-certificate"></i>
-                                    </span>
+
+                                <!-- NESTED ITEMS (Indented) -->
+                                <div class="group-nested-items-v6" *ngIf="expandedGroups.has(entry.id)">
+                                    <div *ngFor="let doc of entry.items" class="file-row-v6 nested-v7" (click)="selectSecureDoc(doc)">
+                                        <div class="col-name-info">
+                                            <div class="col-icon-vault nested-icon">
+                                                <i [class]="getFileTypeConfig(doc.name).icon" [ngClass]="getFileTypeConfig(doc.name).colorClass"></i>
+                                            </div>
+                                            <div class="name-meta">
+                                                <div class="name-row-v6">
+                                                    <span class="file-name nested-name">{{ doc.name }}</span>
+                                                    <span class="pill-cert-v7" *ngIf="certificationMap.has(doc.file_path || doc.path)">CERTIFICADO</span>
+                                                </div>
+                                                <div class="meta-sub-row-v7">
+                                                    <span class="meta-source-v7">Sandra System</span>
+                                                    <span class="meta-divider-v7">•</span>
+                                                    <span class="meta-size-v7">{{ doc.size || 'Local' }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-code-info" *ngIf="viewerActiveTab === 'mailbox'">
+                                            <span class="badge-code-v7">{{ doc.remote_code }}</span>
+                                        </div>
+                                        <div class="col-date-info text-right">
+                                            <span class="date-main-v7">{{ doc.date | date:'dd MMM, HH:mm' }}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            </ng-container>
 
-                            <div class="col-code-info" *ngIf="viewerActiveTab === 'mailbox'">
-                                <span class="badge-code">{{ doc.remote_code || 'N/A' }}</span>
-                            </div>
+                            <!-- RENDER SINGLE FILE (PREMIUM STYLE V7) -->
+                            <ng-container *ngIf="!entry.isGroup">
+                                <div class="file-row-v6 row-v7" (click)="selectSecureDoc(entry)">
+                                    <div class="col-name-info">
+                                        <div class="col-icon-vault">
+                                            <ng-container *ngIf="!getFileTypeConfig(entry.name || entry.file_name).isMascot; else sseMascot">
+                                                <i [class]="getFileTypeConfig(entry.name || entry.file_name).icon"
+                                                    [ngClass]="getFileTypeConfig(entry.name || entry.file_name).colorClass"></i>
+                                            </ng-container>
+                                            <ng-template #sseMascot>
+                                                <div class="mascot-container-v7">
+                                                   <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon-v7">
+                                                </div>
+                                            </ng-template>
+                                        </div>
+                                        <div class="name-meta">
+                                            <div class="name-row-v6">
+                                                <span class="file-name">{{ entry.name || entry.file_name }}</span>
+                                                <!-- Insignias sólidas estilo Premium -->
+                                                <span class="pill-cert-v7" *ngIf="certificationMap.has(entry.file_path || entry.path)">
+                                                   <i class="fas fa-certificate"></i> CERTIFICADO
+                                                </span>
+                                                <span class="pill-protected-v7" *ngIf="(entry.name || entry.file_name).toLowerCase().endsWith('.sse')">
+                                                   <i class="fas fa-lock"></i> PROTEGIDO
+                                                </span>
+                                            </div>
+                                            <div class="meta-sub-row-v7">
+                                                <span class="meta-source-v7">Sandra System</span>
+                                                <span class="meta-divider-v7">•</span>
+                                                <span class="meta-size-v7">{{ entry.file_size || entry.size || 'Local' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            <div class="col-size-info">{{ getFileExtension(doc.name) }}</div>
-                            <div class="col-date-info">{{ doc.date | date:'dd/MM/yyyy HH:mm' }}</div>
-                        </div>
+                                    <div class="col-code-info" *ngIf="viewerActiveTab === 'mailbox'">
+                                        <span class="badge-code-v7">{{ entry.remote_code || 'N/A' }}</span>
+                                    </div>
 
+                                    <div class="col-date-info text-right">
+                                        <div class="date-main-v7">{{ entry.created_at || entry.date | date:'dd MMM, HH:mm' }}</div>
+                                        <div class="row-actions-v7" *ngIf="entry.name.toLowerCase().endsWith('.sse')">
+                                            <i class="fas fa-share-nodes" style="color: #64748b; font-size: 11px;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ng-container>
+                        </ng-container>
                         <!-- Empty States -->
                         <div class="explorer-empty-v6" *ngIf="filteredSecureDocs.length === 0">
                             <div class="empty-icon-v6">

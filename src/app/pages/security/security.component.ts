@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, SimpleChanges, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, Input, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -46,6 +46,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   // Mailbox Data
   messages: MailboxMessage[] = [];
   selectedMessage: MailboxMessage | null = null;
+  @ViewChild('editor') editorElement?: ElementRef;
 
   // Helper para contador de vida del Workflow
   getWorkflowUptime(createdAtStr: string): string {
@@ -53,7 +54,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     try {
       const createdDate = new Date(createdAtStr);
       if (isNaN(createdDate.getTime())) return '';
-      const diffMs = new Date().getTime() - createdDate.getTime();
+      const diffMs = Math.abs(new Date().getTime() - createdDate.getTime());
       const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
       const diffDays = Math.floor(diffHrs / 24);
       
@@ -112,6 +113,16 @@ export class SecurityComponent implements OnInit, OnChanges {
   vaultFilter: 'DOCS' | 'SSE' | 'RECENT' = 'DOCS';
   viewerActiveTab: 'global' | 'mailbox' = 'global';
   viewerSearchText: string = '';
+  expandedGroups: Set<string> = new Set();
+
+  toggleGroup(groupId: string) {
+    if (this.expandedGroups.has(groupId)) {
+      this.expandedGroups.delete(groupId);
+    } else {
+      this.expandedGroups.add(groupId);
+    }
+  }
+
   showCertificationModal = false;
   selectedCertification: any = null;
   downloadingStatus: Map<string, number> = new Map();
@@ -137,7 +148,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     if (this.viewerSearchText) {
       const lower = this.viewerSearchText.toLowerCase();
       list = list.filter((d: any) =>
-        d.file_name.toLowerCase().includes(lower) ||
+        (d.file_name && d.file_name.toLowerCase().includes(lower)) ||
         (d.remote_code && d.remote_code.toLowerCase().includes(lower))
       );
     }
@@ -146,11 +157,44 @@ export class SecurityComponent implements OnInit, OnChanges {
       ...d,
       name: d.file_name,
       size: d.file_size || 'Vault',
-      date: d.opened_at,
-      type: d.file_name.split('.').pop()?.toUpperCase() || 'FILE'
+      date: d.opened_at || d.created_at,
     }));
 
-    return mapped;
+
+    // Nueva Lógica de Agrupación nativa por group_name (Sincronizada con secure-viewer)
+    const result: any[] = [];
+    const groupsMap = new Map<string, any>();
+
+    mapped.forEach((item: any) => {
+      if (item.group_name) {
+        if (!groupsMap.has(item.group_name)) {
+          const group = {
+            isGroup: true, // we use isGroup for template compatibility
+            isFolder: true,
+            id: 'folder-' + item.group_name,
+            name: item.group_name,
+            items: [],
+            date: item.date,
+            size: 0
+          };
+          groupsMap.set(item.group_name, group);
+          result.push(group);
+        }
+        const group = groupsMap.get(item.group_name);
+        group.items.push(item);
+        group.size = group.items.length;
+        // Keep the most recent date for the group
+        if (new Date(item.date) > new Date(group.date)) group.date = item.date;
+      } else {
+        result.push({ ...item, isGroup: false });
+      }
+    });
+
+    return result.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  get groupedFilteredDocs() {
+     return this.filteredSecureDocs;
   }
 
   setVaultFilter(filter: 'DOCS' | 'SSE' | 'RECENT') {
@@ -1080,7 +1124,99 @@ export class SecurityComponent implements OnInit, OnChanges {
     });
   }
 
+  async generateDocumentSummary(specificAtt?: any): Promise<void> {
+    const list = specificAtt ? [specificAtt] : this.newMessage.attachments;
+    if (!list || list.length === 0) return;
+
+    for (const att of list) {
+      const ext = (att.type || att.extension || '').toUpperCase();
+      if (ext !== 'CSV' && ext !== 'TXT') continue;
+
+      try {
+        const fileBytes = await readFile(att.path);
+        if (!fileBytes || fileBytes.length === 0) continue;
+
+        let textContent = '';
+        try {
+          textContent = new TextDecoder('utf-8', { fatal: true }).decode(fileBytes);
+        } catch (e) {
+          textContent = new TextDecoder('windows-1252').decode(fileBytes);
+        }
+
+        const lines = textContent.split(/\r?\n/).filter(l => l.trim().length > 0);
+        const totalLines = lines.length;
+        if (totalLines === 0) continue;
+
+        // Limpiar el nombre del archivo para quitar extensiones de compresión del servidor
+        const cleanFileName = att.name.replace(/\.zst$|\.gz$|\.zip$/i, '');
+        let detailsHtml = '';
+        let sumsHtml = '';
+
+        if (ext === 'CSV') {
+          const firstLine = lines[0];
+          const commaCount = (firstLine.match(/,/g) || []).length;
+          const semiCount = (firstLine.match(/;/g) || []).length;
+          const delimiter = semiCount > commaCount ? ';' : ',';
+
+          const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''));
+          const numCols = headers.length;
+          const totalRecords = totalLines - 1;
+
+          if (totalRecords > 0) {
+            const excludedKeywords = ['cedula', 'cuenta', 'hijo', 'tipo', 'estatus', 'situacion', 'id', 'codigo', 'cod', 'u_'];
+            const columnSums: number[] = new Array(numCols).fill(0);
+            const isNumericCol: boolean[] = new Array(numCols).fill(true);
+
+            const maxAnalysisLines = Math.min(lines.length, 5000); 
+            for (let i = 1; i < maxAnalysisLines; i++) {
+              const cells = lines[i].split(delimiter);
+              if (!cells || cells.length === 0) continue;
+              for (let j = 0; j < numCols; j++) {
+                if (j >= cells.length) continue;
+                const headerLower = (headers[j] || '').toLowerCase();
+                if (excludedKeywords.some(key => headerLower.includes(key))) { isNumericCol[j] = false; continue; }
+
+                const val = cells[j].trim().replace(/[$.'" ]/g, '').replace(',', '.');
+                const num = parseFloat(val);
+                if (!isNaN(num)) { columnSums[j] += num; } else if (val.length > 0) { isNumericCol[j] = false; }
+              }
+            }
+
+            let totalsRows = '';
+            for (let j = 0; j < numCols; j++) {
+              if (isNumericCol[j] && columnSums[j] !== 0) {
+                totalsRows += `<div class="va-total-item-v7" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(34, 197, 94, 0.2);"><span class="va-metric-label-v7" style="color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase;">${headers[j]}</span><span class="va-metric-value-v7" style="font-weight: 800; color: #059669; font-size: 11px;">$ ${columnSums[j].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+              }
+            }
+            sumsHtml = totalsRows;
+          }
+
+          detailsHtml = `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;"><tr><td class="va-metric-col-v7 shaded"><span class="va-metric-label-v7">Registros</span><span class="va-metric-value-v7">${totalRecords.toLocaleString()}</span></td><td class="va-metric-col-v7"><span class="va-metric-label-v7">Columnas</span><span class="va-metric-value-v7">${numCols.toLocaleString()}</span></td></tr></table><div style="margin-top: 10px;"><div class="va-metric-label-v7" style="margin-bottom: 6px; display: block;">DIAGRAMA DE CAMPOS</div><div style="display: flex; flex-wrap: wrap; gap: 4px;">${headers.slice(0, 15).map(h => `<span class="va-pill-v7">${h}</span>`).join('')}${headers.length > 15 ? '<span style="font-size: 9px; color: #94a3b8; font-style: italic; margin-left: 5px;">... y más</span>' : ''}</div></div>${sumsHtml ? `<div class="ar-totals-box"><div style="font-size: 10px; color: #065f46; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; border-bottom: 1px solid #d1fae5; display: block; padding-bottom: 4px;">RESUMEN DE TOTALES FINANCIEROS</div>${sumsHtml}</div>` : ''}`;
+        } else {
+          const totalWords = textContent.split(/\s+/).filter(w => w.length > 0).length;
+          detailsHtml = `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;"><tr><td class="va-metric-col-v7 shaded"><span class="va-metric-label-v7">Líneas</span><span class="va-metric-value-v7">${totalLines.toLocaleString()}</span></td><td class="va-metric-col-v7"><span class="va-metric-label-v7">Palabras</span><span class="va-metric-value-v7">${totalWords.toLocaleString()}</span></td></tr></table>`;
+        }
+
+        const summaryHtml = `<div class="vault-analysis-report-v7"><div class="va-header-v7"><div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase;"><i class="fas fa-file-shield" style="color: #64748b; font-size: 16px;"></i><span>AUDITORÍA: <strong>${cleanFileName.toUpperCase()}</strong></span></div><div class="va-pill-v7" style="background: #e2e8f0; border: none; margin: 0;">SAD ARCHIVE V.24</div></div><div class="va-body-v7">${detailsHtml}</div><div class="va-footer-v7"><div style="display: flex; align-items: center; gap: 6px;"><i class="fas fa-fingerprint"></i><span>HASH: ${Math.random().toString(36).substring(2, 10).toUpperCase()}</span></div><div style="color: #10b981; font-weight: 900; font-size: 8px; letter-spacing: 0.5px; text-transform: uppercase;">CONTENEDOR SEGURO VERIFICADO</div></div></div><p><br></p>`;
+
+        setTimeout(() => {
+          if (this.editorElement) {
+            const currentHtml = this.editorElement.nativeElement.innerHTML;
+            this.editorElement.nativeElement.innerHTML = currentHtml + summaryHtml;
+            this.editorContent = this.editorElement.nativeElement.innerHTML;
+          }
+          this.saveDraft();
+        }, 1200); 
+
+
+      } catch (err) {
+        console.error("[Análisis] Error " + att.name, err);
+      }
+    }
+  }
+
   async executeSendMessage() {
+    // Ya no llamamos a generateDocumentSummary aquí, pues se hace al adjuntar
     const processedAttachments = this.newMessage.attachments.map((att, index) => ({
       sequence: index + 1,
       name: att.name,
@@ -1405,6 +1541,7 @@ export class SecurityComponent implements OnInit, OnChanges {
       size: 'Local'
     };
     this.newMessage.attachments.push(newAtt);
+    this.generateDocumentSummary(newAtt);
     this.saveDraft();
     this.verifyAttachmentCertification(filePath);
   }
@@ -1439,6 +1576,7 @@ export class SecurityComponent implements OnInit, OnChanges {
       icon: this.getFileTypeConfig(doc.file_name).icon
     };
     this.newMessage.attachments.push(newAtt);
+    this.generateDocumentSummary(newAtt);
     this.saveDraft();
     this.verifyAttachmentCertification(doc.file_path);
     this.closeSecureVaultModal();
@@ -1509,6 +1647,11 @@ export class SecurityComponent implements OnInit, OnChanges {
     } catch (e) {
       return null;
     }
+  }
+
+  getSafeHtml(html: string) {
+    if (!html) return '';
+    return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
   toggleTrace() {
@@ -1595,6 +1738,16 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   isAttachmentDownloaded(att: any): boolean {
     if (!att || !att.remote_code) return false;
+    
+    // Si estamos en la bandeja de salida (Salida o Outbox), el archivo SIEMPRE es local
+    if (this.mailboxDirection === 'outbox') return true;
+
+    // Si el usuario es el autor del mensaje, el archivo vive en su memoria local (Backup check)
+    if (this.selectedMessage) {
+       const authorId = this.selectedMessage.author?.split('@')[0]?.toLowerCase();
+       if (authorId === this.authorProfile.usuario.toLowerCase()) return true;
+    }
+
     return this.history.some(h => h.remote_code === att.remote_code);
   }
 
@@ -1665,15 +1818,11 @@ export class SecurityComponent implements OnInit, OnChanges {
     await new Promise(resolve => setTimeout(resolve, 100));
     try {
       // 0. Limpiar nombre de .zst para visor y metadatos
-      let cleanName = att.name || 'documento';
+      let cleanName = (att.name || 'documento').replace(/\.zst$|\.gz$|\.zip$/i, '');
       let rawExt = (att.extension || att.type || '').toUpperCase();
       
-      if (cleanName.toLowerCase().endsWith('.zst')) {
-        cleanName = cleanName.substring(0, cleanName.length - 4);
-        // Recalcular extensión original si la recibida era ZST
-        if (rawExt === 'ZST' || rawExt === '.ZST') {
-          rawExt = cleanName.split('.').pop()?.toUpperCase() || 'FILE';
-        }
+      if (rawExt === 'ZST' || rawExt === '.ZST') {
+        rawExt = cleanName.split('.').pop()?.toUpperCase() || 'FILE';
       }
 
       const ext = rawExt;
