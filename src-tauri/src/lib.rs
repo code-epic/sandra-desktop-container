@@ -64,31 +64,6 @@ pub fn run() {
                 }
             });
 
-            #[cfg(target_os = "windows")]
-            {
-                if let Some(window) = app.get_webview_window("main") {
-                    // Prevenir fallos catastróficos por GPU/Renderer
-                    let _ = window.with_webview(|webview| {
-                        #[cfg(target_os = "windows")]
-                        unsafe {
-                            let _ = webview
-                                .controller()
-                                .CoreWebView2()
-                                .unwrap()
-                                .add_ProcessFailed(
-                                    &tauri::webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2ProcessFailedEventHandler::with_closure(
-                                        move |_, _| {
-                                            println!("⚠️ [WebView2] Proceso de renderizado falló. Intentando recuperar...");
-                                            Ok(())
-                                        },
-                                    ),
-                                    &mut Default::default(),
-                                );
-                        }
-                    });
-                }
-            }
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
