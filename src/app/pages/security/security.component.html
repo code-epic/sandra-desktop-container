@@ -54,10 +54,10 @@
                         <div class="filter-dropdown">
                             <select [(ngModel)]="statusFilter" (ngModelChange)="resetPagination()"
                                 class="input-dark filter-select">
-                                <option value="">Todos los Estatus</option>
-                                <option value="Pending">Pendientes</option>
+                                <option value="all">Todos los Estados</option>
+                                <option value="Read">Leídos</option>
+                                <!-- Estado "PENDIENTES" oculto por requerimiento de flujo -->
                                 <option value="Approved">Aprobados</option>
-                                <option value="Rejected">Rechazados</option>
                             </select>
                         </div>
                         <div class="vertical-divider"></div>
@@ -81,6 +81,9 @@
                     <div class="toolbar-left">
                         <input type="checkbox" class="custom-checkbox" [checked]="isAllSelected"
                             (click)="toggleSelectAll($event)" title="Seleccionar Todos">
+                        <button class="btn-icon-mini text-danger fade-in" *ngIf="selectedIds.size > 0" (click)="deleteSelected()" title="Eliminar Seleccionados" style="margin-left: 10px;">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
 
                     <div class="toolbar-right">
@@ -110,15 +113,17 @@
                 <!-- Message List Body (Gmail Style) -->
                 <div class="msg-list-scroll gmail-view">
                     <div *ngFor="let msg of paginatedMessages" class="gmail-row"
+                        [ngClass]="getMessageClasses(msg)"
                         [class.active]="highlightedMessage === msg" (click)="highlightMessage(msg)"
                         (dblclick)="selectMessage(msg)">
 
                         <!-- Left: Checkbox & Actions -->
                         <div class="gmail-col-left">
+                            <i [class]="getThreadIcon(msg)" class="thread-type-icon"></i>
                             <input type="checkbox" class="custom-checkbox" [checked]="selectedIds.has(msg.id)"
-                                (click)="toggleSelection(msg, $event)">
+                                (click)="toggleSelection(msg, $event); $event.stopPropagation()">
                             <div class="gmail-hover-actions">
-                                <button class="btn-icon-table danger mini" (click)="deleteMessage(msg, $event)"
+                                <button class="btn-icon-table danger mini" (click)="deleteMessage(msg, $event); $event.stopPropagation()"
                                     title="Eliminar Registro">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
@@ -825,8 +830,9 @@
 
         </div>
 
+
         <!-- CONTACTS TAB -->
-        <div *ngIf="activeTab === 'contacts'" class="tab-pane fade-in-up contacts-tab-wrapper">
+        <div *ngIf="$any(activeTab) === 'contacts'" class="tab-pane fade-in-up contacts-tab-wrapper">
 
             <!-- Page header with action buttons -->
             <div class="contacts-page-header">
@@ -966,7 +972,7 @@
         </div>
 
         <!-- CONFIG TAB (hidden from nav but preserved) -->
-        <div *ngIf="activeTab === 'config'" class="tab-pane fade-in-up">
+        <div *ngIf="$any(activeTab) === 'config'" class="tab-pane fade-in-up">
             <div class="glass-card config-panel">
                 <h3><i class="fas fa-lock"></i> Configuración de Seguridad</h3>
                 <p class="section-desc">Gestione políticas de contraseñas, niveles de auditoría y almacenamiento
@@ -1017,7 +1023,7 @@
         </div>
 
         <!-- PROXY TAB -->
-        <div *ngIf="activeTab === 'proxy'" class="tab-pane fade-in-up fade-tab">
+        <div *ngIf="$any(activeTab) === 'proxy'" class="tab-pane fade-in-up fade-tab">
 
             <!-- New Route Card -->
             <div class="glass-card add-route-panel">
@@ -1149,14 +1155,13 @@
             </div>
         </div>
 
-    </div>
 
     <!-- Modal Confirmación Eliminar (Elegante) -->
     <div class="modal-overlay" *ngIf="showDeleteModal">
         <div class="modal-card activity-modal fade-in-up">
             <div class="modal-body-clean">
-                <div class="modal-visual-header error-header">
-                    <div class="icon-pulse-wrapper error-pulse">
+                <div class="modal-visual-header matte-green-header">
+                    <div class="icon-pulse-wrapper matte-green-pulse">
                         <i class="fas fa-trash-alt"></i>
                     </div>
                 </div>
@@ -1181,7 +1186,7 @@
                 </p>
 
                 <div class="modal-actions-spread">
-                    <button class="btn-modal-confirm" (click)="confirmDelete()">
+                    <button class="btn-modal-confirm-matte" (click)="confirmDelete()">
                         Eliminar
                     </button>
                     <button class="btn-modal-cancel" (click)="cancelDelete()">

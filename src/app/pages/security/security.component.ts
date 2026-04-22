@@ -18,6 +18,7 @@ import { SdcService } from '../../core/services/sdc.service';
 import { DataStreamService } from '../../core/services/data-stream.service';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { MAIL_TEMPLATES, TemplateData } from './templates/mail-templates';
+import { SnapService } from '../../core/services/snap.service';
 
 // Interfaz para la configuración de acceso
 interface SdcConfig {
@@ -114,6 +115,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   viewerActiveTab: 'global' | 'mailbox' = 'global';
   viewerSearchText: string = '';
   expandedGroups: Set<string> = new Set();
+  replyingToMessage: MailboxMessage | null = null; // Track message being replied to
 
   toggleGroup(groupId: string) {
     if (this.expandedGroups.has(groupId)) {
@@ -265,7 +267,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   newMessage = {
-    selectedRecipients: [] as string[],
+    selectedRecipients: [] as any[],
     recipientInput: '',
     sid: '',
     content: '',
@@ -457,7 +459,8 @@ export class SecurityComponent implements OnInit, OnChanges {
     private appState: AppStateService,
     private fileService: FileService,
     private sdcService: SdcService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private snapService: SnapService
   ) { }
 
   async ngOnInit() {
@@ -642,13 +645,6 @@ export class SecurityComponent implements OnInit, OnChanges {
     }
   }
 
-  setTab(tab: 'mailbox' | 'config' | 'proxy' | 'contacts') {
-    this.activeTab = tab;
-    if (tab === 'contacts' && this.contacts.length === 0) {
-      this.syncContacts();
-    }
-  }
-
   async refreshAll() {
     try {
       await this.securityService.syncMailbox();
@@ -704,13 +700,92 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.selectedMessage = msg;
     this.highlightedMessage = msg;
     this.isComposing = false;
+    this.replyingToMessage = null; // Clear reply context when selecting a new message
     this.parsedContent = this.parseJsonContent(msg.content);
     this.showTrace = false;
+  }
+
+  setTab(tab: any) {
+    if (tab !== 'outbox') {
+      this.activeTab = tab;
+    }
+    this.selectedIds.clear();
+    this.selectedMessage = null;
+    this.isComposing = false;
+    
+    if (tab === 'contacts' && this.contacts.length === 0) {
+      this.syncContacts();
+    }
+    
+    if (tab === 'mailbox') {
+       this.mailboxDirection = 'inbox';
+       this.loadMessages();
+    } else if (tab === 'outbox') {
+       this.activeTab = 'mailbox';
+       this.mailboxDirection = 'outbox';
+       this.loadMessages().then(() => this.trackOutboxThreads());
+    } else {
+       // Reset filters when leaving mailbox
+       this.statusFilter = 'all';
+       this.searchText = '';
+    }
+  }
+
+  async trackOutboxThreads() {
+    if (!this.activeConnection?.hash) return;
+    
+    // Solo rastrear mensajes que sean SEGUIMIENTO y tengan miga
+    const mensajesConSeguimiento = this.messages.filter(m => m.direction === 'outbox' && this.getThreadType(m) === 'seguimiento');
+    if (mensajesConSeguimiento.length === 0) return;
+
+    for (const msg of mensajesConSeguimiento) {
+        try {
+            const content = JSON.parse(msg.content);
+            const miga_id = content.hilos?.[0]?.miga_id;
+            
+            if (miga_id) {
+                const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+                const payload = {
+                  "funcion": 'SDC_UUsers', // O el manejador genérico del CRUD
+                  "valores": JSON.stringify({
+                    "coleccion": "comunicaciones_internas",
+                    "operacion": "FIND",
+                    "filtro": { "hilos.miga_id": miga_id }
+                  })
+                };
+
+                const response: any = await invoke('api_post_request', {
+                  ip: this.activeConnection.ip_address,
+                  port: Number(this.activeConnection.port),
+                  endpoint: endpoint,
+                  payload: payload,
+                  hash: this.activeConnection.hash,
+                  tempAuthToken: this.activeConnection.jwt
+                });
+                
+                // Aquí se podría actualizar el estatus local si la contraparte lo cerró/atendió.
+                if (response && response.exito && response.datos?.length > 0) {
+                    const latest = response.datos.reduce((prev: any, current: any) => 
+                         (new Date(prev.timestamp).getTime() > new Date(current.timestamp).getTime()) ? prev : current
+                    );
+                    
+                    if (latest.workflow?.estado && msg.status !== latest.workflow.estado) {
+                        msg.status = latest.workflow.estado;
+                        // Actualizamos localmente el estatus
+                        await this.securityService.updateMailboxStatus(msg.id, msg.status, `Tracking: Actualizado desde remoto a ${msg.status}`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error tracking outbox thread', e);
+        }
+    }
   }
 
   backToMailbox() {
     this.selectedMessage = null;
     this.isComposing = false;
+    this.replyingToMessage = null;
   }
 
   // --- Selection Logic ---
@@ -785,9 +860,12 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   // --- Compose Logic ---
-  startCompose() {
+  startCompose(preserveMessage: boolean = false) {
     this.isComposing = true;
-    this.selectedMessage = null;
+    if (!preserveMessage) {
+      this.selectedMessage = null;
+      this.replyingToMessage = null;
+    }
     this.newMessage = {
       selectedRecipients: [],
       recipientInput: '',
@@ -807,7 +885,9 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   replyMessage(msg: MailboxMessage) {
-    this.startCompose();
+    this.replyingToMessage = msg;
+    this.startCompose(true); // Preserve selectedMessage reference
+    
     // 1. Asignar Destinatario
     this.newMessage.selectedRecipients = [msg.author];
 
@@ -830,6 +910,36 @@ export class SecurityComponent implements OnInit, OnChanges {
                 </div>
                 ${oldContent}
             </blockquote>
+        </div>`;
+
+    this.editorContent = this.editorInitialContent;
+  }
+
+  forwardMessage(msg: MailboxMessage) {
+    this.startCompose(); // New message context
+    
+    // Asunto con prefijo Fwd:
+    const currentSubject = this.getMessageSubject(msg.content) || msg.sid || 'Requerimiento';
+    this.newMessage.sid = currentSubject.toUpperCase().startsWith('FWD:') ? currentSubject : `Fwd: ${currentSubject}`;
+
+    // Cita del mensaje anterior
+    const oldContent = this.parsedContent?.message_envelope?.body ||
+      this.parsedContent?.payload?.body_content ||
+      this.getMessageSnippet(msg.content);
+
+    const dateStr = new Date(msg.created_at).toLocaleString();
+
+    this.editorInitialContent = `<br><br>
+        <div class="gmail_quote" style="font-family: Arial, sans-serif; color: #555;">
+            <div style="padding-bottom: 10px; border-bottom: 1px dashed #ccc; margin-bottom: 10px;">
+                ---------- Mensaje reenviado ----------<br>
+                De: <strong>${msg.author}</strong><br>
+                Fecha: ${dateStr}<br>
+                Asunto: ${currentSubject}<br>
+            </div>
+            <div style="padding-top: 10px;">
+                ${oldContent}
+            </div>
         </div>`;
 
     this.editorContent = this.editorInitialContent;
@@ -1236,10 +1346,20 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     const dynamicMessageId = crypto.randomUUID();
 
-    // INTERCEPTO: Hilo de Workflow / Aprobación
-    if (this.selectedMessage && this.parsedContent?.workflow) {
+    // INTERCEPTO: Hilo de Workflow / Aprobación (Reply Mode)
+    const targetMsg = this.replyingToMessage || (this.selectedMessage && !this.isComposing ? this.selectedMessage : null);
+    
+    if (targetMsg && this.parsedContent?.workflow) {
+      const isReply = !!this.replyingToMessage;
+      const parent_guid = targetMsg.sid || targetMsg.id.toString();
+      const miga_id = this.parsedContent.workflow.id_referencia_doc || dynamicMessageId;
+      const secuencia = (this.parsedContent.hilos?.length || 0) + 1;
+
       const nuevoHilo = {
         id_mensaje: dynamicMessageId,
+        parent_guid: parent_guid,
+        miga_id: miga_id,
+        secuencia: secuencia,
         remitente: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
         cuerpo: this.editorContent,
         timestamp: new Date().toISOString(),
@@ -1250,17 +1370,22 @@ export class SecurityComponent implements OnInit, OnChanges {
       this.parsedContent.hilos.push(nuevoHilo);
 
       try {
-        // Enviar a MongoDB 
+        // Enviar a SDC a través del patrón UPSERT para evitar duplicados y actualizar la miga
         await this.upsertCorreoWorkflow(this.parsedContent);
+
+        // Despachar señal de sincronización en tiempo real (sdc_sync) a los participantes
+        const recipientsRaw = [...this.newMessage.selectedRecipients, { email: targetMsg.author }];
+        const recipients = recipientsRaw.map(r => typeof r === 'string' ? r : (r as any).email);
+        this.notifyRecipientsOfSync(recipients, miga_id);
 
         // Guardar Localmente para Offline
         const updatedContentString = JSON.stringify(this.parsedContent);
-        this.selectedMessage.content = updatedContentString;
+        targetMsg.content = updatedContentString;
         
         // Emulamos un update eliminando y recreando con el nuevo contenido
-        await this.securityService.deleteMailboxMessage(this.selectedMessage.id);
+        await this.securityService.deleteMailboxMessage(targetMsg.id);
         await this.securityService.createMailboxMessage({
-          ...this.selectedMessage,
+          ...targetMsg,
           content: updatedContentString
         });
 
@@ -1268,7 +1393,7 @@ export class SecurityComponent implements OnInit, OnChanges {
         await this.loadMessages();
         
         // Seleccionamos de nuevo para refrescar UI
-        const reloaded = this.messages.find(m => m.sid === this.selectedMessage?.sid);
+        const reloaded = this.messages.find(m => m.sid === targetMsg.sid);
         if(reloaded) this.selectMessage(reloaded);
 
       } catch (e) {
@@ -1392,17 +1517,23 @@ export class SecurityComponent implements OnInit, OnChanges {
     });
   }
 
-  async updateWorkflowStatus(decision: 'APROBADO' | 'RECHAZADO' | 'CERRADO' | 'COMPLETADO' | 'CANCELADO', msg: MailboxMessage) {
+  async updateWorkflowStatus(decision: 'APROBADO' | 'RECHAZADO' | 'CERRADO' | 'COMPLETADO' | 'CANCELADO' | 'ATENDIDO' | 'PENDIENTE', msg: MailboxMessage) {
     if (!this.parsedContent?.workflow) return;
 
     this.appState.setViewerLoading(true);
     try {
       this.parsedContent.workflow.estado = decision;
+      this.parsedContent.workflow.requiere_accion = false; // Finalizar ciclo de acción
+
+      const statusText = decision === 'APROBADO' || decision === 'COMPLETADO' ? 'AUTORIZADO' : (decision === 'RECHAZADO' ? 'DENEGADO' : decision);
 
       const nuevoHilo = {
         id_mensaje: crypto.randomUUID(),
         remitente: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
-        cuerpo: `<p><strong>Decisión de Flujo:</strong> Autoridad ha dictaminado estado <strong>${decision}</strong>.</p>`,
+        cuerpo: `<div style="padding: 15px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #10b981;">
+                   <p style="margin: 0; font-weight: 700; color: #1e293b;">Protocolo de Cierre Ejecutado</p>
+                   <p style="margin: 5px 0 0; color: #64748b;">La autoridad ha dictaminado estado final: <strong style="color: #059669;">${statusText}</strong>.</p>
+                 </div>`,
         timestamp: new Date().toISOString(),
         tipo_respuesta: (decision === 'APROBADO' || decision === 'COMPLETADO') ? 'aprobacion' : 'rechazo' as const
       };
@@ -1410,22 +1541,56 @@ export class SecurityComponent implements OnInit, OnChanges {
       if (!this.parsedContent.hilos) this.parsedContent.hilos = [];
       this.parsedContent.hilos.push(nuevoHilo);
 
+      // 1. Send the new thread node as a reply to the network via UPSERT
       await this.upsertCorreoWorkflow(this.parsedContent);
+      
+      // 2. Notify participants of the status update
+      const syncRecipients = [msg.author, msg.responsible].filter((u): u is string => !!u);
+      this.notifyRecipientsOfSync(syncRecipients, this.parsedContent.workflow.id_referencia_doc);
 
+      // 2. Perform the localized CRUD UPDATE
+      if (this.activeConnection?.hash) {
+          const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+          const payload = {
+            "funcion": 'SDC_UUsers',
+            "valores": JSON.stringify({
+              "coleccion": "comunicaciones_internas",
+              "operacion": "UPDATE",
+              "filtro": { "id": this.parsedContent.id },
+              "datos": { 
+                  "workflow.estado": decision,
+                  "workflow.requiere_accion": false,
+                  "ultima_modificacion": new Date().toISOString()
+              }
+            })
+          };
+
+          await invoke('api_post_request', {
+            ip: this.activeConnection.ip_address,
+            port: Number(this.activeConnection.port),
+            endpoint: endpoint,
+            payload: payload,
+            hash: this.activeConnection.hash,
+            tempAuthToken: this.activeConnection.jwt
+          });
+      }
+
+      // 3. Update local SQLite database
       const updatedContentString = JSON.stringify(this.parsedContent);
       msg.content = updatedContentString;
       msg.status = (decision === 'APROBADO' || decision === 'COMPLETADO') ? 'Approved' : 'Rejected';
-
-      // Update SQLite Table attributes
-      await this.securityService.updateMailboxStatus(msg.id, msg.status, msg.tracking_info);
-
+      
+      await this.securityService.updateMailboxStatus(msg.id, msg.status, `Workflow ${decision}`);
+      
       // Re-create to persist full content body
       await this.securityService.deleteMailboxMessage(msg.id);
       await this.securityService.createMailboxMessage({
         ...msg,
         content: updatedContentString
       });
-
+      
+      this.snapService.show(`Flujo marcado como ${decision}`, undefined, 'success');
+      this.appState.setViewerLoading(false);
       await this.loadMessages();
       
       const reloaded = this.messages.find(m => m.sid === msg.sid);
@@ -1737,18 +1902,19 @@ export class SecurityComponent implements OnInit, OnChanges {
   // --- Attachment Helpers ---
 
   isAttachmentDownloaded(att: any): boolean {
-    if (!att || !att.remote_code) return false;
-    
-    // Si estamos en la bandeja de salida (Salida o Outbox), el archivo SIEMPRE es local
+    if (!att) return false;
+    // Prioridad 1: Si tiene path local es que ya se descargó o se envió desde aquí
+    if (!!att.path && !att.path.startsWith('v1/api')) return true;
+
+    // Prioridad 2: Si estamos en la bandeja de salida, el archivo SIEMPRE es local
     if (this.mailboxDirection === 'outbox') return true;
 
-    // Si el usuario es el autor del mensaje, el archivo vive en su memoria local (Backup check)
-    if (this.selectedMessage) {
-       const authorId = this.selectedMessage.author?.split('@')[0]?.toLowerCase();
-       if (authorId === this.authorProfile.usuario.toLowerCase()) return true;
+    // Prioridad 3: Verificar en el historial de boveda por remote_code
+    if (att.remote_code) {
+      return this.history.some(h => h.remote_code === att.remote_code);
     }
-
-    return this.history.some(h => h.remote_code === att.remote_code);
+    
+    return false;
   }
 
   hasPendingDownloads(msg: MailboxMessage): boolean {
@@ -1801,6 +1967,35 @@ export class SecurityComponent implements OnInit, OnChanges {
 
       // Refresh history to ensure the local index knows about the new file
       await this.loadHistory();
+
+      // Guardar el nombre limpio en la DB local (esto ya funcionaba antes)
+      const cleanName = att.name.replace(/\.zst$|\.gz$|\.zip$/i, '');
+      if (att.name !== cleanName) {
+        let found = false;
+        if (parsedContent.message_envelope?.attachments) {
+            const a = parsedContent.message_envelope.attachments.find((x: any) => x.remote_code === att.remote_code);
+            if (a) { a.name = cleanName; found = true; }
+        }
+        if (!found && parsedContent.payload?.documents) {
+            const a = parsedContent.payload.documents.find((x: any) => x.remote_code === att.remote_code);
+            if (a) { a.name = cleanName; found = true; }
+        }
+        if (!found && parsedContent.attachments) {
+            const a = parsedContent.attachments.find((x: any) => x.remote_code === att.remote_code);
+            if (a) { a.name = cleanName; found = true; }
+        }
+        
+        if (found) {
+            msg.content = JSON.stringify(parsedContent);
+            // Emulamos UPDATE con delete/insert local
+            await this.securityService.deleteMailboxMessage(msg.id);
+            await this.securityService.createMailboxMessage({
+                ...msg,
+                content: msg.content
+            });
+            att.name = cleanName;
+        }
+      }
 
       // Auto-open after download with the correct path
       const updatedAtt = { ...att, path: localPath, source: 'VAULT' };
@@ -2326,5 +2521,57 @@ export class SecurityComponent implements OnInit, OnChanges {
     } catch (e) {
       console.warn('Sync notification failed (background trace):', e);
     }
+  }
+
+  // --- UI Helpers for Categorization ---
+  getThreadType(msg: MailboxMessage): 'workflow' | 'seguimiento' | 'ordinario' | 'notificacion' {
+    try {
+      const content = JSON.parse(msg.content);
+      if (content.tipo_canal) {
+         return content.tipo_canal.toLowerCase() as any;
+      }
+      if (content.workflow) {
+        return content.workflow.tipo === 'Seguimiento' ? 'seguimiento' : 'workflow';
+      }
+    } catch (e) { }
+    return 'ordinario';
+  }
+
+  getThreadIcon(msg: MailboxMessage): string {
+    const type = this.getThreadType(msg);
+    switch (type) {
+      case 'workflow': return 'fas fa-project-diagram';
+      case 'seguimiento': return 'fas fa-info-circle';
+      case 'notificacion': return 'fas fa-bell';
+      default: return 'fas fa-envelope';
+    }
+  }
+
+  forwardToSupport() {
+      if (!this.selectedMessage) return;
+      
+      this.forwardMessage(this.selectedMessage);
+      // Pre-fill the recipient with Support destination
+      this.newMessage.selectedRecipients = [{ email: 'xterm@app.consola', displayValue: 'xterm@app.consola' }];
+      this.snapService.show('Reenviando notificación a Soporte Técnico.', undefined, 'info');
+  }
+
+  isForumClosed(): boolean {
+    if (!this.parsedContent?.workflow) return false;
+    const estado = this.parsedContent.workflow.estado;
+    return ['APROBADO', 'RECHAZADO', 'CERRADO', 'COMPLETADO', 'CANCELADO'].includes(estado);
+  }
+
+
+  getMessageClasses(msg: MailboxMessage) {
+    return {
+      'active': this.selectedMessage?.id === msg.id,
+      'unread': !msg.is_read,
+      ['thread-' + this.getThreadType(msg)]: true
+    };
+  }
+
+  getMessageIndicator(msg: MailboxMessage): string {
+    return (this.mailboxDirection === 'outbox' ? msg.responsible : msg.author) || 'Sistema';
   }
 }

@@ -144,6 +144,23 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     );
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN base_path TEXT", []);
 
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS document_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_name TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            file_size TEXT,
+            remote_code TEXT,
+            source TEXT,
+            file_hash TEXT,
+            group_name TEXT,
+            user_login TEXT,
+            opened_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     let _ = conn.execute("ALTER TABLE document_history ADD COLUMN group_name TEXT", []);
     let _ = conn.execute("ALTER TABLE document_history ADD COLUMN user_login TEXT", []);
 

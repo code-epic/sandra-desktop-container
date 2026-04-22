@@ -6949,3 +6949,213 @@ span.req {
 /* --- VAULT ANALYSIS REPORT V7 (ULTRA ROBUST) --- 
    Nota: Estilos movidos a styles.css para soporte de inyección HTML universal
 */
+
+/* --- THREADING & MICRO-CARDS (SAD V.24) --- */
+
+.gmail-row {
+  position: relative;
+  border-left: 3px solid transparent;
+  margin: 4px 8px;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.gmail-row:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+
+.gmail-row.active {
+  background: #f8fafc !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.gmail-row.thread-ordinario { border-left-color: #94a3b8; }
+.gmail-row.thread-seguimiento { border-left-color: #a78bfa; }
+.gmail-row.thread-workflow { border-left-color: #2dd4bf; }
+
+.thread-type-icon {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.thread-ordinario .thread-type-icon { color: #64748b; }
+.thread-seguimiento .thread-type-icon { color: #8b5cf6; }
+.thread-workflow .thread-type-icon { color: #0d9488; }
+
+/* Forum Sticky Header */
+.forum-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 12px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.fsh-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.fsh-subject {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fsh-badge {
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fsh-badge.workflow { background: #ccfbf1; color: #0d9488; }
+.fsh-badge.seguimiento { background: #ede9fe; color: #7c3aed; }
+.fsh-badge.ordinario { background: #f1f5f9; color: #64748b; }
+
+.fsh-status {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.fsh-status.pendiente { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.fsh-status.aprobado, .fsh-status.completado { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.fsh-status.rechazado { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+/* Forum Timeline Connectors */
+.forum-timeline-container {
+  position: relative;
+  padding-left: 10px;
+}
+
+.forum-track-line {
+  position: absolute;
+  left: 28px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #e2e8f0 0%, #e2e8f0 100%);
+  z-index: 1;
+}
+
+.forum-card {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 25px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.forum-card:nth-child(odd) {
+  background: #fcfdfe;
+}
+
+.forum-card.base-node {
+  border-left: 4px solid #3b82f6;
+}
+
+/* Attachment Badges */
+.att-item-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.att-item-badge.remote {
+  border-style: dashed;
+  color: #6366f1;
+}
+
+.att-item-badge.local {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.att-item-badge i {
+  font-size: 14px;
+}
+
+/* Forum Closed State */
+.forum-closed-banner {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  color: #64748b;
+  font-weight: 600;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed #cbd5e1;
+}
+
+.forum-closed-banner i {
+  color: #94a3b8;
+}
+
+/* Matte Pastel Green Modal Styles */
+.matte-green-header {
+  background: rgba(167, 243, 208, 0.1) !important;
+}
+.icon-pulse-wrapper.matte-green-pulse {
+  background: rgba(167, 243, 208, 0.2);
+  color: #10b981;
+}
+.icon-pulse-wrapper.matte-green-pulse::after {
+  border: 2px solid rgba(167, 243, 208, 0.4);
+}
+
+.btn-modal-confirm-matte {
+  flex: 1;
+  padding: 12px;
+  background: #a7f3d0; /* Matte Pastel Green */
+  color: #064e3b;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(167, 243, 208, 0.3);
+}
+
+.btn-modal-confirm-matte:hover {
+  background: #6ee7b7;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(110, 231, 183, 0.4);
+}
