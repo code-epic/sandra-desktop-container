@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-param" content="_csrf-backend">
+<meta name="csrf-token" content="Khk8YEeuvptH_Vzm_5s40CJQPNsPnAiLhpLpA7ck6nYbLlFVFfbtzXaZFJ6W6k61VGRjmUzNS73hp6BC2mG9NA==">
+    <title>Login</title>
+    <link href="/in_farmacia/backend/web/assets/62f9cdde/css/font-awesome.min.css" rel="stylesheet">
+<link href="/in_farmacia/backend/web/assets/601506c3/css/bootstrap.css" rel="stylesheet">
+<link href="/in_farmacia/backend/web/assets/81d08ecf/css/AdminLTE.min.css" rel="stylesheet">
+<link href="/in_farmacia/backend/web/assets/81d08ecf/css/skins/_all-skins.min.css" rel="stylesheet"></head>
+<body class="login-page" style="background: url('../img/img3.jpg') no-repeat center center fixed;background-size: cover;">
+
+
+    
+<div class="login-box" style="background-color: #FFF;padding: 3px">
+    <div class="login-logo">
+        <b>SIGADIPSFANB</b>
+        <div class="container-fluid text-center text-bold" style="font-family: serif; color: #3C8DBC; font-size: 12px">
+            SISTEMA INTEGRAL DE GESTIÓN AVANZADA DE LA DROGUERÍA DEL INSTITUTO DE PREVISIÓN SOCIAL DE LA FUERZA ARMADA NACIONAL BOLIVARIANA
+        </div>
+        <br /> Inicio de sesión
+    </div>
+    <div class="login-box-body">
+        <form id="login-form" action="/in_farmacia/backend/web/site/login" method="post" role="form">
+<input type="hidden" name="_csrf-backend" value="Khk8YEeuvptH_Vzm_5s40CJQPNsPnAiLhpLpA7ck6nYbLlFVFfbtzXaZFJ6W6k61VGRjmUzNS73hp6BC2mG9NA==">
+        <div class="form-group has-feedback field-loginform-username required">
+
+<input type="text" id="loginform-username" class="form-control" name="LoginForm[username]" placeholder="Username" aria-required="true"><span class='glyphicon glyphicon-envelope form-control-feedback'></span>
+
+<p class="help-block help-block-error"></p>
+</div>
+        <div class="form-group has-feedback field-loginform-password required">
+
+<input type="password" id="loginform-password" class="form-control" name="LoginForm[password]" placeholder="Password" aria-required="true"><span class='glyphicon glyphicon-lock form-control-feedback'></span>
+
+<p class="help-block help-block-error"></p>
+</div>
+        <div class="row">
+            <div class="col-xs-8">
+                <div class="form-group field-loginform-rememberme">
+<div class="checkbox">
+<label for="loginform-rememberme">
+<input type="hidden" name="LoginForm[rememberMe]" value="0"><input type="checkbox" id="loginform-rememberme" name="LoginForm[rememberMe]" value="1" checked>
+Remember Me
+</label>
+<p class="help-block help-block-error"></p>
+
+</div>
+</div>            </div>
+            <div class="col-xs-4">
+                <button type="submit" class="btn btn-primary btn-block btn-flat" name="login-button">Entrar</button>            </div>
+        </div>
+
+        </form>
+        <div style='width: 100%'>
+            <a href="register" style="float: left">
+                Registrarse
+            </a>
+            <a href="recuperar" style="float: right">
+                ¿Olvido su clave?
+            </a>
+        </div>
+        <br />
+    </div>
+</div>
+
+<script src="/in_farmacia/backend/web/assets/d9e4b2df/jquery.js"></script>
+<script src="/in_farmacia/backend/web/assets/387c8411/yii.js"></script>
+<script src="/in_farmacia/backend/web/assets/387c8411/yii.activeForm.js"></script>
+<script src="/in_farmacia/backend/web/assets/601506c3/js/bootstrap.js"></script>
+<script src="/in_farmacia/backend/web/assets/81d08ecf/js/adminlte.min.js"></script>
+<script>jQuery(function ($) {
+jQuery('#login-form').yiiActiveForm([], []);
+});</script></body>
+</html>

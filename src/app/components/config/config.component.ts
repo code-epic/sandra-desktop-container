@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { POLICIES_HTML } from '../../constants/policies';
 
 @Component({
   selector: 'app-config',
@@ -21,6 +22,8 @@ export class ConfigComponent {
   @Output() onDisconnect = new EventEmitter<any>();
 
   activeConfigTab: string = 'logs';
+  viewingPolicies: boolean = false;
+  policiesHtml = POLICIES_HTML;
 
   saveConfig() {
     this.onSave.emit();

@@ -143,6 +143,18 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         [],
     );
     let _ = conn.execute("ALTER TABLE desktop_apps ADD COLUMN base_path TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE desktop_apps ADD COLUMN is_limitless BOOLEAN DEFAULT 0",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE desktop_apps ADD COLUMN is_csrf_sync BOOLEAN DEFAULT 0",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE desktop_apps ADD COLUMN is_bypass BOOLEAN DEFAULT 0",
+        [],
+    );
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS document_history (
@@ -161,8 +173,14 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN group_name TEXT", []);
-    let _ = conn.execute("ALTER TABLE document_history ADD COLUMN user_login TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE document_history ADD COLUMN group_name TEXT",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE document_history ADD COLUMN user_login TEXT",
+        [],
+    );
 
     // Security Mailbox Table
     conn.execute(
@@ -196,8 +214,14 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     );
 
     // Migraciones silenciosas: Añadir user_login a tablas CORE
-    let _ = conn.execute("ALTER TABLE security_mailbox ADD COLUMN user_login TEXT", []);
-    let _ = conn.execute("ALTER TABLE authorization_tickets ADD COLUMN user_login TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE security_mailbox ADD COLUMN user_login TEXT",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE authorization_tickets ADD COLUMN user_login TEXT",
+        [],
+    );
     let _ = conn.execute("ALTER TABLE chat_history ADD COLUMN user_login TEXT", []);
 
     // Tabla de Metadatos de Sincronización

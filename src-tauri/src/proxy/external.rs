@@ -17,21 +17,32 @@ pub fn proxy_arbitrary_url(
         .timeout(std::time::Duration::from_secs(20))
         .build()?;
 
-    if remote_url.contains("sockjs-node") || remote_url.contains("ng-cli-ws") || remote_url.contains("/info?t=") {
-        println!("🛑 [Proxy] Intercepted DevServer Info Request (fake 200): {}", remote_url);
+    if remote_url.contains("sockjs-node")
+        || remote_url.contains("ng-cli-ws")
+        || remote_url.contains("/info?t=")
+    {
+        println!(
+            "🛑 [Proxy] Intercepted DevServer Info Request (fake 200): {}",
+            remote_url
+        );
         return Ok(create_response(
             200,
             "application/json",
-            r#"{"websocket":true,"origins":["*:*"],"cookie_needed":false,"entropy":1234567890}"#.as_bytes().to_vec(),
+            r#"{"websocket":true,"origins":["*:*"],"cookie_needed":false,"entropy":1234567890}"#
+                .as_bytes()
+                .to_vec(),
         ));
     }
 
     let req_builder = client.get(remote_url);
     // Para simplificar, asumimos GET simple. Si se necesitan HEADERS, se pueden extraer del request original pasándolos.
-    
+
     let resp = req_builder.send()?;
     let status = resp.status();
-    println!("✅ [External Proxy] Response: {} status {}", remote_url, status);
+    println!(
+        "✅ [External Proxy] Response: {} status {}",
+        remote_url, status
+    );
 
     let headers = resp.headers().clone();
     let mut body = resp.bytes()?.to_vec();
@@ -43,15 +54,25 @@ pub fn proxy_arbitrary_url(
             audit_headers.insert(name.as_str().to_string(), v.to_string());
         }
     }
-    
+
     let response_body_str = match String::from_utf8(body.clone()) {
-        Ok(s) => if s.len() > 5000 { format!("{}... (truncated)", &s[..5000]) } else { s },
+        Ok(s) => {
+            if s.len() > 5000 {
+                format!("{}... (truncated)", &s[..5000])
+            } else {
+                s
+            }
+        }
         Err(_) => "[Binary Data]".to_string(),
     };
 
     let audit_payload = NetworkEventPayload {
         app_id: app_id_for_audit.to_string(),
-        log_type: if status.is_success() { "FETCH".to_string() } else { "ERROR".to_string() },
+        log_type: if status.is_success() {
+            "FETCH".to_string()
+        } else {
+            "ERROR".to_string()
+        },
         message: format!("GET {} [{}]", remote_url, status.as_u16()),
         details: NetworkEventDetails {
             url: remote_url.to_string(),
@@ -64,21 +85,33 @@ pub fn proxy_arbitrary_url(
     };
     emit_network_log(app_handle, audit_payload);
 
-    let content_type = headers.get(CONTENT_TYPE).and_then(|v| v.to_str().ok()).unwrap_or("");
+    let content_type = headers
+        .get(CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
 
     if content_type.contains("text/html") {
         if let Ok(mut body_str) = String::from_utf8(body.clone()) {
             if let Some(href_val) = base_href {
                 if body_str.contains("<base href=\"/\">") {
-                    body_str = body_str.replace("<base href=\"/\">", &format!("<base href=\"{}\">", href_val));
+                    body_str = body_str.replace(
+                        "<base href=\"/\">",
+                        &format!("<base href=\"{}\">", href_val),
+                    );
                 } else if body_str.contains("<base href=\"./\">") {
-                    body_str = body_str.replace("<base href=\"./\">", &format!("<base href=\"{}\">", href_val));
+                    body_str = body_str.replace(
+                        "<base href=\"./\">",
+                        &format!("<base href=\"{}\">", href_val),
+                    );
                 } else if body_str.contains("<base href='/'>") {
-                    body_str = body_str.replace("<base href='/'>", &format!("<base href=\"{}\">", href_val));
+                    body_str = body_str
+                        .replace("<base href='/'>", &format!("<base href=\"{}\">", href_val));
                 } else if body_str.contains("<base href='./'>") {
-                    body_str = body_str.replace("<base href='./'>", &format!("<base href=\"{}\">", href_val));
+                    body_str = body_str
+                        .replace("<base href='./'>", &format!("<base href=\"{}\">", href_val));
                 } else if !body_str.contains("<base ") {
-                    body_str = body_str.replace("<head>", &format!("<head><base href=\"{}\">", href_val));
+                    body_str =
+                        body_str.replace("<head>", &format!("<head><base href=\"{}\">", href_val));
                 }
             }
 
@@ -132,31 +165,55 @@ pub fn proxy_arbitrary_url(
             let mut new_js = js_str;
 
             if new_js.contains("new WebSocket(") {
-                new_js = new_js.replace("new WebSocket(", "new (window.__SDC_SAFE_WS || window.WebSocket)(");
+                new_js = new_js.replace(
+                    "new WebSocket(",
+                    "new (window.__SDC_SAFE_WS || window.WebSocket)(",
+                );
                 modified = true;
             }
             if new_js.contains("new window.WebSocket(") {
-                new_js = new_js.replace("new window.WebSocket(", "new (window.__SDC_SAFE_WS || window.WebSocket)(");
+                new_js = new_js.replace(
+                    "new window.WebSocket(",
+                    "new (window.__SDC_SAFE_WS || window.WebSocket)(",
+                );
                 modified = true;
             }
 
             let sockjs_scheme_err = "The URL's scheme must be either";
             if new_js.contains(sockjs_scheme_err) {
-                new_js = new_js.replace("throw new SyntaxError(\"The URL's scheme", "console.warn(\"SDC Suppressed: The URL's scheme");
-                new_js = new_js.replace("throw new SyntaxError('The URL\\'s scheme", "console.warn('SDC Suppressed: The URL\\'s scheme");
+                new_js = new_js.replace(
+                    "throw new SyntaxError(\"The URL's scheme",
+                    "console.warn(\"SDC Suppressed: The URL's scheme",
+                );
+                new_js = new_js.replace(
+                    "throw new SyntaxError('The URL\\'s scheme",
+                    "console.warn('SDC Suppressed: The URL\\'s scheme",
+                );
                 modified = true;
             }
 
             let sockjs_invalid_err = "is invalid\")";
             if new_js.contains(sockjs_invalid_err) || new_js.contains("is invalid')") {
-                new_js = new_js.replace("throw new SyntaxError(\"The URL '\"", "console.warn(\"SDC Suppressed: The URL '\"");
-                new_js = new_js.replace("throw new SyntaxError('The URL \\''", "console.warn('SDC Suppressed: The URL \\''");
+                new_js = new_js.replace(
+                    "throw new SyntaxError(\"The URL '\"",
+                    "console.warn(\"SDC Suppressed: The URL '\"",
+                );
+                new_js = new_js.replace(
+                    "throw new SyntaxError('The URL \\''",
+                    "console.warn('SDC Suppressed: The URL \\''",
+                );
                 modified = true;
             }
 
             if new_js.contains("SecurityError: An insecure SockJS connection") {
-                new_js = new_js.replace("throw new Error(\"SecurityError:", "console.warn(\"SDC Suppressed: SecurityError:");
-                new_js = new_js.replace("throw new Error('SecurityError:", "console.warn('SDC Suppressed: SecurityError:");
+                new_js = new_js.replace(
+                    "throw new Error(\"SecurityError:",
+                    "console.warn(\"SDC Suppressed: SecurityError:",
+                );
+                new_js = new_js.replace(
+                    "throw new Error('SecurityError:",
+                    "console.warn('SDC Suppressed: SecurityError:",
+                );
                 modified = true;
             }
 
@@ -184,11 +241,17 @@ pub fn proxy_arbitrary_url(
     Ok(response_builder
         .header("Access-Control-Allow-Origin", "*")
         .header("Access-Control-Allow-Credentials", "true")
-        .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, PATCH")
+        .header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+        )
         .header("Access-Control-Allow-Headers", "*")
         .header("Access-Control-Expose-Headers", "*")
         .header("X-Frame-Options", "ALLOWALL")
         .header("Referrer-Policy", "unsafe-url")
-        .header("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: sandra-app:;")
+        .header(
+            "Content-Security-Policy",
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: sandra-app:;",
+        )
         .body(body)?)
 }

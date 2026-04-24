@@ -17,6 +17,9 @@ export interface DesktopApp {
   token?: string;
   is_proxy_required?: boolean;
   is_external_browser?: boolean; // New attribute for Free Browser Mode
+  is_limitless?: boolean; // Legacy/Limitless Mode
+  is_csrf_sync?: boolean; // Auto-sync CSRF tokens para Yii2/frameworks
+  is_bypass?: boolean; // Bypass total: sin proxy, sin auditoría
   base_path?: string; // SRE context: base path for github apps (ej: /gdoc/)
   action?: string; // Optional for mapped actions like 'toggleCP'
 }

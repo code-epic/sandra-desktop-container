@@ -25,7 +25,7 @@ argon2 = "0.5.3"
 chrono = "0.4.43"
 uuid = { version = "1.19.0", features = ["v4", "serde"] }
 local-ip-address = "0.6.9"
-reqwest = { version = "0.13.1", features = ["blocking", "json", "stream", "multipart"] }
+reqwest = { version = "0.13.1", features = ["blocking", "json", "stream", "multipart", "cookies"] }
 tokio = { version = "1", features = ["full"] }
 tokio-native-tls = "0.3"
 tokio-tungstenite = { version = "0.28.0", features = ["native-tls"] }

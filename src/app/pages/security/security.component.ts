@@ -81,7 +81,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   showTrace: boolean = false;
   isComposing: boolean = false;
   searchText: string = '';
-  statusFilter: string = '';
+  statusFilter: string = 'all';
   selectedIds: Set<number> = new Set<number>();
 
   // Modales y Estados de Acción
@@ -224,8 +224,13 @@ export class SecurityComponent implements OnInit, OnChanges {
     }
 
     // Status Filter
-    if (this.statusFilter) {
-      filtered = filtered.filter(m => m.status === this.statusFilter);
+    if (this.statusFilter && this.statusFilter !== 'all') {
+      filtered = filtered.filter(m => {
+        if (this.statusFilter === 'Pending') {
+          return !m.status || m.status === 'Pending';
+        }
+        return m.status === this.statusFilter;
+      });
     }
 
     // Text Filter
@@ -696,13 +701,23 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.highlightedMessage = msg;
   }
 
-  selectMessage(msg: MailboxMessage) {
+  async selectMessage(msg: MailboxMessage) {
     this.selectedMessage = msg;
     this.highlightedMessage = msg;
     this.isComposing = false;
     this.replyingToMessage = null; // Clear reply context when selecting a new message
     this.parsedContent = this.parseJsonContent(msg.content);
     this.showTrace = false;
+
+    // MARCAR COMO LEÍDO si es nuevo o está pendiente
+    if (!msg.status || msg.status === 'Pending') {
+      try {
+        msg.status = 'Read';
+        await this.securityService.updateMailboxStatus(msg.id, 'Read', 'Auto-marcado como leído al abrir');
+      } catch (e) {
+        console.warn("No se pudo marcar como leído automáticamente:", e);
+      }
+    }
   }
 
   setTab(tab: any) {
@@ -1849,6 +1864,8 @@ export class SecurityComponent implements OnInit, OnChanges {
       case 'Completed': return 'status-approved';
       case 'Rejected': return 'status-rejected';
       case 'Read': return 'status-read';
+      case 'Cancelled': return 'status-cancelled';
+      case 'Archived': return 'status-archived';
       default: return 'status-pending';
     }
   }
@@ -1859,6 +1876,8 @@ export class SecurityComponent implements OnInit, OnChanges {
       case 'Completed': return 'fas fa-check-circle';
       case 'Rejected': return 'fas fa-times-circle';
       case 'Read': return 'fas fa-envelope-open';
+      case 'Cancelled': return 'fas fa-minus-circle';
+      case 'Archived': return 'fas fa-archive';
       default: return 'fas fa-clock';
     }
   }
@@ -1895,6 +1914,8 @@ export class SecurityComponent implements OnInit, OnChanges {
       case 'Rejected': return 'Rechazado';
       case 'Read': return 'Leído';
       case 'Pending': return 'Pendiente';
+      case 'Cancelled': return 'Cancelado';
+      case 'Archived': return 'Archivado';
       default: return status;
     }
   }

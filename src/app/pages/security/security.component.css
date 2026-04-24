@@ -1751,6 +1751,18 @@ input:checked+.slider:before {
   border-color: rgba(245, 127, 23, 0.2);
 }
 
+.status-cancelled {
+  background: rgba(117, 117, 117, 0.08);
+  color: #757575;
+  border-color: rgba(117, 117, 117, 0.2);
+}
+
+.status-archived {
+  background: rgba(66, 66, 66, 0.08);
+  color: #424242;
+  border-color: rgba(66, 66, 66, 0.2);
+}
+
 /* Compact version for list items */
 .status-badge.mini {
   padding: 2px 8px;

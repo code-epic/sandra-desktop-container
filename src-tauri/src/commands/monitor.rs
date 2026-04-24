@@ -11,6 +11,8 @@ pub struct SystemStats {
     pub os_info: String,
     pub mac_address: String,
     pub local_ip: String,
+    pub total_memory: u64,
+    pub used_memory: u64,
 }
 
 // Helper function to collect stats (callable from Rust)
@@ -52,6 +54,8 @@ pub fn collect_system_stats() -> SystemStats {
         os_info,
         mac_address: mac,
         local_ip: ip_local,
+        total_memory: sys.total_memory(),
+        used_memory: sys.used_memory(),
     }
 }
 

@@ -63,7 +63,10 @@ pub fn get_active_connection(app_handle: &AppHandle) -> Option<Connection> {
     }
 
     if let Some(ref conn) = result {
-        println!("✅ [Proxy] Routing via: {} ({}:{})", conn.name, conn.ip_address, conn.port);
+        println!(
+            "✅ [Proxy] Routing via: {} ({}:{})",
+            conn.name, conn.ip_address, conn.port
+        );
     } else {
         println!("🚫 [Proxy] CRITICAL: No Connections configured in Database.");
     }
@@ -79,7 +82,8 @@ pub fn is_app_proxy_required(app_handle: &AppHandle, app_id: &str) -> bool {
     let state = app_handle.state::<DbState>();
     let result = if let Ok(conn) = state.0.lock() {
         let query = "SELECT is_proxy_required FROM desktop_apps WHERE app_id = ?1";
-        conn.query_row(query, [app_id], |row| row.get(0)).unwrap_or(false)
+        conn.query_row(query, [app_id], |row| row.get(0))
+            .unwrap_or(false)
     } else {
         false
     };
@@ -150,7 +154,11 @@ pub fn proxy_to_remote(
 
     let audit_payload = NetworkEventPayload {
         app_id: app_id_for_audit.to_string(),
-        log_type: if status.is_success() { "FETCH".to_string() } else { "ERROR".to_string() },
+        log_type: if status.is_success() {
+            "FETCH".to_string()
+        } else {
+            "ERROR".to_string()
+        },
         message: format!("{} {} [{}]", method, remote_url, status.as_u16()),
         details: NetworkEventDetails {
             url: remote_url,
@@ -182,11 +190,65 @@ pub fn proxy_to_remote(
     Ok(response_builder
         .header("Access-Control-Allow-Origin", "*")
         .header("Access-Control-Allow-Credentials", "true")
-        .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, PATCH")
+        .header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+        )
         .header("Access-Control-Allow-Headers", "*")
         .header("Access-Control-Expose-Headers", "*")
         .header("X-Frame-Options", "ALLOWALL")
         .header("Referrer-Policy", "unsafe-url")
-        .header("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: sandra-app:;")
+        .header(
+            "Content-Security-Policy",
+            "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: sandra-app:;",
+        )
         .body(resp_body)?)
+}
+
+pub fn is_app_limitless(app_handle: &AppHandle, app_id: &str) -> bool {
+    if app_id.is_empty() {
+        return false;
+    }
+
+    let state = app_handle.state::<DbState>();
+    let result = if let Ok(conn) = state.0.lock() {
+        let query = "SELECT is_limitless FROM desktop_apps WHERE app_id = ?1";
+        conn.query_row(query, [app_id], |row| row.get(0))
+            .unwrap_or(false)
+    } else {
+        false
+    };
+    result
+}
+
+pub fn is_app_csrf_sync(app_handle: &AppHandle, app_id: &str) -> bool {
+    if app_id.is_empty() {
+        return false;
+    }
+
+    let state = app_handle.state::<DbState>();
+    let result = if let Ok(conn) = state.0.lock() {
+        let query = "SELECT is_csrf_sync FROM desktop_apps WHERE app_id = ?1";
+        conn.query_row(query, [app_id], |row| row.get(0))
+            .unwrap_or(false)
+    } else {
+        false
+    };
+    result
+}
+
+pub fn is_app_bypass(app_handle: &AppHandle, app_id: &str) -> bool {
+    if app_id.is_empty() {
+        return false;
+    }
+
+    let state = app_handle.state::<DbState>();
+    let result = if let Ok(conn) = state.0.lock() {
+        let query = "SELECT is_bypass FROM desktop_apps WHERE app_id = ?1";
+        conn.query_row(query, [app_id], |row| row.get(0))
+            .unwrap_or(false)
+    } else {
+        false
+    };
+    result
 }

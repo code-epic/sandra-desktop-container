@@ -55,9 +55,11 @@
                             <select [(ngModel)]="statusFilter" (ngModelChange)="resetPagination()"
                                 class="input-dark filter-select">
                                 <option value="all">Todos los Estados</option>
+                                <option value="Pending">Pendientes</option>
                                 <option value="Read">Leídos</option>
-                                <!-- Estado "PENDIENTES" oculto por requerimiento de flujo -->
                                 <option value="Approved">Aprobados</option>
+                                <option value="Rejected">Rechazados</option>
+                                <option value="Completed">Completados</option>
                             </select>
                         </div>
                         <div class="vertical-divider"></div>
@@ -487,6 +489,10 @@
                                 <div class="w-meta-group">
                                     <span class="w-badge w-ref-badge">
                                         Ref: {{ parsedContent?.workflow?.id_referencia_doc || getMessageGuid(selectedMessage.content) }}
+                                    </span>
+                                    <span class="status-tag" [ngClass]="getStatusClass(selectedMessage.status)" *ngIf="selectedMessage.status" style="margin-left: 8px;">
+                                        <i [class]="getStatusIcon(selectedMessage.status)" class="tag-icon"></i>
+                                        {{ translateStatus(selectedMessage.status) }}
                                     </span>
                                     <span class="w-badge w-uptime-badge" *ngIf="parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CERRADO'">
                                          <i class="fas fa-clock"></i> {{ getWorkflowUptime(selectedMessage.created_at) }} activo

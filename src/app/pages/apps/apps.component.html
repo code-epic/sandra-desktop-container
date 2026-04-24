@@ -28,6 +28,27 @@
                 <i class="fas fa-shield-alt"></i>
             </div>
 
+            <!-- Limitless Badge (Top Right - Purple) -->
+            <div class="proxy-badge" *ngIf="app.is_limitless && !app.is_external_browser"
+                style="background: #9C27B0;"
+                title="Motor Limitless">
+                <i class="fas fa-rocket"></i>
+            </div>
+
+            <!-- CSRF Sync Badge (Top Right - Orange) -->
+            <div class="proxy-badge" *ngIf="app.is_csrf_sync"
+                style="background: #FF9800;"
+                title="CSRF Auto-Sync">
+                <i class="fas fa-sync-alt"></i>
+            </div>
+
+            <!-- Bypass Badge (Top Right - Red) -->
+            <div class="proxy-badge" *ngIf="app.is_bypass"
+                style="background: #F44336;"
+                title="Modo Bypass (Sin Proxy)">
+                <i class="fas fa-door-open"></i>
+            </div>
+
             <!-- External/Free Mode Indicator (Fixed Position: Top Right) -->
             <div class="proxy-badge external-mode-badge" *ngIf="app.is_external_browser"
                 title="Navegación Libre (Sin Proxy)">
@@ -160,7 +181,7 @@
             <!-- ROW 2: OPERATION MODES -->
             <div class="section-row">
                 <h5 class="col-header">Modo de Ejecución</h5>
-                <div class="row-grid-2">
+                <div class="row-grid-3">
                     <!-- Proxy Switch -->
                     <div class="setting-card" [class.active-green]="currentApp.is_proxy_required">
                         <div class="card-icon-box green">
@@ -188,6 +209,59 @@
                         <label class="switch-mini">
                             <input type="checkbox" [(ngModel)]="currentApp.is_external_browser"
                                 (change)="toggleExternal()">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <!-- Limitless Switch -->
+                    <div class="setting-card" [class.active-purple]="currentApp.is_limitless">
+                        <div class="card-icon-box purple">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div class="card-text">
+                            <div class="card-title">Motor Limitless</div>
+                            <div class="card-desc">Apps Legacy / Sesiones</div>
+                        </div>
+                        <label class="switch-mini">
+                            <input type="checkbox" [(ngModel)]="currentApp.is_limitless"
+                                (change)="toggleLimitless()">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 3: SPECIAL HANDLERS (NEW) -->
+            <div class="section-row">
+                <h5 class="col-header">Manejo Especial de Sesiones</h5>
+                <div class="row-grid-3">
+                    <!-- CSRF Sync Switch -->
+                    <div class="setting-card" [class.active-orange]="currentApp.is_csrf_sync" title="Sincroniza automáticamente tokens CSRF para Yii2, Laravel, etc.">
+                        <div class="card-icon-box orange">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <div class="card-text">
+                            <div class="card-title">CSRF Auto-Sync</div>
+                            <div class="card-desc">Sincroniza tokens CSRF</div>
+                        </div>
+                        <label class="switch-mini">
+                            <input type="checkbox" [(ngModel)]="currentApp.is_csrf_sync"
+                                (change)="toggleCsrfSync()">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <!-- Bypass Mode Switch -->
+                    <div class="setting-card" [class.active-red]="currentApp.is_bypass" title="Bypass total sin proxy ni auditoría">
+                        <div class="card-icon-box red">
+                            <i class="fas fa-door-open"></i>
+                        </div>
+                        <div class="card-text">
+                            <div class="card-title">Modo Bypass</div>
+                            <div class="card-desc">Sin proxy, sin auditoría</div>
+                        </div>
+                        <label class="switch-mini">
+                            <input type="checkbox" [(ngModel)]="currentApp.is_bypass"
+                                (change)="toggleBypass()">
                             <span class="slider round"></span>
                         </label>
                     </div>

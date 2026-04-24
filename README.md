@@ -33,6 +33,12 @@ La interfaz ha sido refinada para ofrecer una transición fluida entre la superv
 - **Estética "Elite Glass"**: Aplicación de técnicas de diseño premium (difuminado de fondo de 10px, degradados radiales neumáticos) que unifican el estilo de las tarjetas de aplicaciones con los indicadores de telemetría del Dashboard.
 - **Feedback Sensorial**: Micro-animaciones refinadas (elevación de tarjetas, overlays inteligentes) que proporcionan una respuesta táctil visual a cada interacción del operador.
 
+### 4. Motor de Rendimiento Adaptativo (SDC Performance Engine)
+Para garantizar la universalidad de Sandra, hemos implementado un motor de autoconfiguración de hardware:
+- **Detección en Tiempo Real**: Al iniciar, el contenedor utiliza Rust para medir la RAM física total.
+- **Perfiles de Renderizado**: El sistema aplica automáticamente clases CSS (`.perf-low`, `.perf-medium`, `.perf-high`) que ajustan la carga visual.
+- **Soberanía de Hardware**: Permite que Sandra funcione con fluidez en equipos legados (ej. Pentium Dual-Core, 1GB RAM) desactivando efectos costosos como el Glassmorphism (blur) y animaciones de fondo, sin comprometer la seguridad o funcionalidad central.
+
 ---
 
 ## Stack Tecnológico

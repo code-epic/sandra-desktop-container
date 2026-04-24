@@ -1,0 +1,15 @@
+HTTP/1.1 302 Found
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Content-Type: text/html; charset=UTF-8
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Location: http://192.168.12.165/in_farmacia/backend/web/
+Server: Microsoft-IIS/10.0
+X-Powered-By: PHP/8.2.8
+Set-Cookie: PHPSESSID=h4iq2dcpe73b0e68dg4l2mdul9; path=/; HttpOnly
+Set-Cookie: _identity-frontend=deleted; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; path=/; HttpOnly; SameSite=Lax
+Set-Cookie: _csrf-backend=f24559e2d6d9ed89642d027d4681493f2403e28fa82e2dd4f981c93efe1aa211a%3A2%3A%7Bi%3A0%3Bs%3A13%3A%22_csrf-backend%22%3Bi%3A1%3Bs%3A32%3A%22BWxJMXDN7eYykWj9oBZP9md7Z-dPNVoA%22%3B%7D; path=/; HttpOnly; SameSite=Lax
+X-Powered-By: ASP.NET
+Date: Thu, 23 Apr 2026 13:46:28 GMT
+Content-Length: 0
+

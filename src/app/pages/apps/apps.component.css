@@ -1156,6 +1156,11 @@ input:checked+.slider:before {
   background: #e1f5fe;
 }
 
+.setting-card.active-purple {
+  border-color: #ce93d8;
+  background: #f3e5f5;
+}
+
 .card-icon-box {
   width: 38px;
   height: 38px;
@@ -1175,6 +1180,11 @@ input:checked+.slider:before {
 .card-icon-box.blue {
   background: #e3f2fd;
   color: #1e88e5;
+}
+
+.card-icon-box.purple {
+  background: #f3e5f5;
+  color: #8e24aa;
 }
 
 .card-text {

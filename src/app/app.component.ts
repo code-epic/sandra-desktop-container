@@ -38,6 +38,7 @@ import { BackgroundProgressComponent } from "./components/background-progress/ba
 import { HttpProgressComponent } from "./components/background-progress/http-progress.component";
 import { SetupWizardComponent } from "./components/setup-wizard/setup-wizard.component";
 import { LoginModalComponent } from "./components/login-modal/login-modal.component";
+import { PerformanceService } from "./core/services/performance.service";
 
 type ConnectionStatus =
   | "Conectado"
@@ -236,8 +237,10 @@ export class AppComponent implements OnInit {
     private fileService: FileService,
     public securityService: SecurityService,
     public utils: UtilsService,
+    private performance: PerformanceService
   ) {
     // ... existing constructor logic ...
+    this.performance.initialize();
 
     // Close splash screen
     // Esperamos 5 segundos antes de cerrar el splash y mostrar el main
@@ -931,55 +934,92 @@ export class AppComponent implements OnInit {
   }
 
   openApp(app: any) {
-    console.log(app);
+    // Fix: Los datos pueden estar en _original o directamente en app
+    const appData = app._original || app;
+    const targetUrl = appData.external_url || appData.externalUrl || "";
+    const appId = appData.app_id || app.id;
+    
     let rawUrl = "";
     let isExternalMode = false;
 
+    console.log("📋 App data:", appData);
+    console.log("🔑 Flags:", {
+      is_bypass: appData.is_bypass,
+      is_csrf_sync: appData.is_csrf_sync,
+      is_limitless: appData.is_limitless,
+      is_external_browser: appData.is_external_browser,
+      is_proxy_required: appData.is_proxy_required,
+      targetUrl: targetUrl
+    });
+
     // Lógica inteligente de URL:
-    // 0. Modo "Navegador Libre" (Bypass total de seguridad SDC)
-    if (app.is_external_browser) {
-      if (!app.externalUrl) {
+    // 0. Modo Bypass (pass-through sin modificación)
+    if (appData.is_bypass) {
+      if (!targetUrl) {
+        this.showModal("Error de Configuración", "La aplicación en modo Bypass no tiene URL definida.");
+        return;
+      }
+      const target = encodeURIComponent(targetUrl);
+      rawUrl = `sandra-app://localhost/bypass-proxy/${appId}/?target=${target}`;
+      console.log(`🚧 [Bypass Nav] Opening ${appData.name} -> ${rawUrl}`);
+    }
+    // 1. Modo CSRF Sync (auto-sincroniza tokens CSRF)
+    else if (appData.is_csrf_sync) {
+      if (!targetUrl) {
+        this.showModal("Error de Configuración", "La aplicación CSRF Sync no tiene URL definida.");
+        return;
+      }
+      const target = encodeURIComponent(targetUrl);
+      rawUrl = `sandra-app://localhost/csrf-sync-proxy/${appId}/?target=${target}`;
+      console.log(`🔐 [CSRF Sync Nav] Opening ${appData.name} -> ${rawUrl}`);
+    }
+    // 2. Modo "Motor Limitless" (Proxied via Rust CookieJar)
+    else if (appData.is_limitless) {
+      if (!targetUrl) {
+        this.showModal("Error de Configuración", "La aplicación Limitless no tiene URL definida.");
+        return;
+      }
+      const target = encodeURIComponent(targetUrl);
+      rawUrl = `sandra-app://localhost/limitless-proxy/${appId}/?target=${target}`;
+      console.log(`🚀 [Limitless Nav] Opening ${appData.name} -> ${rawUrl}`);
+    }
+    // 3. Modo "Navegador Libre" (Bypass total de seguridad SDC)
+    else if (appData.is_external_browser) {
+      if (!targetUrl) {
         this.showModal(
           "Error de Configuración",
           "La aplicación está marcada como 'Externa' pero no tiene URL definida.",
         );
         return;
       }
-      rawUrl = app.externalUrl;
+      rawUrl = targetUrl;
       isExternalMode = true;
-      console.log(`🌐 [Free Browser Mode] Opening ${app.name} -> ${rawUrl}`);
+      console.log(`🌐 [Free Browser Mode] Opening ${appData.name} -> ${rawUrl}`);
     }
-    // 1. Si la App requiere Proxy -> Forzar sandra-app:// (incluso si es externa) para interceptar tráfico
-    else if (app.externalUrl && !app.is_proxy_required) {
-      // Caso 2: Externa Directa (Legacy pero restringida)
-      rawUrl = app.externalUrl;
-      console.log(
-        `🌍 [External Nav] Direct (No Proxy) ${app.name} -> ${rawUrl}`,
-      );
-      this.logger.log("FETCH", `GET ${rawUrl} [200]`, "Navigation", app.id);
-    } else if (app.externalUrl && app.is_proxy_required) {
-      // Caso 1: Externa Proxied (Wrap en sandra-app)
-      // Formato: sandra-app://localhost/external-proxy/{APP_ID}/?target={URL}
-      const target = encodeURIComponent(app.externalUrl);
-      rawUrl = `sandra-app://localhost/external-proxy/${app.id}/?target=${target}`;
-      console.log(`🛡️ [Proxy Nav] Wrapping External ${app.name} -> ${rawUrl}`);
+    // 4. Si la App requiere Proxy -> Forzar sandra-app://
+    else if (targetUrl && appData.is_proxy_required) {
+      const target = encodeURIComponent(targetUrl);
+      rawUrl = `sandra-app://localhost/external-proxy/${appId}/?target=${target}`;
+      console.log(`🛡️ [Proxy Nav] Wrapping External ${appData.name} -> ${rawUrl}`);
+    } else if (targetUrl) {
+      // Caso Externa Directa
+      rawUrl = targetUrl;
+      console.log(`🌍 [External Nav] Direct ${appData.name} -> ${rawUrl}`);
     } else {
-      // Caso 3: Local (Proxied o No, siempre usa sandra-app)
-      rawUrl = `sandra-app://localhost/${app.id}/`;
-      console.log(
-        `🚀 [Local Nav] Opening ${app.name} via ${rawUrl} (Proxy Active: ${!!this.activeConnection})`,
-      );
+      // Caso Local
+      rawUrl = `sandra-app://localhost/${appId}/`;
+      console.log(`🏠 [Local Nav] Opening ${appData.name} via ${rawUrl}`);
     }
 
     const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl);
     this.appState.addTab({
-      id: app.id,
-      name: app.name,
-      icon: app.icon,
+      id: appData.id,
+      name: appData.name,
+      icon: appData.icon,
       url: safeUrl,
-      isProxyRequired: app.is_proxy_required,
-      isExternal: !app.externalUrl,
-      isExternalMode: isExternalMode, // Nuevo flag para el template
+      isProxyRequired: appData.is_proxy_required,
+      isExternal: !targetUrl,
+      isExternalMode: isExternalMode,
     });
   }
 

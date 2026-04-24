@@ -21,9 +21,9 @@
           <button [class.active]="activeConfigTab === 'updates'" (click)="activeConfigTab = 'updates'">
             <i class="fas fa-sync-alt sidebar-icon"></i> Updates
           </button>
-          <button [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'">
-            <i class="fas fa-info-circle sidebar-icon"></i> Info
-          </button>
+          <button [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'; viewingPolicies = false">
+             <i class="fas fa-info-circle sidebar-icon"></i> Info
+           </button>
           <button [class.active]="activeConfigTab === 'connections'" (click)="activeConfigTab = 'connections'">
             <i class="fas fa-plug sidebar-icon"></i> Conexiones
           </button>
@@ -99,18 +99,36 @@
   
         <!-- Sección Información -->
         <div *ngIf="activeConfigTab === 'info'" class="config-section info-section">
-          <h3>Sandra Desktop Container</h3>
-          <p class="version-text">Versión 1.0.0 Alpha</p>
-          <p class="desc-text">Plataforma de orquestación segura para aplicaciones de escritorio distribuidas.</p>
-          
-          <div class="help-box">
-            <h4><i class="fas fa-book"></i> Referencias de Seguridad</h4>
-            <ul>
-              <li>Conexión: <strong>WSS (WebSocket Secure)</strong></li>
-              <li>Encriptación: <strong>AES-256</strong></li>
-              <li>Base de Datos: <strong>SQLite Cipher</strong></li>
-            </ul>
-          </div>
+          <ng-container *ngIf="!viewingPolicies">
+            <h3>Sandra Desktop Container</h3>
+            <p class="version-text">Versión 1.0.0 Alpha</p>
+            <p class="desc-text">Plataforma de orquestación segura para aplicaciones de escritorio distribuidas.</p>
+            
+            <div class="help-box">
+              <h4><i class="fas fa-book"></i> Referencias de Seguridad</h4>
+              <ul>
+                <li>Conexión: <strong>WSS (WebSocket Secure)</strong></li>
+                <li>Encriptación: <strong>AES-256</strong></li>
+                <li>Base de Datos: <strong>SQLite Cipher</strong></li>
+              </ul>
+            </div>
+
+            <div class="policies-link-section">
+              <button class="btn-view-policies" (click)="viewingPolicies = true">
+                <i class="fas fa-file-contract"></i> Ver Políticas de Uso y Términos
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="viewingPolicies">
+            <div class="policies-viewer-header">
+              <button class="btn-back-info" (click)="viewingPolicies = false">
+                <i class="fas fa-arrow-left"></i> Volver
+              </button>
+              <h3>Políticas de Uso</h3>
+            </div>
+            <div class="policies-viewer-content" [innerHTML]="policiesHtml"></div>
+          </ng-container>
         </div>
   
           

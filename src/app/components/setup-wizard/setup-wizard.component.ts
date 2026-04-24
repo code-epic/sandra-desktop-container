@@ -3,6 +3,8 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { invoke } from "@tauri-apps/api/core";
 
+import { POLICIES_HTML } from "../../constants/policies";
+
 @Component({
   selector: "app-setup-wizard",
   standalone: true,
@@ -16,6 +18,9 @@ export class SetupWizardComponent implements OnInit {
   @Output() onComplete = new EventEmitter<any>();
 
   step = 1;
+  policiesAccepted = false;
+  hasReadToBottom = false;
+  policiesHtml = POLICIES_HTML;
 
   formData = {
     name: "",
@@ -44,11 +49,15 @@ export class SetupWizardComponent implements OnInit {
 
   async next() {
     if (this.step === 1) {
+      if (!this.policiesAccepted) return;
+      this.step++;
+      return;
+    }
+
+    if (this.step === 2) {
       if (!this.formData.name || !this.formData.area) {
-        // Podríamos mostrar un mensaje o simplemente no avanzar
         return;
       }
-      // Avanzar al paso 2 y traer el hash preview
       this.step++;
       try {
         this.hashPreview = await invoke("get_hash_preview", {
@@ -61,7 +70,7 @@ export class SetupWizardComponent implements OnInit {
       return;
     }
 
-    if (this.step < 3) {
+    if (this.step < 4) {
       this.step++;
     } else {
       this.finish();
@@ -120,6 +129,19 @@ export class SetupWizardComponent implements OnInit {
     });
   }
 
+  onPoliciesScroll(event: any) {
+    const element = event.target;
+    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 10;
+    const hasScrolled = element.scrollTop > 10;
+    const isScrollable = element.scrollHeight > element.clientHeight;
+
+    // Only activate if they actually scrolled and reached the end
+    if (isScrollable && hasScrolled && isAtBottom) {
+      this.hasReadToBottom = true;
+      this.policiesAccepted = true; 
+    }
+  }
+
   finish() {
     if (!this.formData.name || !this.formData.area) {
       alert("Por favor complete el nombre y área del equipo.");
@@ -129,7 +151,7 @@ export class SetupWizardComponent implements OnInit {
 
     if (!this.formData.ip_address) {
       alert("Debe configurar la dirección del servidor.");
-      this.step = 3;
+      this.step = 4;
       return;
     }
 

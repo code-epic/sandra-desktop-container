@@ -44,6 +44,9 @@ export class AppsComponent implements OnInit {
       is_favorite: false,
       is_proxy_required: false,
       is_external_browser: false,
+      is_limitless: false,
+      is_csrf_sync: false,
+      is_bypass: false,
       repo: "",
       external_url: "",
       base_path: "",
@@ -70,12 +73,37 @@ export class AppsComponent implements OnInit {
   toggleProxy() {
     if (this.currentApp.is_proxy_required) {
       this.currentApp.is_external_browser = false;
+      this.currentApp.is_limitless = false;
     }
   }
 
   toggleExternal() {
     if (this.currentApp.is_external_browser) {
       this.currentApp.is_proxy_required = false;
+      this.currentApp.is_limitless = false;
+    }
+  }
+
+  toggleLimitless() {
+    if (this.currentApp.is_limitless) {
+      this.currentApp.is_proxy_required = false;
+      this.currentApp.is_external_browser = false;
+      this.currentApp.is_bypass = false;
+    }
+  }
+
+  toggleCsrfSync() {
+    if (this.currentApp.is_csrf_sync) {
+      this.currentApp.is_bypass = false;
+    }
+  }
+
+  toggleBypass() {
+    if (this.currentApp.is_bypass) {
+      this.currentApp.is_proxy_required = false;
+      this.currentApp.is_external_browser = false;
+      this.currentApp.is_limitless = false;
+      this.currentApp.is_csrf_sync = false;
     }
   }
 
@@ -124,6 +152,9 @@ export class AppsComponent implements OnInit {
       // Ensure booleans are set (fix for first save error)
       this.currentApp.is_proxy_required = !!this.currentApp.is_proxy_required;
       this.currentApp.is_external_browser = !!this.currentApp.is_external_browser;
+      this.currentApp.is_limitless = !!this.currentApp.is_limitless;
+      this.currentApp.is_csrf_sync = !!this.currentApp.is_csrf_sync;
+      this.currentApp.is_bypass = !!this.currentApp.is_bypass;
 
       if (this.isEditing) {
         await this.appsService.updateApp(this.currentApp);
