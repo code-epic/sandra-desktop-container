@@ -1,17 +1,19 @@
 <div class="connections-wrapper fade-in">
     <!-- Identity Header -->
-    <div class="identity-card">
-        <div class="id-group">
-            <span class="id-label">MI CLIENTE SSID</span>
-            <div class="id-value">
+    <div class="identity-header">
+        <div class="id-section">
+            <span class="id-tag">CODIGO SSID</span>
+            <div class="id-data">
                 {{ clientId }}
-                <i class="fas fa-copy copy-icon" title="Copiar" (click)="copyId($event)"></i>
+                <i class="fas fa-copy copy-btn" (click)="copyId($event)"></i>
             </div>
         </div>
-        <div class="id-break"></div>
-        <div class="id-group">
-            <span class="id-label">LOCAL IP - HOST</span>
-            <div class="id-value highlight">{{ localIp }}</div>
+        
+        <div class="header-spacer"></div>
+
+        <div class="id-section text-right">
+            <span class="id-tag">LOCAL IP - HOST</span>
+            <div class="id-data status-green">{{ localIp }}</div>
         </div>
     </div>
 
@@ -20,26 +22,29 @@
     <div class="connections-main">
         <!-- Sidebar List -->
         <aside class="conn-sidebar">
-            <div class="conn-list-header">
-                <h3>Guardados</h3>
-                <button class="btn-icon-mini primary" (click)="resetForm()" title="Nueva Conexión">
+            <div class="sidebar-top">
+                <span class="sidebar-title">Guardados</span>
+                <button class="add-conn-btn" (click)="resetForm()" title="Nueva Conexión">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
-            <div class="conn-list">
-                <div class="conn-item" *ngFor="let conn of savedConnections" [class.active]="form.id === conn.id"
-                    [class.connected-item]="conn.is_connected" (click)="selectConnection(conn)">
-                    <div class="conn-info">
-                        <span class="conn-name">{{ conn.name }}</span>
-                        <span class="conn-meta">{{ conn.ip_address }}:{{ conn.port }}</span>
+            
+            <div class="conn-scroller">
+                <div class="conn-card" *ngFor="let conn of savedConnections" 
+                    [class.is-active]="form.id === conn.id"
+                    [class.is-connected]="conn.is_connected" 
+                    (click)="selectConnection(conn)">
+                    <div class="conn-main-info">
+                        <span class="conn-display-name">{{ conn.name }} </span>
+                        <code class="conn-address">{{ conn.ip_address }}:{{ conn.port }}</code>
                     </div>
-                    <button class="btn-icon-mini danger conn-del-btn" (click)="deleteConn($event, conn.id!)"
-                        title="Eliminar Conexión">
+                    <button class="delete-icon-btn" (click)="deleteConn($event, conn.id!)">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
-                <!-- Empty State -->
-                <div class="empty-list" *ngIf="savedConnections.length === 0">
+                
+                <div class="empty-state" *ngIf="savedConnections.length === 0">
+                    <i class="fas fa-satellite-dish"></i>
                     <p>Sin conexiones</p>
                 </div>
             </div>
@@ -47,232 +52,326 @@
 
         <!-- Editor Form -->
         <main class="conn-editor">
-            <div class="editor-header">
-                <h2>{{ form.id ? 'Editar Conexión' : 'Nueva Conexión' }}</h2>
+            <!-- Header Fijo -->
+            <div class="editor-fixed-header">
+                <h2 class="editor-title">
+                    <i class="fas" [class.fa-edit]="form.id" [class.fa-plus-circle]="!form.id"></i>
+                    {{ form.id ? 'Editar Conexión' : 'Nueva Conexión' }}
+                </h2>
             </div>
 
-            <div class="form-grid">
-                <div class="form-group full-width">
-                    <label>Nombre de Perfil</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-tag input-icon"></i>
-                        <input type="text" [(ngModel)]="form.name" placeholder="Ej: Servidor Producción">
+            <!-- Área con Scroll -->
+            <div class="editor-scroll-area">
+                <div class="form-technical-grid">
+                    <div class="form-group full-width">
+                        <label>Nombre de Perfil</label>
+                        <div class="input-shell">
+                            <i class="fas fa-tag shell-icon"></i>
+                            <input type="text" [(ngModel)]="form.name" placeholder="Ej: Servidor Producción">
+                        </div>
                     </div>
-                </div>
 
-                <div class="form-group ip-group">
-                    <label>IP / Hostname</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-network-wired input-icon"></i>
-                        <input type="text" [(ngModel)]="form.ip_address" (ngModelChange)="onAddressChange()"
-                            placeholder="192.168.1.10">
-                        <!-- Verification Status Indicator -->
-                        <div class="verify-indicator">
-                            <i *ngIf="verifyStatus === 'checking'" class="fas fa-circle-notch fa-spin checking"></i>
-                            <i *ngIf="verifyStatus === 'success'" class="fas fa-check-circle success"></i>
-                            <i *ngIf="verifyStatus === 'error'" class="fas fa-times-circle error"></i>
+                <div class="form-row">
+                    <div class="form-group flex-3">
+                        <label>IP / Hostname</label>
+                        <div class="input-shell">
+                            <i class="fas fa-network-wired shell-icon"></i>
+                            <input type="text" [(ngModel)]="form.ip_address" (ngModelChange)="onAddressChange()" placeholder="192.168.1.10">
+                            <div class="shell-indicator">
+                                <i *ngIf="verifyStatus === 'checking'" class="fas fa-circle-notch fa-spin checking"></i>
+                                <i *ngIf="verifyStatus === 'success'" class="fas fa-check-circle success"></i>
+                                <i *ngIf="verifyStatus === 'error'" class="fas fa-times-circle error"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group flex-1">
+                        <label>Puerto</label>
+                        <div class="input-shell">
+                            <i class="fas fa-hashtag shell-icon"></i>
+                            <input type="number" [(ngModel)]="form.port" (ngModelChange)="onAddressChange()" placeholder="22">
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group port-group">
-                    <label>Puerto</label>
-                    <input type="number" [(ngModel)]="form.port" (ngModelChange)="onAddressChange()" placeholder="22">
-                </div>
-
-                <div class="form-group" style="display: none;">
-                    <label>Usuario</label>
-                    <input type="text" [(ngModel)]="form.username" placeholder="root">
-                </div>
-
-                <div class="form-group" style="display: none;">
-                    <label>Clave</label>
-                    <input type="password" [(ngModel)]="form.password" placeholder="••••••">
-                </div>
+                <div class="form-divider-dashed"></div>
 
                 <!-- WSS Custom Config (Advanced) -->
-                <div class="form-group full-width">
-                    <label
-                        style="color: #B0BEC5; font-size: 0.75em; text-transform: uppercase; margin-top: 10px; display: block;">Configuración
-                        WebSocket (Opcional)</label>
-                </div>
+                <div class="form-section-label">Configuración WebSocket (Opcional)</div>
 
-                <div class="form-group">
-                    <label>WSS Host</label>
-                    <input type="text" [(ngModel)]="form.wss_host" placeholder="Ej: wss.midominio.com">
-                </div>
-                <div class="form-group">
-                    <label>WSS Port</label>
-                    <input type="number" [(ngModel)]="form.wss_port" placeholder="8443">
-                </div>
-
-                <!-- Hash Readonly Field -->
-                <div class="form-group full-width">
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        Hash de Identidad (Conexión)
-                        <div class="tooltip-container" style="display:inline-flex; align-items:center;">
-                            <i class="fas fa-fingerprint" style="color:#90A4AE; cursor:help; font-size:1.1em;"></i>
-                            <div class="tooltip-content cloud-tooltip">Este Hash es el combinando de la MAC y cuenta, usado
-                                para firmar de manera única esta conexión con el servidor. Copialo si se requiere.</div>
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label>WSS Host</label>
+                        <div class="input-shell">
+                            <i class="fas fa-globe shell-icon"></i>
+                            <input type="text" [(ngModel)]="form.wss_host" placeholder="wss.midominio.com">
                         </div>
-                    </label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-hashtag input-icon"></i>
-                        <input type="text" [value]="form.hash || 'Pendiente por generación...'" readonly maxlength="32"
-                            style="opacity: 0.8; font-family: monospace; background: rgba(0,0,0,0.05); color: #37474F;">
-                        <div class="verify-indicator">
-                            <i class="fas fa-copy copy-icon" (click)="copyToClipboard(form.hash, $event)" title="Copiar Hash"></i>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>WSS Port</label>
+                        <div class="input-shell">
+                            <i class="fas fa-plug shell-icon"></i>
+                            <input type="number" [(ngModel)]="form.wss_port" placeholder="8443">
                         </div>
                     </div>
                 </div>
 
-                <!-- JWT Readonly Field -->
-                <div class="form-group full-width">
-                    <label style="display:flex; align-items:center; gap:8px;">
-                        Json Web Token (JWT)
-                        <div class="tooltip-container" style="display:inline-flex; align-items:center;">
-                            <i class="fas fa-cloud" style="color:#90A4AE; cursor:help; font-size:1.1em;"></i>
-                            <div class="tooltip-content cloud-tooltip">El JWT es la credencial segura emitida por el
-                                servidor. No tienes que ingresarlo manualmente; se autoriza automáticamente desde el
-                                panel de administración central de Sandra.</div>
+                <div class="form-divider-dashed"></div>
+
+                    <!-- Secure Identity Fields (Merged Row) -->
+                    <div class="form-row">
+                        <!-- Hash Readonly Field -->
+                        <div class="form-group flex-1">
+                            <label class="label-with-icon">
+                                <span>Hash Identidad</span>
+                                <div class="tooltip-container">
+                                    <i class="fas fa-fingerprint technical-icon"></i>
+                                    <div class="tooltip-content cloud-tooltip">Hash único de firma para esta conexión.</div>
+                                </div>
+                            </label>
+                            <div class="input-shell secure-shell">
+                                <i class="fas fa-hashtag shell-icon"></i>
+                                <input type="text" [value]="form.hash || 'Pendiente...'" readonly>
+                                <div class="shell-indicator">
+                                    <i class="fas fa-copy copy-btn" (click)="copyToClipboard(form.hash, $event)" title="Copiar Hash"></i>
+                                </div>
+                            </div>
                         </div>
-                    </label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-key input-icon"></i>
-                        <input type="text" [value]="form.jwt || 'Pendiente por autorización...'" readonly
-                            style="opacity: 0.8; font-family: monospace; background: rgba(0,0,0,0.05); color: #37474F;">
-                        <div class="verify-indicator">
-                            <i class="fas fa-copy copy-icon" (click)="copyToClipboard(form.jwt, $event)" title="Copiar JWT"></i>
+
+                        <!-- JWT Readonly Field -->
+                        <div class="form-group flex-1">
+                            <label class="label-with-icon">
+                                <span>Token JWT</span>
+                                <div class="tooltip-container">
+                                    <i class="fas fa-key technical-icon"></i>
+                                    <div class="tooltip-content cloud-tooltip">Credencial de autorización emitida por el servidor.</div>
+                                </div>
+                            </label>
+                            <div class="input-shell secure-shell">
+                                <i class="fas fa-shield-halved shell-icon"></i>
+                                <input type="text" [value]="form.jwt || 'Pendiente...'" readonly>
+                                <div class="shell-indicator">
+                                    <i class="fas fa-copy copy-btn" (click)="copyToClipboard(form.jwt, $event)" title="Copiar JWT"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <div style="height: 20px;"></div> <!-- Espaciado extra al final del scroll -->
+
+                <!-- Helper text -->
+                <p class="form-status-msg" *ngIf="!isHostAvailable && form.ip_address.length > 3">
+                    <span *ngIf="verifyStatus === 'checking'">
+                        <i class="fas fa-circle-notch fa-spin"></i> Verificando host y puerto...
+                    </span>
+                    <span *ngIf="verifyStatus === 'error'" class="text-error">
+                        Conexión fallida. Verifique que IP y Puerto {{ form.port }} estén accesibles.
+                    </span>
+                </p>
             </div>
 
+            <!-- Footer Fijo -->
+            <div class="editor-fixed-footer">
+                <div class="actions-group">
+                    <button class="btn-setup-back" (click)="save()" [disabled]="!form.name || !form.ip_address">
+                        <i class="fas" [class.fa-save]="!form.id" [class.fa-sync]="form.id"></i> 
+                        {{ form.id ? 'Actualizar' : 'Guardar' }}
+                    </button>
 
-
-            <!-- Actions -->
-            <div class="editor-actions modal-actions-fresh" style="border:none; padding:0; margin-top:20px;">
-                <button class="btn-setup-back" (click)="save()" [disabled]="!form.name || !form.ip_address">
-                    <i class="fas" [class.fa-save]="!form.id" [class.fa-sync]="form.id"></i> {{ form.id ? 'Actualizar' :
-                    'Guardar' }}
-                </button>
-
-                <button class="btn-setup-next" (click)="connect()"
-                    [disabled]="!isHostAvailable && !form.is_connected && connectionState !== 'connected'"
-                    [ngClass]="form.is_connected ? 'btn-danger' : ''">
-                    <i class="fas" [class.fa-plug]="!form.is_connected" [class.fa-unlink]="form.is_connected"></i>
-                    {{ form.is_connected ? 'Desconectar' : (form.id ? 'Conectar' : 'Probar Conexión') }}
-                </button>
+                    <button class="btn-setup-next" (click)="connect()"
+                        [disabled]="!isHostAvailable && !form.is_connected && connectionState !== 'connected'"
+                        [ngClass]="form.is_connected ? 'btn-danger' : ''">
+                        <i class="fas" [class.fa-plug]="!form.is_connected" [class.fa-unlink]="form.is_connected"></i>
+                        {{ form.is_connected ? 'Desconectar' : (form.id ? 'Conectar' : 'Probar Conexión') }}
+                    </button>
+                </div>
             </div>
-
-            <!-- Helper text -->
-            <p class="helper-text" *ngIf="!isHostAvailable && form.ip_address.length > 3">
-                <span *ngIf="verifyStatus === 'checking'">Verificando host y puerto...</span>
-                <span *ngIf="verifyStatus === 'error'" class="text-error">Conexión fallida. Verifique que IP y Puerto {{
-                    form.port }} estén accesibles.</span>
-            </p>
-
         </main>
     </div>
 
-    <!-- Connection Progress Modal -->
-    <div class="modal-overlay" *ngIf="showModal">
-        <div class="modal-card conn-modal">
-            <div class="conn-loader">
-                <div class="spinner-ring"></div>
-                <div class="logo-center"><i class="fas fa-bolt"></i></div>
-            </div>
-            <h3>Conectando a {{ form.name }}</h3>
-            <p class="conn-status">{{ connStatusMsg }}</p>
+  
+</div>
 
-            <div class="progress-container">
-                <div class="progress-bar-fill" [style.width.%]="connProgress"></div>
+
+  <!-- Connection Progress Modal -->
+    <!-- Connection Progress Modal (Certificate Style) -->
+    <div class="modal-overlay" *ngIf="showModal">
+        <div class="certificate-modal-card fade-in-up">
+            <div class="cert-header info" style="background: #eff6ff;">
+                <div class="cert-icon-circle" style="color: #3b82f6;">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="cert-badge" style="background: #3b82f6;">Enlazando...</div>
+            </div>
+
+            <div class="cert-content">
+                <h3 class="cert-title">Iniciando Conexión</h3>
+                <p class="cert-subtitle">Servidor: <strong>{{ form.name }}</strong></p>
+
+                <div class="cert-inner-card">
+                    <i class="fas fa-sync fa-spin cert-inner-icon"></i>
+                    <p class="cert-msg">{{ connStatusMsg }}</p>
+
+                    <div class="progress-wrap-elegant" style="margin-top: 20px;">
+                        <div class="progress-bar-elegant">
+                            <div class="progress-fill-elegant" [style.width.%]="connProgress"></div>
+                        </div>
+                    </div>
+
+                    <div class="cert-grid">
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">FASE</div>
+                            <div class="cert-grid-value" style="color: #3b82f6;">{{ connProgress < 50 ? 'NEGOCIACION' : 'AUTORIZACION' }}</div>
+                        </div>
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">CIFRADO</div>
+                            <div class="cert-grid-value">AES-256-GCM</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Welcome / Confetti Modal -->
+    <!-- Welcome / Success Modal (Certificate Style) -->
     <div class="modal-overlay" *ngIf="showWelcomeModal">
-        <div class="modal-card activity-modal fade-in-up">
-            <div class="modal-body-clean">
-                <div class="modal-visual-header success-header">
-                    <div class="icon-pulse-wrapper success-pulse">
-                        <i class="fas fa-server"></i>
+        <div class="certificate-modal-card fade-in-up">
+            <div class="cert-header success">
+                <div class="cert-icon-circle" style="color: #10b981;">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <div class="cert-badge" style="background: #10b981;">Verificado SDC</div>
+            </div>
+
+            <div class="cert-content">
+                <h3 class="cert-title">¡Bienvenido a Sandra!</h3>
+                <p class="cert-subtitle">Enlace establecido con éxito.</p>
+
+                <div class="cert-inner-card" style="border-color: #d1fae5;">
+                    <i class="fas fa-certificate cert-inner-icon" style="color: #10b981;"></i>
+                    <p class="cert-msg">La sesión ha sido firmada y autorizada para el perfil <strong>{{ form.name }}</strong>. Todos los servicios de gestión están ahora disponibles.</p>
+
+                    <div class="cert-grid">
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">ESTADO</div>
+                            <div class="cert-grid-value" style="color: #10b981;">CONECTADO</div>
+                        </div>
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">PROTOCOLO</div>
+                            <div class="cert-grid-value">ALQUIMIA-SDC</div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <h3 class="modal-title-clean">¡Bienvenido a Sandra Server!</h3>
-                <p class="modal-msg-clean">
-                    Conexión segura establecida con <strong>{{ form.name }}</strong>
-                </p>
-
-                <div class="modal-actions-spread">
-                    <button class="btn-modal-confirm primary" (click)="closeWelcome()">
-                        Continuar
-                    </button>
-                </div>
+            <div class="cert-actions">
+                <button class="btn-cert" (click)="closeWelcome()">
+                    Continuar al Dashboard
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Confirm Modal -->
+    <!-- Confirm Modal (Certificate Style) -->
     <div class="modal-overlay" *ngIf="showConfirmModal">
-        <div class="modal-card activity-modal fade-in-up">
-            <div class="modal-body-clean">
-                <div class="modal-visual-header error-header">
-                    <div class="icon-pulse-wrapper error-pulse">
-                        <i class="fas fa-question"></i>
+        <div class="certificate-modal-card fade-in-up">
+            <!-- Header with Badge -->
+            <div class="cert-header alert">
+                <div class="cert-icon-circle">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <div class="cert-badge">Acción Requerida</div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="cert-content">
+                <h3 class="cert-title">{{ confirmTitle }}</h3>
+                <p class="cert-subtitle">Perfil: <strong>{{ form.name }}</strong></p>
+
+                <!-- Inner Security Card -->
+                <div class="cert-inner-card">
+                    <i class="fas fa-shield-alt cert-inner-icon"></i>
+                    <p class="cert-msg">{{ confirmMessage }}</p>
+
+                    <div class="cert-grid">
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">ESTADO</div>
+                            <div class="cert-grid-value error">ADVERTENCIA</div>
+                        </div>
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">PROTOCOLO</div>
+                            <div class="cert-grid-value">SDC-Seguridad</div>
+                        </div>
                     </div>
                 </div>
 
-                <h3 class="modal-title-clean">{{ confirmTitle }}</h3>
-                <p class="modal-msg-clean">{{ confirmMessage }}</p>
-                <br>
-                <div class="modal-actions-spread" style="justify-content: center;">
-                    <button class="btn-modal-confirm primary" *ngIf="confirmBtnParams.class.includes('btn-setup-next')"
-                        (click)="executeConfirm()">
-                        {{ confirmBtnParams.text }}
-                    </button>
-                    <button class="btn-modal-confirm danger" *ngIf="confirmBtnParams.class.includes('btn-danger')"
-                        (click)="executeConfirm()">
-                        {{ confirmBtnParams.text }}
-                    </button>
-                    <button class="btn-modal-cancel" (click)="closeConfirm()">
-                        Cancelar
-                    </button>
+                <!-- Info Help -->
+                <div class="cert-info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Esta acción eliminará permanentemente la configuración del perfil de la base de datos local.</span>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Feedback Modal -->
+            <!-- Footer Actions -->
+            <div class="cert-actions">
+                <button class="btn-cert danger" (click)="executeConfirm()">
+                    {{ confirmBtnParams.text }}
+                </button>
+                <button class="btn-cert outline" (click)="closeConfirm()">
+                    Cancelar
+                </button>
+            </div>
+        <    <!-- Feedback Modal (Certificate Style) -->
     <div class="modal-overlay" *ngIf="showFeedbackModal">
-        <div class="modal-card activity-modal fade-in-up">
-            <div class="modal-body-clean">
-                <div class="modal-visual-header" [ngClass]="{
-                        'success-header': feedbackType === 'success',
-                        'error-header': feedbackType === 'error',
-                        'info-header': feedbackType === 'info'
-                    }">
-                    <div class="icon-pulse-wrapper" [ngClass]="{
-                            'success-pulse': feedbackType === 'success',
-                            'error-pulse': feedbackType === 'error',
-                            'info-pulse': feedbackType === 'info'
-                        }">
-                        <i class="fas" [class.fa-check]="feedbackType === 'success'"
-                            [class.fa-info]="feedbackType === 'info'" [class.fa-times]="feedbackType === 'error'"></i>
+        <div class="certificate-modal-card fade-in-up">
+            <div class="cert-header" [ngClass]="{
+                'success': feedbackType === 'success',
+                'alert': feedbackType === 'error',
+                'info': feedbackType === 'info'
+            }" [style.background]="feedbackType === 'info' ? '#eff6ff' : ''">
+                <div class="cert-icon-circle" [ngStyle]="{
+                    'color': feedbackType === 'success' ? '#10b981' : (feedbackType === 'error' ? '#ef4444' : '#3b82f6')
+                }">
+                    <i class="fas" [class.fa-check]="feedbackType === 'success'"
+                        [class.fa-exclamation-triangle]="feedbackType === 'error'" 
+                        [class.fa-info-circle]="feedbackType === 'info'"></i>
+                </div>
+                <div class="cert-badge" [ngStyle]="{
+                    'background': feedbackType === 'success' ? '#10b981' : (feedbackType === 'error' ? '#ef4444' : '#3b82f6')
+                }">Notificación SDC</div>
+            </div>
+
+            <div class="cert-content">
+                <h3 class="cert-title">{{ feedbackTitle }}</h3>
+                <p class="cert-subtitle">Detalle del sistema</p>
+
+                <div class="cert-inner-card">
+                    <i class="fas fa-envelope-open-text cert-inner-icon"></i>
+                    <p class="cert-msg">{{ feedbackMessage }}</p>
+
+                    <div class="cert-grid">
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">TIPO</div>
+                            <div class="cert-grid-value" [ngStyle]="{
+                                'color': feedbackType === 'success' ? '#10b981' : (feedbackType === 'error' ? '#ef4444' : '#3b82f6')
+                            }">{{ feedbackType | uppercase }}</div>
+                        </div>
+                        <div class="cert-grid-item">
+                            <div class="cert-grid-label">FECHA</div>
+                            <div class="cert-grid-value">{{ 'AHORA' }}</div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <h3 class="modal-title-clean">{{ feedbackTitle }}</h3>
-                <p class="modal-msg-clean">{{ feedbackMessage }}</p>
-
-                <div class="modal-actions-spread">
-                    <button class="btn-modal-confirm primary" (click)="closeFeedback()">
-                        Aceptar
-                    </button>
-                </div>
+            <div class="cert-actions">
+                <button class="btn-cert" (click)="closeFeedback()">
+                    Aceptar
+                </button>
             </div>
         </div>
     </div>
-</div>
+ </div>
+    </div>

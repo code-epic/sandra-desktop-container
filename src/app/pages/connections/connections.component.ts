@@ -239,6 +239,8 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
     // Enforce lowercase
     if (this.form.ip_address) {
       this.form.ip_address = this.form.ip_address.toLowerCase();
+      // Autocomplete WSS Host
+      this.form.wss_host = this.form.ip_address;
     }
 
     this.verifyStatus = "idle";
@@ -387,11 +389,6 @@ export class ConnectionsComponente implements OnInit, OnDestroy {
             clientId: this.clientId,
           });
           // State update handled by listener...
-          this.openFeedback(
-            "info",
-            "Desconectado",
-            `Conexión cerrada con ${this.form.name}`,
-          );
         } catch (err: any) {
           console.error("Failed to disconnect", err);
           this.openFeedback("error", "Error", "Fallo al desconectar: " + err);

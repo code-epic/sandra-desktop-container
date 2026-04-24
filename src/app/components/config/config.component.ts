@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { POLICIES_HTML } from '../../constants/policies';
 import { PerformanceService, PerformanceProfile } from '../../core/services/performance.service';
+import { UpdateService } from '../../core/services/update.service';
 
 @Component({
   selector: 'app-config',
@@ -35,9 +36,16 @@ export class ConfigComponent {
 
   selectedPerfMode: string = 'auto';
 
-  constructor(public performance: PerformanceService) {
+  constructor(
+    public performance: PerformanceService,
+    public updateService: UpdateService
+  ) {
     const saved = localStorage.getItem('sandra_perf_mode') || 'auto';
     this.selectedPerfMode = saved;
+  }
+
+  checkUpdates() {
+    this.updateService.checkAndPrompt();
   }
 
   onPerfChange() {

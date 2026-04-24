@@ -1,12 +1,13 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SystemStats } from '../../core/models/telemetry.model';
 import { UtilsService } from '../../core/services/utils.service';
+import { ModalComponent } from '../../components/modal/modal.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ModalComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['../../app.component.css', './dashboard.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -26,7 +27,7 @@ export class DashboardComponent {
   @Output() onMacClick = new EventEmitter<void>();
   @Output() onIpClick = new EventEmitter<void>();
 
-  constructor(public utils: UtilsService) {}
+  constructor(public utils: UtilsService, private cdr: ChangeDetectorRef) {}
 
   formatBytes(bytes: number): string {
     return this.utils.formatBytes(bytes);
@@ -59,6 +60,8 @@ export class DashboardComponent {
       this.publicIp = data.ip;
     } catch (e) {
       this.publicIp = 'No disponible';
+    } finally {
+      this.cdr.markForCheck();
     }
   }
 }

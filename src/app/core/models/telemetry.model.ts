@@ -9,4 +9,6 @@ export interface SystemStats {
   disk_free: number;
   os_info: string;
   mac_address: string;
+  total_memory: number;
+  used_memory: number;
 }

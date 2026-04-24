@@ -14,91 +14,90 @@
             </div>
         </div>
 
-        <!-- DERECHA: Telemetría Interactiva (Píldoras) -->
+        <!-- Telemetría Premium -->
         <div class="header-status">
 
-            <!-- IP Pill -->
-            <div class="metric-pill pill-network clickable" (click)="openInfoModal()" title="Ver detalles de Red">
-                <i class="fas fa-network-wired"></i>
-                <div class="pill-content">
-                    <span class="pill-label">Red</span>
-                    <span class="pill-value">{{ networkInfo[0] || '---' }}</span>
-                </div>
+            <div class="stat-chip chip-network clickable" (click)="openInfoModal()" title="Ver detalles de Red">
+                <span class="chip-icon"><i class="fas fa-network-wired"></i></span>
+                <span class="chip-body">
+                    <span class="chip-label">Red</span>
+                    <span class="chip-value">{{ networkInfo[0] || '---' }}</span>
+                </span>
             </div>
 
-            <!-- Storage Pill -->
-            <div class="metric-pill pill-storage" title="Almacenamiento Local">
-                <i class="fas fa-hdd"></i>
-                <div class="pill-content">
-                    <span class="pill-label">Espacio</span>
-                    <span class="pill-value">{{ formatBytes(stats.disk_free) }}</span>
-                </div>
+            <div class="stat-chip chip-ram" *ngIf="stats" title="Memoria RAM">
+                <span class="chip-icon"><i class="fas fa-microchip"></i></span>
+                <span class="chip-body">
+                    <span class="chip-label">RAM</span>
+                    <span class="chip-value">{{ formatBytes(stats.used_memory) }}<span class="chip-sep"> / </span>{{ formatBytes(stats.total_memory) }}</span>
+                </span>
             </div>
 
-            <!-- DB Pill -->
-            <div class="metric-pill pill-db clickable" (click)="onDbClick.emit()" title="Core Database Status">
-                <i class="fas fa-database"></i>
-                <div class="pill-content">
-                    <span class="pill-label">Core DB</span>
-                    <span class="pill-value" *ngIf="dbStats">{{ formatBytes(dbStats.size_bytes) }}</span>
-                </div>
+            <div class="stat-chip chip-storage" title="Almacenamiento libre">
+                <span class="chip-icon"><i class="fas fa-hdd"></i></span>
+                <span class="chip-body">
+                    <span class="chip-label">Espacio</span>
+                    <span class="chip-value">{{ formatBytes(stats.disk_free) }}</span>
+                </span>
+            </div>
+
+            <div class="stat-chip chip-db clickable" (click)="onDbClick.emit()" title="Core Database">
+                <span class="chip-icon"><i class="fas fa-database"></i></span>
+                <span class="chip-body">
+                    <span class="chip-label">Core DB</span>
+                    <span class="chip-value" *ngIf="dbStats">{{ formatBytes(dbStats.size_bytes) }}</span>
+                    <span class="chip-value chip-empty" *ngIf="!dbStats">—</span>
+                </span>
             </div>
 
         </div>
     </div>
 
+  
+
     <div class="apps-canvas">
-        <div class="app-tile" *ngFor="let app of apps" (click)="!app.installed && onInstall.emit(app)">
+        <div class="app-tile" *ngFor="let app of apps"
+             [class.is-installed]="app.installed"
+             (click)="!app.installed && onInstall.emit(app)">
 
-            <!-- Proxy Indicator (Fixed Position) -->
-            <div class="proxy-badge" *ngIf="app.is_proxy_required && !app.is_external_browser" title="Proxy Activo">
+            <!-- Badges de modo -->
+            <span class="tile-badge tile-badge-proxy" *ngIf="app.is_proxy_required && !app.is_external_browser" title="Requiere Proxy">
                 <i class="fas fa-shield-alt"></i>
-            </div>
-
-            <!-- External/Free Mode Indicator -->
-            <div class="proxy-badge external-mode-badge" *ngIf="app.is_external_browser"
-                title="Navegación Libre (Sin Proxy)">
+            </span>
+            <span class="tile-badge tile-badge-free" *ngIf="app.is_external_browser" title="Navegación Libre">
                 <i class="fas fa-globe-americas"></i>
-            </div>
+            </span>
 
-            <!-- Main Content Layer -->
+            <!-- Cuerpo principal -->
             <div class="tile-body">
-                <div class="tile-icon">
+                <span class="tile-icon">
                     <i [class]="app.icon"></i>
-                </div>
+                </span>
                 <div class="tile-info">
-                    <span class="name">{{ app.name }} </span>
-                    <span class="meta" *ngIf="app.installed">
-                        <span class="status-dot active"></span> Instalado
-                    </span>
-                    <span class="meta" *ngIf="!app.installed">
-                        <span class="status-dot"></span> Disponible
+                    <span class="tile-name">{{ app.name }}</span>
+                    <span class="tile-status" [class.installed]="app.installed">
+                        <i class="fas" [class.fa-check-circle]="app.installed" [class.fa-cloud-download-alt]="!app.installed"></i>
+                        {{ app.installed ? 'Instalado' : 'Disponible' }}
                     </span>
                 </div>
-
-
             </div>
 
-
-            <!-- Intelligent Overlay Layer (Slide Up) -->
-            <div class="tile-overlay" *ngIf="app.installed">
-                <button class="btn-smart" (click)="onOpen.emit(app); $event.stopPropagation()">
-                    Abrir <i class="fas fa-arrow-right"></i>
-                </button>
-
-                <div class="btn-smart-secondary">
-                    <div *ngIf="app.externalUrl == ''" class="icon-smart"
-                        (click)="onUpdate.emit(app); $event.stopPropagation()" title="Buscar Actualizaciones">
+            <!-- Overlay de acciones -->
+            <div class="tile-overlay">
+                <ng-container *ngIf="app.installed">
+                    <button class="btn-tile-primary" (click)="onOpen.emit(app); $event.stopPropagation()">
+                        <i class="fas fa-arrow-right"></i> Abrir
+                    </button>
+                    <button class="btn-tile-icon" *ngIf="app.externalUrl == ''"
+                        (click)="onUpdate.emit(app); $event.stopPropagation()" title="Actualizar">
                         <i class="fas fa-sync-alt"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Intelligent Overlay Layer (Slide Up) - AVAILABLE -->
-            <div class="tile-overlay" *ngIf="!app.installed">
-                <button class="btn-smart " (click)="onInstall.emit(app); $event.stopPropagation()">
-                    Descargar App <i class="fas fa-cloud-download-alt"></i>
-                </button>
+                    </button>
+                </ng-container>
+                <ng-container *ngIf="!app.installed">
+                    <button class="btn-tile-primary full" (click)="onInstall.emit(app); $event.stopPropagation()">
+                        <i class="fas fa-cloud-download-alt"></i> Instalar
+                    </button>
+                </ng-container>
             </div>
 
         </div>
@@ -106,51 +105,67 @@
 </div>
 
 <!-- Identity & Network Info Modal -->
-<div class="modal-overlay" *ngIf="showInfoModal" (click)="closeModal()">
-    <div class="modal-card info-modal" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-            <h3 class="modal-title">Identidad del Sistema</h3>
+<app-modal
+    *ngIf="showInfoModal"
+    title="Identidad del Sistema"
+    width="440px"
+    [showIcon]="false"
+    [showConfirm]="false"
+    [showCancel]="false"
+    (cancel)="closeModal()">
 
-        </div>
+    <div class="im-body">
 
-        <div class="modal-body">
-            <!-- Hardware ID -->
-            <div class="info-group">
-                <label>ID de Hardware (MAC)</label>
-                <div class="info-value copyable" title="Copiar">
-                    <i class="fas fa-fingerprint icon-accent"></i>
-                    <span>{{ stats?.mac_address || '---' }}</span>
-                </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- Network Info -->
-            <div class="info-group">
-                <label>Direcciones IP Locales</label>
-                <div class="ip-list">
-                    <div class="info-value small" *ngFor="let ip of networkInfo">
-                        <i class="fas fa-network-wired"></i> {{ ip }}
-                    </div>
-                    <div class="info-value small text-muted" *ngIf="networkInfo.length === 0">Sin conexión local
-                        detectada</div>
-                </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- Public IP -->
-            <div class="info-group">
-                <label>IP Pública</label>
-                <div class="info-value highlight">
-                    <i class="fas fa-globe-americas icon-accent"></i>
-                    <span>{{ publicIp }}</span>
-                </div>
+        <!-- MAC / Hardware ID -->
+        <div class="im-row">
+            <span class="im-row-icon">
+                <i class="fas fa-fingerprint"></i>
+            </span>
+            <div class="im-row-info">
+                <span class="im-row-label">ID de Hardware (MAC)</span>
+                <span class="im-row-value mono copyable" title="Copiar">{{ stats?.mac_address || '---' }}</span>
             </div>
         </div>
 
-        <div class="modal-actions">
-            <button class="btn-modal-primary" (click)="closeModal()">Entendido</button>
+        <div class="im-divider"></div>
+
+        <!-- IPs Locales -->
+        <span class="im-section-title">IPs Locales</span>
+        <div class="im-row" *ngFor="let ip of networkInfo">
+            <span class="im-row-icon">
+                <i class="fas fa-network-wired"></i>
+            </span>
+            <div class="im-row-info">
+                <span class="im-row-value mono">{{ ip }}</span>
+            </div>
         </div>
+        <div class="im-row" *ngIf="networkInfo.length === 0">
+            <span class="im-row-icon">
+                <i class="fas fa-unlink"></i>
+            </span>
+            <div class="im-row-info">
+                <span class="im-row-value im-muted">Sin conexión local detectada</span>
+            </div>
+        </div>
+
+        <div class="im-divider"></div>
+
+        <!-- IP Pública -->
+        <div class="im-row im-highlight">
+            <span class="im-row-icon">
+                <i class="fas fa-globe-americas"></i>
+            </span>
+            <div class="im-row-info">
+                <span class="im-row-label">IP Pública</span>
+                <span class="im-row-value mono">{{ publicIp }}</span>
+            </div>
+        </div>
+
     </div>
-</div>
+
+    <!-- Footer personalizado -->
+    <div footer class="im-footer-inline">
+        <button class="btn-im-primary" (click)="closeModal()">Entendido</button>
+    </div>
+
+</app-modal>

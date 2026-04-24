@@ -1,44 +1,80 @@
 <!-- DB Info Modal (View Mode) -->
-<app-modal 
+<app-modal
   *ngIf="!showDropConfirmModal && !showExportConfirmModal"
-  title="Estructura de Datos (sdc_secure_core.db)"
+  title="Estructura de Datos"
   width="500px"
   [showConfirm]="false"
   [showIcon]="false"
   [showCancel]="false">
-  
-  <div style="text-align: left;">
-      <div class="db-tree-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
-        <ul class="db-table-list" style="list-style: none; padding: 0;">
-          <li *ngFor="let table of dbStats?.tables" style="margin-bottom: 5px;">
-            <div class="tree-node" (click)="toggleTable(table)" style="cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.2s;" [style.background]="expandedTable === table ? '#F1F8E9' : 'transparent'">
-              <i class="fas" [class.fa-caret-right]="expandedTable !== table" [class.fa-caret-down]="expandedTable === table" style="width: 20px; color: #90A4AE;"></i>
-              <i class="fas fa-table" style="color: var(--accent-purple); margin-right: 8px;"></i>
-              <span style="font-weight: 500; color: #455A64;">{{ table }}</span>
-            </div>
-            
-            <!-- Columns Children (Tree) -->
-            <div class="tree-children" *ngIf="expandedTable === table" style="padding-left: 36px; margin-top: 4px;">
-               <div *ngIf="tableColumns.length === 0" style="color: #B0BEC5; font-style: italic; font-size: 0.9em; padding: 4px 0;">Cargando esquema...</div>
-               <div *ngFor="let col of tableColumns" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #F0F4F8; font-size: 0.85em;">
-                 <span style="color: #546E7A;"><i class="fas fa-columns" style="color: #CFD8DC; margin-right: 6px; font-size: 0.9em;"></i>{{ col.name }}</span>
-                 <span style="color: #607D8B; font-family: 'Consolas', monospace; background: #ECEFF1; padding: 1px 6px; border-radius: 4px; font-size: 0.85em;">{{ col.type_ }}</span>
-               </div>
-            </div>
-          </li>
-        </ul>
-        <div *ngIf="!dbStats?.tables?.length" style="text-align: center; color: #B0BEC5; padding: 20px;">
-          <i class="fas fa-database" style="font-size: 2em; margin-bottom: 10px;"></i>
-          <p>No hay tablas registradas</p>
-        </div>
-      </div>
 
-      <!-- Custom Actions Footer injected into the modal -->
-      <div class="modal-actions">
-        <button class="btn-modal-acept" (click)="requestDropDB()">Eliminar BD</button>
-        <button class="btn-modal-acept" (click)="requestExportDB()">Exportar BD</button>
-        <button class="btn-modal-cancel" (click)="closeModal()">Cerrar</button>
+  <div class="db-modal-body">
+
+    <!-- Header de sección -->
+    <div class="db-section-header">
+      <span class="db-section-icon">
+        <i class="fas fa-database"></i>
+      </span>
+      <div>
+        <span class="db-section-title">sdc_secure_core.db</span>
+        <span class="db-section-sub">{{ dbStats?.tables?.length || 0 }} tablas registradas</span>
       </div>
+    </div>
+
+    <div class="db-divider"></div>
+
+    <!-- Árbol de tablas -->
+    <div class="db-tree-container">
+      <ul class="db-table-list">
+        <li *ngFor="let table of dbStats?.tables">
+
+          <div class="db-tree-node" (click)="toggleTable(table)"
+               [class.active]="expandedTable === table">
+            <span class="db-node-icon">
+              <i class="fas" [class.fa-caret-right]="expandedTable !== table"
+                             [class.fa-caret-down]="expandedTable === table"></i>
+            </span>
+            <span class="db-node-table-icon">
+              <i class="fas fa-table"></i>
+            </span>
+            <span class="db-node-name">{{ table }}</span>
+          </div>
+
+          <!-- Columnas expandidas -->
+          <div class="db-tree-children" *ngIf="expandedTable === table">
+            <div class="db-col-loading" *ngIf="tableColumns.length === 0">
+              <i class="fas fa-circle-notch fa-spin"></i> Cargando esquema...
+            </div>
+            <div class="db-col-row" *ngFor="let col of tableColumns">
+              <span class="db-col-name">
+                <i class="fas fa-columns"></i> {{ col.name }}
+              </span>
+              <span class="db-col-type">{{ col.type_ }}</span>
+            </div>
+          </div>
+
+        </li>
+      </ul>
+
+      <!-- Estado vacío -->
+      <div class="db-empty-state" *ngIf="!dbStats?.tables?.length">
+        <span class="db-empty-icon"><i class="fas fa-database"></i></span>
+        <p>No hay tablas registradas</p>
+      </div>
+    </div>
+
+    <div class="db-divider"></div>
+
+    <!-- Acciones -->
+    <div class="db-actions">
+      <button class="db-btn-danger" (click)="requestDropDB()">
+        <i class="fas fa-trash-alt"></i> Eliminar BD
+      </button>
+      <button class="db-btn-primary" (click)="requestExportDB()">
+        <i class="fas fa-download"></i> Exportar BD
+      </button>
+      <button class="db-btn-ghost" (click)="closeModal()">Cerrar</button>
+    </div>
+
   </div>
 </app-modal>
 
@@ -66,34 +102,29 @@
   [showConfirm]="false"
   [showCancel]="false"
   (cancel)="cancelExportDB()">
-  
-  <!-- Custom Body Content for specific steps -->
+
   <div *ngIf="exportStep === 'confirm'">
-     <p class="modal-message" style="text-align: center;">¿Deseas iniciar la generación del respaldo de la base de datos?</p>
+    <p class="modal-message" style="text-align: center;">¿Deseas iniciar la generación del respaldo de la base de datos?</p>
   </div>
 
   <div *ngIf="exportStep === 'ready'">
-      <p class="modal-message" style="text-align: center;">¡Respaldo generado correctamente!<br>Listo para descargar.</p>
+    <p class="modal-message" style="text-align: center;">¡Respaldo generado correctamente!<br>Listo para descargar.</p>
   </div>
 
-  <!-- Custom Footer for CONFIRM step -->
   <div footer *ngIf="exportStep === 'confirm'" class="modal-actions-group">
-      <button class="btn-modal-cancel" (click)="cancelExportDB()">Cancelar</button>
-      &nbsp;  
-      <button class="btn-modal-acept" (click)="generateBackup()">
-        <i class="fas fa-play" style="margin-right: 6px; font-size: 0.9em;"></i> Iniciar
-      </button>
+    <button class="btn-modal-cancel" (click)="cancelExportDB()">Cancelar</button>
+    &nbsp;
+    <button class="btn-modal-acept" (click)="generateBackup()">
+      <i class="fas fa-play" style="margin-right: 6px; font-size: 0.9em;"></i> Iniciar
+    </button>
   </div>
-   
-   <!-- Custom Footer for READY step -->
-   <div footer *ngIf="exportStep === 'ready'" class="modal-actions-group">
-      <button class="btn-modal-cancel" (click)="cancelExportDB()">Cerrar</button>
-      &nbsp;  
-      <button class="btn-modal-acept" (click)="downloadBackup()">
-        <i class="fas fa-download" style="margin-right: 8px;"></i> Descargar Archivo
-      </button>
-   </div>
 
-   <!-- Hidden Footer for LOADING step (optional, usually empty) -->
+  <div footer *ngIf="exportStep === 'ready'" class="modal-actions-group">
+    <button class="btn-modal-cancel" (click)="cancelExportDB()">Cerrar</button>
+    &nbsp;
+    <button class="btn-modal-acept" (click)="downloadBackup()">
+      <i class="fas fa-download" style="margin-right: 8px;"></i> Descargar Archivo
+    </button>
+  </div>
+
 </app-modal>
-

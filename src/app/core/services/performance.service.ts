@@ -33,14 +33,14 @@ export class PerformanceService {
 
     try {
       const stats: any = await invoke('get_system_telemetry');
-      // total_memory is in bytes. 2GB = 2 * 1024 * 1024 * 1024 = 2147483648
+      // total_memory is in bytes. 4GB = 4 * 1024 * 1024 * 1024 = 4294967296
       const totalRamMB = stats.total_memory / (1024 * 1024);
       
       console.log(`🚀 [Performance] Detected Total RAM: ${totalRamMB.toFixed(0)}MB`);
 
-      if (totalRamMB < 2000) { // Legacy threshold
+      if (totalRamMB < 4000) { // Legacy threshold (Computers < 4GB)
         this.applyProfile(PerformanceProfile.LOW);
-      } else if (totalRamMB < 4000) {
+      } else if (totalRamMB < 8000) {
         this.applyProfile(PerformanceProfile.MEDIUM);
       } else {
         this.applyProfile(PerformanceProfile.HIGH);

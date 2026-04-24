@@ -4,6 +4,12 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  position: relative;
+  background-image:
+    radial-gradient(circle, rgba(46, 125, 50, 0.07) 1px, transparent 1px),
+    radial-gradient(circle, rgba(46, 125, 50, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px, 14px 14px;
+  background-position: 0 0, 7px 7px;
 }
 
 
@@ -11,10 +17,15 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding-bottom: 25px;
-  border-bottom: 1px solid #f8f9fa;
-  /* Más sutil */
-  margin-bottom: 35px;
+  padding-bottom: 20px;
+  margin-bottom: 0;
+}
+
+/* Separador dashed entre secciones */
+.section-divider {
+  border: none;
+  border-top: 1.5px dashed rgba(0, 0, 0, 0.12);
+  margin: 16px 0 20px;
 }
 
 /* --- Brand Section --- */
@@ -28,8 +39,7 @@
   margin: 0;
   font-size: 1.8rem;
   letter-spacing: -0.5px;
-  color: #5d6d7e;
-  /* Gris azulado suave */
+  color: var(--text-main);
 }
 
 .brand-main {
@@ -38,8 +48,7 @@
 
 .brand-sub {
   font-weight: 300;
-  color: #b0bec5;
-  /* Gris muy claro pastel */
+  color: var(--text-dim);
 }
 
 .os-badge {
@@ -47,83 +56,125 @@
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
-  color: #78909c;
+  color: var(--text-dim);
 }
 
 .os-icon-box {
-  background: #eff3f5;
-  /* Gris casi blanco */
+  background: var(--accent-soft);
   padding: 4px 8px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #546e7a;
+  color: var(--accent-primary);
 }
 
-/* --- Status Pills Section --- */
+/* --- Stat Chips (Telemetría Minimalista) --- */
 .header-status {
   display: flex;
-  gap: 15px;
+  gap: 8px;
   align-items: center;
 }
 
-.metric-pill {
-  background: #ffffff;
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 1px solid #edf2f7;
-  display: flex;
+.stat-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  /* Sombra muy suave y difusa */
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  min-width: 140px;
+  gap: 10px;
+  padding: 8px 14px 8px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  cursor: default;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
 }
 
-.metric-pill:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04);
+.stat-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.07);
 }
 
-.metric-pill i {
-  font-size: 1.2rem;
-  width: 36px;
-  height: 36px;
+.stat-chip.clickable { cursor: pointer; }
+
+/* Burbuja de icono */
+.chip-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  transition: background-color 0.3s ease;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  transition: transform 0.2s ease;
 }
 
-.pill-content {
+.stat-chip:hover .chip-icon {
+  transform: scale(1.1);
+}
+
+/* Layout del texto */
+.chip-body {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  gap: 1px;
+  line-height: 1;
 }
 
-.pill-label {
-  font-size: 0.7rem;
-  color: #b0bec5;
-  font-weight: 600;
+.chip-label {
+  font-size: 0.62rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  opacity: 0.5;
+  color: var(--text-main);
 }
 
-.pill-value {
-  font-weight: 600;
-  color: #546e7a;
-  font-size: 0.95rem;
+.chip-value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
 }
 
-.pill-value.ellipsis {
-  max-width: 100px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.chip-sep {
+  font-weight: 400;
+  opacity: 0.35;
 }
+
+.chip-empty { opacity: 0.3; }
+
+/* === Colores Pastel Elegantes por tipo === */
+
+/* Red — Azul Pizarra Suave */
+.chip-network .chip-icon {
+  background: #eef3f8;
+  color: #6b8cae;
+}
+.chip-network:hover { border-color: #d0dde9; }
+
+/* RAM — Lavanda Salvia */
+.chip-ram .chip-icon {
+  background: #f0edf8;
+  color: #8b7daf;
+}
+.chip-ram:hover { border-color: #d8d0ea; }
+
+/* Storage — Verde Salvia Apagado */
+.chip-storage .chip-icon {
+  background: #edf4ed;
+  color: #6a9e6a;
+}
+.chip-storage:hover { border-color: #c8ddc8; }
+
+/* DB — Rosa Polvoso */
+.chip-db .chip-icon {
+  background: #f5eded;
+  color: #af8a8a;
+}
+.chip-db:hover { border-color: #e0cece; }
+
 
 /* --- Pastel Color Themes (Backgrounds & Text) --- */
 
@@ -161,6 +212,21 @@
   background-color: #f3e5f5;
 }
 
+/* Purple / RAM: Soft Lavender */
+.pill-ram i {
+  background-color: #f5f3ff;
+  color: #8b5cf6;
+}
+
+.pill-ram:hover {
+  border-color: #ddd6fe;
+}
+
+.pill-ram:hover i {
+  color: #7c3aed;
+  background-color: #ede9fe;
+}
+
 /* Orange / Storage: Pale Sand */
 .pill-storage i {
   background-color: #fffbf9;
@@ -191,390 +257,425 @@
 }
 
 /* Clickable Cursor */
-.clickable {
-  cursor: pointer;
-}
+.clickable { cursor: pointer; }
 
-/* --- Smart Modern App Cards (Intelligent Design - Refined) --- */
+/* =============================================
+   APP TILES — Patrón Premium Unificado
+   ============================================= */
 
 .apps-canvas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  /* Más compactas y angostas */
-  gap: 16px;
-  /* Gap reducido */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .app-tile {
-  background: radial-gradient(circle at 10% 10%, #ffffff 0%, #fcfdfe 90%);
-  /* Piel sutil "olas" de luz */
-  border-radius: 18px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  background-color: #ffffff;
+  background-image:
+    /* Patrón de Circuito Avanzado - PCB Pro */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpath d='M10 20h30l10 10v40M90 80H60l-10-10V30M20 10v20l-5 5H0' fill='none' stroke='rgba(130,90,210,0.07)' stroke-width='1'/%3E%3Ccircle cx='10' cy='20' r='2' fill='rgba(130,90,210,0.1)'/%3E%3Ccircle cx='50' cy='30' r='2.5' stroke='rgba(130,90,210,0.08)' stroke-width='1' fill='none'/%3E%3Crect x='70' y='40' width='12' height='6' rx='1' fill='none' stroke='rgba(130,90,210,0.06)' stroke-width='1'/%3E%3Cpath d='M80 10l-10 10h-20' fill='none' stroke='rgba(130,90,210,0.05)' stroke-width='0.8'/%3E%3C/svg%3E"),
+    linear-gradient(145deg, #ffffff 0%, rgba(245, 242, 255, 0.45) 100%);
+  background-size: 100px 100px, auto;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  height: 110px;
   position: relative;
   overflow: hidden;
-  border: 1px solid #f1f3f5;
-  height: 180px;
-  /* Altura Aumentada */
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
 
-/* Hover Lift Effect */
-/* Hover Lift Effect + Smart Gestures */
 .app-tile:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 16px 36px rgba(46, 125, 50, 0.08);
-  /* Sombra verde sutil */
-  border-color: #c8e6c9;
-  /* Borde verde sutil al hover */
-  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f8fb 100%);
+  transform: translateY(-3px);
+  background-color: #ffffff;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpath d='M10 20h30l10 10v40M90 80H60l-10-10V30M20 10v20l-5 5H0' fill='none' stroke='rgba(46,125,50,0.1)' stroke-width='1'/%3E%3Ccircle cx='10' cy='20' r='2' fill='rgba(46,125,50,0.12)'/%3E%3Ccircle cx='50' cy='30' r='2.5' stroke='rgba(46,125,50,0.1)' stroke-width='1' fill='none'/%3E%3Crect x='70' y='40' width='12' height='6' rx='1' fill='none' stroke='rgba(46,125,50,0.08)' stroke-width='1'/%3E%3Cpath d='M80 10l-10 10h-20' fill='none' stroke='rgba(46,125,50,0.07)' stroke-width='0.8'/%3E%3C/svg%3E"),
+    linear-gradient(145deg, #ffffff 0%, rgba(225, 248, 230, 0.55) 100%);
+  box-shadow: 0 8px 24px rgba(46, 125, 50, 0.08);
+  border-color: rgba(46, 125, 50, 0.2);
 }
 
-.app-tile:active .tile-icon {
-  transform: scale(0.9);
-  transition: transform 0.1s;
+.app-tile.is-installed:hover {
+  border-color: rgba(46, 125, 50, 0.32);
 }
 
-/* Layout - Split View */
+/* Cuerpo principal */
 .tile-body {
-  padding: 16px;
-  /* Padding reducido */
   display: flex;
   align-items: center;
-  gap: 14px;
-  /* Gap reducido */
-  height: 100%;
-  z-index: 2;
-  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-  /* Movimiento fluido */
-  background: transparent;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  flex: 1;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Move Content Up on Hover (Smart Gesture) */
 .app-tile:hover .tile-body {
-  transform: translateY(-20px);
-  /* Deja más espacio para el menú */
+  transform: translateY(-18px);
 }
 
-/* Icon Design - Neumorphic Touch with Green Hint */
+/* Icono burbuja — mismo patrón que im-row-icon */
 .tile-icon {
-  width: 46px;
-  /* Icono más pequeño */
-  height: 46px;
-  background: transparent;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--accent-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.7rem;
-  /* Fuente ajustada */
-  color: #90a4ae;
-  border: 1px solid #c8e6c9;
-  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.1);
-  transition: all 0.3s ease;
-  /* Fluid transition */
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Icon Animation on Card Hover */
 .app-tile:hover .tile-icon {
-  background: var(--accent-purple);
-  color: white;
-  transform: scale(1.1) rotate(-5deg);
+  background: var(--accent-primary);
+  color: #fff;
   border-color: transparent;
+  transform: scale(1.05);
 }
 
+/* Info */
 .tile-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  flex: 1;
+  gap: 4px;
+  min-width: 0;
 }
 
-.tile-info .name {
-  font-size: 0.95rem;
-  /* Texto ajustado */
+.tile-name {
+  font-size: 0.85rem;
   font-weight: 700;
-  color: #37474f;
-  letter-spacing: -0.3px;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tile-info .meta {
-  font-size: 0.75rem;
-  color: #b0bec5;
-  font-weight: 500;
+/* Status badge — icono + texto */
+.tile-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
-/* === Smart Overlay Actions (The "Intelligent" Part) === */
+.tile-status i {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
 
-/* === Smart Overlay Actions (The "Intelligent" Part) === */
+.tile-status.installed {
+  color: var(--accent-primary);
+}
 
+.tile-status.installed i { opacity: 1; }
+
+/* Badges de modo (proxy / libre) */
+.tile-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  z-index: 5;
+}
+
+.tile-badge-proxy {
+  background: #eef3f8;
+  color: #6b8cae;
+}
+
+.tile-badge-free {
+  background: #edf4ed;
+  color: #6a9e6a;
+}
+
+/* Overlay de acciones */
 .tile-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 10px 16px;
-  /* Padding equilibrado y más sustancial */
-  background: rgba(255, 255, 255, 0.92);
-  /* Fondo blanco sutil para contraste */
-  backdrop-filter: blur(8px);
+  padding: 8px 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
   transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-  border-top: 1px solid rgba(0, 0, 0, 0.03);
-  /* Borde casi invisible para definir el corte */
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
   box-sizing: border-box;
-  /* Asegura que el padding no sume al ancho */
 }
 
 .app-tile:hover .tile-overlay {
   transform: translateY(0);
 }
 
-/* Primary Action Button - Pastel Green (Small & Non-Aggressive) */
-.btn-smart {
-  background: #e8f5e9;
-  /* Verde Pastel muy suave */
-  color: #2e7d32;
-  /* Verde bosque para texto */
-  border: 1px solid #c8e6c9;
-  /* Borde sutil */
-  padding: 6px 10px;
-  /* Padding optimizado */
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
+/* Botón primario */
+.btn-tile-primary {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  /* Evita que el texto salte de línea */
+  gap: 5px;
+  background: var(--accent-soft);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-color);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
   transition: all 0.2s;
-  box-shadow: none;
+  white-space: nowrap;
 }
 
-.btn-smart:hover {
-  background: #c8e6c9;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(46, 125, 50, 0.1);
+.btn-tile-primary:hover {
+  background: var(--accent-primary);
+  color: #fff;
+  border-color: var(--accent-primary);
 }
 
-.btn-smart.full-width {
+.btn-tile-primary.full {
   width: 100%;
   justify-content: center;
 }
 
-.btn-smart-secondary {
-  display: flex;
-  gap: 6px;
-  /* Gap mínimo */
-  flex-shrink: 0;
-  /* IMPEDIR que se encojan/oculten */
-}
-
-.icon-smart {
-  width: 30px;
-  /* Reducido de 34px/32px para evitar desboredes */
-  height: 30px;
+/* Botón icono circular */
+.btn-tile-icon {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: #f1f2f6;
-  color: #90a4ae;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-dim);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  font-size: 0.7rem;
   transition: all 0.2s;
-  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
-.icon-smart:hover {
-  background: #eceff1;
-  color: #546e7a;
-}
-
-.icon-smart.delete:hover {
-  background: #fff3e0;
-  /* Naranja muy pastel al hover */
-  color: #ffb74d;
-  /* Naranja suave */
-}
-
-/* Status Dot */
-.status-dot {
-  width: 6px;
-  height: 6px;
-  background: #e0e0e0;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
-.status-dot.active {
-  background: #26c6da;
-  /* Cyan Pastel suave */
-  box-shadow: 0 0 6px rgba(38, 198, 218, 0.3);
-}
-
-/* Download State */
-.download-area {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.8rem;
-  /* Más grande como pedido */
-  color: #eceff1;
-  transition: color 0.3s;
-}
-
-.app-tile:hover .download-area {
-  color: #90caf9;
-  /* Soft blue */
+.btn-tile-icon:hover {
+  background: var(--accent-soft);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
 }
 
 
-/* --- Identity Info Modal Styles --- */
+
+/* --- Identity Modal Premium --- */
 .info-modal {
-  width: 400px;
-  max-width: 90%;
-  padding: 30px;
+  width: 420px;
+  max-width: 92vw;
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f0f2f5;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
   cursor: default;
 }
 
-.modal-header {
+.im-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
 }
 
-.modal-title {
-  margin: 0;
-  font-size: 1.25rem;
-  color: #37474f;
-  font-weight: 700;
-}
-
-.close-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.1rem;
-  color: #b0bec5;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.close-btn:hover {
-  color: #ef5350;
-}
-
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.info-group label {
-  font-size: 0.75rem;
-  color: #90a4ae;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  display: block;
-  letter-spacing: 0.5px;
-}
-
-.info-value {
+.im-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #fcfdfe;
-  padding: 12px 16px;
+  gap: 12px;
+}
+
+.im-icon-bubble {
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
-  border: 1px solid #f1f3f5;
-  color: #455a64;
-  font-family: 'Consolas', monospace;
-  /* Monospace for IDs/IPs */
+  background: #f5f5f5;
+  color: #78909c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.im-title {
+  margin: 0;
   font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
 }
 
-.info-value.highlight {
-  background: #e8f5e9;
-  /* Pastel Green bg */
-  border-color: #c8e6c9;
-  color: #2e7d32;
-  font-weight: 600;
+.im-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 500;
 }
 
-.icon-accent {
-  color: #b0bec5;
-  font-size: 1.1rem;
-}
-
-.info-value.highlight .icon-accent {
-  color: #66bb6a;
-}
-
-.copyable {
+.im-close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-dim);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
   transition: all 0.2s;
 }
 
-.copyable:hover {
-  background: #eceff1;
-  border-color: #cfd8dc;
+.im-close:hover {
+  background: #fff0f0;
+  border-color: #fecdd3;
+  color: #e11d48;
 }
 
-.ip-list {
+/* Body */
+.im-body {
+  padding: 14px 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
-.info-value.small {
-  padding: 8px 12px;
-  font-size: 0.85rem;
-  background: #ffffff;
-  border: 1px solid #f1f3f5;
+.im-section-title {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #90a4ae;
+  margin: 6px 0 2px 10px;
+  display: block;
 }
 
-.text-muted {
-  color: #cfd8dc;
-  font-style: italic;
+.im-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background 0.15s;
 }
 
-.divider {
-  height: 1px;
-  background: #f1f3f5;
-  margin: 5px 0;
+.im-row:hover { background: var(--bg-main); }
+
+.im-highlight {
+  background: #f8faf8;
+  border: 1px dashed rgba(0,0,0,0.08);
 }
 
-.modal-actions {
-  margin-top: 30px;
+.im-highlight:hover { background: #f4f8f4; }
+
+.im-row-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #f4f5f6;
+  color: #90a4ae;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.im-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.im-row-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.im-row-value {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.im-row-value.mono {
+  font-family: 'Consolas', 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.2px;
+}
+
+.im-muted { opacity: 0.38; }
+
+.copyable { cursor: pointer; }
+.copyable:hover { text-decoration: underline; }
+
+.im-divider {
+  border: none;
+  border-top: 1.5px dashed rgba(0, 0, 0, 0.12);
+  margin: 6px 0;
+}
+
+/* Footer */
+.im-footer {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
   display: flex;
   justify-content: flex-end;
 }
 
-.app-id-badge {
-  font-size: 0.65rem;
-  background: #eceff1;
-  color: #90a4ae;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 6px;
-  font-weight: 500;
-  font-family: 'Consolas', monospace;
-  vertical-align: middle;
+.btn-im-primary {
+  background: #edf4ed;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+  padding: 7px 20px;
+  border-radius: 10px;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-im-primary:hover {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #2e7d32;
+}
+
+/* Footer proyectado dentro de app-modal */
+.im-footer-inline {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
 }
 
 /* Proxy Badge */

@@ -20,6 +20,7 @@ export class AppsComponent implements OnInit {
   isEditing = false;
 
   currentApp: DesktopApp = this.getEmptyApp();
+  activeTab: 'general' | 'modes' = 'general';
 
   constructor(private appsService: DesktopAppsService) { }
 
@@ -56,12 +57,14 @@ export class AppsComponent implements OnInit {
   openAddModal() {
     this.isEditing = false;
     this.currentApp = this.getEmptyApp();
+    this.activeTab = 'general';
     this.showModal = true;
   }
 
   openEditModal(app: DesktopApp) {
     this.isEditing = true;
     this.currentApp = { ...app }; // Clone
+    this.activeTab = 'general';
     this.showModal = true;
   }
 

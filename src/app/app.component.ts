@@ -39,6 +39,7 @@ import { HttpProgressComponent } from "./components/background-progress/http-pro
 import { SetupWizardComponent } from "./components/setup-wizard/setup-wizard.component";
 import { LoginModalComponent } from "./components/login-modal/login-modal.component";
 import { PerformanceService } from "./core/services/performance.service";
+import { UpdateService } from "./core/services/update.service";
 
 type ConnectionStatus =
   | "Conectado"
@@ -237,10 +238,13 @@ export class AppComponent implements OnInit {
     private fileService: FileService,
     public securityService: SecurityService,
     public utils: UtilsService,
-    private performance: PerformanceService
+    private performance: PerformanceService,
+    private updateService: UpdateService
   ) {
     // ... existing constructor logic ...
     this.performance.initialize();
+    this.loadConfig(); // Asegurar que cargamos config antes de aplicar tema
+    this.applyTheme();
 
     // Close splash screen
     // Esperamos 5 segundos antes de cerrar el splash y mostrar el main
@@ -708,6 +712,13 @@ export class AppComponent implements OnInit {
   showSetupWizard = false;
 
   async initApplication() {
+    // Opcional: Chequeo de actualizaciones automático si está habilitado
+    if (this.config.updates.autoUpdate) {
+      setTimeout(() => {
+        this.updateService.checkAndPrompt(true); // Silent check
+      }, 5000);
+    }
+
     try {
       // 1. Huella Única del Terminal (Inmutable)
       await invoke("emit_splash_status", {
@@ -1149,6 +1160,7 @@ export class AppComponent implements OnInit {
 
   saveConfig(silent = false) {
     localStorage.setItem("sdc_ui_config", JSON.stringify(this.config));
+    this.applyTheme(); // Aplicar tema al guardar
     if (!silent) {
       this.showModal(
         "Configuración Guardada",
@@ -1157,6 +1169,17 @@ export class AppComponent implements OnInit {
       );
     }
     this.showControlPanel = false;
+  }
+
+  applyTheme() {
+    let theme = this.config.theme || 'sandra';
+    if (theme === 'light') theme = 'sandra';
+    
+    // Remover temas previos
+    document.body.classList.remove('theme-claro', 'theme-oscuro', 'theme-sandra', 'theme-verde-mate');
+    // Aplicar nuevo tema
+    document.body.classList.add(`theme-${theme}`);
+    console.log(`🎨 [Theme] Aplicado: ${theme}`);
   }
 
   dbStats: any = null;

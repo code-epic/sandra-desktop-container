@@ -14,6 +14,20 @@
             --text-muted: #90A4AE;
         }
 
+        /* Performance Mode: Disable expensive animations for low RAM (<4GB) */
+        .perf-low .wave, 
+        .perf-low .bubble,
+        .perf-low .logo-container {
+            animation: none !important;
+        }
+        .perf-low .ocean, .perf-low .bubbles {
+            display: none !important;
+        }
+        .perf-low .logo-container {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important;
+            border-color: var(--accent-light) !important;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -125,38 +139,44 @@
 
         /* --- Animations: Waves --- */
         .ocean {
-            height: 180px; /* Taller for smoother curve perception */
+            height: 160px;
             width: 100%;
             position: absolute;
             bottom: 0;
             left: 0;
             z-index: 1;
             overflow: hidden;
+            background: rgba(255, 255, 255, 0.4);
         }
         
         .wave {
-            /* Seamless SVG Curve (Start Y=192, End Y=192). Two equal peaks/troughs. */
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2366BB6A' fill-opacity='1' d='M0,192 C240,290 480,90 720,192 C960,290 1200,90 1440,192 L1440,320 L0,320 Z'%3E%3C/path%3E%3C/svg%3E") repeat-x;
-            
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2366BB6A' fill-opacity='1' d='M0,160 C320,300 420,0 720,160 C1020,320 1120,20 1440,160 L1440,320 L0,320 Z'%3E%3C/path%3E%3C/svg%3E") repeat-x;
             position: absolute;
             width: 2880px;
             height: 320px;
-            animation: wave 10s linear infinite;
             transform: translate3d(0, 0, 0);
-            opacity: 0.4;
             bottom: -50px;
         }
 
+        .wave:nth-of-type(1) {
+            animation: wave 25s linear infinite;
+            opacity: 0.3;
+        }
+
         .wave:nth-of-type(2) {
-            bottom: -60px;
-            opacity: 0.6;
-            animation: wave 12s linear reverse infinite;
-            margin-left: -100px;
+            bottom: -65px;
+            animation: wave 18s linear reverse infinite, swell 8s ease-in-out infinite;
+            opacity: 0.5;
         }
 
         @keyframes wave {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-1440px); }
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-1440px, 0, 0); }
+        }
+
+        @keyframes swell {
+            0%, 100% { transform: translate3d(0, -10px, 0); }
+            50% { transform: translate3d(0, 5px, 0); }
         }
 
         /* Bubbles - adapted for light theme */
@@ -230,6 +250,23 @@
     </div>
 
     <script>
+        // Performance Evaluation: Check saved preference first, then RAM detection
+        const savedPerfMode = localStorage.getItem('sandra_perf_mode') || 'auto';
+        let memory = 4; // Default
+        
+        if (savedPerfMode === 'low') {
+            document.body.classList.add('perf-low');
+            console.log("Sandra: Performance Optimization Active (User Preference: LOW)");
+        } else if (savedPerfMode === 'auto') {
+            memory = navigator.deviceMemory || 4;
+            if (memory < 4) {
+                document.body.classList.add('perf-low');
+                console.log("Sandra: Performance Optimization Active (Low RAM detected: " + memory + "GB)");
+            }
+        } else {
+            console.log("Sandra: High Performance Mode Active (User Preference: " + savedPerfMode.toUpperCase() + ")");
+        }
+
         // Set dynamic date
         const dateElement = document.getElementById('buildDate');
         const now = new Date();
@@ -238,12 +275,17 @@
 
         // Tauri Event Listener to update status
         if (window.__TAURI__) {
-            const { listen } = window.__TAURI__.event;
+            const { listen, emit } = window.__TAURI__.event;
             const statusText = document.getElementById('statusText');
             
             listen('splash-status', (event) => {
                 statusText.textContent = event.payload;
             });
+
+            // Signal performance mode to main app
+            if (memory < 4) {
+                emit('performance-mode', 'legacy');
+            }
         }
     </script>
 </body>

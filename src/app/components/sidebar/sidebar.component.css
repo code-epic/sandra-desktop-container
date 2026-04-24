@@ -6,7 +6,7 @@
 .sidebar {
   width: var(--sidebar-width, 250px);
   background: #ffffff;
-  border-right: 1px solid #e1e5e8;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -15,11 +15,8 @@
   flex-shrink: 0;
   position: relative;
   z-index: 100;
-
-  /* Animation properties */
   transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   overflow: hidden;
-  /* Essential for wipe effect */
   will-change: width;
 }
 
@@ -44,17 +41,16 @@
 }
 
 .logo-circle {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg,
-      var(--accent-purple, #8e75ff),
-      var(--accent-blue, #2979ff));
+  width: 44px;
+  height: 44px;
+  background-color: #f5f7f9;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1.4em;
+  color: #546e7a; /* Neutral gray */
+  font-size: 1.2em;
+  border: 1px solid rgba(0,0,0,0.05);
 }
 
 .brand-wrapper {
@@ -67,13 +63,13 @@
   font-size: 1.2em;
   font-weight: 700;
   letter-spacing: -0.5px;
-  color: #2d3e4e;
+  color: var(--text-main);
   white-space: nowrap;
 }
 
 .datetime-info {
   font-size: 0.75em;
-  color: #90a4ae;
+  color: var(--text-dim);
   font-weight: 500;
   letter-spacing: 0.5px;
   margin-top: 2px;
@@ -102,7 +98,7 @@
   align-items: center;
   gap: 15px;
   cursor: pointer;
-  color: #6d7c89;
+  color: var(--text-dim);
   font-size: 0.95em;
   font-weight: 500;
   transition: all 0.2s;
@@ -111,19 +107,26 @@
 }
 
 .nav-item:hover {
-  background: #f8f9fb;
-  color: var(--accent-purple, #8e75ff);
+  background: #fcfcfc;
+  color: var(--text-main);
 }
 
 .nav-item.active {
-  background: #f0edff;
-  color: var(--accent-purple, #8e75ff);
-  border-right-color: var(--accent-purple, #8e75ff);
+  background: transparent;
+  color: var(--text-main);
+  border-right: 3px solid var(--accent-primary); /* Minimal green indicator */
+  font-weight: 700;
+}
+
+.nav-item.active i {
+  color: var(--accent-primary);
 }
 
 .nav-item i {
   width: 20px;
   text-align: center;
+  color: #90a4ae;
+  transition: all 0.2s;
 }
 
 .nav-spacer {
@@ -145,16 +148,15 @@
 }
 
 .nav-divider {
-  height: 1px;
-  background-color: #e1e5e8;
-  margin: 5px 25px 15px 25px;
+  border-top: 1.5px dashed rgba(0, 0, 0, 0.08);
+  margin: 10px 25px 20px 25px;
   flex-shrink: 0;
 }
 
 
 .brand-lite {
   font-weight: 300;
-  color: var(--accent-purple);
+  color: #90a4ae;
 }
 
 /* ── Items bloqueados sin JWT ── */
@@ -164,9 +166,8 @@
 }
 
 .nav-item.nav-locked:hover {
-  background: rgba(142, 117, 255, 0.05);
-  opacity: 0.65;
-  color: var(--accent-purple, #8e75ff);
+  background: #fcfcfc;
+  opacity: 0.8;
 }
 
 .nav-lock-icon {

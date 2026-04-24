@@ -59,7 +59,7 @@ pub fn proxy_limitless_url(
 
     // Mapear headers del request original al proxy, excluyendo Host y Cookie
     // Verificar si es una petición fetch interceptada por nosotros
-    let is_sdc_fetch = request.headers().get("x-sdc-fetch").is_some();
+    let _is_sdc_fetch = request.headers().get("x-sdc-fetch").is_some();
 
     let mut audit_request_headers = HashMap::new();
     for (name, value) in request.headers().iter() {

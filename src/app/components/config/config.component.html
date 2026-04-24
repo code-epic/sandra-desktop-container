@@ -54,9 +54,9 @@
         <div *ngIf="activeConfigTab === 'theme'" class="config-section">
           <h3>Apariencia</h3>
           <div class="theme-selector">
-            <div class="theme-option" [class.selected]="config.theme === 'light'" (click)="config.theme = 'light'">Claro</div>
-            <div class="theme-option" [class.selected]="config.theme === 'dark'" (click)="config.theme = 'dark'">Oscuro</div>
-            <div class="theme-option" [class.selected]="config.theme === 'sandra'" (click)="config.theme = 'sandra'">Sandra Teal Soft</div>
+            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'sandra'" (click)="config.theme = 'sandra'">Verde Pastel Elegante</div>
+            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'verde-mate'" (click)="config.theme = 'verde-mate'">Verde Mate Oscuro</div>
+            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'oscuro'" (click)="config.theme = 'oscuro'">Oscuro Night</div>
           </div>
 
           <h4 style="margin-top: 25px;"><i class="fas fa-tachometer-alt"></i> Rendimiento de Interfaz</h4>
@@ -106,10 +106,60 @@
   
         <!-- Sección Actualizaciones -->
         <div *ngIf="activeConfigTab === 'updates'" class="config-section">
-          <h3>Sistema</h3>
+          <h3>Sincronización de Sistema</h3>
+          
+          <div class="update-card" *ngIf="updateService.status$ | async as status">
+            <div class="update-status-header">
+              <div class="status-indicator">
+                <i class="fas" [ngClass]="{
+                  'fa-check-circle text-success': !status.available && !status.checking,
+                  'fa-sync fa-spin text-accent': status.checking || status.downloading,
+                  'fa-exclamation-circle text-warning': status.available && !status.downloading
+                }"></i>
+                <span class="status-label">
+                  <ng-container *ngIf="status.checking">Buscando actualizaciones...</ng-container>
+                  <ng-container *ngIf="!status.checking && !status.available && !status.downloading">Sistema Actualizado</ng-container>
+                  <ng-container *ngIf="status.available && !status.downloading">Nueva versión detectada (v{{status.version}})</ng-container>
+                  <ng-container *ngIf="status.downloading">Sincronizando Motor Sandra...</ng-container>
+                </span>
+              </div>
+              <button class="btn-check-updates" 
+                      [disabled]="status.checking || status.downloading"
+                      (click)="checkUpdates()">
+                {{ status.available ? 'Actualizar Ahora' : 'Buscar Ahora' }}
+              </button>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="update-progress-container" *ngIf="status.downloading">
+              <div class="progress-stats">
+                <span class="progress-percent">{{ status.progress }}%</span>
+                <span class="progress-label">Descargando binario seguro...</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" [style.width.%]="status.progress"></div>
+              </div>
+            </div>
+
+            <!-- Release Notes -->
+            <div class="update-notes" *ngIf="status.available && status.body">
+              <h4>Novedades en v{{status.version}}:</h4>
+              <div class="notes-content">{{ status.body }}</div>
+            </div>
+          </div>
+
+          <div class="config-divider"></div>
+
           <label class="toggle-row">
-            <span>Actualizaciones automáticas</span>
+            <span>Descargar actualizaciones automáticamente</span>
             <input type="checkbox" [(ngModel)]="config.updates.autoUpdate">
+          </label>
+          <label class="toggle-row" style="margin-top: 10px;">
+            <span>Canal de sincronización</span>
+            <select class="styled-select" style="width: auto; height: 30px; font-size: 12px; padding: 0 10px;">
+              <option value="stable">Estable (Recomendado)</option>
+              <option value="beta">Beta (Ingeniería)</option>
+            </select>
           </label>
         </div>
   
