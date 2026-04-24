@@ -29,11 +29,11 @@ Este plan tiene como objetivo diagnosticar y mitigar los problemas de lentitud (
     - Detenga animaciones de fondo.
     - Simplifique las sombras (`box-shadow`).
 
-- [ ] **T6: Optimización de Angular**
+- [x] **T6: Optimización de Angular**
   - Revisar la estrategia de detección de cambios (`OnPush`) en componentes pesados.
   - Lazy loading de componentes del Setup Wizard que no se ven de inmediato.
 
-- [ ] **T7: Ajustes de Tauri/Rust**
+- [x] **T7: Ajustes de Tauri/Rust**
   - Evaluar la desactivación forzada de aceleración por hardware en GPUs antiguas que no soportan bien DirectX 12 / Vulkan.
 
 - [x] **T8: Configuración Manual de Rendimiento**

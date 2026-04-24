@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { POLICIES_HTML } from '../../constants/policies';
@@ -9,7 +9,8 @@ import { PerformanceService, PerformanceProfile } from '../../core/services/perf
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './config.component.html',
-  styleUrls: ['./config.component.css']
+  styleUrls: ['./config.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ConfigComponent {
   @Input() config: any;

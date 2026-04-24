@@ -15,6 +15,10 @@
   background: #ffffff;
 }
 
+.form-control {
+  text-transform: none !important;
+}
+
 .input-group-prepend .input-group-text {
   color: #64748b;
   margin-right: 10px;

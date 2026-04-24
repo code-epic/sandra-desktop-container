@@ -98,7 +98,9 @@
           </div>
           <div class="config-group" style="margin-top:10px;" *ngIf="config.access.enableJwtSession">
             <label>Nombre de variable (Key)</label>
-            <input type="text" [(ngModel)]="config.access.jwtVariableName" placeholder="token">
+            <input type="text" [(ngModel)]="config.access.jwtVariableName" placeholder="token" 
+                   autocapitalize="none" autocorrect="off" spellcheck="false" 
+                   style="text-transform: none !important;">
           </div>
         </div>
   

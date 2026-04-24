@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit } from "@angular/core";
+import { Component, EventEmitter, Input, Output, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { invoke } from "@tauri-apps/api/core";
@@ -11,6 +11,7 @@ import { POLICIES_HTML } from "../../constants/policies";
   imports: [CommonModule, FormsModule],
   templateUrl: "./setup-wizard.component.html",
   styleUrls: ["./setup-wizard.component.css"],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SetupWizardComponent implements OnInit {
   @Input() stats: any = null;

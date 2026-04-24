@@ -79,7 +79,8 @@
                             </div>
                             <input class="form-control" placeholder="Escriba su Usuario" name="usuario" type="text"
                                 [(ngModel)]="usuario" required autocomplete="off"
-                                style="width: 100%; border: none; background: transparent; outline: none; font-size: 0.95rem; box-shadow: none; padding: 0;">
+                                autocapitalize="none" autocorrect="off" spellcheck="false"
+                                style="width: 100%; border: none; background: transparent; outline: none; font-size: 0.95rem; box-shadow: none; padding: 0; text-transform: none !important;">
                         </div>
 
                         <div class="input-group custom-input-group mb-4"
@@ -89,8 +90,8 @@
                             </div>
                             <input class="form-control" placeholder="Escriba su Contraseña" name="clave"
                                 [type]="isHidden ? 'password' : 'text'" [(ngModel)]="clave" required
-                                autocomplete="current-password"
-                                style="flex: 1; border: none; background: transparent; outline: none; font-size: 0.95rem; box-shadow: none; padding: 0; padding-right: 35px;">
+                                autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false"
+                                style="flex: 1; border: none; background: transparent; outline: none; font-size: 0.95rem; box-shadow: none; padding: 0; padding-right: 35px; text-transform: none !important;">
                             <div class="password-eye-icon cursor-pointer" (click)="isHidden = !isHidden"
                                 style="position: absolute; right: 16px; display: flex; align-items: center; justify-content: center; height: 100%; top: 0; color: #64748b;">
                                 <i class="fas" [class.fa-eye-slash]="isHidden" [class.fa-eye]="!isHidden"></i>

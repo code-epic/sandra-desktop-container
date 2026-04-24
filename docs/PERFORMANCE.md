@@ -43,11 +43,14 @@ El servicio inyecta una clase global en el `<body>`.
 - **Animaciones Estáticas**: Desactivación de `@keyframes` infinitos en elementos de fondo.
 - **Optimización de Bitmaps**: Evitar el escalado dinámico de imágenes pesadas.
 
-### Lógica (Angular)
-- **ChangeDetection Strategy**: Uso de `ChangeDetectionStrategy.OnPush` para reducir los ciclos de verificación de Angular.
+### Lógica (Angular) (T6) - [COMPLETADO]
+- **ChangeDetection Strategy**: Implementación de `ChangeDetectionStrategy.OnPush` en Dashboard, Config y SetupWizard, reduciendo el overhead de procesamiento en el hilo principal.
 - **Debouncing de IPC**: Reducción de la frecuencia de llamadas `invoke` para telemetría no crítica.
 
-## 5. Control de Usuario (T8)
+## 5. Configuración de Bajo Nivel (T7) - [VERIFICADO]
+- **Aceleración por Hardware**: Se mantiene la desactivación de GPU en el entorno WebView2 para garantizar compatibilidad con chipsets antiguos (GMA 3100 y similares) que carecen de drivers modernos, evitando bloqueos de sistema.
+
+## 6. Control de Usuario (T8) - [COMPLETADO]
 Aunque el sistema es automático, se proporciona un selector manual en **Configuración > Temas > Rendimiento** para que el operador pueda forzar un modo específico según su preferencia de fluidez o estética.
 
 ---

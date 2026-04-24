@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SystemStats } from '../../core/models/telemetry.model';
 import { UtilsService } from '../../core/services/utils.service';
@@ -8,7 +8,8 @@ import { UtilsService } from '../../core/services/utils.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './dashboard.component.html',
-  styleUrls: ['../../app.component.css', './dashboard.component.css']
+  styleUrls: ['../../app.component.css', './dashboard.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent {
   @Input() stats: SystemStats | null = null;
