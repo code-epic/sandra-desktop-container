@@ -58,6 +58,20 @@
             <div class="theme-option" [class.selected]="config.theme === 'dark'" (click)="config.theme = 'dark'">Oscuro</div>
             <div class="theme-option" [class.selected]="config.theme === 'sandra'" (click)="config.theme = 'sandra'">Sandra Teal Soft</div>
           </div>
+
+          <h4 style="margin-top: 25px;"><i class="fas fa-tachometer-alt"></i> Rendimiento de Interfaz</h4>
+          <p class="hint-text">Ajusta la carga gráfica según la potencia de tu equipo.</p>
+          
+          <div class="perf-selector" style="margin-top: 10px;">
+            <select class="styled-select" [(ngModel)]="selectedPerfMode" (change)="onPerfChange()">
+              <option *ngFor="let opt of perfOptions" [value]="opt.value">{{ opt.label }}</option>
+            </select>
+          </div>
+
+          <div class="perf-status-note" style="margin-top: 15px; font-size: 11px; color: var(--text-dim); background: rgba(0,0,0,0.03); padding: 10px; border-radius: 6px;">
+            <strong>Estado Actual:</strong> Perfil {{ performance.getCurrentProfile() | uppercase }} activo.
+            <span *ngIf="selectedPerfMode === 'auto'"> (Detectado automáticamente)</span>
+          </div>
         </div>
   
         <div *ngIf="activeConfigTab === 'access'" class="config-section">

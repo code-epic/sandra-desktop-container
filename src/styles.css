@@ -276,29 +276,45 @@ body::after {
 /* Optimizaciones críticas para hardware legado (< 2GB RAM) */
 
 body.perf-low::after {
-  animation: none !important; /* Detener repintado constante */
-  background-image: url('assets/circuit-pattern.png') !important; /* Quitar gradiente radial */
-  opacity: 0.3 !important; /* Reducir ruido visual */
+  animation: none !important; 
+  background-image: none !important; /* Eliminar circuito por completo */
+  background-color: var(--bg-alpha) !important;
+  opacity: 1 !important;
 }
 
-body.perf-low * {
-  backdrop-filter: none !important; /* El mayor asesino de CPU */
-  -webkit-backdrop-filter: none !important;
-  text-shadow: none !important; /* Simplificar renderizado de texto */
-}
-
-/* Sustituir blur por fondos opacos en modales y paneles */
+/* Forzar eliminación de blur en TODOS los elementos, incluyendo overlays y componentes */
+body.perf-low *, 
+body.perf-low .modal-overlay,
+body.perf-low .config-overlay,
+body.perf-low .modal-card,
+body.perf-low .stage-header,
 body.perf-low .glass-panel,
-body.perf-low .setup-card,
-body.perf-low .modal-content,
-body.perf-low .setup-sidebar {
-  background: rgba(255, 255, 255, 0.98) !important;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important; /* Sombras más simples */
-  border: 1px solid rgba(0,0,0,0.1) !important;
+body.perf-low .setup-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-shadow: none !important;
+  transition: none !important; /* Eliminar transiciones para respuesta instantánea */
 }
 
-body.perf-low .circuit-bg {
-  display: none !important; /* Eliminar capas decorativas extra */
+/* Sustituir blur por fondos opacos sólidos */
+body.perf-low .modal-overlay,
+body.perf-low .config-overlay {
+  background: rgba(30, 40, 50, 0.8) !important; /* Fondo más oscuro y sólido */
+}
+
+body.perf-low .modal-card,
+body.perf-low .config-card,
+body.perf-low .setup-card,
+body.perf-low .setup-sidebar,
+body.perf-low .stage-header {
+  background: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+  border: 1px solid #ccc !important;
+}
+
+body.perf-low .circuit-bg,
+body.perf-low .tech-bubbles {
+  display: none !important; /* Eliminar capas decorativas */
 }
 
 /* Utilidades Globales */

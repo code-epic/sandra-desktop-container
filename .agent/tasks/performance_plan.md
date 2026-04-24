@@ -36,6 +36,7 @@ Este plan tiene como objetivo diagnosticar y mitigar los problemas de lentitud (
 - [ ] **T7: Ajustes de Tauri/Rust**
   - Evaluar la desactivación forzada de aceleración por hardware en GPUs antiguas que no soportan bien DirectX 12 / Vulkan.
 
-- [ ] **T8: Configuración Manual de Rendimiento**
+- [x] **T8: Configuración Manual de Rendimiento**
   - Añadir selectores en el panel de Configuración para control manual del usuario.
+  - Implementar persistencia de la elección.
   - Implementar persistencia de la elección.

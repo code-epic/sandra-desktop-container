@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { POLICIES_HTML } from '../../constants/policies';
+import { PerformanceService, PerformanceProfile } from '../../core/services/performance.service';
 
 @Component({
   selector: 'app-config',
@@ -24,6 +25,23 @@ export class ConfigComponent {
   activeConfigTab: string = 'logs';
   viewingPolicies: boolean = false;
   policiesHtml = POLICIES_HTML;
+  
+  perfOptions = [
+    { label: 'Automático (Recomendado)', value: 'auto' },
+    { label: 'Ecosistema (Gráficos Full)', value: PerformanceProfile.HIGH },
+    { label: 'Fluidez (Modo Legado)', value: PerformanceProfile.LOW }
+  ];
+
+  selectedPerfMode: string = 'auto';
+
+  constructor(public performance: PerformanceService) {
+    const saved = localStorage.getItem('sandra_perf_mode') || 'auto';
+    this.selectedPerfMode = saved;
+  }
+
+  onPerfChange() {
+    this.performance.setManualProfile(this.selectedPerfMode as any);
+  }
 
   saveConfig() {
     this.onSave.emit();
