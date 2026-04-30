@@ -135,7 +135,11 @@ pub async fn start_remote_listener(
                         msg = ws_stream.next() => {
                             match msg {
                                 Some(Ok(Message::Text(text))) => {
-                                    process_command(&text, &app_handle, connection_id)
+                                    if let Some(response) = process_command(&text, &app_handle, connection_id) {
+                                        if let Err(e) = ws_stream.send(Message::Text(response.into())).await {
+                                            eprintln!("Error enviando respuesta de comando WS: {}", e);
+                                        }
+                                    }
                                 }
                                 Some(Ok(Message::Pong(_))) => {
                                     // El servidor Go respondió al Latido
@@ -211,7 +215,7 @@ fn set_db_disconnected(app_handle: &AppHandle, connection_id: Option<i64>) {
     // Aquí lock_result cae fuera de scope y libera el Mutex automáticamente
 }
 
-fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64>) {
+fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64>) -> Option<String> {
     // println!("[WS] Mensaje CRUDO recibido: {}", text);
 
     if let Ok(json) = serde_json::from_str::<Value>(text) {
@@ -219,22 +223,24 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
         // println!("[WS] Tipo de mensaje detectado: {}", msg_type);
 
         match msg_type {
-            "notification" => handle_notification_msg(app_handle, &json),
-            "access" => handle_access_msg(app_handle, &json, connection_id),
-            "chat" => handle_chat_msg(app_handle, &json),
+            "notification" => { handle_notification_msg(app_handle, &json); None }
+            "access" => { handle_access_msg(app_handle, &json, connection_id); None }
+            "chat" => { handle_chat_msg(app_handle, &json); None }
             "operation" => handle_operation_msg(app_handle, &json),
-            "welcome" => handle_welcome_msg(app_handle, &json),
-            "exec-fnx" => handle_exec_fnx_msg(app_handle, &json),
-            "hsf" => handle_hsf_msg(app_handle, &json),
+            "welcome" => { handle_welcome_msg(app_handle, &json); None }
+            "exec-fnx" => { handle_exec_fnx_msg(app_handle, &json); None }
+            "hsf" => { handle_hsf_msg(app_handle, &json); None }
             "sdc_sync" => {
                 let msg = json["message"].as_str().unwrap_or("");
                 show_native_notification(app_handle, "Sandra Secure Mailbox", "Tienes correo pendiente por verificar en tu buzón seguro.");
                 let _ = app_handle.emit("refresh-mailbox", msg);
+                None
             },
-            _ => handle_legacy_msg(app_handle, &json),
+            _ => { handle_legacy_msg(app_handle, &json); None }
         }
     } else {
         // println!("[WS] Falló el parseo de JSON: {}", text);
+        None
     }
 }
 
@@ -293,14 +299,45 @@ fn handle_chat_msg(app_handle: &AppHandle, json: &Value) {
     let _ = app_handle.emit("chat-message", json);
 }
 
-fn handle_operation_msg(app_handle: &AppHandle, json: &Value) {
+fn handle_operation_msg(app_handle: &AppHandle, json: &Value) -> Option<String> {
     // println!("[WS] Ejecutando operación de sistema...");
-    match json["cmd"].as_str() {
-        Some("reboot") => execute_system_reboot(),
-        Some("status") => { /* Responder con stats */ }
-        _ => println!("Operación desconocida: {:?}", json),
-    }
+    let response = match json["cmd"].as_str() {
+        Some("reboot") => { execute_system_reboot(); None },
+        Some("status") => { /* Responder con stats */ None },
+        Some("info_detail") => {
+            let stats = crate::commands::monitor::collect_system_stats();
+            let mut docs_count: i64 = 0;
+            let mut db_size_bytes: u64 = 0;
+
+            if let Some(state) = app_handle.try_state::<crate::storage::DbState>() {
+                if let Ok(conn) = state.0.lock() {
+                    docs_count = conn.query_row("SELECT COUNT(*) FROM document_history", [], |row| row.get(0)).unwrap_or(0);
+                }
+            }
+            if let Ok(app_dir) = app_handle.path().app_data_dir() {
+                let db_path = app_dir.join("sdc_secure_core.db");
+                db_size_bytes = std::fs::metadata(&db_path).map(|m| m.len()).unwrap_or(0);
+            }
+
+            Some(serde_json::json!({
+                "type": "operation_response",
+                "cmd": "info_detail",
+                "payload": {
+                    "memory_total": stats.total_memory,
+                    "memory_used": stats.used_memory,
+                    "disk_total": stats.disk_total,
+                    "disk_free": stats.disk_free,
+                    "mac": stats.mac_address,
+                    "ip": stats.local_ip,
+                    "db_size_bytes": db_size_bytes,
+                    "docs_count": docs_count,
+                }
+            }).to_string())
+        },
+        _ => { println!("Operación desconocida: {:?}", json); None },
+    };
     let _ = app_handle.emit("operation-event", json);
+    response
 }
 
 fn handle_welcome_msg(app_handle: &AppHandle, json: &Value) {
