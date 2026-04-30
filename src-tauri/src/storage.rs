@@ -174,6 +174,22 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     let _ = conn.execute(
+        "ALTER TABLE document_history ADD COLUMN file_size TEXT",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE document_history ADD COLUMN remote_code TEXT",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE document_history ADD COLUMN source TEXT",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE document_history ADD COLUMN file_hash TEXT",
+        [],
+    );
+    let _ = conn.execute(
         "ALTER TABLE document_history ADD COLUMN group_name TEXT",
         [],
     );
