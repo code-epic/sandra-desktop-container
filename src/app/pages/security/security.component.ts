@@ -746,6 +746,17 @@ export class SecurityComponent implements OnInit, OnChanges {
     }
   }
 
+  openContactsFromCompose() {
+    this.activeTab = 'contacts';
+    if (this.contacts.length === 0) {
+      this.syncContacts();
+    }
+  }
+
+  closeContacts() {
+    this.activeTab = 'mailbox';
+  }
+
   async trackOutboxThreads() {
     if (!this.activeConnection?.hash) return;
     

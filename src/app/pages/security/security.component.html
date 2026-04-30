@@ -1,617 +1,633 @@
 <!-- MINI BACKGROUND SYNC INDICATOR (INDUSTRIAL STREAMING / UNIFIED) -->
 
-<div class="security-container">
 
-    <div class="header-brand">
+
+<!-- <div class="header-brand">
         <h1 class="page-title">
             <span class="brand-main">Sandra</span> <span class="brand-sub">Mailbox</span>
         </h1>
-    </div>
+    </div> -->
 
-    <nav class="security-tabs">
-        <button [class.active]="activeTab === 'mailbox'" (click)="setTab('mailbox')">
-            <i class="fas fa-inbox"></i> Buzón Seguro
-        </button>
-        <button [class.active]="activeTab === 'contacts'" (click)="setTab('contacts')">
-            <i class="fas fa-address-book"></i> Contactos
-        </button>
-        <button [class.active]="activeTab === 'proxy'" (click)="setTab('proxy')">
-            <i class="fas fa-network-wired"></i> Rutas Proxy
-        </button>
-    </nav>
+<!-- <nav class="security-tabs">
+    <button [class.active]="activeTab === 'mailbox'" (click)="setTab('mailbox')">
+        <i class="fas fa-inbox"></i> Buzón Seguro
+    </button>
+    <button [class.active]="activeTab === 'contacts'" (click)="setTab('contacts')">
+        <i class="fas fa-address-book"></i> Contactos
+    </button>
+    <button [class.active]="activeTab === 'proxy'" (click)="setTab('proxy')">
+        <i class="fas fa-network-wired"></i> Rutas Proxy
+    </button>
+</nav> -->
 
-    <div class="security-content">
+<div class="security-content">
 
-        <!-- MAILBOX TAB (Single Column View) -->
-        <div *ngIf="activeTab === 'mailbox'" class="tab-pane fade-in-up mailbox-single-container">
+    <!-- MAILBOX TAB (Single Column View) -->
+    <div *ngIf="activeTab === 'mailbox'" class="tab-pane fade-in-up mailbox-single-container">
 
-            <!-- Message List View -->
-            <div *ngIf="!selectedMessage && !isComposing" class="mailbox-sidebar glass-card full-width fade-in">
-                <div class="sidebar-toolbar">
-                    <div class="toolbar-search">
-                        <input type="text" [(ngModel)]="searchText" (ngModelChange)="resetPagination()"
-                            placeholder="Buscar por remitente o asunto..." class="input-dark search-input pl-icon">
-                    </div>
-                    <div class="toolbar-actions">
-                        <!-- Novedad: Selector de Bandeja Inbox/Outbox -->
-                        <div class="direction-toggle-group">
-                            <button class="btn-toggle" [class.active]="mailboxDirection === 'inbox'"
-                                (click)="mailboxDirection = 'inbox'; resetPagination()" title="Bandeja de Entrada">
-                                <i class="fas fa-inbox"></i> Recibidos
-                            </button>
-                            <button class="btn-toggle" [class.active]="mailboxDirection === 'outbox'"
-                                (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
-                                <i class="fas fa-paper-plane"></i> Enviados
-                            </button>
-                            <button class="btn-toggle" [class.active]="mailboxDirection === 'notifications'"
-                                (click)="mailboxDirection = 'notifications'; resetPagination()"
-                                title="Notificaciones de Sistema">
-                                <i class="fas fa-bell"></i> Notificaciones
-                            </button>
-                        </div>
-                        <div class="vertical-divider"></div>
-
-                        <div class="filter-dropdown">
-                            <select [(ngModel)]="statusFilter" (ngModelChange)="resetPagination()"
-                                class="input-dark filter-select">
-                                <option value="all">Todos los Estados</option>
-                                <option value="Pending">Pendientes</option>
-                                <option value="Read">Leídos</option>
-                                <option value="Approved">Aprobados</option>
-                                <option value="Rejected">Rechazados</option>
-                                <option value="Completed">Completados</option>
-                            </select>
-                        </div>
-                        <div class="vertical-divider"></div>
-                        <button class="btn-icon-mini danger" *ngIf="isAnySelected" (click)="deleteSelected()"
-                            title="Eliminar Seleccionados">
-                            <i class="fas fa-trash-alt"></i>
+        <!-- Message List View -->
+        <div *ngIf="!selectedMessage && !isComposing" class="mailbox-sidebar glass-card full-width fade-in">
+            <div class="sidebar-toolbar">
+                <div class="toolbar-search">
+                    <input type="text" [(ngModel)]="searchText" (ngModelChange)="resetPagination()"
+                        placeholder="Buscar por remitente o asunto..." class="input-dark search-input pl-icon">
+                </div>
+                <div class="toolbar-actions">
+                    <!-- Novedad: Selector de Bandeja Inbox/Outbox -->
+                    <div class="direction-toggle-group">
+                        <button class="btn-toggle" [class.active]="mailboxDirection === 'inbox'"
+                            (click)="mailboxDirection = 'inbox'; resetPagination()" title="Bandeja de Entrada">
+                            <i class="fas fa-inbox"></i> Recibidos
                         </button>
-                        <button class="btn-icon-mini primary" (click)="startCompose()" title="Redactar Requerimiento">
-                            <i class="fas fa-pen"></i>
+                        <button class="btn-toggle" [class.active]="mailboxDirection === 'outbox'"
+                            (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
+                            <i class="fas fa-paper-plane"></i> Enviados
                         </button>
-                        <button class="btn-icon-mini" (click)="syncMailbox()"
-                            [disabled]="securityService.isSyncing$ | async"
-                            title="Actualizar Buzón y Sincronizar (Industrial)">
-                            <i class="fas fa-sync-alt" [class.fa-spin]="securityService.isSyncing$ | async"></i>
+                        <button class="btn-toggle" [class.active]="mailboxDirection === 'notifications'"
+                            (click)="mailboxDirection = 'notifications'; resetPagination()"
+                            title="Notificaciones de Sistema">
+                            <i class="fas fa-bell"></i> Notificaciones
                         </button>
                     </div>
+                    <div class="vertical-divider"></div>
+
+                    <div class="filter-dropdown">
+                        <select [(ngModel)]="statusFilter" (ngModelChange)="resetPagination()"
+                            class="input-dark filter-select">
+                            <option value="all">Todos los Estados</option>
+                            <option value="Pending">Pendientes</option>
+                            <option value="Read">Leídos</option>
+                            <option value="Approved">Aprobados</option>
+                            <option value="Rejected">Rechazados</option>
+                            <option value="Completed">Completados</option>
+                        </select>
+                    </div>
+                    <div class="vertical-divider"></div>
+                    <button class="btn-icon-mini danger" *ngIf="isAnySelected" (click)="deleteSelected()"
+                        title="Eliminar Seleccionados">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button class="btn-icon-mini primary" (click)="startCompose()" title="Redactar Requerimiento">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn-icon-mini" (click)="syncMailbox()"
+                        [disabled]="securityService.isSyncing$ | async"
+                        title="Actualizar Buzón y Sincronizar (Industrial)">
+                        <i class="fas fa-sync-alt" [class.fa-spin]="securityService.isSyncing$ | async"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Gmail Toolbar (Checkbox Select All & Paginator) -->
+            <div class="gmail-toolbar">
+                <div class="toolbar-left">
+                    <input type="checkbox" class="custom-checkbox" [checked]="isAllSelected"
+                        (click)="toggleSelectAll($event)" title="Seleccionar Todos">
+                    <button class="btn-icon-mini text-danger fade-in" *ngIf="selectedIds.size > 0"
+                        (click)="deleteSelected()" title="Eliminar Seleccionados" style="margin-left: 10px;">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 </div>
 
-                <!-- Gmail Toolbar (Checkbox Select All & Paginator) -->
-                <div class="gmail-toolbar">
-                    <div class="toolbar-left">
-                        <input type="checkbox" class="custom-checkbox" [checked]="isAllSelected"
-                            (click)="toggleSelectAll($event)" title="Seleccionar Todos">
-                        <button class="btn-icon-mini text-danger fade-in" *ngIf="selectedIds.size > 0" (click)="deleteSelected()" title="Eliminar Seleccionados" style="margin-left: 10px;">
-                            <i class="fas fa-trash-alt"></i>
+                <div class="toolbar-right">
+                    <span class="totalizer-text">{{ itemRange }}</span>
+
+                    <div class="pagination-buttons">
+                        <button class="btn-paginator" [disabled]="currentPage === 1" (click)="prevPage()"
+                            title="Anterior">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="btn-paginator" [disabled]="currentPage === totalPages" (click)="nextPage()"
+                            title="Siguiente">
+                            <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
 
-                    <div class="toolbar-right">
-                        <span class="totalizer-text">{{ itemRange }}</span>
-
-                        <div class="pagination-buttons">
-                            <button class="btn-paginator" [disabled]="currentPage === 1" (click)="prevPage()"
-                                title="Anterior">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <button class="btn-paginator" [disabled]="currentPage === totalPages" (click)="nextPage()"
-                                title="Siguiente">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-
-                        <div class="page-size-selector">
-                            <select [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)" class="size-select">
-                                <option [ngValue]="10">10</option>
-                                <option [ngValue]="20">20</option>
-                                <option [ngValue]="50">50</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Message List Body (Gmail Style) -->
-                <div class="msg-list-scroll gmail-view">
-                    <div *ngFor="let msg of paginatedMessages" class="gmail-row"
-                        [ngClass]="getMessageClasses(msg)"
-                        [class.active]="highlightedMessage === msg" (click)="highlightMessage(msg)"
-                        (dblclick)="selectMessage(msg)">
-
-                        <!-- Left: Checkbox & Actions -->
-                        <div class="gmail-col-left">
-                            <i [class]="getThreadIcon(msg)" class="thread-type-icon"></i>
-                            <input type="checkbox" class="custom-checkbox" [checked]="selectedIds.has(msg.id)"
-                                (click)="toggleSelection(msg, $event); $event.stopPropagation()">
-                            <div class="gmail-hover-actions">
-                                <button class="btn-icon-table danger mini" (click)="deleteMessage(msg, $event); $event.stopPropagation()"
-                                    title="Eliminar Registro">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Main Content: 2-Line Layout -->
-                        <div class="gmail-col-main">
-                            <!-- Line 1: Author/Recipient, Status & Date -->
-                            <div class="gmail-main-top">
-                                <span class="gmail-author">
-                                    <i class="fas fa-chevron-right outbox-indicator"
-                                        *ngIf="mailboxDirection === 'outbox'"></i>
-                                    {{ (mailboxDirection === 'outbox' ? msg.responsible : msg.author) | slice:0:30 }}
-                                    <span
-                                        *ngIf="((mailboxDirection === 'outbox' ? msg.responsible : msg.author) || '').length > 30">...</span>
-                                    <span class="msg-id-pill" *ngIf="getMessageGuid(msg.content)"
-                                        title="Huella Digital (Tracking)">
-                                        <i class="fas fa-fingerprint"></i> {{ getMessageGuid(msg.content) | slice:0:8 }}
-                                    </span>
-                                </span>
-                                <div class="gmail-top-right">
-                                    <span class="att-indicator-badge" *ngIf="getAttachmentCount(msg.content) > 0"
-                                        [class.pending-dl]="hasPendingDownloads(msg)"
-                                        [title]="hasPendingDownloads(msg) ? 'Contiene adjuntos pendientes de descarga' : 'Contiene adjuntos descargados'">
-                                        <i class="fas" [class.fa-paperclip]="!hasPendingDownloads(msg)" [class.fa-cloud-download-alt]="hasPendingDownloads(msg)"></i>
-                                        <span class="att-count">{{ getAttachmentCount(msg.content) }}</span>
-                                    </span>
-                                    <span class="status-tag" [ngClass]="getStatusClass(msg.status)">
-                                        <i [class]="getStatusIcon(msg.status)" class="tag-icon"></i>
-                                        {{ translateStatus(msg.status) }}
-                                    </span>
-                                    <span class="gmail-date">{{ msg.created_at | date:'d MMM yy' }}</span>
-                                </div>
-                            </div>
-
-                            <!-- Line 2: Subject, Snippet & Time -->
-                            <div class="gmail-main-bottom">
-                                <div class="gmail-bottom-content">
-                                    <span class="gmail-subject">
-                                        <ng-container *ngIf="msg.author === 'HSF Ticket Seguro'">
-                                            <span class="brand-main">Notificación de Ticket</span>
-                                        </ng-container>
-                                        <ng-container *ngIf="msg.author === 'Ejecución de Función'">
-                                            <span class="brand-main">Ejecución de Función</span>
-                                        </ng-container>
-                                        <ng-container
-                                            *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
-                                            {{ (getMessageSubject(msg.content) || msg.sid | slice:0:40) +
-                                            ((getMessageSubject(msg.content) || msg.sid || '').length > 40 ? '...' : '')
-                                            }}
-                                        </ng-container>
-                                    </span>
-                                    <span class="gmail-dash">&nbsp;-&nbsp;</span>
-                                    <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
-                                        (getMessageSnippet(msg.content).length > 80 ?
-                                        '...' : '') }}</span>
-                                </div>
-                                <span class="gmail-time">{{ msg.created_at | date:'h:mm:ss a' }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div *ngIf="filteredMessages.length === 0" class="empty-list-placeholder-v4 fade-in">
-                        <div class="empty-visual">
-                            <i class="fas fa-inbox"></i>
-                        </div>
-                        <h3>Buzón sin registros</h3>
-                        <p>No se encontraron mensajes en la bandeja de {{ mailboxDirection === 'inbox' ? 'entrada' :
-                            (mailboxDirection === 'outbox' ? 'salida' : 'notificaciones') }}.</p>
-                        <button class="btn-refresh-empty" (click)="loadMessages()">
-                            <i class="fas fa-sync-alt"></i> Actualizar
-                        </button>
+                    <div class="page-size-selector">
+                        <select [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)" class="size-select">
+                            <option [ngValue]="10">10</option>
+                            <option [ngValue]="20">20</option>
+                            <option [ngValue]="50">50</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <!-- Reading Pane / Compose View -->
-            <div *ngIf="selectedMessage || isComposing" class="mailbox-reading-pane glass-card full-width fade-in">
+            <!-- Message List Body (Gmail Style) -->
+            <div class="msg-list-scroll gmail-view">
+                <div *ngFor="let msg of paginatedMessages" class="gmail-row" [ngClass]="getMessageClasses(msg)"
+                    [class.active]="highlightedMessage === msg" (click)="highlightMessage(msg)"
+                    (dblclick)="selectMessage(msg)">
 
-                <!-- NEW PREMIUM COMPOSE VIEW -->
-                <div *ngIf="isComposing" class="compose-view fade-in">
-                    <div class="reading-pane-toolbar compose-toolbar-top-v4">
-                        <div class="compose-header-info-v4">
-                            <i class="fas fa-envelope-open-text header-mail-icon-v4"></i>
-                            <span class="compose-title-premium-v4">Nuevo Requerimiento</span>
-                        </div>
-                        <button class="btn-back-circular-v4" (click)="backToMailbox()" title="Volver">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-
-                    <div class="compose-header-minimal-v4">
-                        <!-- PARA FIELD -->
-                        <div class="form-group icon-input-group-v4">
-                            <div class="field-icon-label-v5">
-                                <i class="fas fa-user-shield"></i>
-                                <label class="field-label-v4">Para</label>
-                            </div>
-                            <div class="input-wrapper-v4">
-                                <div class="recipients-wrapper-v4">
-                                    <div class="recipient-pills-container-v4"
-                                        *ngIf="newMessage.selectedRecipients.length > 0">
-                                        <div *ngFor="let recipient of newMessage.selectedRecipients; let i = index"
-                                            class="recipient-pill-pastel-v4 fade-in">
-                                            <span>{{ recipient }}</span>
-                                            <i class="fas fa-times-circle" (click)="removeRecipient(i)"></i>
-                                        </div>
-                                    </div>
-                                    <div class="autocomplete-container-v4">
-                                        <input type="text" [(ngModel)]="newMessage.recipientInput"
-                                            (input)="filterUsers()" placeholder="Añadir destinatario..."
-                                            class="input-clean-v4">
-                                        <div class="autocomplete-dropdown-v4" *ngIf="showAutocomplete">
-                                            <ng-container *ngFor="let user of filteredUsers">
-                                                <!-- Main Section Separator -->
-                                                <div *ngIf="user.isMainSeparator" class="autocomplete-section-title">
-                                                    {{ user.name }}
-                                                </div>
-
-                                                <!-- Group/Profile Header (Campaign) -->
-                                                <div *ngIf="user.isHeader && !user.isMainSeparator"
-                                                    class="autocomplete-header-area selectable-group"
-                                                    (click)="selectUser(user)">
-                                                    <div class="header-group-icon">
-                                                        <i class="fas fa-bullhorn"></i>
-                                                    </div>
-                                                    <div class="header-group-info">
-                                                        <span class="group-title">Perfil: {{ user.name }}</span>
-                                                        <span class="group-subtitle">{{ user.detail }}</span>
-                                                    </div>
-                                                    <i class="fas fa-plus auto-plus"></i>
-                                                </div>
-
-                                                <!-- Individual Contact -->
-                                                <div *ngIf="!user.isHeader && !user.isMainSeparator"
-                                                    class="autocomplete-item-v4" (click)="selectUser(user)">
-                                                    <div class="auto-avatar" [class.contact-mode]="user.isContact">
-                                                        {{ user.initials }}
-                                                    </div>
-                                                    <div class="auto-info">
-                                                        <span class="auto-name">{{ user.name }}</span>
-                                                        <span class="auto-detail">{{ user.detail + " | " + user.profile
-                                                            }}</span>
-                                                    </div>
-                                                    <i class="fas fa-plus auto-plus"></i>
-                                                </div>
-                                            </ng-container>
-                                        </div>
-                                    </div>
-                                    <button class="btn-address-book-v4" title="Abrir Agenda de Contactos"
-                                        (click)="setTab('contacts')">
-                                        <i class="fas fa-address-book"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ASUNTO FIELD -->
-                        <div class="form-group icon-input-group-v4">
-                            <div class="field-icon-label-v5">
-                                <i class="fas fa-pen-nib"></i>
-                                <label class="field-label-v4">Asunto</label>
-                            </div>
-                            <div class="input-wrapper-v4">
-                                <input type="text" [(ngModel)]="newMessage.sid" (ngModelChange)="saveDraft()"
-                                    placeholder="Referencia o ID del Caso..." class="input-clean-v4">
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- Rich Text Toolbar -->
-                    <div class="rich-editor-toolbar">
-                        <div class="toolbar-group fluid-group">
-                            <div class="combo-wrapper-v24 font-combo">
-                                <i class="fas fa-font"></i>
-                                <select class="modern-select-v24"
-                                    (change)="formatDoc('fontName', $any($event.target).value)">
-                                    <option value="Arial">Arial</option>
-                                    <option value="Inter">Inter</option>
-                                    <option value="Courier New">Monospace</option>
-                                    <option value="Georgia">Serif</option>
-                                    <option value="Verdana">Verdana</option>
-                                </select>
-                            </div>
-                            <div class="combo-wrapper-v24 size-combo">
-                                <i class="fas fa-text-height"></i>
-                                <select class="modern-select-v24"
-                                    (change)="formatDoc('fontSize', $any($event.target).value)">
-                                    <option value="1">Muy Pequeño</option>
-                                    <option value="2">Pequeño</option>
-                                    <option value="3" selected>Normal</option>
-                                    <option value="4">Grande</option>
-                                    <option value="5">Extra Grande</option>
-                                    <option value="6">Título 2</option>
-                                    <option value="7">Título 1</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="toolbar-divider"></div>
-                        <div class="toolbar-group fluid-group">
-                            <button class="tool-btn" (click)="formatDoc('bold')" title="Negrita"><i
-                                    class="fas fa-bold"></i></button>
-                            <button class="tool-btn" (click)="formatDoc('italic')" title="Cursiva"><i
-                                    class="fas fa-italic"></i></button>
-                            <button class="tool-btn" (click)="formatDoc('underline')" title="Subrayado"><i
-                                    class="fas fa-underline"></i></button>
-                        </div>
-                        <div class="toolbar-divider hide-on-small"></div>
-                        <div class="toolbar-group alignment-group">
-                            <button class="tool-btn" (click)="formatDoc('justifyLeft')" title="Alinear Izquierda"><i
-                                    class="fas fa-align-left"></i></button>
-                            <button class="tool-btn" (click)="formatDoc('justifyCenter')" title="Centrar"><i
-                                    class="fas fa-align-center"></i></button>
-                            <button class="tool-btn" (click)="formatDoc('justifyRight')" title="Alinear Derecha"><i
-                                    class="fas fa-align-right"></i></button>
-                            <button class="tool-btn" (click)="formatDoc('justifyFull')" title="Justificar"><i
-                                    class="fas fa-align-justify"></i></button>
-                        </div>
-                        <div class="toolbar-divider"></div>
-                        <div class="toolbar-group">
-                            <button class="tool-btn" (click)="formatDoc('insertUnorderedList')" title="Viñetas"><i
-                                    class="fas fa-list-ul"></i></button>
-                            <button class="tool-btn" (click)="formatDoc('insertOrderedList')" title="Numeración"><i
-                                    class="fas fa-list-ol"></i></button>
-                        </div>
-
-                        <!-- TEMPLATE SELECTOR -->
-                        <div class="toolbar-group fluid-group">
-                            <div class="combo-wrapper-v24 template-combo-v24">
-                                <i class="fas fa-file-invoice"></i>
-                                <select class="modern-select-v24"
-                                    (change)="applyTemplate($any($event.target).value); $any($event.target).value = ''">
-                                    <option value="" disabled selected>Esquemas / Plantillas</option>
-                                    <option value="PUNTO_CUENTA">PUNTO DE CUENTA</option>
-                                    <option value="MEMO">MEMORÁNDUM</option>
-                                    <option value="RADIOGRAMA">RADIOGRAMA</option>
-                                    <option value="COMUNICADO">COMUNICADO</option>
-                                    <option value="REUNION">ACTA DE REUNIÓN</option>
-                                    <option value="CAMPAÑA">PLAN DE CAMPAÑA</option>
-                                </select>
-                            </div>
-                            
-                            <!-- WORKFLOW SELECTOR -->
-                            <div class="combo-wrapper-v24 template-combo-v24 ml-2" *ngIf="!selectedMessage || (selectedMessage && !parsedContent?.workflow)">
-                                <i class="fas fa-project-diagram"></i>
-                                <select class="modern-select-v24" [(ngModel)]="nuevoWorkflowTipo" title="Definir tipo de Hilo Conversacional">
-                                    <option value="">Sin Seguimiento</option>
-                                    <option value="Soporte">Soporte Técnico</option>
-                                    <option value="Seguimiento">Seguimiento de Tarea</option>
-                                    <option value="Autorización">Flujo de Autorización</option>
-                                </select>
-                            </div>
-
-                            <div class="toolbar-divider"></div>
-                            <button class="tool-btn print-btn" (click)="printCurrentTemplate()" title="Imprimir / Exportar PDF">
-                                <i class="fas fa-print"></i>
+                    <!-- Left: Checkbox & Actions -->
+                    <div class="gmail-col-left">
+                        <i [class]="getThreadIcon(msg)" class="thread-type-icon"></i>
+                        <input type="checkbox" class="custom-checkbox" [checked]="selectedIds.has(msg.id)"
+                            (click)="toggleSelection(msg, $event); $event.stopPropagation()">
+                        <div class="gmail-hover-actions">
+                            <button class="btn-icon-table danger mini"
+                                (click)="deleteMessage(msg, $event); $event.stopPropagation()"
+                                title="Eliminar Registro">
+                                <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Contenteditable Editor -->
-                    <div class="compose-body-editor">
-                        <div #editor contenteditable="true" class="rich-textarea"
-                            (input)="onEditorInput(editor.innerHTML)" [innerHTML]="editorInitialContent"
-                            placeholder="Escriba el detalle del reporte aquí...">
-                        </div>
-                    </div>
-
-                    <!-- Simplified Attachments V20 -->
-                    <!-- Enhanced Detail Attachments V23 -->
-                    <div class="compose-attachments-list" *ngIf="newMessage.attachments.length > 0">
-                        <div *ngFor="let att of newMessage.attachments; let i = index" class="att-pill-modern fade-in"
-                            [ngClass]="att.status === 'UPLOADING' ? 'source-local uploading' : (att.source === 'LOCAL' ? 'source-local' : 'source-vault')">
-                            <i [class]="getFileTypeConfig(att.name).icon"
-                                [ngClass]="getFileTypeConfig(att.name).colorClass"
-                                (click)="previewSecureAttachment(att)" style="cursor: pointer;"></i>
-                            <div class="att-info-block-v23" (click)="previewSecureAttachment(att)"
-                                title="Previsualizar documento" style="cursor: pointer;">
-                                <span class="att-name">{{ att.name }}</span>
-                                <span class="att-meta-detail-v23">
-                                    {{ att.extension || att.type || 'Archivo' }} • {{ att.size }}
-                                    <span class="meta-tag cert-tag-compose fade-in"
-                                        *ngIf="certificationMap.has(att.path)"
-                                        (click)="openCertificationDetails(att, $event)">
-                                        <i class="fas fa-certificate"></i> CERTIFICADO
-                                    </span>
-                                    <span *ngIf="att.status === 'PENDING'" class="upload-status-info pending">
-                                        <i class="fas fa-clock"></i> Pendiente
-                                    </span>
-                                    <span *ngIf="att.status === 'UPLOADING'" class="upload-status-info">
-                                        <i class="fas fa-circle-notch fa-spin"></i> {{ att.progress }}%
-                                    </span>
-                                    <span *ngIf="att.status === 'DONE'" class="upload-status-info success">
-                                        <i class="fas fa-check-double"></i> Listo
-                                    </span>
-                                    <span *ngIf="att.status === 'ERROR'" class="upload-status-info error">
-                                        <i class="fas fa-exclamation-triangle"></i> Falló
-                                    </span>
+                    <!-- Main Content: 2-Line Layout -->
+                    <div class="gmail-col-main">
+                        <!-- Line 1: Author/Recipient, Status & Date -->
+                        <div class="gmail-main-top">
+                            <span class="gmail-author">
+                                <i class="fas fa-chevron-right outbox-indicator"
+                                    *ngIf="mailboxDirection === 'outbox'"></i>
+                                {{ (mailboxDirection === 'outbox' ? msg.responsible : msg.author) | slice:0:30 }}
+                                <span
+                                    *ngIf="((mailboxDirection === 'outbox' ? msg.responsible : msg.author) || '').length > 30">...</span>
+                                <span class="msg-id-pill" *ngIf="getMessageGuid(msg.content)"
+                                    title="Huella Digital (Tracking)">
+                                    <i class="fas fa-fingerprint"></i> {{ getMessageGuid(msg.content) | slice:0:8 }}
                                 </span>
+                            </span>
+                            <div class="gmail-top-right">
+                                <span class="att-indicator-badge" *ngIf="getAttachmentCount(msg.content) > 0"
+                                    [class.pending-dl]="hasPendingDownloads(msg)"
+                                    [title]="hasPendingDownloads(msg) ? 'Contiene adjuntos pendientes de descarga' : 'Contiene adjuntos descargados'">
+                                    <i class="fas" [class.fa-paperclip]="!hasPendingDownloads(msg)"
+                                        [class.fa-cloud-download-alt]="hasPendingDownloads(msg)"></i>
+                                    <span class="att-count">{{ getAttachmentCount(msg.content) }}</span>
+                                </span>
+                                <span class="status-tag" [ngClass]="getStatusClass(msg.status)">
+                                    <i [class]="getStatusIcon(msg.status)" class="tag-icon"></i>
+                                    {{ translateStatus(msg.status) }}
+                                </span>
+                                <span class="gmail-date">{{ msg.created_at | date:'d MMM yy' }}</span>
                             </div>
-                            <i class="fas fa-times remove-att" (click)="newMessage.attachments.splice(i, 1)"
-                                title="Eliminar adjunto"></i>
+                        </div>
+
+                        <!-- Line 2: Subject, Snippet & Time -->
+                        <div class="gmail-main-bottom">
+                            <div class="gmail-bottom-content">
+                                <span class="gmail-subject">
+                                    <ng-container *ngIf="msg.author === 'HSF Ticket Seguro'">
+                                        <span class="brand-main">Notificación de Ticket</span>
+                                    </ng-container>
+                                    <ng-container *ngIf="msg.author === 'Ejecución de Función'">
+                                        <span class="brand-main">Ejecución de Función</span>
+                                    </ng-container>
+                                    <ng-container
+                                        *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
+                                        {{ (getMessageSubject(msg.content) || msg.sid | slice:0:40) +
+                                        ((getMessageSubject(msg.content) || msg.sid || '').length > 40 ? '...' : '')
+                                        }}
+                                    </ng-container>
+                                </span>
+                                <span class="gmail-dash">&nbsp;-&nbsp;</span>
+                                <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
+                                    (getMessageSnippet(msg.content).length > 80 ?
+                                    '...' : '') }}</span>
+                            </div>
+                            <span class="gmail-time">{{ msg.created_at | date:'h:mm:ss a' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="filteredMessages.length === 0" class="empty-list-placeholder-v4 fade-in">
+                    <div class="empty-visual">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <h3>Buzón sin registros</h3>
+                    <p>No se encontraron mensajes en la bandeja de {{ mailboxDirection === 'inbox' ? 'entrada' :
+                        (mailboxDirection === 'outbox' ? 'salida' : 'notificaciones') }}.</p>
+                    <button class="btn-refresh-empty" (click)="loadMessages()">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reading Pane / Compose View -->
+        <div *ngIf="selectedMessage || isComposing" class="mailbox-reading-pane glass-card full-width fade-in">
+
+            <!-- NEW PREMIUM COMPOSE VIEW -->
+            <div *ngIf="isComposing" class="compose-view fade-in">
+                <div class="reading-pane-toolbar compose-toolbar-top-v4">
+                    <div class="compose-header-info-v4">
+                        <i class="fas fa-envelope-open-text header-mail-icon-v4"></i>
+                        <span class="compose-title-premium-v4">Nuevo Requerimiento</span>
+                    </div>
+                    <button class="btn-back-circular-v4" (click)="backToMailbox()" title="Volver">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="compose-header-minimal-v4">
+                    <!-- PARA FIELD -->
+                    <div class="form-group icon-input-group-v4">
+                        <div class="field-icon-label-v5">
+                            <i class="fas fa-user-shield"></i>
+                            <label class="field-label-v4">Para</label>
+                        </div>
+                        <div class="input-wrapper-v4">
+                            <div class="recipients-wrapper-v4">
+                                <div class="recipient-pills-container-v4"
+                                    *ngIf="newMessage.selectedRecipients.length > 0">
+                                    <div *ngFor="let recipient of newMessage.selectedRecipients; let i = index"
+                                        class="recipient-pill-pastel-v4 fade-in">
+                                        <span>{{ recipient }}</span>
+                                        <i class="fas fa-times-circle" (click)="removeRecipient(i)"></i>
+                                    </div>
+                                </div>
+                                <div class="autocomplete-container-v4">
+                                    <input type="text" [(ngModel)]="newMessage.recipientInput" (input)="filterUsers()"
+                                        placeholder="Añadir destinatario..." class="input-clean-v4">
+                                    <div class="autocomplete-dropdown-v4" *ngIf="showAutocomplete">
+                                        <ng-container *ngFor="let user of filteredUsers">
+                                            <!-- Main Section Separator -->
+                                            <div *ngIf="user.isMainSeparator" class="autocomplete-section-title">
+                                                {{ user.name }}
+                                            </div>
+
+                                            <!-- Group/Profile Header (Campaign) -->
+                                            <div *ngIf="user.isHeader && !user.isMainSeparator"
+                                                class="autocomplete-header-area selectable-group"
+                                                (click)="selectUser(user)">
+                                                <div class="header-group-icon">
+                                                    <i class="fas fa-bullhorn"></i>
+                                                </div>
+                                                <div class="header-group-info">
+                                                    <span class="group-title">Perfil: {{ user.name }}</span>
+                                                    <span class="group-subtitle">{{ user.detail }}</span>
+                                                </div>
+                                                <i class="fas fa-plus auto-plus"></i>
+                                            </div>
+
+                                            <!-- Individual Contact -->
+                                            <div *ngIf="!user.isHeader && !user.isMainSeparator"
+                                                class="autocomplete-item-v4" (click)="selectUser(user)">
+                                                <div class="auto-avatar" [class.contact-mode]="user.isContact">
+                                                    {{ user.initials }}
+                                                </div>
+                                                <div class="auto-info">
+                                                    <span class="auto-name">{{ user.name }}</span>
+                                                    <span class="auto-detail">{{ user.detail + " | " + user.profile
+                                                        }}</span>
+                                                </div>
+                                                <i class="fas fa-plus auto-plus"></i>
+                                            </div>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <button class="btn-address-book-v4" title="Abrir Agenda de Contactos"
+                                    (click)="openContactsFromCompose()">
+                                    <i class="fas fa-address-book"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Unified Footer V17 (Single Row) -->
-                    <div class="compose-footer-v17">
-                        <div class="footer-row-flat">
-                            <!-- Attachments -->
-                            <!-- <button class="btn-attachment-v4" (click)="attachFromPC()" title="Adjuntar desde PC">
-                                <i class="fas fa-paperclip"></i> Adjuntar
-                            </button> -->
-                            <button class="btn-attachment-v4 secure-v4" (click)="attachFromSecureViewer()"
-                                title="Adjuntar desde Visor Seguro">
-                                <i class="fas fa-paperclip"></i> Visor Seguro
-                            </button>
-
-                            <!-- Spacer -->
-                            <div class="row-spacer"></div>
-
-                            <!-- Sending Progress -->
-                            <div class="sending-mini-v17" *ngIf="isSending">
-                                <i class="fas fa-circle-notch fa-spin"></i>
-                                <span>{{ sendProgress }}%</span>
-                            </div>
-
-                            <!-- Actions -->
-                            <div class="main-actions-v17" *ngIf="!isSending">
-                                <button class="btn-send-pastel-green-v4" (click)="requestSend()"
-                                    [disabled]="!newMessage.sid || newMessage.selectedRecipients.length === 0">
-                                    <i class="fas fa-paper-plane"></i> Enviar
-                                </button>
-                                <button class="btn-discard-v4" (click)="cancelCompose()">Descartar</button>
-                            </div>
+                    <!-- ASUNTO FIELD -->
+                    <div class="form-group icon-input-group-v4">
+                        <div class="field-icon-label-v5">
+                            <i class="fas fa-pen-nib"></i>
+                            <label class="field-label-v4">Asunto</label>
                         </div>
-
-                        <!-- Progress Line -->
-                        <div class="footer-progress-line" *ngIf="isSending">
-                            <div class="progress-fill-v4" [style.width.%]="sendProgress"></div>
+                        <div class="input-wrapper-v4">
+                            <input type="text" [(ngModel)]="newMessage.sid" (ngModelChange)="saveDraft()"
+                                placeholder="Referencia o ID del Caso..." class="input-clean-v4">
                         </div>
                     </div>
                 </div>
 
 
-                <!-- Detail View (Wrapped in *ngIf) -->
-                <div *ngIf="selectedMessage" class="msg-detail-view fade-in">
-                    
-                    <!-- WORKFLOW / THREAD VIEW -->
-                    <div *ngIf="parsedContent?.workflow" class="workflow-thread-view fade-in" [ngClass]="{'border-action-pending': parsedContent?.workflow?.estado === 'PENDIENTE'}">
-                        <!-- Workflow Header Banner -->
-                        <div class="workflow-badge-banner" [ngClass]="'status-banner-' + parsedContent?.workflow?.estado?.toLowerCase()">
-                            <i class="fas fa-sitemap"></i> <span class="fw-bold">Flujo:</span> {{ parsedContent?.workflow?.tipo }} - {{ parsedContent?.workflow?.estado }}
+                <!-- Rich Text Toolbar -->
+                <div class="rich-editor-toolbar">
+                    <div class="toolbar-group fluid-group">
+                        <div class="combo-wrapper-v24 font-combo">
+                            <i class="fas fa-font"></i>
+                            <select class="modern-select-v24"
+                                (change)="formatDoc('fontName', $any($event.target).value)">
+                                <option value="Arial">Arial</option>
+                                <option value="Inter">Inter</option>
+                                <option value="Courier New">Monospace</option>
+                                <option value="Georgia">Serif</option>
+                                <option value="Verdana">Verdana</option>
+                            </select>
                         </div>
-                        
-                        <!-- Control Panel / Actions for Workflow -->
-                        <div class="workflow-control-hub">
-                            <div class="w-hub-info">
-                                <h3>{{ getMessageSubject(selectedMessage.content) }}</h3>
-                                <div class="w-meta-group">
-                                    <span class="w-badge w-ref-badge">
-                                        Ref: {{ parsedContent?.workflow?.id_referencia_doc || getMessageGuid(selectedMessage.content) }}
-                                    </span>
-                                    <span class="status-tag" [ngClass]="getStatusClass(selectedMessage.status)" *ngIf="selectedMessage.status" style="margin-left: 8px;">
-                                        <i [class]="getStatusIcon(selectedMessage.status)" class="tag-icon"></i>
-                                        {{ translateStatus(selectedMessage.status) }}
-                                    </span>
-                                    <span class="w-badge w-uptime-badge" *ngIf="parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CERRADO'">
-                                         <i class="fas fa-clock"></i> {{ getWorkflowUptime(selectedMessage.created_at) }} activo
-                                    </span>
+                        <div class="combo-wrapper-v24 size-combo">
+                            <i class="fas fa-text-height"></i>
+                            <select class="modern-select-v24"
+                                (change)="formatDoc('fontSize', $any($event.target).value)">
+                                <option value="1">Muy Pequeño</option>
+                                <option value="2">Pequeño</option>
+                                <option value="3" selected>Normal</option>
+                                <option value="4">Grande</option>
+                                <option value="5">Extra Grande</option>
+                                <option value="6">Título 2</option>
+                                <option value="7">Título 1</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="toolbar-divider"></div>
+                    <div class="toolbar-group fluid-group">
+                        <button class="tool-btn" (click)="formatDoc('bold')" title="Negrita"><i
+                                class="fas fa-bold"></i></button>
+                        <button class="tool-btn" (click)="formatDoc('italic')" title="Cursiva"><i
+                                class="fas fa-italic"></i></button>
+                        <button class="tool-btn" (click)="formatDoc('underline')" title="Subrayado"><i
+                                class="fas fa-underline"></i></button>
+                    </div>
+                    <div class="toolbar-divider hide-on-small"></div>
+                    <div class="toolbar-group alignment-group">
+                        <button class="tool-btn" (click)="formatDoc('justifyLeft')" title="Alinear Izquierda"><i
+                                class="fas fa-align-left"></i></button>
+                        <button class="tool-btn" (click)="formatDoc('justifyCenter')" title="Centrar"><i
+                                class="fas fa-align-center"></i></button>
+                        <button class="tool-btn" (click)="formatDoc('justifyRight')" title="Alinear Derecha"><i
+                                class="fas fa-align-right"></i></button>
+                        <button class="tool-btn" (click)="formatDoc('justifyFull')" title="Justificar"><i
+                                class="fas fa-align-justify"></i></button>
+                    </div>
+                    <div class="toolbar-divider"></div>
+                    <div class="toolbar-group">
+                        <button class="tool-btn" (click)="formatDoc('insertUnorderedList')" title="Viñetas"><i
+                                class="fas fa-list-ul"></i></button>
+                        <button class="tool-btn" (click)="formatDoc('insertOrderedList')" title="Numeración"><i
+                                class="fas fa-list-ol"></i></button>
+                    </div>
+
+                    <!-- TEMPLATE SELECTOR -->
+                    <div class="toolbar-group fluid-group">
+                        <div class="combo-wrapper-v24 template-combo-v24">
+                            <i class="fas fa-file-invoice"></i>
+                            <select class="modern-select-v24"
+                                (change)="applyTemplate($any($event.target).value); $any($event.target).value = ''">
+                                <option value="" disabled selected>Esquemas / Plantillas</option>
+                                <option value="PUNTO_CUENTA">PUNTO DE CUENTA</option>
+                                <option value="MEMO">MEMORÁNDUM</option>
+                                <option value="RADIOGRAMA">RADIOGRAMA</option>
+                                <option value="COMUNICADO">COMUNICADO</option>
+                                <option value="REUNION">ACTA DE REUNIÓN</option>
+                                <option value="CAMPAÑA">PLAN DE CAMPAÑA</option>
+                            </select>
+                        </div>
+
+                        <!-- WORKFLOW SELECTOR -->
+                        <div class="combo-wrapper-v24 template-combo-v24 ml-2"
+                            *ngIf="!selectedMessage || (selectedMessage && !parsedContent?.workflow)">
+                            <i class="fas fa-project-diagram"></i>
+                            <select class="modern-select-v24" [(ngModel)]="nuevoWorkflowTipo"
+                                title="Definir tipo de Hilo Conversacional">
+                                <option value="">Sin Seguimiento</option>
+                                <option value="Soporte">Soporte Técnico</option>
+                                <option value="Seguimiento">Seguimiento de Tarea</option>
+                                <option value="Autorización">Flujo de Autorización</option>
+                            </select>
+                        </div>
+
+                        <div class="toolbar-divider"></div>
+                        <button class="tool-btn print-btn" (click)="printCurrentTemplate()"
+                            title="Imprimir / Exportar PDF">
+                            <i class="fas fa-print"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contenteditable Editor -->
+                <div class="compose-body-editor">
+                    <div #editor contenteditable="true" class="rich-textarea" (input)="onEditorInput(editor.innerHTML)"
+                        [innerHTML]="editorInitialContent" placeholder="Escriba el detalle del reporte aquí...">
+                    </div>
+                </div>
+
+                <!-- Simplified Attachments V20 -->
+                <!-- Enhanced Detail Attachments V23 -->
+                <div class="compose-attachments-list" *ngIf="newMessage.attachments.length > 0">
+                    <div *ngFor="let att of newMessage.attachments; let i = index" class="att-pill-modern fade-in"
+                        [ngClass]="att.status === 'UPLOADING' ? 'source-local uploading' : (att.source === 'LOCAL' ? 'source-local' : 'source-vault')">
+                        <i [class]="getFileTypeConfig(att.name).icon" [ngClass]="getFileTypeConfig(att.name).colorClass"
+                            (click)="previewSecureAttachment(att)" style="cursor: pointer;"></i>
+                        <div class="att-info-block-v23" (click)="previewSecureAttachment(att)"
+                            title="Previsualizar documento" style="cursor: pointer;">
+                            <span class="att-name">{{ att.name }}</span>
+                            <span class="att-meta-detail-v23">
+                                {{ att.extension || att.type || 'Archivo' }} • {{ att.size }}
+                                <span class="meta-tag cert-tag-compose fade-in" *ngIf="certificationMap.has(att.path)"
+                                    (click)="openCertificationDetails(att, $event)">
+                                    <i class="fas fa-certificate"></i> CERTIFICADO
+                                </span>
+                                <span *ngIf="att.status === 'PENDING'" class="upload-status-info pending">
+                                    <i class="fas fa-clock"></i> Pendiente
+                                </span>
+                                <span *ngIf="att.status === 'UPLOADING'" class="upload-status-info">
+                                    <i class="fas fa-circle-notch fa-spin"></i> {{ att.progress }}%
+                                </span>
+                                <span *ngIf="att.status === 'DONE'" class="upload-status-info success">
+                                    <i class="fas fa-check-double"></i> Listo
+                                </span>
+                                <span *ngIf="att.status === 'ERROR'" class="upload-status-info error">
+                                    <i class="fas fa-exclamation-triangle"></i> Falló
+                                </span>
+                            </span>
+                        </div>
+                        <i class="fas fa-times remove-att" (click)="newMessage.attachments.splice(i, 1)"
+                            title="Eliminar adjunto"></i>
+                    </div>
+                </div>
+
+                <!-- Unified Footer V17 (Single Row) -->
+                <div class="compose-footer-v17">
+                    <div class="footer-row-flat">
+                        <!-- Attachments -->
+                        <!-- <button class="btn-attachment-v4" (click)="attachFromPC()" title="Adjuntar desde PC">
+                                <i class="fas fa-paperclip"></i> Adjuntar
+                            </button> -->
+                        <button class="btn-attachment-v4 secure-v4" (click)="attachFromSecureViewer()"
+                            title="Adjuntar desde Visor Seguro">
+                            <i class="fas fa-paperclip"></i> Visor Seguro
+                        </button>
+
+                        <!-- Spacer -->
+                        <div class="row-spacer"></div>
+
+                        <!-- Sending Progress -->
+                        <div class="sending-mini-v17" *ngIf="isSending">
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                            <span>{{ sendProgress }}%</span>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="main-actions-v17" *ngIf="!isSending">
+                            <button class="btn-send-pastel-green-v4" (click)="requestSend()"
+                                [disabled]="!newMessage.sid || newMessage.selectedRecipients.length === 0">
+                                <i class="fas fa-paper-plane"></i> Enviar
+                            </button>
+                            <button class="btn-discard-v4" (click)="cancelCompose()">Descartar</button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Line -->
+                    <div class="footer-progress-line" *ngIf="isSending">
+                        <div class="progress-fill-v4" [style.width.%]="sendProgress"></div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Detail View (Wrapped in *ngIf) -->
+            <div *ngIf="selectedMessage" class="msg-detail-view fade-in">
+
+                <!-- WORKFLOW / THREAD VIEW -->
+                <div *ngIf="parsedContent?.workflow" class="workflow-thread-view fade-in"
+                    [ngClass]="{'border-action-pending': parsedContent?.workflow?.estado === 'PENDIENTE'}">
+                    <!-- Workflow Header Banner -->
+                    <div class="workflow-badge-banner"
+                        [ngClass]="'status-banner-' + parsedContent?.workflow?.estado?.toLowerCase()">
+                        <i class="fas fa-sitemap"></i> <span class="fw-bold">Flujo:</span> {{
+                        parsedContent?.workflow?.tipo }} - {{ parsedContent?.workflow?.estado }}
+                    </div>
+
+                    <!-- Control Panel / Actions for Workflow -->
+                    <div class="workflow-control-hub">
+                        <div class="w-hub-info">
+                            <h3>{{ getMessageSubject(selectedMessage.content) }}</h3>
+                            <div class="w-meta-group">
+                                <span class="w-badge w-ref-badge">
+                                    Ref: {{ parsedContent?.workflow?.id_referencia_doc ||
+                                    getMessageGuid(selectedMessage.content) }}
+                                </span>
+                                <span class="status-tag" [ngClass]="getStatusClass(selectedMessage.status)"
+                                    *ngIf="selectedMessage.status" style="margin-left: 8px;">
+                                    <i [class]="getStatusIcon(selectedMessage.status)" class="tag-icon"></i>
+                                    {{ translateStatus(selectedMessage.status) }}
+                                </span>
+                                <span class="w-badge w-uptime-badge"
+                                    *ngIf="parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CERRADO'">
+                                    <i class="fas fa-clock"></i> {{ getWorkflowUptime(selectedMessage.created_at) }}
+                                    activo
+                                </span>
+                            </div>
+                        </div>
+                        <div class="w-hub-actions">
+                            <button class="btn-action-circle btn-back" (click)="backToMailbox()"
+                                title="Volver a la Bandeja">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+
+                            <div class="vertical-divider mx-2"></div>
+
+                            <!-- Botón Novedad (Responder) para todos si está abierto -->
+                            <button class="btn-action-circle primary" (click)="replyMessage(selectedMessage)"
+                                title="Añadir Novedad al Hilo"
+                                *ngIf="parsedContent?.workflow?.estado !== 'CERRADO' && parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CANCELADO'">
+                                <i class="fas fa-reply"></i>
+                            </button>
+
+                            <!-- Botones de Autoridad (Solo si NO es el creador del hilo) -->
+                            <button class="btn-action-circle success"
+                                *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0].toLowerCase()"
+                                (click)="updateWorkflowStatus('APROBADO', selectedMessage)"
+                                title="Terminar y Autorizar">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn-action-circle danger"
+                                *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0].toLowerCase()"
+                                (click)="updateWorkflowStatus('RECHAZADO', selectedMessage)" title="Terminar y Denegar">
+                                <i class="fas fa-ban"></i>
+                            </button>
+
+                            <!-- Botón de Cancelar Flujo (Solo si SÍ es el creador del hilo) -->
+                            <button class="btn-action-circle warning"
+                                *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0].toLowerCase()"
+                                (click)="updateWorkflowStatus('CANCELADO', selectedMessage)" title="Cancelar Flujo">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Thread Body (FORUM STYLE) -->
+                    <div class="forum-timeline-container">
+                        <!-- Base Message (First node) -->
+                        <div class="forum-card node-base">
+                            <div class="forum-card-header">
+                                <div class="f-avatar"><i class="fas fa-flag"></i></div>
+                                <div class="f-meta">
+                                    <span class="f-author">{{ selectedMessage.author }}</span>
+                                    <span class="f-time">{{ selectedMessage.created_at | date:'medium' }}</span>
                                 </div>
                             </div>
-                            <div class="w-hub-actions">
-                                <button class="btn-action-circle btn-back" (click)="backToMailbox()" title="Volver a la Bandeja">
-                                    <i class="fas fa-arrow-left"></i>
-                                </button>
-                                
-                                <div class="vertical-divider mx-2"></div>
-
-                                <!-- Botón Novedad (Responder) para todos si está abierto -->
-                                <button class="btn-action-circle primary" 
-                                        (click)="replyMessage(selectedMessage)" 
-                                        title="Añadir Novedad al Hilo" 
-                                        *ngIf="parsedContent?.workflow?.estado !== 'CERRADO' && parsedContent?.workflow?.estado !== 'COMPLETADO' && parsedContent?.workflow?.estado !== 'CANCELADO'">
-                                    <i class="fas fa-reply"></i>
-                                </button>
-                                
-                                <!-- Botones de Autoridad (Solo si NO es el creador del hilo) -->
-                                <button class="btn-action-circle success" 
-                                        *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0].toLowerCase()"
-                                        (click)="updateWorkflowStatus('APROBADO', selectedMessage)"
-                                        title="Terminar y Autorizar">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="btn-action-circle danger" 
-                                        *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0].toLowerCase()"
-                                        (click)="updateWorkflowStatus('RECHAZADO', selectedMessage)"
-                                        title="Terminar y Denegar">
-                                    <i class="fas fa-ban"></i>
-                                </button>
-                                
-                                <!-- Botón de Cancelar Flujo (Solo si SÍ es el creador del hilo) -->
-                                <button class="btn-action-circle warning" 
-                                        *ngIf="(parsedContent?.workflow?.estado === 'PENDIENTE' || parsedContent?.workflow?.estado === 'ABIERTO') && authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0].toLowerCase()"
-                                        (click)="updateWorkflowStatus('CANCELADO', selectedMessage)"
-                                        title="Cancelar Flujo">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Thread Body (FORUM STYLE) -->
-                        <div class="forum-timeline-container">
-                            <!-- Base Message (First node) -->
-                            <div class="forum-card node-base">
-                                <div class="forum-card-header">
-                                    <div class="f-avatar"><i class="fas fa-flag"></i></div>
-                                    <div class="f-meta">
-                                        <span class="f-author">{{ selectedMessage.author }}</span>
-                                        <span class="f-time">{{ selectedMessage.created_at | date:'medium' }}</span>
-                                    </div>
+                            <div class="forum-card-body">
+                                <div class="f-content"
+                                    [innerHTML]="getSafeHtml(parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content || selectedMessage.content)">
                                 </div>
-                                <div class="forum-card-body">
-                                    <div class="f-content" [innerHTML]="getSafeHtml(parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content || selectedMessage.content)">
-                                    </div>
 
-                                    <!-- ATTACHMENTS FOR BASE NODE -->
-                                    <ng-container *ngIf="parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments">
-                                        <div class="attachments-footer-minimal-v24 fade-in mt-3"
-                                            *ngIf="(parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments).length > 0">
-                                            
-                                            <div class="attachment-divider-v24">
-                                                <span><i class="fas fa-paperclip"></i> Anexos Originales</span>
-                                            </div>
+                                <!-- ATTACHMENTS FOR BASE NODE -->
+                                <ng-container
+                                    *ngIf="parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments">
+                                    <div class="attachments-footer-minimal-v24 fade-in mt-3"
+                                        *ngIf="(parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments).length > 0">
 
-                                            <div class="attachment-viewer-list-v24">
-                                                <div *ngFor="let att of (parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments)"
-                                                    class="att-pill-modern interactive fade-in"
-                                                    [ngClass]="{
+                                        <div class="attachment-divider-v24">
+                                            <span><i class="fas fa-paperclip"></i> Anexos Originales</span>
+                                        </div>
+
+                                        <div class="attachment-viewer-list-v24">
+                                            <div *ngFor="let att of (parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments)"
+                                                class="att-pill-modern interactive fade-in" [ngClass]="{
                                                         'source-local': isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0],
                                                         'source-vault': !isAttachmentDownloaded(att) && authorProfile.usuario.toLowerCase() !== selectedMessage.author.split('@')[0],
                                                         'is-downloading': downloadingStatus.has(att.remote_code)
                                                     }"
-                                                    (click)="(isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? openAttachment(att) : downloadAttachment(att, selectedMessage)" 
-                                                    [title]="(isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? 'Ver Documento' : 'Descargar Documento'">
-                                                    
-                                                    <i [class]="getFileTypeConfig(att.name).icon"
-                                                        [ngClass]="getFileTypeConfig(att.name).colorClass"></i>
-                                                    
-                                                    <div class="att-info-block-v23">
-                                                        <span class="att-name">{{ (att.name || '').replace('.zst', '').replace('.ZST', '') }}</span>
-                                                        <span class="att-meta-detail-v23">
-                                                            {{ att.extension || att.type }} • {{ att.size || ((isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? 'Local' : 'Servidor') }}
-                                                        </span>
-                                                    </div>
+                                                (click)="(isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? openAttachment(att) : downloadAttachment(att, selectedMessage)"
+                                                [title]="(isAttachmentDownloaded(att) || authorProfile.usuario.toLowerCase() === selectedMessage.author.split('@')[0]) ? 'Ver Documento' : 'Descargar Documento'">
+
+                                                <i [class]="getFileTypeConfig(att.name).icon"
+                                                    [ngClass]="getFileTypeConfig(att.name).colorClass"></i>
+
+                                                <div class="att-info-block-v23">
+                                                    <span class="att-name">{{ (att.name || '').replace('.zst',
+                                                        '').replace('.ZST', '') }}</span>
+                                                    <span class="att-meta-detail-v23">
+                                                        {{ att.extension || att.type }} • {{ att.size ||
+                                                        ((isAttachmentDownloaded(att) ||
+                                                        authorProfile.usuario.toLowerCase() ===
+                                                        selectedMessage.author.split('@')[0]) ? 'Local' :
+                                                        'Servidor') }}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </ng-container>
+                                    </div>
+                                </ng-container>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic replies array (Forum Cards) -->
+                        <ng-container *ngIf="parsedContent?.hilos?.length > 0">
+                            <div *ngFor="let hilo of parsedContent.hilos" class="forum-card fade-in"
+                                [ngClass]="hilo.tipo_respuesta">
+                                <div class="forum-card-header">
+                                    <div class="f-avatar"
+                                        [ngClass]="hilo.remitente === authorProfile.usuario ? 'avatar-sent' : 'avatar-received'">
+                                        <span class="initials">{{ getContactInitials(hilo.remitente) }}</span>
+                                    </div>
+                                    <div class="f-meta">
+                                        <span class="f-author"
+                                            [ngClass]="hilo.remitente === authorProfile.usuario ? 'text-sent' : ''">{{
+                                            hilo.remitente }}</span>
+                                        <span class="f-time">{{ hilo.timestamp | date:'medium' }}</span>
+                                    </div>
+                                </div>
+                                <div class="forum-card-body">
+                                    <div class="f-content" [innerHTML]="getSafeHtml(hilo.cuerpo)"></div>
                                 </div>
                             </div>
-
-                            <!-- Dynamic replies array (Forum Cards) -->
-                            <ng-container *ngIf="parsedContent?.hilos?.length > 0">
-                                <div *ngFor="let hilo of parsedContent.hilos" class="forum-card fade-in" [ngClass]="hilo.tipo_respuesta">
-                                    <div class="forum-card-header">
-                                        <div class="f-avatar" [ngClass]="hilo.remitente === authorProfile.usuario ? 'avatar-sent' : 'avatar-received'">
-                                            <span class="initials">{{ getContactInitials(hilo.remitente) }}</span>
-                                        </div>
-                                        <div class="f-meta">
-                                            <span class="f-author" [ngClass]="hilo.remitente === authorProfile.usuario ? 'text-sent' : ''">{{ hilo.remitente }}</span>
-                                            <span class="f-time">{{ hilo.timestamp | date:'medium' }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="forum-card-body">
-                                        <div class="f-content" [innerHTML]="getSafeHtml(hilo.cuerpo)"></div>
-                                    </div>
-                                </div>
-                            </ng-container>
-                        </div>
+                        </ng-container>
                     </div>
+                </div>
 
-                    <!-- STANDARD EMAIL VIEW -->
-                    <div *ngIf="!parsedContent?.workflow" class="standard-mail-wrapper fade-in">
-                        <!-- Subdued Governance Ribbon (Dropdown Header) -->
+                <!-- STANDARD EMAIL VIEW -->
+                <div *ngIf="!parsedContent?.workflow" class="standard-mail-wrapper fade-in">
+                    <!-- Subdued Governance Ribbon (Dropdown Header) -->
                     <div class="governance-ribbon clickable" (click)="toggleTrace()" [class.expanded]="showTrace">
                         <div class="ribbon-summary">
                             <i class="fas fa-fingerprint"></i>
@@ -632,7 +648,8 @@
                         <div class="trace-grid">
                             <div class="trace-detail-item">
                                 <label>Huella Digital (ID)</label>
-                                <span class="font-mono">{{ getMessageGuid(selectedMessage.content) || 'N/A' }}</span>
+                                <span class="font-mono">{{ getMessageGuid(selectedMessage.content) || 'N/A'
+                                    }}</span>
                             </div>
                             <div class="trace-detail-item">
                                 <label>Estado de Validación</label>
@@ -709,7 +726,8 @@
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 <div class="vertical-divider"></div>
-                                <button class="btn-action-sm secondary" (click)="printCurrentTemplate()" title="Imprimir Documento">
+                                <button class="btn-action-sm secondary" (click)="printCurrentTemplate()"
+                                    title="Imprimir Documento">
                                     <i class="fas fa-print"></i>
                                 </button>
                             </div>
@@ -726,11 +744,13 @@
                             </div>
                             <div class="meta-item" *ngIf="selectedMessage.sid">
                                 <i class="fas fa-fingerprint"></i>
-                                <span class="font-mono text-xs" [title]="getMessageUuid(selectedMessage.content)">{{ maskUuid(getMessageUuid(selectedMessage.content)) || 'N/A' }}</span>
+                                <span class="font-mono text-xs" [title]="getMessageUuid(selectedMessage.content)">{{
+                                    maskUuid(getMessageUuid(selectedMessage.content)) || 'N/A' }}</span>
                                 <ng-container *ngIf="getMessageMacAddress(selectedMessage.content)">
                                     <span class="meta-divider" style="margin: 0 8px; opacity: 0.3;">|</span>
                                     <i class="fas fa-desktop"></i>
-                                    <span class="font-mono text-xs">{{ maskMacAddress(getMessageMacAddress(selectedMessage.content)) }}</span>
+                                    <span class="font-mono text-xs">{{
+                                        maskMacAddress(getMessageMacAddress(selectedMessage.content)) }}</span>
                                 </ng-container>
                             </div>
                         </div>
@@ -770,7 +790,8 @@
                             </div>
 
                             <!-- Case C: Plain Text Content -->
-                            <div *ngIf="!parsedContent" class="msg-content-text" [innerHTML]="getSafeHtml(selectedMessage.content)">
+                            <div *ngIf="!parsedContent" class="msg-content-text"
+                                [innerHTML]="getSafeHtml(selectedMessage.content)">
                             </div>
                         </div>
 
@@ -788,23 +809,24 @@
 
                             <div class="attachment-viewer-list-v24">
                                 <div *ngFor="let att of (parsedContent?.message_envelope?.attachments || parsedContent?.payload?.documents || selectedMessage.attachments)"
-                                    class="att-pill-modern interactive fade-in"
-                                    [ngClass]="{
+                                    class="att-pill-modern interactive fade-in" [ngClass]="{
                                         'source-local': isAttachmentDownloaded(att),
                                         'source-vault': !isAttachmentDownloaded(att),
                                         'is-downloading': downloadingStatus.has(att.remote_code)
                                     }"
-                                    (click)="isAttachmentDownloaded(att) ? openAttachment(att) : downloadAttachment(att, selectedMessage)" 
+                                    (click)="isAttachmentDownloaded(att) ? openAttachment(att) : downloadAttachment(att, selectedMessage)"
                                     [title]="isAttachmentDownloaded(att) ? 'Ver Documento' : 'Descargar Documento'">
-                                    
+
                                     <i [class]="getFileTypeConfig(att.name).icon"
                                         [ngClass]="getFileTypeConfig(att.name).colorClass"></i>
-                                    
+
                                     <div class="att-info-block-v23">
-                                        <span class="att-name">{{ att.name.replace('.zst', '').replace('.ZST', '') }}</span>
+                                        <span class="att-name">{{ att.name.replace('.zst', '').replace('.ZST', '')
+                                            }}</span>
                                         <span class="att-meta-detail-v23">
-                                            {{ att.extension || att.type }} • {{ att.size || (isAttachmentDownloaded(att) ? 'Local' : 'Servidor') }}
-                                            
+                                            {{ att.extension || att.type }} • {{ att.size ||
+                                            (isAttachmentDownloaded(att) ? 'Local' : 'Servidor') }}
+
                                             <span class="meta-tag cert-tag-compose fade-in"
                                                 *ngIf="certificationMap.has(att.path || att.transfer_info?.path)"
                                                 (click)="openCertificationDetails(att, $event)">
@@ -815,8 +837,10 @@
 
                                     <!-- Action Icon / Progress -->
                                     <div class="att-action-state">
-                                        <i *ngIf="isAttachmentDownloaded(att)" class="fas fa-external-link-alt action-icon"></i>
-                                        <i *ngIf="!isAttachmentDownloaded(att) && !downloadingStatus.has(att.remote_code)" class="fas fa-cloud-download-alt action-icon download-pulse"></i>
+                                        <i *ngIf="isAttachmentDownloaded(att)"
+                                            class="fas fa-external-link-alt action-icon"></i>
+                                        <i *ngIf="!isAttachmentDownloaded(att) && !downloadingStatus.has(att.remote_code)"
+                                            class="fas fa-cloud-download-alt action-icon download-pulse"></i>
                                         <div *ngIf="downloadingStatus.has(att.remote_code)" class="mini-spinner-v24">
                                             <i class="fas fa-circle-notch fa-spin"></i>
                                         </div>
@@ -824,342 +848,372 @@
 
                                     <!-- Elegant Progress Bar (Neon) -->
                                     <div class="pill-progress-bar" *ngIf="downloadingStatus.has(att.remote_code)">
-                                        <div class="progress-fill" [style.width.%]="downloadingStatus.get(att.remote_code)"></div>
+                                        <div class="progress-fill"
+                                            [style.width.%]="downloadingStatus.get(att.remote_code)"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </ng-container>
-                    </div> <!-- EN STANDARD EMAILS -->
-                </div>
+                </div> <!-- EN STANDARD EMAILS -->
             </div>
-
         </div>
 
+    </div>
 
-        <!-- CONTACTS TAB -->
-        <div *ngIf="$any(activeTab) === 'contacts'" class="tab-pane fade-in-up contacts-tab-wrapper">
 
-            <!-- Page header with action buttons -->
-            <div class="contacts-page-header">
-                <div class="contacts-brand">
-                    <div class="contacts-brand-icon">
-                        <i class="fas fa-address-book"></i>
-                    </div>
-                    <div class="contacts-brand-text">
-                        <h2>Directorio de Contactos</h2>
-                        <p>Gestione usuarios asociados a aplicaciones y áreas del sistema</p>
-                    </div>
+    <!-- CONTACTS TAB -->
+    <div *ngIf="$any(activeTab) === 'contacts'" class="tab-pane fade-in-up ">
+
+        <!-- Page header with action buttons -->
+        <div class="contacts-page-header">
+            <div class="contacts-brand">
+                <div class="contacts-brand-icon">
+                    <i class="fas fa-address-book"></i>
                 </div>
-                <div class="contacts-header-actions">
-                    <button class="btn-contact-action sync" (click)="syncContacts()" [disabled]="isContactsSyncing"
-                        title="Sincronizar desde servidor">
-                        <div class="btn-circle-anim">
-                            <i class="fas fa-sync-alt" [class.fa-spin]="isContactsSyncing"></i>
-                        </div>
-                        <span>Sincronizar</span>
-                    </button>
+                <div class="contacts-brand-text">
+                    <h2>Directorio de Contactos</h2>
+                    <p>Gestione usuarios asociados a aplicaciones y áreas del sistema</p>
                 </div>
             </div>
-
-            <!-- Search + Filter bar -->
-            <div class="contacts-toolbar glass-card">
-                <div class="contacts-search-wrap">
-                    <i class="fas fa-search"></i>
-                    <input type="text" [(ngModel)]="contactSearchText" (ngModelChange)="resetContactPagination()"
-                        placeholder="Buscar por nombre, usuario o cargo..." class="contacts-search-input">
-                </div>
-                <div class="contacts-filter-wrap">
-                    <select [(ngModel)]="contactAppFilter" (ngModelChange)="resetContactPagination()"
-                        class="contacts-filter-select">
-                        <option value="">Todos los Sistemas</option>
-                        <option *ngFor="let app of contactApplications" [value]="app">{{ app }}</option>
-                    </select>
-                    <select [(ngModel)]="contactAreaFilter" (ngModelChange)="resetContactPagination()"
-                        class="contacts-filter-select">
-                        <option value="">Todas las Áreas</option>
-                        <option *ngFor="let area of contactAreas" [value]="area">{{ area }}</option>
-                    </select>
-                </div>
-                <div class="contacts-toolbar-right">
-                    <span class="contacts-count-badge">{{ filteredContacts.length }} contacto(s) registrados</span>
-                </div>
+            <div class="contacts-header-actions">
+                <button class="btn-contact-action cancel" *ngIf="isComposing" (click)="closeContacts()"
+                    title="Volver al mensaje">
+                    <div class="btn-circle-anim cancel">
+                        <i class="fas fa-times"></i>
+                    </div>
+                    <span>Cerrar</span>
+                </button>
+                <button class="btn-contact-action sync" (click)="syncContacts()" [disabled]="isContactsSyncing"
+                    title="Sincronizar desde servidor">
+                    <div class="btn-circle-anim">
+                        <i class="fas fa-sync-alt" [class.fa-spin]="isContactsSyncing"></i>
+                    </div>
+                    <span>Sincronizar</span>
+                </button>
             </div>
+        </div>
 
-            <!-- UNIFIED CONTACTS CONTAINER -->
-            <div class="contacts-main-card glass-card">
-                <!-- UNIFIED CONTACTS DIRECTORY (ULTRA-MATTE CARDS) -->
-                <div class="contacts-strip-list" *ngIf="filteredContacts.length > 0">
-                    <div *ngFor="let contact of paginatedContacts" class="contact-strip-item fade-in"
-                        [class.editing]="editingContactId === contact.id" (click)="sendEmailToContact(contact)"
-                        title="Enviar Correo">
+        <!-- Search + Filter bar -->
+        <div class="contacts-toolbar glass-card">
+            <div class="contacts-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" [(ngModel)]="contactSearchText" (ngModelChange)="resetContactPagination()"
+                    placeholder="Buscar por nombre, usuario o cargo..." class="contacts-search-input">
+            </div>
+            <div class="contacts-filter-wrap">
+                <select [(ngModel)]="contactAppFilter" (ngModelChange)="resetContactPagination()"
+                    class="contacts-filter-select">
+                    <option value="">Todos los Sistemas</option>
+                    <option *ngFor="let app of contactApplications" [value]="app">{{ app }}</option>
+                </select>
+                <select [(ngModel)]="contactAreaFilter" (ngModelChange)="resetContactPagination()"
+                    class="contacts-filter-select">
+                    <option value="">Todas las Áreas</option>
+                    <option *ngFor="let area of contactAreas" [value]="area">{{ area }}</option>
+                </select>
+            </div>
+            <!-- <div class="contacts-toolbar-right">
+                <span class="contacts-count-badge">{{ filteredContacts.length }} contacto(s) registrados</span>
+            </div> -->
+        </div>
 
-                        <div class="csi-avatar-section">
-                            <div class="csi-avatar-ring">
-                                <span class="csi-initials">{{ getContactInitials(contact.nombre || contact.login)
-                                    }}</span>
-                            </div>
+        <!-- UNIFIED CONTACTS CONTAINER -->
+        <div class="contacts-main-card glass-card" style="margin-top: -10px; padding: 0; display: flex; flex-direction: column; 
+            max-height: calc(100vh - 290px); overflow: hidden; border: 1px solid rgba(226, 232, 240, 0.6);">
+
+            <!-- ELEGANT SCROLLABLE LIST -->
+            <div class="contacts-strip-list" *ngIf="filteredContacts.length > 0"
+                style="overflow-y: auto; overflow-x: hidden; padding: 1rem; display: flex; flex-direction: column; gap: 8px; flex: 1; scrollbar-width: thin;">
+                <div *ngFor="let contact of paginatedContacts" class="contact-strip-item fade-in"
+                    [class.editing]="editingContactId === contact.id" (click)="sendEmailToContact(contact)"
+                    style="display: flex; align-items: center; padding: 12px 20px; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 14px; transition: all 0.25s ease; cursor: pointer; gap: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+
+                    <!-- COLORED CIRCULAR AVATAR -->
+                    <div class="csi-avatar-simple"
+                        style="width: 42px; height: 42px; border-radius: 50%; background: #f1f8f1; border: 1.5px solid #e8f5e9; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #2e7d32; font-size: 0.95rem; flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(46, 125, 50, 0.05);">
+                        {{ getContactInitials(contact.nombre || contact.login) }}
+                    </div>
+
+                    <!-- RICH CONTENT -->
+                    <div class="csi-content-main" style="flex: 1.2; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {{ contact.nombre || contact.login }}
+                            </h4>
+                            <span style="font-size: 0.65rem; color: #2e7d32; font-weight: 700; background: #e8f5e9; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                {{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}
+                            </span>
                         </div>
-
-                        <div class="csi-content-main">
-                            <div class="csi-header-row">
-                                <h4 class="csi-name">{{ contact.nombre || contact.login }}</h4>
-                                <span class="csi-cargo-badge"><i class="fas fa-id-badge"></i> {{
-                                    contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}</span>
-                            </div>
-                            <div class="csi-info-row">
-                                <span class="csi-email" *ngIf="contact.correo">
-                                    <i class="fas fa-envelope"></i> {{ contact.correo }}
-                                    <span class="csi-login-hint">@{{ contact.login }}</span>
-                                </span>
-                                <span class="csi-desc" *ngIf="contact.descripcion">
-                                    <i class="fas fa-info-circle"></i> {{ contact.descripcion }}
-                                </span>
-                            </div>
+                        <div style="display: flex; align-items: center; gap: 12px; opacity: 0.8;">
+                            <span style="font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-envelope" style="font-size: 0.75rem; color: #94a3b8;"></i> {{ contact.correo || '---' }}
+                            </span>
+                            <span style="font-size: 0.78rem; color: #0284c7; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-layer-group" style="font-size: 0.75rem; opacity: 0.7;"></i> {{ contact.sistema || contact.aplicacion }}
+                            </span>
                         </div>
+                    </div>
 
-                        <div class="csi-tags-section">
-                            <div class="csi-tag csi-tag-app" title="Sistema">
-                                <i class="fas fa-layer-group"></i> {{ contact.sistema || contact.aplicacion }}
-                            </div>
-                            <div class="csi-tag csi-tag-area" title="Perfil / Área">
-                                <i class="fas fa-sitemap"></i> {{ contact.Perfil?.descripcion || contact.perfil_grupo ||
-                                '---' }}
-                            </div>
-                        </div>
-
-                        <div class="csi-mac-section" *ngIf="contact.firmadigital?.direccionmac">
-                            <i class="fas fa-desktop"></i>
-                            <span class="mac-badge" title="Dispositivo Confiado (MAC Verified)">
+                    <!-- CENTERED MAC ADDRESS (TECHNICAL MATTE) -->
+                    <div style="flex: 1; display: flex; justify-content: center;">
+                        <div *ngIf="contact.firmadigital?.direccionmac" 
+                            style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 5px 14px; border-radius: 12px; border: 1px solid #edf2f7;">
+                            <i class="fas fa-desktop" style="font-size: 0.75rem; color: #2e7d32;"></i>
+                            <span style="font-size: 0.75rem; color: #475569; font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: 0.5px;">
                                 {{ maskMacAddress(contact.firmadigital.direccionmac) }}
                             </span>
                         </div>
-
-                        <div class="csi-actions-section">
-                            <button class="csi-btn-circle-anim edit" (click)="editContact(contact)" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="csi-btn-circle-anim delete" (click)="confirmDeleteContact(contact)"
-                                title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <div *ngIf="!contact.firmadigital?.direccionmac" style="color: #cbd5e1; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; opacity: 0.5;">
+                            NO-DEVICES-SYNC
                         </div>
                     </div>
-                </div>
 
-                <!-- EMPTY STATE -->
-                <div class="contacts-empty" *ngIf="filteredContacts.length === 0">
-                    <div class="empty-visual">
-                        <i class="fas fa-users-slash"></i>
-                    </div>
-                    <h3>Sin resultados coincidentes</h3>
-                    <p>No se encontraron contactos registrados con los términos o filtros aplicados hoy.</p>
-                    <button class="btn-refresh-empty" (click)="syncContacts()">
-                        <i class="fas fa-sync-alt"></i> Sincronizar Directorio
-                    </button>
-                </div>
-
-                <!-- Pagination inside card -->
-                <div class="contacts-pagination-footer" *ngIf="filteredContacts.length > contactPageSize">
-                    <div class="pagination-divider"></div>
-                    <div class="pagination-controls">
-                        <button class="btn-paginator" [disabled]="contactPage === 1"
-                            (click)="contactPage = contactPage - 1">
-                            <i class="fas fa-chevron-left"></i>
+                    <!-- COLORED CIRCULAR ACTIONS -->
+                    <div class="csi-actions-minimal" style="display: flex; gap: 10px;">
+                        <button class="btn-action-circle" (click)="editContact(contact); $event.stopPropagation()"
+                            style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #e0f2fe; background: #f0f9ff; color: #0284c7; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
+                            title="Editar">
+                            <i class="fas fa-edit" style="font-size: 0.9rem;"></i>
                         </button>
-                        <span class="pagination-info">Página {{ contactPage }} de {{ totalContactPages }}</span>
-                        <button class="btn-paginator" [disabled]="contactPage === totalContactPages"
-                            (click)="contactPage = contactPage + 1">
-                            <i class="fas fa-chevron-right"></i>
+                        <button class="btn-action-circle" (click)="confirmDeleteContact(contact); $event.stopPropagation()"
+                            style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #fee2e2; background: #fef2f2; color: #dc2626; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
+                            title="Eliminar">
+                            <i class="fas fa-trash" style="font-size: 0.9rem;"></i>
                         </button>
                     </div>
                 </div>
             </div>
+
+            <!-- EMPTY STATE -->
+            <div class="contacts-empty" *ngIf="filteredContacts.length === 0">
+                <div class="empty-visual">
+                    <i class="fas fa-users-slash"></i>
+                </div>
+                <h3>Sin resultados coincidentes</h3>
+                <p>No se encontraron contactos registrados con los términos o filtros aplicados hoy.</p>
+                <button class="btn-refresh-empty" (click)="syncContacts()">
+                    <i class="fas fa-sync-alt"></i> Sincronizar Directorio
+                </button>
+            </div>
+
+            <!-- MINIMAL PAGINATION (CENTERED CONTROLS, LEFT TOTAL) -->
+            <div class="contacts-pagination-footer" *ngIf="filteredContacts.length > contactPageSize"
+                style="padding: 12px 20px; border-top: 1px solid #f1f5f9; display: flex; align-items: center; background: #fcfdfe;">
+
+                <!-- LEFT: TOTAL -->
+                <div style="flex: 1; display: flex; align-items: center;">
+                    <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">
+                        <i class="fas fa-database" style="margin-right: 8px; opacity: 0.5;"></i> {{ filteredContacts.length }} Registros
+                    </span>
+                </div>
+
+                <!-- CENTER: CONTROLS -->
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
+                        Página <b style="color: #1e293b;">{{ contactPage }}</b> <span style="color: #cbd5e1; margin: 0 4px;">/</span> {{ totalContactPages }}
+                    </span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-paginator-mini" [disabled]="contactPage === 1"
+                            (click)="contactPage = contactPage - 1"
+                            style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i>
+                        </button>
+                        <button class="btn-paginator-mini" [disabled]="contactPage === totalContactPages"
+                            (click)="contactPage = contactPage + 1"
+                            style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RIGHT: SPACER -->
+                <div style="flex: 1;"></div>
+            </div>
         </div>
+    </div>
 
-        <!-- CONFIG TAB (hidden from nav but preserved) -->
-        <div *ngIf="$any(activeTab) === 'config'" class="tab-pane fade-in-up">
-            <div class="glass-card config-panel">
-                <h3><i class="fas fa-lock"></i> Configuración de Seguridad</h3>
-                <p class="section-desc">Gestione políticas de contraseñas, niveles de auditoría y almacenamiento
-                    en
-                    caché.</p>
+    <!-- CONFIG TAB (hidden from nav but preserved) -->
+    <div *ngIf="$any(activeTab) === 'config'" class="tab-pane fade-in-up">
+        <div class="glass-card config-panel">
+            <h3><i class="fas fa-lock"></i> Configuración de Seguridad</h3>
+            <p class="section-desc">Gestione políticas de contraseñas, niveles de auditoría y almacenamiento
+                en
+                caché.</p>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Formato de Contraseña (Regex)</label>
-                        <input type="text" [(ngModel)]="config.password_format_regex" class="input-dark font-mono">
-                        <small>Expresión regular para imponer complejidad de contraseña.</small>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Formato de Contraseña (Regex)</label>
+                    <input type="text" [(ngModel)]="config.password_format_regex" class="input-dark font-mono">
+                    <small>Expresión regular para imponer complejidad de contraseña.</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Nivel de Reportes</label>
+                    <select [(ngModel)]="config.reporting_level" class="input-dark">
+                        <option value="Low">Bajo</option>
+                        <option value="Medium">Medio</option>
+                        <option value="High">Alto</option>
+                        <option value="Critical">Crítico</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Nivel de Auditoría</label>
+                    <select [(ngModel)]="config.audit_level" class="input-dark">
+                        <option value="None">Ninguno</option>
+                        <option value="Standard">Estándar</option>
+                        <option value="Full">Completo (Log Detallado)</option>
+                    </select>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label class="switch">
+                        <input type="checkbox" [(ngModel)]="config.cache_enabled">
+                        <span class="slider round"></span>
+                    </label>
+                    <span>Habilitar Almacenamiento en Caché Seguro</span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn-primary" (click)="saveConfig()">
+                    <i class="fas fa-save"></i> Guardar Políticas
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROXY TAB -->
+    <div *ngIf="$any(activeTab) === 'proxy'" class="tab-pane fade-in-up fade-tab">
+
+        <!-- New Route Card -->
+        <div class="glass-card add-route-panel">
+            <div class="panel-header">
+                <div class="header-left">
+                    <h3><i class="fas" [class.fa-route]="!isEditing" [class.fa-edit]="isEditing"></i> {{
+                        isEditing ? 'Modificar Ruta' : 'Configurar Nueva Ruta' }}</h3>
+                    <p class="subtitle">Defina puntos de acceso seguros y políticas de retención de datos.
+                    </p>
+                </div>
+                <span class="badge" [class.info]="!isEditing" [class.warning]="isEditing">{{
+                    isEditing ?
+                    'Modo Edición' :
+                    'Interconexión Segura'
+                    }}</span>
+            </div>
+
+            <div class="form-grid compact-grid proxy-grid-layout">
+                <!-- Ruta -->
+                <div class="form-group icon-input-group route-field">
+                    <label>Ruta del Recurso <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-link input-icon"></i>
+                        <input [(ngModel)]="newRoute.route_path" placeholder="/api/v1/resource"
+                            class="input-dark pl-icon">
                     </div>
+                    <!-- <small class="helper-text">Ej: /external-proxy/app-id</small> -->
+                </div>
 
-                    <div class="form-group">
-                        <label>Nivel de Reportes</label>
-                        <select [(ngModel)]="config.reporting_level" class="input-dark">
-                            <option value="Low">Bajo</option>
-                            <option value="Medium">Medio</option>
-                            <option value="High">Alto</option>
-                            <option value="Critical">Crítico</option>
-                        </select>
+                <!-- Código -->
+                <div class="form-group icon-input-group code-field">
+                    <label>Código/ID</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-tag input-icon"></i>
+                        <input [(ngModel)]="newRoute.code" placeholder="SEC-001" class="input-dark pl-icon">
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label>Nivel de Auditoría</label>
-                        <select [(ngModel)]="config.audit_level" class="input-dark">
-                            <option value="None">Ninguno</option>
-                            <option value="Standard">Estándar</option>
-                            <option value="Full">Completo (Log Detallado)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group checkbox-group">
+                <!-- Salvar Datos Local (Switch) -->
+                <div class="form-group switch-group">
+                    <label>Salvar Datos Local</label>
+                    <div class="switch-wrapper">
                         <label class="switch">
-                            <input type="checkbox" [(ngModel)]="config.cache_enabled">
+                            <input type="checkbox" [checked]="newRoute.target_database === 'SI'"
+                                (change)="newRoute.target_database = $event.target.checked ? 'SI' : 'NO'">
                             <span class="slider round"></span>
                         </label>
-                        <span>Habilitar Almacenamiento en Caché Seguro</span>
+                        <span class="switch-label">{{ newRoute.target_database === 'SI' ? 'Activado' :
+                            'Desactivado' }}</span>
                     </div>
+                    <small class="helper-text">Persistir tráfico en base de datos local SQLite.</small>
                 </div>
 
-                <div class="form-actions">
-                    <button class="btn-primary" (click)="saveConfig()">
-                        <i class="fas fa-save"></i> Guardar Políticas
-                    </button>
+                <!-- Descripción -->
+                <div class="form-group full-width icon-input-group desc-field">
+                    <label>Descripción</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-align-left input-icon"></i>
+                        <input [(ngModel)]="newRoute.description"
+                            placeholder="Descripción breve del propósito de esta ruta..." class="input-dark pl-icon">
+                    </div>
                 </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn-primary" (click)="addProxyRoute()" [disabled]="!newRoute.route_path">
+                    <i class="fas" [class.fa-plus-circle]="!isEditing" [class.fa-save]="isEditing"></i> {{
+                    isEditing ? 'Guardar Cambios' : 'Registrar Ruta' }}
+                </button>
+                <button class="btn-secondary" (click)="cancelEdit()" *ngIf="isEditing">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
             </div>
         </div>
 
-        <!-- PROXY TAB -->
-        <div *ngIf="$any(activeTab) === 'proxy'" class="tab-pane fade-in-up fade-tab">
-
-            <!-- New Route Card -->
-            <div class="glass-card add-route-panel">
-                <div class="panel-header">
-                    <div class="header-left">
-                        <h3><i class="fas" [class.fa-route]="!isEditing" [class.fa-edit]="isEditing"></i> {{
-                            isEditing ? 'Modificar Ruta' : 'Configurar Nueva Ruta' }}</h3>
-                        <p class="subtitle">Defina puntos de acceso seguros y políticas de retención de datos.
-                        </p>
-                    </div>
-                    <span class="badge" [class.info]="!isEditing" [class.warning]="isEditing">{{
-                        isEditing ?
-                        'Modo Edición' :
-                        'Interconexión Segura'
-                        }}</span>
-                </div>
-
-                <div class="form-grid compact-grid proxy-grid-layout">
-                    <!-- Ruta -->
-                    <div class="form-group icon-input-group route-field">
-                        <label>Ruta del Recurso <span class="required">*</span></label>
-                        <div class="input-wrapper">
-                            <i class="fas fa-link input-icon"></i>
-                            <input [(ngModel)]="newRoute.route_path" placeholder="/api/v1/resource"
-                                class="input-dark pl-icon">
-                        </div>
-                        <!-- <small class="helper-text">Ej: /external-proxy/app-id</small> -->
-                    </div>
-
-                    <!-- Código -->
-                    <div class="form-group icon-input-group code-field">
-                        <label>Código/ID</label>
-                        <div class="input-wrapper">
-                            <i class="fas fa-tag input-icon"></i>
-                            <input [(ngModel)]="newRoute.code" placeholder="SEC-001" class="input-dark pl-icon">
-                        </div>
-                    </div>
-
-                    <!-- Salvar Datos Local (Switch) -->
-                    <div class="form-group switch-group">
-                        <label>Salvar Datos Local</label>
-                        <div class="switch-wrapper">
-                            <label class="switch">
-                                <input type="checkbox" [checked]="newRoute.target_database === 'SI'"
-                                    (change)="newRoute.target_database = $event.target.checked ? 'SI' : 'NO'">
-                                <span class="slider round"></span>
-                            </label>
-                            <span class="switch-label">{{ newRoute.target_database === 'SI' ? 'Activado' :
-                                'Desactivado' }}</span>
-                        </div>
-                        <small class="helper-text">Persistir tráfico en base de datos local SQLite.</small>
-                    </div>
-
-                    <!-- Descripción -->
-                    <div class="form-group full-width icon-input-group desc-field">
-                        <label>Descripción</label>
-                        <div class="input-wrapper">
-                            <i class="fas fa-align-left input-icon"></i>
-                            <input [(ngModel)]="newRoute.description"
-                                placeholder="Descripción breve del propósito de esta ruta..."
-                                class="input-dark pl-icon">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button class="btn-primary" (click)="addProxyRoute()" [disabled]="!newRoute.route_path">
-                        <i class="fas" [class.fa-plus-circle]="!isEditing" [class.fa-save]="isEditing"></i> {{
-                        isEditing ? 'Guardar Cambios' : 'Registrar Ruta' }}
-                    </button>
-                    <button class="btn-secondary" (click)="cancelEdit()" *ngIf="isEditing">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                </div>
-            </div>
-
-            <div class="table-container glass-card">
-                <table class="proxy-table">
-                    <thead>
-                        <tr>
-                            <th width="30%">Ruta del Recurso</th>
-                            <th width="15%">Código/ID</th>
-                            <th width="25%">Descripción</th>
-                            <th width="20%">Estado / Persistencia</th>
-                            <th width="10%">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let route of proxyRoutes">
-                            <td>
-                                <div class="font-mono">{{ route.route_path }}</div>
-                            </td>
-                            <td>
-                                <span class="code-badge no-wrap">{{ route.code }}</span>
-                            </td>
-                            <td class="desc-cell">
-                                <div class="truncate-text" title="{{ route.description }}">{{ route.description
-                                    ||
-                                    'Sin descripción' }}</div>
-                            </td>
-                            <td>
-                                <div class="status-combo">
-                                    <span class="status-pill" [class.active]="route.is_active"
-                                        [class.inactive]="!route.is_active">
-                                        <span class="status-pulse"></span>
-                                        {{ route.is_active ? 'OPERATIVO' : 'DETENIDO' }}
-                                    </span>
-                                    <span class="mini-db-tag" *ngIf="route.target_database === 'SI'"
-                                        title="Persistencia Activa">
-                                        <i class="fas fa-database"></i> SAVE
-                                    </span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="table-action-hub">
-                                    <button class="btn-icon-table edit" (click)="editProxyRoute(route)"
-                                        title="Editar Ruta">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-icon-table danger" (click)="deleteProxyRoute(route)"
-                                        title="Eliminar Ruta">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-container glass-card">
+            <table class="proxy-table">
+                <thead>
+                    <tr>
+                        <th width="30%">Ruta del Recurso</th>
+                        <th width="15%">Código/ID</th>
+                        <th width="25%">Descripción</th>
+                        <th width="20%">Estado / Persistencia</th>
+                        <th width="10%">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let route of proxyRoutes">
+                        <td>
+                            <div class="font-mono">{{ route.route_path }}</div>
+                        </td>
+                        <td>
+                            <span class="code-badge no-wrap">{{ route.code }}</span>
+                        </td>
+                        <td class="desc-cell">
+                            <div class="truncate-text" title="{{ route.description }}">{{ route.description
+                                ||
+                                'Sin descripción' }}</div>
+                        </td>
+                        <td>
+                            <div class="status-combo">
+                                <span class="status-pill" [class.active]="route.is_active"
+                                    [class.inactive]="!route.is_active">
+                                    <span class="status-pulse"></span>
+                                    {{ route.is_active ? 'OPERATIVO' : 'DETENIDO' }}
+                                </span>
+                                <span class="mini-db-tag" *ngIf="route.target_database === 'SI'"
+                                    title="Persistencia Activa">
+                                    <i class="fas fa-database"></i> SAVE
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="table-action-hub">
+                                <button class="btn-icon-table edit" (click)="editProxyRoute(route)" title="Editar Ruta">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon-table danger" (click)="deleteProxyRoute(route)"
+                                    title="Eliminar Ruta">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+    </div>
 
 
     <!-- Modal Confirmación Eliminar (Elegante) -->
@@ -1408,7 +1462,7 @@
 
                     <!-- Scrollable List -->
                     <div class="explorer-scroll-v6">
-                        
+
                         <ng-container *ngFor="let entry of filteredSecureDocs">
                             <!-- RENDER GROUP (NOMINA PACKAGE) -->
                             <ng-container *ngIf="entry.isGroup">
@@ -1420,7 +1474,7 @@
                                         <div class="group-info-v6">
                                             <div class="group-title-v6">{{ entry.name }}</div>
                                             <div class="group-subtitle-v6">
-                                                <i class="fas fa-shield-halved"></i> Paquete de Documentos SDC • 
+                                                <i class="fas fa-shield-halved"></i> Paquete de Documentos SDC •
                                                 <strong>{{ entry.items.length }} archivos</strong>
                                             </div>
                                         </div>
@@ -1428,22 +1482,26 @@
                                     <div class="group-right-v6">
                                         <span class="group-date-v6">{{ entry.date | date:'dd MMM, HH:mm' }}</span>
                                         <div class="group-actions-v6">
-                                            <i class="fas" [class.fa-chevron-down]="!expandedGroups.has(entry.id)" [class.fa-chevron-up]="expandedGroups.has(entry.id)"></i>
+                                            <i class="fas" [class.fa-chevron-down]="!expandedGroups.has(entry.id)"
+                                                [class.fa-chevron-up]="expandedGroups.has(entry.id)"></i>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- NESTED ITEMS (Indented) -->
                                 <div class="group-nested-items-v6" *ngIf="expandedGroups.has(entry.id)">
-                                    <div *ngFor="let doc of entry.items" class="file-row-v6 nested-v7" (click)="selectSecureDoc(doc)">
+                                    <div *ngFor="let doc of entry.items" class="file-row-v6 nested-v7"
+                                        (click)="selectSecureDoc(doc)">
                                         <div class="col-name-info">
                                             <div class="col-icon-vault nested-icon">
-                                                <i [class]="getFileTypeConfig(doc.name).icon" [ngClass]="getFileTypeConfig(doc.name).colorClass"></i>
+                                                <i [class]="getFileTypeConfig(doc.name).icon"
+                                                    [ngClass]="getFileTypeConfig(doc.name).colorClass"></i>
                                             </div>
                                             <div class="name-meta">
                                                 <div class="name-row-v6">
                                                     <span class="file-name nested-name">{{ doc.name }}</span>
-                                                    <span class="pill-cert-v7" *ngIf="certificationMap.has(doc.file_path || doc.path)">CERTIFICADO</span>
+                                                    <span class="pill-cert-v7"
+                                                        *ngIf="certificationMap.has(doc.file_path || doc.path)">CERTIFICADO</span>
                                                 </div>
                                                 <div class="meta-sub-row-v7">
                                                     <span class="meta-source-v7">Sandra System</span>
@@ -1467,13 +1525,15 @@
                                 <div class="file-row-v6 row-v7" (click)="selectSecureDoc(entry)">
                                     <div class="col-name-info">
                                         <div class="col-icon-vault">
-                                            <ng-container *ngIf="!getFileTypeConfig(entry.name || entry.file_name).isMascot; else sseMascot">
+                                            <ng-container
+                                                *ngIf="!getFileTypeConfig(entry.name || entry.file_name).isMascot; else sseMascot">
                                                 <i [class]="getFileTypeConfig(entry.name || entry.file_name).icon"
                                                     [ngClass]="getFileTypeConfig(entry.name || entry.file_name).colorClass"></i>
                                             </ng-container>
                                             <ng-template #sseMascot>
                                                 <div class="mascot-container-v7">
-                                                   <img src="assets/sandra_pastel.png" alt="Doc" class="sandra-icon-v7">
+                                                    <img src="assets/sandra_pastel.png" alt="Doc"
+                                                        class="sandra-icon-v7">
                                                 </div>
                                             </ng-template>
                                         </div>
@@ -1481,17 +1541,20 @@
                                             <div class="name-row-v6">
                                                 <span class="file-name">{{ entry.name || entry.file_name }}</span>
                                                 <!-- Insignias sólidas estilo Premium -->
-                                                <span class="pill-cert-v7" *ngIf="certificationMap.has(entry.file_path || entry.path)">
-                                                   <i class="fas fa-certificate"></i> CERTIFICADO
+                                                <span class="pill-cert-v7"
+                                                    *ngIf="certificationMap.has(entry.file_path || entry.path)">
+                                                    <i class="fas fa-certificate"></i> CERTIFICADO
                                                 </span>
-                                                <span class="pill-protected-v7" *ngIf="(entry.name || entry.file_name).toLowerCase().endsWith('.sse')">
-                                                   <i class="fas fa-lock"></i> PROTEGIDO
+                                                <span class="pill-protected-v7"
+                                                    *ngIf="(entry.name || entry.file_name).toLowerCase().endsWith('.sse')">
+                                                    <i class="fas fa-lock"></i> PROTEGIDO
                                                 </span>
                                             </div>
                                             <div class="meta-sub-row-v7">
                                                 <span class="meta-source-v7">Sandra System</span>
                                                 <span class="meta-divider-v7">•</span>
-                                                <span class="meta-size-v7">{{ entry.file_size || entry.size || 'Local' }}</span>
+                                                <span class="meta-size-v7">{{ entry.file_size || entry.size ||
+                                                    'Local' }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1501,7 +1564,8 @@
                                     </div>
 
                                     <div class="col-date-info text-right">
-                                        <div class="date-main-v7">{{ entry.created_at || entry.date | date:'dd MMM, HH:mm' }}</div>
+                                        <div class="date-main-v7">{{ entry.created_at || entry.date | date:'dd MMM,
+                                            HH:mm' }}</div>
                                         <div class="row-actions-v7" *ngIf="entry.name.toLowerCase().endsWith('.sse')">
                                             <i class="fas fa-share-nodes" style="color: #64748b; font-size: 11px;"></i>
                                         </div>
@@ -1534,9 +1598,7 @@
 
 </div>
 
-<!-- Global Overlays (Outside of glass-card to prevent backdrop-filter clipping) -->
 
-<!-- Modal Confirmación Envío -->
 <div class="modal-overlay" *ngIf="showSendConfirmModal">
     <div class="modal-card activity-modal fade-in-up">
         <div class="modal-body-clean">
@@ -1679,10 +1741,11 @@
                     </div>
                 </div>
                 <div class="modal-footer-v2">
-                    <button class="btn-v2 btn-v2-green" (click)="closeCertificationModal()">Cerrar Certificado</button>
+                    <button class="btn-v2 btn-v2-green" (click)="closeCertificationModal()">Cerrar
+                        Certificado</button>
                 </div>
             </div>
         </div>
     </div> <!-- security-content -->
 
-</div> <!-- security-container -->
+</div>
