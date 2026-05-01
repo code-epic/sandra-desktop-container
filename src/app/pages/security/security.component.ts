@@ -58,7 +58,7 @@ export class SecurityComponent implements OnInit, OnChanges {
       const diffMs = Math.abs(new Date().getTime() - createdDate.getTime());
       const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
       const diffDays = Math.floor(diffHrs / 24);
-      
+
       if (diffDays > 0) {
         return `${diffDays}d ${diffHrs % 24}h`;
       } else if (diffHrs > 0) {
@@ -109,6 +109,8 @@ export class SecurityComponent implements OnInit, OnChanges {
   // Sending Process State
   isSending = false;
   sendProgress = 0;
+  editorCharCount = 0;
+  readonly MAX_EDITOR_CHARS = 10000;
   showSendConfirmModal = false;
   showSecureVaultModal = false;
   vaultFilter: 'DOCS' | 'SSE' | 'RECENT' = 'DOCS';
@@ -196,7 +198,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   get groupedFilteredDocs() {
-     return this.filteredSecureDocs;
+    return this.filteredSecureDocs;
   }
 
   setVaultFilter(filter: 'DOCS' | 'SSE' | 'RECENT') {
@@ -281,6 +283,9 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   onEditorInput(html: string) {
     this.editorContent = html;
+    // Strip HTML tags for accurate character counting
+    const plainText = html.replace(/<[^>]*>/g, '');
+    this.editorCharCount = plainText.length;
     this.saveDraft();
   }
 
@@ -727,22 +732,22 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.selectedIds.clear();
     this.selectedMessage = null;
     this.isComposing = false;
-    
+
     if (tab === 'contacts' && this.contacts.length === 0) {
       this.syncContacts();
     }
-    
+
     if (tab === 'mailbox') {
-       this.mailboxDirection = 'inbox';
-       this.loadMessages();
+      this.mailboxDirection = 'inbox';
+      this.loadMessages();
     } else if (tab === 'outbox') {
-       this.activeTab = 'mailbox';
-       this.mailboxDirection = 'outbox';
-       this.loadMessages().then(() => this.trackOutboxThreads());
+      this.activeTab = 'mailbox';
+      this.mailboxDirection = 'outbox';
+      this.loadMessages().then(() => this.trackOutboxThreads());
     } else {
-       // Reset filters when leaving mailbox
-       this.statusFilter = 'all';
-       this.searchText = '';
+      // Reset filters when leaving mailbox
+      this.statusFilter = 'all';
+      this.searchText = '';
     }
   }
 
@@ -759,52 +764,48 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   async trackOutboxThreads() {
     if (!this.activeConnection?.hash) return;
-    
+
     // Solo rastrear mensajes que sean SEGUIMIENTO y tengan miga
     const mensajesConSeguimiento = this.messages.filter(m => m.direction === 'outbox' && this.getThreadType(m) === 'seguimiento');
     if (mensajesConSeguimiento.length === 0) return;
 
     for (const msg of mensajesConSeguimiento) {
-        try {
-            const content = JSON.parse(msg.content);
-            const miga_id = content.hilos?.[0]?.miga_id;
-            
-            if (miga_id) {
-                const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
-                const payload = {
-                  "funcion": 'SDC_UUsers', // O el manejador genérico del CRUD
-                  "valores": JSON.stringify({
-                    "coleccion": "comunicaciones_internas",
-                    "operacion": "FIND",
-                    "filtro": { "hilos.miga_id": miga_id }
-                  })
-                };
+      try {
+        const content = JSON.parse(msg.content);
+        const miga_id = content.hilos?.[0]?.miga_id;
 
-                const response: any = await invoke('api_post_request', {
-                  ip: this.activeConnection.ip_address,
-                  port: Number(this.activeConnection.port),
-                  endpoint: endpoint,
-                  payload: payload,
-                  hash: this.activeConnection.hash,
-                  tempAuthToken: this.activeConnection.jwt
-                });
-                
-                // Aquí se podría actualizar el estatus local si la contraparte lo cerró/atendió.
-                if (response && response.exito && response.datos?.length > 0) {
-                    const latest = response.datos.reduce((prev: any, current: any) => 
-                         (new Date(prev.timestamp).getTime() > new Date(current.timestamp).getTime()) ? prev : current
-                    );
-                    
-                    if (latest.workflow?.estado && msg.status !== latest.workflow.estado) {
-                        msg.status = latest.workflow.estado;
-                        // Actualizamos localmente el estatus
-                        await this.securityService.updateMailboxStatus(msg.id, msg.status, `Tracking: Actualizado desde remoto a ${msg.status}`);
-                    }
-                }
+        if (miga_id) {
+          const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+          const payload = {
+            "funcion": 'SDC_CMailThread',
+            "parametros": miga_id
+          };
+
+          const response: any = await invoke('api_post_request', {
+            ip: this.activeConnection.ip_address,
+            port: Number(this.activeConnection.port),
+            endpoint: endpoint,
+            payload: payload,
+            hash: this.activeConnection.hash,
+            tempAuthToken: this.activeConnection.jwt
+          });
+
+          // Aquí se podría actualizar el estatus local si la contraparte lo cerró/atendió.
+          if (response && response.exito && response.datos?.length > 0) {
+            const latest = response.datos.reduce((prev: any, current: any) =>
+              (new Date(prev.timestamp).getTime() > new Date(current.timestamp).getTime()) ? prev : current
+            );
+
+            if (latest.workflow?.estado && msg.status !== latest.workflow.estado) {
+              msg.status = latest.workflow.estado;
+              // Actualizamos localmente el estatus
+              await this.securityService.updateMailboxStatus(msg.id, msg.status, `Tracking: Actualizado desde remoto a ${msg.status}`);
             }
-        } catch (e) {
-            console.error('Error tracking outbox thread', e);
+          }
         }
+      } catch (e) {
+        console.error('Error tracking outbox thread', e);
+      }
     }
   }
 
@@ -913,7 +914,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   replyMessage(msg: MailboxMessage) {
     this.replyingToMessage = msg;
     this.startCompose(true); // Preserve selectedMessage reference
-    
+
     // 1. Asignar Destinatario
     this.newMessage.selectedRecipients = [msg.author];
 
@@ -943,7 +944,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   forwardMessage(msg: MailboxMessage) {
     this.startCompose(); // New message context
-    
+
     // Asunto con prefijo Fwd:
     const currentSubject = this.getMessageSubject(msg.content) || msg.sid || 'Requerimiento';
     this.newMessage.sid = currentSubject.toUpperCase().startsWith('FWD:') ? currentSubject : `Fwd: ${currentSubject}`;
@@ -1303,7 +1304,7 @@ export class SecurityComponent implements OnInit, OnChanges {
             const columnSums: number[] = new Array(numCols).fill(0);
             const isNumericCol: boolean[] = new Array(numCols).fill(true);
 
-            const maxAnalysisLines = Math.min(lines.length, 5000); 
+            const maxAnalysisLines = Math.min(lines.length, 5000);
             for (let i = 1; i < maxAnalysisLines; i++) {
               const cells = lines[i].split(delimiter);
               if (!cells || cells.length === 0) continue;
@@ -1342,7 +1343,7 @@ export class SecurityComponent implements OnInit, OnChanges {
             this.editorContent = this.editorElement.nativeElement.innerHTML;
           }
           this.saveDraft();
-        }, 1200); 
+        }, 1200);
 
 
       } catch (err) {
@@ -1374,7 +1375,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     // INTERCEPTO: Hilo de Workflow / Aprobación (Reply Mode)
     const targetMsg = this.replyingToMessage || (this.selectedMessage && !this.isComposing ? this.selectedMessage : null);
-    
+
     if (targetMsg && this.parsedContent?.workflow) {
       const isReply = !!this.replyingToMessage;
       const parent_guid = targetMsg.sid || targetMsg.id.toString();
@@ -1407,7 +1408,7 @@ export class SecurityComponent implements OnInit, OnChanges {
         // Guardar Localmente para Offline
         const updatedContentString = JSON.stringify(this.parsedContent);
         targetMsg.content = updatedContentString;
-        
+
         // Emulamos un update eliminando y recreando con el nuevo contenido
         await this.securityService.deleteMailboxMessage(targetMsg.id);
         await this.securityService.createMailboxMessage({
@@ -1417,10 +1418,10 @@ export class SecurityComponent implements OnInit, OnChanges {
 
         this.cancelCompose();
         await this.loadMessages();
-        
+
         // Seleccionamos de nuevo para refrescar UI
         const reloaded = this.messages.find(m => m.sid === targetMsg.sid);
-        if(reloaded) this.selectMessage(reloaded);
+        if (reloaded) this.selectMessage(reloaded);
 
       } catch (e) {
         console.error('Error al procesar hilo de workflow:', e);
@@ -1515,24 +1516,16 @@ export class SecurityComponent implements OnInit, OnChanges {
   async upsertCorreoWorkflow(correoActualizado: any) {
     if (!this.activeConnection?.hash) throw new Error("No active connection hash");
 
+    let hilosString = JSON.stringify(correoActualizado.hilos);
+    let id_referencia_docString = correoActualizado.workflow.id_referencia_doc;
+
     const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
     const payload = {
-      "funcion": 'SDC_UUsers',
-      "valores": JSON.stringify({
-        "coleccion": "comunicaciones_internas",
-        "operacion": "UPSERT",
-        "filtro": {
-          "workflow.id_referencia_doc": correoActualizado.workflow.id_referencia_doc
-        },
-        "datos": {
-          "workflow.estado": correoActualizado.workflow.estado,
-          "workflow.requiere_accion": false,
-          "hilos": correoActualizado.hilos,
-          "ultima_modificacion": new Date().toISOString()
-        }
-      })
+      "funcion": 'SDC_UMailThread',
+      "parametros": `${id_referencia_docString}, ${hilosString}`
     };
 
+    console.log(payload);
     return invoke('api_post_request', {
       ip: this.activeConnection.ip_address,
       port: Number(this.activeConnection.port),
@@ -1569,58 +1562,58 @@ export class SecurityComponent implements OnInit, OnChanges {
 
       // 1. Send the new thread node as a reply to the network via UPSERT
       await this.upsertCorreoWorkflow(this.parsedContent);
-      
+
       // 2. Notify participants of the status update
       const syncRecipients = [msg.author, msg.responsible].filter((u): u is string => !!u);
       this.notifyRecipientsOfSync(syncRecipients, this.parsedContent.workflow.id_referencia_doc);
 
       // 2. Perform the localized CRUD UPDATE
       if (this.activeConnection?.hash) {
-          const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
-          const payload = {
-            "funcion": 'SDC_UUsers',
-            "valores": JSON.stringify({
-              "coleccion": "comunicaciones_internas",
-              "operacion": "UPDATE",
-              "filtro": { "id": this.parsedContent.id },
-              "datos": { 
-                  "workflow.estado": decision,
-                  "workflow.requiere_accion": false,
-                  "ultima_modificacion": new Date().toISOString()
-              }
-            })
-          };
+        const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+        const payload = {
+          "funcion": 'SDC_UUsers',
+          "valores": JSON.stringify({
+            "coleccion": "comunicaciones_internas",
+            "operacion": "UPDATE",
+            "filtro": { "id": this.parsedContent.id },
+            "datos": {
+              "workflow.estado": decision,
+              "workflow.requiere_accion": false,
+              "ultima_modificacion": new Date().toISOString()
+            }
+          })
+        };
 
-          await invoke('api_post_request', {
-            ip: this.activeConnection.ip_address,
-            port: Number(this.activeConnection.port),
-            endpoint: endpoint,
-            payload: payload,
-            hash: this.activeConnection.hash,
-            tempAuthToken: this.activeConnection.jwt
-          });
+        await invoke('api_post_request', {
+          ip: this.activeConnection.ip_address,
+          port: Number(this.activeConnection.port),
+          endpoint: endpoint,
+          payload: payload,
+          hash: this.activeConnection.hash,
+          tempAuthToken: this.activeConnection.jwt
+        });
       }
 
       // 3. Update local SQLite database
       const updatedContentString = JSON.stringify(this.parsedContent);
       msg.content = updatedContentString;
       msg.status = (decision === 'APROBADO' || decision === 'COMPLETADO') ? 'Approved' : 'Rejected';
-      
+
       await this.securityService.updateMailboxStatus(msg.id, msg.status, `Workflow ${decision}`);
-      
+
       // Re-create to persist full content body
       await this.securityService.deleteMailboxMessage(msg.id);
       await this.securityService.createMailboxMessage({
         ...msg,
         content: updatedContentString
       });
-      
+
       this.snapService.show(`Flujo marcado como ${decision}`, undefined, 'success');
       this.appState.setViewerLoading(false);
       await this.loadMessages();
-      
+
       const reloaded = this.messages.find(m => m.sid === msg.sid);
-      if(reloaded) this.selectMessage(reloaded);
+      if (reloaded) this.selectMessage(reloaded);
 
     } catch (error) {
       console.error("Error validando flujo de trabajo", error);
@@ -1945,7 +1938,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     if (att.remote_code) {
       return this.history.some(h => h.remote_code === att.remote_code);
     }
-    
+
     return false;
   }
 
@@ -1955,10 +1948,10 @@ export class SecurityComponent implements OnInit, OnChanges {
       const parsed = JSON.parse(msg.content);
       const atts = parsed?.message_envelope?.attachments || parsed?.payload?.attachments || [];
       if (!Array.isArray(atts)) return false;
-      
+
       const authorId = parsed?.message_envelope?.author?.split('@')[0]?.toLowerCase();
       if (authorId === this.authorProfile.usuario.toLowerCase()) {
-         return false; // El emisor local nunca tiene descargas pendientes de sus propios archivos
+        return false; // El emisor local nunca tiene descargas pendientes de sus propios archivos
       }
 
       return atts.some(att => !this.isAttachmentDownloaded(att));
@@ -2005,27 +1998,27 @@ export class SecurityComponent implements OnInit, OnChanges {
       if (att.name !== cleanName) {
         let found = false;
         if (parsedContent.message_envelope?.attachments) {
-            const a = parsedContent.message_envelope.attachments.find((x: any) => x.remote_code === att.remote_code);
-            if (a) { a.name = cleanName; found = true; }
+          const a = parsedContent.message_envelope.attachments.find((x: any) => x.remote_code === att.remote_code);
+          if (a) { a.name = cleanName; found = true; }
         }
         if (!found && parsedContent.payload?.documents) {
-            const a = parsedContent.payload.documents.find((x: any) => x.remote_code === att.remote_code);
-            if (a) { a.name = cleanName; found = true; }
+          const a = parsedContent.payload.documents.find((x: any) => x.remote_code === att.remote_code);
+          if (a) { a.name = cleanName; found = true; }
         }
         if (!found && parsedContent.attachments) {
-            const a = parsedContent.attachments.find((x: any) => x.remote_code === att.remote_code);
-            if (a) { a.name = cleanName; found = true; }
+          const a = parsedContent.attachments.find((x: any) => x.remote_code === att.remote_code);
+          if (a) { a.name = cleanName; found = true; }
         }
-        
+
         if (found) {
-            msg.content = JSON.stringify(parsedContent);
-            // Emulamos UPDATE con delete/insert local
-            await this.securityService.deleteMailboxMessage(msg.id);
-            await this.securityService.createMailboxMessage({
-                ...msg,
-                content: msg.content
-            });
-            att.name = cleanName;
+          msg.content = JSON.stringify(parsedContent);
+          // Emulamos UPDATE con delete/insert local
+          await this.securityService.deleteMailboxMessage(msg.id);
+          await this.securityService.createMailboxMessage({
+            ...msg,
+            content: msg.content
+          });
+          att.name = cleanName;
         }
       }
 
@@ -2047,7 +2040,7 @@ export class SecurityComponent implements OnInit, OnChanges {
       // 0. Limpiar nombre de .zst para visor y metadatos
       let cleanName = (att.name || 'documento').replace(/\.zst$|\.gz$|\.zip$/i, '');
       let rawExt = (att.extension || att.type || '').toUpperCase();
-      
+
       if (rawExt === 'ZST' || rawExt === '.ZST') {
         rawExt = cleanName.split('.').pop()?.toUpperCase() || 'FILE';
       }
@@ -2068,194 +2061,194 @@ export class SecurityComponent implements OnInit, OnChanges {
         }
       }
 
-    // NORMALIZACIÓN DE RUTA: Si la ruta contiene sandra_vault, asegurar que coincida con el usuario actual
-    if (path && path.includes('sandra_vault')) {
-      try {
-        const parts = path.split(/[/\\]/);
-        const vaultIdx = parts.indexOf('sandra_vault');
-        if (vaultIdx !== -1 && vaultIdx + 1 < parts.length) {
-          let fileName = parts[vaultIdx + 1];
-          
-          // Si tenemos remote_code, NO SOBRESCRIBIR si somos el remitente que adjuntó el original
-          const isSender = this.selectedMessage && this.selectedMessage.author && this.authorProfile.usuario.toLowerCase() === this.selectedMessage.author.split('@')[0].toLowerCase();
-          
-          if (att.remote_code && !isSender) {
-             const vaultExt = fileName.split('.').pop() || '';
-             // Limpiar .zst del código remoto para coincidir con el guardado en Rust
-             const cleanRC = att.remote_code.replace(/\.zst/gi, '');
-             const rcBase = cleanRC.split('.')[0];
-             fileName = vaultExt && vaultExt.toLowerCase() !== 'zst' ? `${rcBase}.${vaultExt}` : rcBase;
-          }
-
-          const currentDataDir = await appDataDir();
-          
-          // Intentar normalizar la ruta base
-          const normalizedPath = await join(currentDataDir, 'sandra_vault', fileName);
-          
-          // Verificación extra: si el archivo físico tiene extensión pero la ruta no, o viceversa, corregir
-          if (path !== normalizedPath) {
-            console.log(`Normalizando ruta de bóveda: ${path} -> ${normalizedPath}`);
-            path = normalizedPath;
-          }
-        }
-      } catch (pathErr) {
-        console.warn("Error normalizando ruta de bóveda:", pathErr);
-      }
-    }
-
-    const isImage = ['PNG', 'JPG', 'JPEG', 'GIF'].includes(ext);
-    const isPDF = ext === 'PDF';
-    const isSSE = ext === 'SSE';
-    let mimeType = '';
-    if (isPDF || isSSE) mimeType = 'application/pdf';
-    else if (ext === 'PNG') mimeType = 'image/png';
-    else if (['JPG', 'JPEG'].includes(ext)) mimeType = 'image/jpeg';
-    else if (ext === 'GIF') mimeType = 'image/gif';
-    else if (ext === 'CSV') mimeType = 'text/csv';
-    else if (ext === 'TXT') mimeType = 'text/plain';
-
-    let content: any = null;
-    let csvHeaders: string[] = [];
-    let csvRows: string[][] = [];
-    let txtContent: string | undefined = undefined;
-    let txtLines: string[] | undefined = undefined;
-    let txtTotalLines: number | undefined = undefined;
-    let txtIsTruncated = false;
-
-    // Use Blob strategy for any file that is local/vault to avoid protocol issues (like unsupported URL error)
-    const isLocalOrVault = att.source === 'LOCAL' || att.source === 'VAULT' ||
-      (att.transfer_info && (att.transfer_info.source === 'LOCAL' || att.transfer_info.source === 'VAULT')) ||
-      (path && (path.includes('sandra_vault') || path.includes('AppData'))) ||
-      this.isAttachmentDownloaded(att);
-
-    if (att.status === 'PENDING' || att.status === 'UPLOADING' || isLocalOrVault) {
-      try {
-        let blob: Blob;
+      // NORMALIZACIÓN DE RUTA: Si la ruta contiene sandra_vault, asegurar que coincida con el usuario actual
+      if (path && path.includes('sandra_vault')) {
         try {
-          // Intentar usar comando Rust para saltar restricciones de scope de JS (forbidden path)
-          const base64 = await invoke<string>('load_sse_document', { filePath: path });
-          const binaryString = atob(base64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-          blob = new Blob([bytes], { type: mimeType });
-          console.log("Archivo leído exitosamente vía Rust Command.");
-        } catch (err) {
-          console.warn("Fallo load_sse_document, reintentando con readFile estándar:", err);
-          const bytes = await readFile(path);
-          blob = new Blob([bytes], { type: mimeType });
-        }
-        content = this.sanitizer.bypassSecurityTrustResourceUrl(URL.createObjectURL(blob));
+          const parts = path.split(/[/\\]/);
+          const vaultIdx = parts.indexOf('sandra_vault');
+          if (vaultIdx !== -1 && vaultIdx + 1 < parts.length) {
+            let fileName = parts[vaultIdx + 1];
 
-        // Procesamiento extra para CSV y TXT (Para integrarse con csv-viewer y file-viewer premium)
-        if (ext === 'CSV') {
-          try {
-            const { header, rows } = await this.fileService.parseCSV(blob);
-            csvHeaders = header;
-            csvRows = rows;
-          } catch (csvErr) { console.error("Error parsing CSV:", csvErr); }
-        } else if (ext === 'TXT') {
-          try {
-            const fullText = await blob.text();
-            txtLines = fullText.split(/\r?\n/);
-            txtTotalLines = txtLines.length;
-            if (txtTotalLines > 1000) {
-              txtIsTruncated = true;
-              txtContent = txtLines.slice(0, 1000).join("\n");
-            } else {
-              txtContent = fullText;
+            // Si tenemos remote_code, NO SOBRESCRIBIR si somos el remitente que adjuntó el original
+            const isSender = this.selectedMessage && this.selectedMessage.author && this.authorProfile.usuario.toLowerCase() === this.selectedMessage.author.split('@')[0].toLowerCase();
+
+            if (att.remote_code && !isSender) {
+              const vaultExt = fileName.split('.').pop() || '';
+              // Limpiar .zst del código remoto para coincidir con el guardado en Rust
+              const cleanRC = att.remote_code.replace(/\.zst/gi, '');
+              const rcBase = cleanRC.split('.')[0];
+              fileName = vaultExt && vaultExt.toLowerCase() !== 'zst' ? `${rcBase}.${vaultExt}` : rcBase;
             }
-          } catch (txtErr) { console.error("Error reading TXT:", txtErr); }
-        } else if (ext === 'CSV') {
-          // También preparar txtContent como fallback para CSV
-          try {
-            txtContent = await blob.text();
-          } catch (csvTxtErr) { console.error("Error reading CSV as text:", csvTxtErr); }
+
+            const currentDataDir = await appDataDir();
+
+            // Intentar normalizar la ruta base
+            const normalizedPath = await join(currentDataDir, 'sandra_vault', fileName);
+
+            // Verificación extra: si el archivo físico tiene extensión pero la ruta no, o viceversa, corregir
+            if (path !== normalizedPath) {
+              console.log(`Normalizando ruta de bóveda: ${path} -> ${normalizedPath}`);
+              path = normalizedPath;
+            }
+          }
+        } catch (pathErr) {
+          console.warn("Error normalizando ruta de bóveda:", pathErr);
         }
-      } catch (e) {
-        console.error("Error reading file for preview via Blob strategy", e);
-        // Fallback to convertFileSrc
+      }
+
+      const isImage = ['PNG', 'JPG', 'JPEG', 'GIF'].includes(ext);
+      const isPDF = ext === 'PDF';
+      const isSSE = ext === 'SSE';
+      let mimeType = '';
+      if (isPDF || isSSE) mimeType = 'application/pdf';
+      else if (ext === 'PNG') mimeType = 'image/png';
+      else if (['JPG', 'JPEG'].includes(ext)) mimeType = 'image/jpeg';
+      else if (ext === 'GIF') mimeType = 'image/gif';
+      else if (ext === 'CSV') mimeType = 'text/csv';
+      else if (ext === 'TXT') mimeType = 'text/plain';
+
+      let content: any = null;
+      let csvHeaders: string[] = [];
+      let csvRows: string[][] = [];
+      let txtContent: string | undefined = undefined;
+      let txtLines: string[] | undefined = undefined;
+      let txtTotalLines: number | undefined = undefined;
+      let txtIsTruncated = false;
+
+      // Use Blob strategy for any file that is local/vault to avoid protocol issues (like unsupported URL error)
+      const isLocalOrVault = att.source === 'LOCAL' || att.source === 'VAULT' ||
+        (att.transfer_info && (att.transfer_info.source === 'LOCAL' || att.transfer_info.source === 'VAULT')) ||
+        (path && (path.includes('sandra_vault') || path.includes('AppData'))) ||
+        this.isAttachmentDownloaded(att);
+
+      if (att.status === 'PENDING' || att.status === 'UPLOADING' || isLocalOrVault) {
+        try {
+          let blob: Blob;
+          try {
+            // Intentar usar comando Rust para saltar restricciones de scope de JS (forbidden path)
+            const base64 = await invoke<string>('load_sse_document', { filePath: path });
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            blob = new Blob([bytes], { type: mimeType });
+            console.log("Archivo leído exitosamente vía Rust Command.");
+          } catch (err) {
+            console.warn("Fallo load_sse_document, reintentando con readFile estándar:", err);
+            const bytes = await readFile(path);
+            blob = new Blob([bytes], { type: mimeType });
+          }
+          content = this.sanitizer.bypassSecurityTrustResourceUrl(URL.createObjectURL(blob));
+
+          // Procesamiento extra para CSV y TXT (Para integrarse con csv-viewer y file-viewer premium)
+          if (ext === 'CSV') {
+            try {
+              const { header, rows } = await this.fileService.parseCSV(blob);
+              csvHeaders = header;
+              csvRows = rows;
+            } catch (csvErr) { console.error("Error parsing CSV:", csvErr); }
+          } else if (ext === 'TXT') {
+            try {
+              const fullText = await blob.text();
+              txtLines = fullText.split(/\r?\n/);
+              txtTotalLines = txtLines.length;
+              if (txtTotalLines > 1000) {
+                txtIsTruncated = true;
+                txtContent = txtLines.slice(0, 1000).join("\n");
+              } else {
+                txtContent = fullText;
+              }
+            } catch (txtErr) { console.error("Error reading TXT:", txtErr); }
+          } else if (ext === 'CSV') {
+            // También preparar txtContent como fallback para CSV
+            try {
+              txtContent = await blob.text();
+            } catch (csvTxtErr) { console.error("Error reading CSV as text:", csvTxtErr); }
+          }
+        } catch (e) {
+          console.error("Error reading file for preview via Blob strategy", e);
+          // Fallback to convertFileSrc
+          content = this.sanitizer.bypassSecurityTrustResourceUrl(convertFileSrc(path));
+        }
+      } else {
+        // For remote or other files
         content = this.sanitizer.bypassSecurityTrustResourceUrl(convertFileSrc(path));
       }
-    } else {
-      // For remote or other files
-      content = this.sanitizer.bypassSecurityTrustResourceUrl(convertFileSrc(path));
-    }
 
-    if (path) {
-      this.verifyAttachmentCertification(path);
-    }
+      if (path) {
+        this.verifyAttachmentCertification(path);
+      }
 
-    if (isSSE || isPDF) {
-      this.appState.addTab({
-        id: `doc-${att.id}-${cleanName}`,
-        name: cleanName,
-        icon: isSSE ? 'fas fa-shield-halved' : 'fas fa-file-pdf',
-        type: 'pdf-viewer',
-        isProtected: isSSE,
-        content: content,
-        mimeType: mimeType,
-        filePath: path,
-        showToolbar: true
-      });
-    } else if (ext === 'CSV') {
-      if (csvHeaders.length > 0) {
+      if (isSSE || isPDF) {
         this.appState.addTab({
-          id: `csv-${att.id}-${cleanName}`,
+          id: `doc-${att.id}-${cleanName}`,
           name: cleanName,
-          icon: 'fas fa-table-list',
-          type: 'csv-viewer',
+          icon: isSSE ? 'fas fa-shield-halved' : 'fas fa-file-pdf',
+          type: 'pdf-viewer',
+          isProtected: isSSE,
           content: content,
-          mimeType: 'text/csv',
-          isProtected: false,
+          mimeType: mimeType,
           filePath: path,
-          csvHeader: csvHeaders,
-          csvRows: csvRows,
           showToolbar: true
         });
-      } else {
-        // Fallback a visor de texto si el parsing de CSV falló
+      } else if (ext === 'CSV') {
+        if (csvHeaders.length > 0) {
+          this.appState.addTab({
+            id: `csv-${att.id}-${cleanName}`,
+            name: cleanName,
+            icon: 'fas fa-table-list',
+            type: 'csv-viewer',
+            content: content,
+            mimeType: 'text/csv',
+            isProtected: false,
+            filePath: path,
+            csvHeader: csvHeaders,
+            csvRows: csvRows,
+            showToolbar: true
+          });
+        } else {
+          // Fallback a visor de texto si el parsing de CSV falló
+          this.appState.addTab({
+            id: `file-${att.id}-${cleanName}`,
+            name: cleanName,
+            icon: 'fas fa-file-csv',
+            type: 'file-viewer',
+            content: content,
+            mimeType: 'text/plain',
+            isProtected: false,
+            filePath: path,
+            txtContent: "No se pudieron detectar encabezados válidos en el CSV. Mostrando como texto.\n\n" + (txtContent || '')
+          });
+        }
+      } else if (ext === 'TXT' || isImage) {
         this.appState.addTab({
           id: `file-${att.id}-${cleanName}`,
           name: cleanName,
-          icon: 'fas fa-file-csv',
+          icon: isImage ? 'fas fa-image' : 'fas fa-file-alt',
           type: 'file-viewer',
           content: content,
-          mimeType: 'text/plain',
+          mimeType: mimeType,
           isProtected: false,
           filePath: path,
-          txtContent: "No se pudieron detectar encabezados válidos en el CSV. Mostrando como texto.\n\n" + (txtContent || '')
+          txtContent,
+          txtLines,
+          txtTotalLines,
+          txtIsTruncated,
+          showToolbar: true
+        });
+      } else {
+        // General Fallback
+        this.appState.addTab({
+          id: `file-${att.id}-${cleanName}`,
+          name: cleanName,
+          icon: 'fas fa-file',
+          type: 'file-viewer',
+          content: content,
+          mimeType: mimeType,
+          isProtected: false,
+          filePath: path,
+          showToolbar: true
         });
       }
-    } else if (ext === 'TXT' || isImage) {
-      this.appState.addTab({
-        id: `file-${att.id}-${cleanName}`,
-        name: cleanName,
-        icon: isImage ? 'fas fa-image' : 'fas fa-file-alt',
-        type: 'file-viewer',
-        content: content,
-        mimeType: mimeType,
-        isProtected: false,
-        filePath: path,
-        txtContent,
-        txtLines,
-        txtTotalLines,
-        txtIsTruncated,
-        showToolbar: true
-      });
-    } else {
-      // General Fallback
-      this.appState.addTab({
-        id: `file-${att.id}-${cleanName}`,
-        name: cleanName,
-        icon: 'fas fa-file',
-        type: 'file-viewer',
-        content: content,
-        mimeType: mimeType,
-        isProtected: false,
-        filePath: path,
-        showToolbar: true
-      });
-    }
     } finally {
       this.appState.setViewerLoading(false);
     }
@@ -2560,7 +2553,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     try {
       const content = JSON.parse(msg.content);
       if (content.tipo_canal) {
-         return content.tipo_canal.toLowerCase() as any;
+        return content.tipo_canal.toLowerCase() as any;
       }
       if (content.workflow) {
         return content.workflow.tipo === 'Seguimiento' ? 'seguimiento' : 'workflow';
@@ -2580,12 +2573,12 @@ export class SecurityComponent implements OnInit, OnChanges {
   }
 
   forwardToSupport() {
-      if (!this.selectedMessage) return;
-      
-      this.forwardMessage(this.selectedMessage);
-      // Pre-fill the recipient with Support destination
-      this.newMessage.selectedRecipients = [{ email: 'xterm@app.consola', displayValue: 'xterm@app.consola' }];
-      this.snapService.show('Reenviando notificación a Soporte Técnico.', undefined, 'info');
+    if (!this.selectedMessage) return;
+
+    this.forwardMessage(this.selectedMessage);
+    // Pre-fill the recipient with Support destination
+    this.newMessage.selectedRecipients = [{ email: 'xterm@app.consola', displayValue: 'xterm@app.consola' }];
+    this.snapService.show('Reenviando notificación a Soporte Técnico.', undefined, 'info');
   }
 
   isForumClosed(): boolean {

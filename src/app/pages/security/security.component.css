@@ -13,6 +13,10 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  max-width: 100vw;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .system-web-header {
@@ -71,6 +75,10 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .security-header {
@@ -248,7 +256,14 @@ select.input-dark {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  height: calc(100vh - 280px);
+  /* Restringe la altura para evitar desproporción */
   gap: 1.2rem;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  /* No permitir que el contenido ensanche este bloque */
 }
 
 .full-width {
@@ -273,6 +288,9 @@ select.input-dark {
   overflow: hidden;
   background: white;
   padding: 0;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
 }
 
 /* Back Button Toolkit */
@@ -316,6 +334,8 @@ select.input-dark {
   align-items: center;
   gap: 1.5rem;
   background: #ffffff;
+  flex-wrap: wrap;
+  /* Evita desborde por botones */
 }
 
 .toolbar-search {
@@ -355,6 +375,8 @@ select.input-dark {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 /* Filter Dropdown */
@@ -543,6 +565,7 @@ select.input-dark.filter-select {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  /* Crucial para evitar desborde por texto largo */
   gap: 4px;
 }
 
@@ -852,6 +875,10 @@ select.input-dark.filter-select {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 /* Extracted layout artifacts removed */
@@ -1509,6 +1536,16 @@ input:checked+.slider:before {
   background: #2563eb;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.contacts-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .panel-header {
@@ -2305,6 +2342,12 @@ input:checked+.slider {
   flex-direction: column;
   height: 100%;
   background: #ffffff;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
+  /* Mantiene todo contenido */
 }
 
 /* Minimal Header V4 */
@@ -2367,6 +2410,9 @@ input:checked+.slider {
   gap: 1.2rem;
   background: #ffffff;
   border-bottom: 1px solid #f8fafc;
+  flex-shrink: 0;
+  max-height: 250px;
+  overflow-y: auto;
 }
 
 .form-group.icon-input-group-v4 {
@@ -2721,7 +2767,9 @@ input:checked+.slider {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 6px;
   /* Ultra tight gap */
   min-height: 44px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
@@ -2840,6 +2888,42 @@ input:checked+.slider {
 /* Allow the select within the fluid combo to use the space */
 .combo-wrapper-v24 select {
   flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  color: #334155;
+  cursor: pointer;
+}
+
+.alignment-combo,
+.list-combo,
+.size-combo {
+  min-width: 36px !important;
+  max-width: 36px !important;
+  padding: 0 !important;
+  justify-content: center;
+  position: relative;
+}
+
+.alignment-combo select,
+.list-combo select,
+.size-combo select {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.alignment-combo i,
+.list-combo i,
+.size-combo i {
+  position: relative;
+  z-index: 1;
 }
 
 /* Responsive Hiding: Esconde alinear si el area es crítica */
@@ -2885,9 +2969,31 @@ input:checked+.slider {
 .compose-body-editor {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  /* Asegura que el scroll horizontal sea interno al textarea */
   padding: 0.5rem 1.2rem;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  /* Permite que los hijos se encojan si es necesario */
+}
+
+/* Editor Stats V24 */
+.editor-stats-v24 {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-right: 1.5rem;
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.editor-stats-v24 .text-danger {
+  color: #ef4444 !important;
+  font-weight: 800;
 }
 
 /* Footer & Send Button Soft Pastel Green */
@@ -2898,6 +3004,8 @@ input:checked+.slider {
   /* Soft subtle background to match toolbar */
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
+  /* Evita que el footer cambie de tamaño al crecer el contenido */
 }
 
 .footer-row-flat {
@@ -4699,17 +4807,32 @@ input:checked+.slider {
 /* Glassmorphism focus inside editor content */
 .rich-textarea {
   min-height: 400px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   outline: none;
   line-height: 1.5;
-  padding: 1.2rem;
-  /* Reduced internal margins */
+  padding: 1.5rem;
   color: #1e293b;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   overflow-y: auto;
+  overflow-x: auto;
+  /* Scroll horizontal interno para cadenas largas */
+  word-wrap: normal;
+  overflow-wrap: normal;
+  white-space: pre-wrap;
+  /* Mantiene formato pero permite scroll si el texto es indivisible */
   background: white;
-  /* Clean paper feel */
   border: 1px solid #f1f5f9;
   border-radius: 8px;
+  min-width: 0;
+}
+
+.rich-textarea * {
+  max-width: 100% !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  box-sizing: border-box !important;
 }
 
 .rich-textarea:empty:before {
@@ -4854,6 +4977,9 @@ input:checked+.slider {
   justify-content: space-between;
   padding: 0 0 0.5rem 0;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 1rem;
+  max-width: 100%;
 }
 
 .contacts-brand {
@@ -7293,4 +7419,26 @@ span.req {
   background: #6ee7b7;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(110, 231, 183, 0.4);
+}
+
+/* --- Responsive Sidebar Toolbar --- */
+@media (max-width: 1300px) {
+  .sidebar-toolbar .btn-label {
+    display: none;
+  }
+
+  .sidebar-toolbar .toolbar-search {
+    max-width: none;
+    /* Permite que el buscador crezca al máximo disponible */
+  }
+
+  .direction-toggle-group .btn-toggle {
+    padding: 8px 12px;
+    justify-content: center;
+  }
+
+  .toolbar-actions {
+    gap: 8px;
+    /* Reducir espacio entre botones de acción */
+  }
 }

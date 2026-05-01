@@ -37,16 +37,16 @@
                     <div class="direction-toggle-group">
                         <button class="btn-toggle" [class.active]="mailboxDirection === 'inbox'"
                             (click)="mailboxDirection = 'inbox'; resetPagination()" title="Bandeja de Entrada">
-                            <i class="fas fa-inbox"></i> Recibidos
+                            <i class="fas fa-inbox"></i> <span class="btn-label">Recibidos</span>
                         </button>
                         <button class="btn-toggle" [class.active]="mailboxDirection === 'outbox'"
                             (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
-                            <i class="fas fa-paper-plane"></i> Enviados
+                            <i class="fas fa-paper-plane"></i> <span class="btn-label">Enviados</span>
                         </button>
                         <button class="btn-toggle" [class.active]="mailboxDirection === 'notifications'"
                             (click)="mailboxDirection = 'notifications'; resetPagination()"
                             title="Notificaciones de Sistema">
-                            <i class="fas fa-bell"></i> Notificaciones
+                            <i class="fas fa-bell"></i> <span class="btn-label">Notificaciones</span>
                         </button>
                     </div>
                     <div class="vertical-divider"></div>
@@ -316,10 +316,11 @@
                         <div class="combo-wrapper-v24 size-combo">
                             <i class="fas fa-text-height"></i>
                             <select class="modern-select-v24"
-                                (change)="formatDoc('fontSize', $any($event.target).value)">
+                                (change)="formatDoc('fontSize', $any($event.target).value); $any($event.target).value = ''">
+                                <option value="" disabled selected></option>
                                 <option value="1">Muy Pequeño</option>
                                 <option value="2">Pequeño</option>
-                                <option value="3" selected>Normal</option>
+                                <option value="3" selected>Norm.</option>
                                 <option value="4">Grande</option>
                                 <option value="5">Extra Grande</option>
                                 <option value="6">Título 2</option>
@@ -337,23 +338,38 @@
                                 class="fas fa-underline"></i></button>
                     </div>
                     <div class="toolbar-divider hide-on-small"></div>
-                    <div class="toolbar-group alignment-group">
-                        <button class="tool-btn" (click)="formatDoc('justifyLeft')" title="Alinear Izquierda"><i
-                                class="fas fa-align-left"></i></button>
-                        <button class="tool-btn" (click)="formatDoc('justifyCenter')" title="Centrar"><i
-                                class="fas fa-align-center"></i></button>
-                        <button class="tool-btn" (click)="formatDoc('justifyRight')" title="Alinear Derecha"><i
-                                class="fas fa-align-right"></i></button>
-                        <button class="tool-btn" (click)="formatDoc('justifyFull')" title="Justificar"><i
-                                class="fas fa-align-justify"></i></button>
-                    </div>
-                    <div class="toolbar-divider"></div>
+
+                    <!-- COMPACT ALIGNMENT DROPDOWN -->
                     <div class="toolbar-group">
-                        <button class="tool-btn" (click)="formatDoc('insertUnorderedList')" title="Viñetas"><i
-                                class="fas fa-list-ul"></i></button>
-                        <button class="tool-btn" (click)="formatDoc('insertOrderedList')" title="Numeración"><i
-                                class="fas fa-list-ol"></i></button>
+                        <div class="combo-wrapper-v24 alignment-combo">
+                            <i class="fas fa-align-left"></i>
+                            <select class="modern-select-v24"
+                                (change)="formatDoc($any($event.target).value); $any($event.target).value = ''">
+                                <option value="" disabled selected></option>
+                                <option value="justifyLeft">Izquierda</option>
+                                <option value="justifyCenter">Centrar</option>
+                                <option value="justifyRight">Derecha</option>
+                                <option value="justifyFull">Justificar</option>
+                            </select>
+                        </div>
                     </div>
+
+
+
+                    <!-- COMPACT LIST DROPDOWN -->
+                    <div class="toolbar-group">
+                        <div class="combo-wrapper-v24 list-combo">
+                            <i class="fas fa-list-ul"></i>
+                            <select class="modern-select-v24"
+                                (change)="formatDoc($any($event.target).value); $any($event.target).value = ''">
+                                <option value="" disabled selected></option>
+                                <option value="insertUnorderedList">Viñetas</option>
+                                <option value="insertOrderedList">Numeración</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-divider"></div>
 
                     <!-- TEMPLATE SELECTOR -->
                     <div class="toolbar-group fluid-group">
@@ -453,6 +469,14 @@
                         <div class="sending-mini-v17" *ngIf="isSending">
                             <i class="fas fa-circle-notch fa-spin"></i>
                             <span>{{ sendProgress }}%</span>
+                        </div>
+
+                        <!-- CHARACTER COUNTER STRATEGY -->
+                        <div class="editor-stats-v24 fade-in" *ngIf="isComposing">
+                            <span [class.text-danger]="editorCharCount > MAX_EDITOR_CHARS">
+                                <i class="fas fa-quote-right" style="margin-right: 5px; opacity: 0.6;"></i>
+                                {{ editorCharCount | number }} / {{ MAX_EDITOR_CHARS | number }}
+                            </span>
                         </div>
 
                         <!-- Actions -->
@@ -936,35 +960,44 @@
                     </div>
 
                     <!-- RICH CONTENT -->
-                    <div class="csi-content-main" style="flex: 1.2; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                    <div class="csi-content-main"
+                        style="flex: 1.2; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <h4
+                                style="margin: 0; font-size: 1rem; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 {{ contact.nombre || contact.login }}
                             </h4>
-                            <span style="font-size: 0.65rem; color: #2e7d32; font-weight: 700; background: #e8f5e9; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <span
+                                style="font-size: 0.65rem; color: #2e7d32; font-weight: 700; background: #e8f5e9; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
                                 {{ contact.Perfil?.descripcion || contact.perfil_grupo || '---' }}
                             </span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px; opacity: 0.8;">
-                            <span style="font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-envelope" style="font-size: 0.75rem; color: #94a3b8;"></i> {{ contact.correo || '---' }}
+                            <span
+                                style="font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-envelope" style="font-size: 0.75rem; color: #94a3b8;"></i> {{
+                                contact.correo || '---' }}
                             </span>
-                            <span style="font-size: 0.78rem; color: #0284c7; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-layer-group" style="font-size: 0.75rem; opacity: 0.7;"></i> {{ contact.sistema || contact.aplicacion }}
+                            <span
+                                style="font-size: 0.78rem; color: #0284c7; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-layer-group" style="font-size: 0.75rem; opacity: 0.7;"></i> {{
+                                contact.sistema || contact.aplicacion }}
                             </span>
                         </div>
                     </div>
 
                     <!-- CENTERED MAC ADDRESS (TECHNICAL MATTE) -->
                     <div style="flex: 1; display: flex; justify-content: center;">
-                        <div *ngIf="contact.firmadigital?.direccionmac" 
+                        <div *ngIf="contact.firmadigital?.direccionmac"
                             style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 5px 14px; border-radius: 12px; border: 1px solid #edf2f7;">
                             <i class="fas fa-desktop" style="font-size: 0.75rem; color: #2e7d32;"></i>
-                            <span style="font-size: 0.75rem; color: #475569; font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: 0.5px;">
+                            <span
+                                style="font-size: 0.75rem; color: #475569; font-family: 'JetBrains Mono', monospace; font-weight: 500; letter-spacing: 0.5px;">
                                 {{ maskMacAddress(contact.firmadigital.direccionmac) }}
                             </span>
                         </div>
-                        <div *ngIf="!contact.firmadigital?.direccionmac" style="color: #cbd5e1; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; opacity: 0.5;">
+                        <div *ngIf="!contact.firmadigital?.direccionmac"
+                            style="color: #cbd5e1; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; opacity: 0.5;">
                             NO-DEVICES-SYNC
                         </div>
                     </div>
@@ -976,7 +1009,8 @@
                             title="Editar">
                             <i class="fas fa-edit" style="font-size: 0.9rem;"></i>
                         </button>
-                        <button class="btn-action-circle" (click)="confirmDeleteContact(contact); $event.stopPropagation()"
+                        <button class="btn-action-circle"
+                            (click)="confirmDeleteContact(contact); $event.stopPropagation()"
                             style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid #fee2e2; background: #fef2f2; color: #dc2626; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;"
                             title="Eliminar">
                             <i class="fas fa-trash" style="font-size: 0.9rem;"></i>
@@ -1003,15 +1037,18 @@
 
                 <!-- LEFT: TOTAL -->
                 <div style="flex: 1; display: flex; align-items: center;">
-                    <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">
-                        <i class="fas fa-database" style="margin-right: 8px; opacity: 0.5;"></i> {{ filteredContacts.length }} Registros
+                    <span
+                        style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">
+                        <i class="fas fa-database" style="margin-right: 8px; opacity: 0.5;"></i> {{
+                        filteredContacts.length }} Registros
                     </span>
                 </div>
 
                 <!-- CENTER: CONTROLS -->
                 <div style="display: flex; align-items: center; gap: 20px;">
                     <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
-                        Página <b style="color: #1e293b;">{{ contactPage }}</b> <span style="color: #cbd5e1; margin: 0 4px;">/</span> {{ totalContactPages }}
+                        Página <b style="color: #1e293b;">{{ contactPage }}</b> <span
+                            style="color: #cbd5e1; margin: 0 4px;">/</span> {{ totalContactPages }}
                     </span>
                     <div style="display: flex; gap: 6px;">
                         <button class="btn-paginator-mini" [disabled]="contactPage === 1"
