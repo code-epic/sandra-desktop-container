@@ -299,6 +299,7 @@
                 </div>
 
 
+
                 <!-- Rich Text Toolbar -->
                 <div class="rich-editor-toolbar" style="margin-top: -10px;">
                     <div class="toolbar-group fluid-group">
@@ -408,6 +409,14 @@
                     </div>
                 </div>
 
+                <!-- WORKFLOW CONTEXT MINI-CARD (ULTRA-MINIMAL) -->
+                <div class="workflow-mini-card fade-in" *ngIf="replyingToMessage && parsedContent?.workflow">
+                    <div class="mini-card-body" style="padding-left: 10px;">
+                        <div class="mini-snippet" style="-webkit-line-clamp: 2; opacity: 0.8; font-style: italic;">
+                            "{{ getMessageSnippet(replyingToMessage.content) }}"
+                        </div>
+                    </div>
+                </div>
                 <!-- Contenteditable Editor -->
                 <div class="compose-body-editor">
                     <div #editor contenteditable="true" class="rich-textarea" (input)="onEditorInput(editor.innerHTML)"
@@ -497,8 +506,8 @@
             </div>
 
 
-            <!-- Detail View (Wrapped in *ngIf) -->
-            <div *ngIf="selectedMessage" class="msg-detail-view fade-in">
+            <!-- Detail View (Wrapped in *ngIf) - Hidden when composing to avoid separate sections -->
+            <div *ngIf="selectedMessage && !isComposing" class="msg-detail-view fade-in">
 
                 <!-- WORKFLOW / THREAD VIEW -->
                 <div *ngIf="parsedContent?.workflow" class="workflow-thread-view fade-in"

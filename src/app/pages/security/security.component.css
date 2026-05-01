@@ -2412,7 +2412,7 @@ input:checked+.slider {
   border-bottom: 1px solid #f8fafc;
   flex-shrink: 0;
   max-height: 250px;
-  overflow-y: auto;
+  overflow: visible !important; /* Fix: Allow autocomplete to fly over */
 }
 
 .form-group.icon-input-group-v4 {
@@ -2560,7 +2560,7 @@ input:checked+.slider {
   background: white;
   border-radius: 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 9999; /* Max priority */
   margin-top: 10px;
   max-height: 320px;
   overflow-y: auto;
@@ -4196,6 +4196,114 @@ input:checked+.slider {
   text-align: center;
   font-size: 1rem;
   color: #94a3b8;
+}
+
+/* --- Workflow Context Mini-Card V27 --- */
+.workflow-mini-card {
+  margin: 10px 15px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(122, 172, 128, 0.2);
+  border-left: 4px solid #7cac80; /* Pastel Green accent */
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.workflow-mini-card:hover {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(122, 172, 128, 0.4);
+}
+
+.mini-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mini-author-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mini-avatar {
+  width: 32px;
+  height: 32px;
+  background: #f1f8f1;
+  color: #7cac80;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mini-author-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.mini-date {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.mini-status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #eef6ee;
+  color: #5e9c5a;
+  border: 1px solid rgba(94, 156, 90, 0.1);
+}
+
+.mini-card-body {
+  padding-left: 42px;
+}
+
+.mini-subject {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.mini-snippet {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mini-workflow-tag {
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  background: #7cac80;
+  color: white;
+  padding: 2px 12px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(122, 172, 128, 0.2);
 }
 
 .sidebar-nav-item:hover {

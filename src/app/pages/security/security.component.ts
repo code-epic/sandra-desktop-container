@@ -781,6 +781,8 @@ export class SecurityComponent implements OnInit, OnChanges {
             "parametros": miga_id
           };
 
+          console.log(payload);
+
           const response: any = await invoke('api_post_request', {
             ip: this.activeConnection.ip_address,
             port: Number(this.activeConnection.port),
@@ -929,14 +931,10 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     const dateStr = new Date(msg.created_at).toLocaleString();
 
-    this.editorInitialContent = `<br><br>
-        <div class="gmail_quote" style="font-family: Arial, sans-serif; color: #555;">
-            <blockquote style="margin: 0 0 0 0.8ex; border-left: 2px solid #7cac80; padding-left: 1ex;">
-                <div style="color: #888; font-size: 0.9em; margin-bottom: 8px;">
-                    El ${dateStr}, <strong>${msg.author}</strong> escribió:
-                </div>
-                ${oldContent}
-            </blockquote>
+    const guid = this.getMessageGuid(msg.content) || msg.sid || 'N/A';
+    this.editorInitialContent = `<br><br><br>
+        <div style="margin-top: 40px; padding-top: 10px; border-top: 1px dashed #e2e8f0; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">
+            REFERENCIA TÉCNICA (GUID): ${guid}
         </div>`;
 
     this.editorContent = this.editorInitialContent;
@@ -1513,16 +1511,39 @@ export class SecurityComponent implements OnInit, OnChanges {
 
   // --- WORKFLOW / THREADING LOGIC --- //
 
+
   async upsertCorreoWorkflow(correoActualizado: any) {
     if (!this.activeConnection?.hash) throw new Error("No active connection hash");
 
-    let hilosString = JSON.stringify(correoActualizado.hilos);
+    const hilos = correoActualizado.hilos || [];
+    const lastHilo = hilos.length > 0 ? hilos[hilos.length - 1] : {};
+
+    // MAPEO A VARIABLES (Patrón Hilos)
+    const miga_id = lastHilo.miga_id || '';
+    const id_mensaje = lastHilo.id_mensaje || '';
+    const parent_guid = lastHilo.parent_guid || '';
+    const remitente = lastHilo.remitente || '';
+    const cuerpo = lastHilo.cuerpo || '';
+    const tipo = lastHilo.tipo_respuesta || 'comentario';
+    const secuencia = lastHilo.secuencia || 0;
+
+    const limpiarCuerpo = (str: string) => {
+      return str
+        .replace(/\n/g, "\\n")  // Escapa saltos de línea reales
+        .replace(/\r/g, "\\r")  // Escapa retornos de carro
+        .replace(/\t/g, "\\t"); // Escapa tabulaciones
+    };
+
+
+    const cuerpoEscapado = limpiarCuerpo(lastHilo.cuerpo || '');
     let id_referencia_docString = correoActualizado.workflow.id_referencia_doc;
+    let fechaactual = new Date().toISOString();
 
     const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+    //array##${miga_id}
     const payload = {
       "funcion": 'SDC_UMailThread',
-      "parametros": `${id_referencia_docString}, ${hilosString}`
+      "parametros": `0array##${id_referencia_docString}array##${id_mensaje}array##${parent_guid}array##${remitente}array##${cuerpoEscapado}array##${tipo}array##${secuencia}array##${fechaactual}`
     };
 
     console.log(payload);
