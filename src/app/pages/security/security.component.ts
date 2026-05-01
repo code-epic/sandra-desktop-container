@@ -82,6 +82,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   isComposing: boolean = false;
   searchText: string = '';
   statusFilter: string = 'all';
+  isBaseNodeExpanded: boolean = false;
   selectedIds: Set<number> = new Set<number>();
 
   // Modales y Estados de Acción
@@ -1402,13 +1403,21 @@ export class SecurityComponent implements OnInit, OnChanges {
       const miga_id = this.parsedContent.workflow.id_referencia_doc || dynamicMessageId;
       const secuencia = (this.parsedContent.hilos?.length || 0) + 1;
 
+      const statusText = 'EN PROCESO';
+      this.parsedContent.workflow.estado = statusText;
+      
+      const cuerpoConTrazabilidad = `<div style="padding: 15px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 10px;">
+                   <p style="margin: 0; font-weight: 700; color: #1e293b;">Respuesta Registrada</p>
+                   <p style="margin: 5px 0 0; color: #64748b;">El flujo ha avanzado al estado: <strong style="color: #d97706;">${statusText}</strong>.</p>
+                 </div>${this.editorContent}`;
+
       const nuevoHilo = {
         id_mensaje: dynamicMessageId,
         parent_guid: parent_guid,
         miga_id: miga_id,
         secuencia: secuencia,
         remitente: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
-        cuerpo: this.editorContent,
+        cuerpo: cuerpoConTrazabilidad,
         timestamp: new Date().toISOString(),
         tipo_respuesta: 'comentario' as const
       };
@@ -1425,9 +1434,38 @@ export class SecurityComponent implements OnInit, OnChanges {
         const recipients = recipientsRaw.map(r => typeof r === 'string' ? r : (r as any).email);
         this.notifyRecipientsOfSync(recipients, miga_id);
 
+        // Actualizar el estado maestro en comunicaciones_internas del Backend
+        if (this.activeConnection?.hash) {
+          const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
+          const payload = {
+            "funcion": 'SDC_UUsers',
+            "valores": JSON.stringify({
+              "coleccion": "comunicaciones_internas",
+              "operacion": "UPDATE",
+              "filtro": { "id": this.parsedContent.id },
+              "datos": {
+                "workflow.estado": "EN PROCESO",
+                "ultima_modificacion": new Date().toISOString()
+              }
+            })
+          };
+
+          await invoke('api_post_request', {
+            ip: this.activeConnection.ip_address,
+            port: Number(this.activeConnection.port),
+            endpoint: endpoint,
+            payload: payload,
+            hash: this.activeConnection.hash,
+            tempAuthToken: this.activeConnection.jwt
+          });
+        }
+
         // Guardar Localmente para Offline
         const updatedContentString = JSON.stringify(this.parsedContent);
         targetMsg.content = updatedContentString;
+        targetMsg.status = 'EN PROCESO';
+
+        await this.securityService.updateMailboxStatus(targetMsg.id, targetMsg.status, `Workflow Respuesta`);
 
         // Emulamos un update eliminando y recreando con el nuevo contenido
         await this.securityService.deleteMailboxMessage(targetMsg.id);

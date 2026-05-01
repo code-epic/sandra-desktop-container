@@ -594,16 +594,23 @@
                     <div class="forum-timeline-container" [class.has-replies]="parsedContent?.hilos?.length > 0">
                         <!-- Base Message (First node) -->
                         <div class="forum-card node-base" 
-                             [class.minimal-node]="parsedContent?.hilos?.length > 0"
+                             [class.minimal-node]="parsedContent?.hilos?.length > 0 && !isBaseNodeExpanded"
                              [class.in-revision]="selectedMessage?.status === 'EN PROCESO' || selectedMessage?.status === 'PENDIENTE' || selectedMessage?.status === 'REVISION'">
-                            <div class="forum-card-header">
+                            <div class="forum-card-header" 
+                                 [style.cursor]="parsedContent?.hilos?.length > 0 ? 'pointer' : 'default'" 
+                                 (click)="parsedContent?.hilos?.length > 0 ? (isBaseNodeExpanded = !isBaseNodeExpanded) : null" 
+                                 [title]="parsedContent?.hilos?.length > 0 ? (isBaseNodeExpanded ? 'Ocultar Documento Original' : 'Ver Documento Original Completo') : ''">
                                 <div class="f-avatar"><i class="fas fa-flag"></i></div>
                                 <div class="f-meta">
                                     <span class="f-author">{{ selectedMessage.author }}</span>
                                     <span class="f-time">{{ selectedMessage.created_at | date:'medium' }}</span>
                                 </div>
+                                <div class="expand-indicator" *ngIf="parsedContent?.hilos?.length > 0" style="margin-left: auto; color: #94a3b8;">
+                                    <i class="fas" [class.fa-chevron-down]="!isBaseNodeExpanded" [class.fa-chevron-up]="isBaseNodeExpanded"></i>
+                                </div>
                             </div>
-                            <div class="forum-card-body">
+                            
+                            <div class="forum-card-body" *ngIf="isBaseNodeExpanded || !(parsedContent?.hilos?.length > 0)">
                                 <div class="f-content"
                                     [innerHTML]="getSafeHtml(parsedContent?.message_envelope?.body || parsedContent?.payload?.body_content || selectedMessage.content)">
                                 </div>
