@@ -72,6 +72,22 @@ impl<'a> MailboxRepository<'a> {
         Ok(())
     }
 
+    pub fn update_message_full(&self, id: i64, status: &str, content: &str, tracking_info: Option<String>) -> Result<()> {
+        self.conn.execute(
+            "UPDATE security_mailbox SET status = ?1, content = ?2, tracking_info = ?3, updated_at = CURRENT_TIMESTAMP WHERE id = ?4",
+            (status, content, tracking_info, id),
+        )?;
+        Ok(())
+    }
+
+    pub fn update_message_full_by_sid(&self, sid: &str, status: &str, content: &str, tracking_info: Option<String>) -> Result<()> {
+        self.conn.execute(
+            "UPDATE security_mailbox SET status = ?1, content = ?2, tracking_info = ?3, updated_at = CURRENT_TIMESTAMP WHERE sid = ?4",
+            (status, content, tracking_info, sid),
+        )?;
+        Ok(())
+    }
+
     pub fn update_status(&self, id: i64, status: &str, tracking_info: Option<String>) -> Result<()> {
         self.conn.execute(
             "UPDATE security_mailbox SET status = ?1, tracking_info = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3",

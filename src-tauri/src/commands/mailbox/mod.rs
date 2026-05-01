@@ -300,16 +300,19 @@ pub fn create_mailbox_message(
     responsible: Option<String>,
     direction: Option<String>,
     user_login: Option<String>,
+    status: Option<String>,
 ) -> Result<(), String> {
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
     let unwrapped_dir = direction.unwrap_or_else(|| "outbox".to_string());
 
+    let unwrapped_status = status.unwrap_or_else(|| "Pending".to_string());
+
     repo.insert_message(
         sid,
         content,
         author,
-        "Pending",
+        &unwrapped_status,
         &unwrapped_dir,
         responsible,
         None,
@@ -328,6 +331,34 @@ pub fn update_mailbox_status(
     let conn = state.0.lock().map_err(|e| e.to_string())?;
     let repo = MailboxRepository::new(&conn);
     repo.update_status(id, &status, tracking_info)
+        .map_err(|e: rusqlite::Error| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_mailbox_full(
+    state: State<DbState>,
+    id: i64,
+    status: String,
+    content: String,
+    tracking_info: Option<String>,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let repo = MailboxRepository::new(&conn);
+    repo.update_message_full(id, &status, &content, tracking_info)
+        .map_err(|e: rusqlite::Error| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_mailbox_full_by_sid(
+    state: State<DbState>,
+    sid: String,
+    status: String,
+    content: String,
+    tracking_info: Option<String>,
+) -> Result<(), String> {
+    let conn = state.0.lock().map_err(|e| e.to_string())?;
+    let repo = MailboxRepository::new(&conn);
+    repo.update_message_full_by_sid(&sid, &status, &content, tracking_info)
         .map_err(|e: rusqlite::Error| e.to_string())
 }
 

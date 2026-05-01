@@ -262,8 +262,8 @@ select.input-dark {
   max-width: 100%;
   min-width: 0;
   width: 100%;
-  overflow: hidden;
-  /* No permitir que el contenido ensanche este bloque */
+  overflow: hidden !important;
+  overflow-x: hidden !important;
 }
 
 .full-width {
@@ -436,10 +436,120 @@ select.input-dark.filter-select {
   background: #F8FAFC;
 }
 
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.revision-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: #fef3c7; /* Amber Pastel */
+  border: 1px solid #fcd34d;
+  border-radius: 20px;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.revision-badge.clickable {
+  cursor: pointer;
+}
+
+.revision-badge.clickable:hover {
+  background: #fef08a; /* Slightly darker amber on hover */
+  transform: translateY(-1px);
+}
+
+.revision-badge i {
+  font-size: 10px;
+  color: #b45309;
+}
+
+/* Indicadores de Flujo en Lista */
+.revision-tag-list {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  border: 1px solid #fcd34d;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+.workflow-icon.active-workflow {
+  color: #10b981;
+  animation: pulse-soft 2s infinite;
+}
+
+@keyframes pulse-soft {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Modo minimalista para el nodo base del hilo */
+.forum-card.node-base.minimal-node {
+  background: #f8fafc;
+  border-left: 3px solid #cbd5e1;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+  transform: scale(0.98);
+  transform-origin: top;
+}
+
+.forum-card.node-base.minimal-node:hover {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.forum-card.node-base.minimal-node .forum-card-header {
+  margin-bottom: 4px;
+  transform: scale(0.9);
+  transform-origin: left;
+}
+
+.forum-card.node-base.minimal-node .f-content {
+  font-size: 0.85rem;
+  max-height: 80px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.forum-card.node-base.minimal-node .attachments-footer-minimal-v24 {
+  transform: scale(0.85);
+  transform-origin: left;
+}
+
 .toolbar-right {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+}
+
+/* Identificador de Revisión en Fila (Sandra Style) */
+.gmail-row.in-revision {
+  background: linear-gradient(90deg, rgba(254, 243, 199, 0.4) 0%, rgba(255, 255, 255, 0) 100%) !important;
+  border-left: 3px solid #fcd34d !important;
+}
+
+.gmail-row.in-revision:hover {
+  background: linear-gradient(90deg, rgba(254, 243, 199, 0.6) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
 }
 
 .totalizer-text {
@@ -507,15 +617,15 @@ select.input-dark.filter-select {
 .gmail-row {
   display: flex;
   align-items: flex-start;
-  /* Better for two lines */
   padding: 12px 1rem;
   border-bottom: 1px solid #F1F5F9;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: all 0.2s ease;
   gap: 15px;
   min-width: 0;
-  min-height: 56px;
-  /* give some room for 2 lines */
+  max-width: 100%; /* Ensure row never exceeds container */
+  overflow: hidden;
+  position: relative;
 }
 
 .gmail-row:hover {
@@ -534,11 +644,11 @@ select.input-dark.filter-select {
 .gmail-col-left {
   display: flex;
   align-items: center;
-  width: 60px;
-  /* Fixed width for checkbox space */
+  width: 90px; /* Increased from 60 to avoid overflow with trash icon */
   flex-shrink: 0;
   gap: 12px;
   margin-top: 2px;
+  position: relative;
 }
 
 .gmail-hover-actions {
@@ -550,8 +660,7 @@ select.input-dark.filter-select {
 }
 
 .gmail-row:hover .custom-checkbox {
-  display: none;
-  /* Hide checkbox on hover to show trash, classic behavior */
+  opacity: 0.3; /* Instead of display:none, we keep it visible but faded to allow clicking */
 }
 
 .gmail-row.active .custom-checkbox {
@@ -650,7 +759,7 @@ select.input-dark.filter-select {
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
-  max-width: 45%;
+  max-width: 40%; /* Reduced from 45 to leave more room for snippet */
 }
 
 .gmail-dash {
@@ -770,32 +879,33 @@ select.input-dark.filter-select {
 .custom-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border: 1px solid #CBD5E1;
-  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
   background-color: #ffffff;
   cursor: pointer;
-  display: flex;
   position: relative;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .custom-checkbox:checked {
-  background-color: var(--pastel-green-text);
-  border-color: var(--pastel-green-text);
+  background-color: #f0fdf4; /* Very light green background */
+  border-color: #2e7d32; /* Dark green border */
 }
 
 .custom-checkbox:checked::after {
   content: '\f00c';
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
-  color: white;
-  font-size: 10px;
+  color: #2e7d32; /* Deep green checkmark */
+  font-size: 11px;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
 }
 
 .custom-checkbox:hover {
@@ -7275,29 +7385,12 @@ span.req {
 */
 
 /* --- THREADING & MICRO-CARDS (SAD V.24) --- */
-
-.gmail-row {
-  position: relative;
-  border-left: 3px solid transparent;
-  margin: 4px 8px;
-  border-radius: 8px;
-  background: white;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.gmail-row:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-}
-
-.gmail-row.active {
-  background: #f8fafc !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-}
-
+/* Unificado con .gmail-row global para mantener resolución */
 .gmail-row.thread-ordinario {
   border-left-color: #94a3b8;
+}
+.gmail-row.thread-reparacion {
+  border-left-color: #7cac80; /* Pastel Green */
 }
 
 .gmail-row.thread-seguimiento {
@@ -7549,4 +7642,85 @@ span.req {
     gap: 8px;
     /* Reducir espacio entre botones de acción */
   }
+}
+/* --- Global Sync Overlay --- */
+.global-sync-overlay {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  width: 350px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.sync-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.sync-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.sync-details {
+  flex: 1;
+}
+
+.sync-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.sync-message {
+  font-size: 0.85rem;
+  color: #1e293b;
+  font-weight: 500;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.sync-card .progress-bar-container {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.sync-card .progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  transition: width 0.3s ease;
+}
+
+.sync-percentage {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #4f46e5;
+}
+
+/* Base Node In-Revision Style */
+.forum-card.node-base.minimal-node.in-revision {
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.3) 0%, #ffffff 100%);
+  border-left-color: #f59e0b;
 }

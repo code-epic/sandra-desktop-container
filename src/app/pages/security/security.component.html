@@ -36,15 +36,15 @@
                     <!-- Novedad: Selector de Bandeja Inbox/Outbox -->
                     <div class="direction-toggle-group">
                         <button class="btn-toggle" [class.active]="mailboxDirection === 'inbox'"
-                            (click)="mailboxDirection = 'inbox'; resetPagination()" title="Bandeja de Entrada">
+                            (click)="setMailboxDirection('inbox')" title="Bandeja de Entrada">
                             <i class="fas fa-inbox"></i> <span class="btn-label">Recibidos</span>
                         </button>
                         <button class="btn-toggle" [class.active]="mailboxDirection === 'outbox'"
-                            (click)="mailboxDirection = 'outbox'; resetPagination()" title="Elementos Enviados">
+                            (click)="setMailboxDirection('outbox')" title="Elementos Enviados">
                             <i class="fas fa-paper-plane"></i> <span class="btn-label">Enviados</span>
                         </button>
                         <button class="btn-toggle" [class.active]="mailboxDirection === 'notifications'"
-                            (click)="mailboxDirection = 'notifications'; resetPagination()"
+                            (click)="setMailboxDirection('notifications')"
                             title="Notificaciones de Sistema">
                             <i class="fas fa-bell"></i> <span class="btn-label">Notificaciones</span>
                         </button>
@@ -83,6 +83,15 @@
                 <div class="toolbar-left">
                     <input type="checkbox" class="custom-checkbox" [checked]="isAllSelected"
                         (click)="toggleSelectAll($event)" title="Seleccionar Todos">
+                    
+                    <!-- Badge de Revisión Dinámico (Clic para ir a Enviados) -->
+                    <div class="revision-badge clickable fade-in" *ngIf="revisionCount > 0" 
+                        (click)="setMailboxDirection('outbox')"
+                        title="Ver Documentos en Revisión (Clic para ir a Enviados)">
+                        <i class="fas fa-sync-alt fa-spin"></i>
+                        <span>{{ revisionCount }} en revisión</span>
+                    </div>
+
                     <button class="btn-icon-mini text-danger fade-in" *ngIf="selectedIds.size > 0"
                         (click)="deleteSelected()" title="Eliminar Seleccionados" style="margin-left: 10px;">
                         <i class="fas fa-trash-alt"></i>
@@ -160,6 +169,10 @@
                                     <i [class]="getStatusIcon(msg.status)" class="tag-icon"></i>
                                     {{ translateStatus(msg.status) }}
                                 </span>
+                                <span class="revision-tag-list fade-in"
+                                    *ngIf="msg.status === 'EN PROCESO' || msg.status === 'PENDIENTE'">
+                                    REVISIÓN
+                                </span>
                                 <span class="gmail-date">{{ msg.created_at | date:'d MMM yy' }}</span>
                             </div>
                         </div>
@@ -176,14 +189,14 @@
                                     </ng-container>
                                     <ng-container
                                         *ngIf="msg.author !== 'HSF Ticket Seguro' && msg.author !== 'Ejecución de Función'">
-                                        {{ (getMessageSubject(msg.content) || msg.sid | slice:0:40) +
-                                        ((getMessageSubject(msg.content) || msg.sid || '').length > 40 ? '...' : '')
+                                        {{ (getMessageSubject(msg.content) || msg.sid | slice:0:30) +
+                                        ((getMessageSubject(msg.content) || msg.sid || '').length > 30 ? '...' : '')
                                         }}
                                     </ng-container>
                                 </span>
                                 <span class="gmail-dash">&nbsp;-&nbsp;</span>
-                                <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:80) +
-                                    (getMessageSnippet(msg.content).length > 80 ?
+                                <span class="gmail-snippet">{{ (getMessageSnippet(msg.content) | slice:0:50) +
+                                    (getMessageSnippet(msg.content).length > 50 ?
                                     '...' : '') }}</span>
                             </div>
                             <span class="gmail-time">{{ msg.created_at | date:'h:mm:ss a' }}</span>
@@ -578,9 +591,11 @@
                     </div>
 
                     <!-- Thread Body (FORUM STYLE) -->
-                    <div class="forum-timeline-container">
+                    <div class="forum-timeline-container" [class.has-replies]="parsedContent?.hilos?.length > 0">
                         <!-- Base Message (First node) -->
-                        <div class="forum-card node-base">
+                        <div class="forum-card node-base" 
+                             [class.minimal-node]="parsedContent?.hilos?.length > 0"
+                             [class.in-revision]="selectedMessage?.status === 'EN PROCESO' || selectedMessage?.status === 'PENDIENTE' || selectedMessage?.status === 'REVISION'">
                             <div class="forum-card-header">
                                 <div class="f-avatar"><i class="fas fa-flag"></i></div>
                                 <div class="f-meta">
@@ -1792,6 +1807,26 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Global Sync Progress Overlay -->
+        <div class="global-sync-overlay fade-in-up" *ngIf="securityService.isSyncing$ | async">
+            <div class="sync-card">
+                <div class="sync-icon pulse-soft">
+                    <i class="fas fa-satellite-dish"></i>
+                </div>
+                <div class="sync-details">
+                    <div class="sync-title">Sincronización Industrial Activa</div>
+                    <div class="sync-message">{{ (securityService.syncMessage$ | async) || 'Conectando...' }}</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" [style.width.%]="securityService.syncProgress$ | async"></div>
+                    </div>
+                </div>
+                <div class="sync-percentage">
+                    {{ (securityService.syncProgress$ | async | number:'1.0-0') || 0 }}%
+                </div>
+            </div>
+        </div>
+
     </div> <!-- security-content -->
 
 </div>

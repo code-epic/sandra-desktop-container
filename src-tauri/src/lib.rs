@@ -124,6 +124,8 @@ pub fn run() {
             commands::mailbox::sync_mailbox,
             commands::mailbox::create_mailbox_message,
             commands::mailbox::update_mailbox_status,
+            commands::mailbox::update_mailbox_full,
+            commands::mailbox::update_mailbox_full_by_sid,
             commands::mailbox::delete_mailbox_message,
             commands::mailbox::ingest_secure_package,
             commands::mailbox::generate_secure_package,

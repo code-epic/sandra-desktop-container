@@ -9,7 +9,7 @@ export interface MailboxMessage {
     sid: string;
     content: string;
     author: string;
-    status: 'Pending' | 'Read' | 'Approved' | 'Rejected' | 'Completed';
+    status: 'Pending' | 'Read' | 'Approved' | 'Rejected' | 'Completed' | 'EN PROCESO' | 'PENDIENTE' | 'CANCELADO' | string;
     tracking_info?: string;
     responsible?: string;
     created_at: string;
@@ -95,6 +95,9 @@ export class SecurityService {
 
     private _mailboxRefreshTrigger = new Subject<string | undefined>();
     public mailboxRefreshTrigger$ = this._mailboxRefreshTrigger.asObservable();
+
+    private _revisionCount = new BehaviorSubject<number>(0);
+    public revisionCount$ = this._revisionCount.asObservable();
 
     private lastProgressUpdate = 0;
     private readonly UI_THROTTLE_MS = 150;
@@ -255,12 +258,17 @@ export class SecurityService {
             author: message.author,
             responsible: message.responsible,
             direction: message.direction || 'outbox',
-            userLogin: message.user_login || 'persona'
+            userLogin: message.user_login || 'persona',
+            status: message.status || 'Pending'
         });
     }
 
     async updateMailboxStatus(id: number, status: string, trackingInfo?: string) {
         return invoke('update_mailbox_status', { id, status, trackingInfo });
+    }
+
+    async updateMailboxFull(id: number, status: string, content: string, trackingInfo?: string) {
+        return invoke('update_mailbox_full', { id, status, content, trackingInfo });
     }
 
     async deleteMailboxMessage(id: number) {
@@ -316,7 +324,7 @@ export class SecurityService {
 
     // --- Sync Methods (Industrial-Scale Streaming) ---
 
-    async startMailboxSync(activeConnection: any, authorProfile: any) {
+    async startMailboxSync(activeConnection: any, authorProfile: any, clientId?: string) {
         if (this._isSyncing.value || !activeConnection || !authorProfile?.usuario) return;
         this.activeSyncConnection = activeConnection;
         this.activeSyncAuthor = authorProfile;
@@ -384,13 +392,20 @@ export class SecurityService {
                 this.stopAmbientSyncSound();
                 this.setSyncState(false);
             },
-            complete: () => {
+            complete: async () => {
                 this.flushAcks();
                 if (this._isSyncing.value) {
+                    this._syncMessage.next('Verificando hilos...');
+                    
+                    // Invocación proactiva y esperada del rastreo de hilos (REVISION)
+                    const resolvedClientId = clientId || (authorProfile.usuario || 'persona').toLowerCase();
+                    await this.syncWorkflowThreads(activeConnection, resolvedClientId);
+
                     this._syncProgress.next(100);
                     this._syncMessage.next('Sincronizado');
                     this.stopAmbientSyncSound();
                     this.playSyncCompleteSound();
+                    
                     setTimeout(() => this.setSyncState(false), 1200);
                 }
             }
@@ -507,14 +522,27 @@ export class SecurityService {
         // Priorizamos el perfil activo que inició la sincronización.
         const userLogin = this.activeSyncAuthor?.usuario || 'default';
 
+        // Determinar el autor para calcular la dirección del correo
+        const authorStr = item.message_envelope?.from || item.message_envelope?.author || item.manifest?.sender || item.author || 'Unknown';
+        
+        // Determinar si el correo fue enviado por el usuario activo
+        const isSentByMe = authorStr.toLowerCase().includes(userLogin.toLowerCase());
+        const calculatedDirection = isSentByMe ? 'outbox' : 'inbox';
+
+        // Extraer el estado del payload si está presente (puede estar en la raíz o dentro de workflow)
+        const calculatedStatus = item.workflow?.estado || item.estado || item.status || 'Pending';
+
         await this.createMailboxMessage({
             sid: String(guid),
             content: JSON.stringify(item),
-            author: item.message_envelope?.from || item.message_envelope?.author || item.manifest?.sender || item.author || 'Unknown',
+            author: authorStr,
             responsible: item.message_envelope?.to || item.responsible || 'persona.consola',
-            direction: 'inbox',
-            user_login: userLogin
+            direction: calculatedDirection,
+            user_login: userLogin,
+            status: calculatedStatus
         });
+        
+        console.log(`[Sync] Documento insertado en BD Local. ID: ${guid} | Bandeja: ${calculatedDirection} | Estado: ${calculatedStatus}`);
     }
 
     private certifyDownload(item: any) {
@@ -609,5 +637,83 @@ export class SecurityService {
         } catch (e) {
             return null;
         }
+    }
+
+    /**
+     * Sincronización proactiva de hilos de workflow (Modo REVISION)
+     * Utiliza el patrón de crudstream para procesamiento en tiempo real.
+     */
+    /**
+     * Sincronización proactiva de hilos de workflow (Modo REVISION)
+     * Utiliza el patrón de crudstream para procesamiento en tiempo real.
+     */
+    syncWorkflowThreads(activeConnection: any, clientId: string): Promise<number> {
+        return new Promise((resolve) => {
+            if (!activeConnection?.hash) return resolve(0);
+
+            const endpoint = `v1/api/crudstream:${activeConnection.hash}`;
+            const payload = {
+                "funcion": 'SDC_CMailThread',
+                "parametros": `REVISION,${clientId}`
+            };
+
+            console.log(`[Service] Iniciando Streaming de Hilos (REVISION) para: ${clientId}`);
+            const currentRevisionItems: any[] = [];
+            const updatePromises: Promise<any>[] = [];
+
+            this.dataStreamService.streamPostRequest<any>(
+                activeConnection.ip_address,
+                Number(activeConnection.port),
+                endpoint,
+                payload,
+                activeConnection.hash,
+                activeConnection.jwt
+            ).subscribe({
+                next: (remoteMsg) => {
+                    console.log("[Service] Hilo recibido en stream:", remoteMsg);
+                    currentRevisionItems.push(remoteMsg);
+                    
+                    // Certificar descarga del hilo (ACK al server)
+                    this.certifyDownload(remoteMsg);
+                    
+                    const localId = remoteMsg.local_id || remoteMsg.id;
+                    const remoteStatus = remoteMsg.workflow?.estado || remoteMsg.estado || remoteMsg.status || 'Pending';
+                    const remoteContent = JSON.stringify(remoteMsg); // El objeto completo del servidor
+                    
+                    if (localId) {
+                        console.log(`[Service] Sincronización TOTAL para ID ${localId} -> ${remoteStatus}`);
+                        const updatePromise = invoke('update_mailbox_full_by_sid', { 
+                            sid: localId, 
+                            status: remoteStatus,
+                            content: remoteContent,
+                            trackingInfo: `Workflow Full Sync: ${remoteStatus}`
+                        });
+                        updatePromises.push(updatePromise);
+                    }
+                    this._revisionCount.next(currentRevisionItems.length);
+                },
+                error: (err) => {
+                    console.error("[Service] Error en streaming de hilos (REVISION):", err);
+                    resolve(currentRevisionItems.length);
+                },
+                complete: async () => {
+                    console.log(`[Service] Streaming de hilos completado. Total: ${currentRevisionItems.length}. Esperando escrituras locales...`);
+                    
+                    // Esperar a que TODAS las actualizaciones en SQLite terminen
+                    await Promise.all(updatePromises);
+                    
+                    console.log(`[Service] Escrituras locales de hilos finalizadas.`);
+                    this._revisionCount.next(currentRevisionItems.length);
+                    
+                    // Certificar el lote final de hilos recibidos
+                    this.flushAcks();
+                    
+                    // Notificar al componente que debe refrescar la vista local AHORA QUE LA BD ESTÁ LISTA
+                    this._mailboxRefreshTrigger.next('workflow-sync-complete');
+                    
+                    resolve(currentRevisionItems.length);
+                }
+            });
+        });
     }
 }

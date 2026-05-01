@@ -98,6 +98,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   errorMessage: string = '';
   sendingStatusMessage: string = '';
   showReauthModal: boolean = false;
+  revisionCount: number = 0;
   reauthUsername: string = '';
   reauthPassword: string = '';
 
@@ -263,6 +264,16 @@ export class SecurityComponent implements OnInit, OnChanges {
     const start = (this.currentPage - 1) * this.pageSize + 1;
     const end = Math.min(this.currentPage * this.pageSize, this.filteredMessages.length);
     return `${start}-${end} de ${this.filteredMessages.length}`;
+  }
+
+  isWorkflowMessage(msg: MailboxMessage): boolean {
+    if (!msg.content) return false;
+    try {
+      const content = JSON.parse(msg.content);
+      return !!content.workflow;
+    } catch {
+      return false;
+    }
   }
 
   get isAllSelected(): boolean {
@@ -483,7 +494,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.loadProxyRoutes();
     this.generateUniqueCode();
     this.extractAuthorFromJwt();
-    this.loadSystemIdentity();
+    await this.loadSystemIdentity();
     this.loadContactsLocal();
 
     // 2. Event Listeners
@@ -500,9 +511,13 @@ export class SecurityComponent implements OnInit, OnChanges {
     // Suscripción al trigger de refresco global (SDC Sync Pulses) con debounce para evitar sobrecarga
     this.securityService.mailboxRefreshTrigger$.pipe(
       debounceTime(2000)
-    ).subscribe(() => {
-      console.log("[Security] Ejecutando sincronización por trigger");
-      this.syncMailbox();
+    ).subscribe((reason) => {
+      console.log("[Security] Trigger de refresco recibido. Razón:", reason);
+      if (reason === 'workflow-sync-complete') {
+        this.loadMessages(); // Refresco local de hilos
+      } else {
+        this.syncMailbox(); // Sincronización remota estándar
+      }
     });
 
     // Suscripción al estado de sincronización global para refrescar la vista
@@ -510,6 +525,11 @@ export class SecurityComponent implements OnInit, OnChanges {
       if (status === 'completed') {
         this.loadMessages();
       }
+    });
+
+    // 4. Revision Count Subscription
+    this.securityService.revisionCount$.subscribe(count => {
+      this.revisionCount = count;
     });
 
     // Sincronización inicial al entrar
@@ -672,13 +692,43 @@ export class SecurityComponent implements OnInit, OnChanges {
   async syncMailbox() {
     if ((await firstValueFrom(this.securityService.isSyncing$)) || !this.activeConnection) return;
 
+    if (!this.clientId) {
+      this.clientId = await this.sdcService.getClientId();
+    }
+
     // Iniciar sincronización industrial global mediante el servicio centralizado
-    this.securityService.startMailboxSync(this.activeConnection, this.authorProfile);
+    this.securityService.startMailboxSync(this.activeConnection, this.authorProfile, this.clientId);
   }
 
   // --- Mailbox Logic ---
   async loadMessages() {
     this.messages = await this.securityService.getMailboxMessages(this.authorProfile.usuario);
+    
+    // LOG DE DIAGNÓSTICO: Auditoría de base de datos
+    console.groupCollapsed("[Auditoría BD] Documentos Cargados desde SQLite");
+    console.log(`Total de mensajes cargados: ${this.messages.length}`);
+    const outboxRevision = this.messages.filter(m => m.direction === 'outbox' && (m.status === 'REVISION' || m.status === 'Pending' || m.status === 'Read'));
+    console.log("Documentos enviados (Outbox) con estados críticos:", outboxRevision.map(m => ({
+      id_local: m.id,
+      sid_uuid: m.sid,
+      estado_sqlite: m.status,
+      timestamp: m.created_at,
+      resumen: this.getMessageSubject(m.content)
+    })));
+    console.groupEnd();
+    
+    // Si hay un mensaje seleccionado, refrescamos su referencia para actualizar el contenido (hilos)
+    if (this.selectedMessage) {
+      const updated = this.messages.find(m => m.id === this.selectedMessage?.id);
+      if (updated) {
+        this.selectedMessage = updated;
+        this.parsedContent = this.parseJsonContent(updated.content);
+        console.log(`[UI] Mensaje Abierto Actualizado (Refresco en vivo) -> ID: ${updated.id} | Nuevo Estado BD: ${updated.status}`, {
+          parsedHilos: this.parsedContent?.hilos?.length || 0,
+          rawJson: this.parsedContent
+        });
+      }
+    }
   }
 
   resetPagination() {
@@ -714,6 +764,12 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.parsedContent = this.parseJsonContent(msg.content);
     this.showTrace = false;
 
+    console.groupCollapsed(`[UI] Abriendo Documento: ${msg.sid}`);
+    console.log(`Estado en Base de Datos (SQLite): ${msg.status}`);
+    console.log(`Hilos detectados en el JSON:`, this.parsedContent?.hilos || 'Ninguno');
+    console.log(`Objeto crudo parseado:`, this.parsedContent);
+    console.groupEnd();
+
     // MARCAR COMO LEÍDO si es nuevo o está pendiente
     if (!msg.status || msg.status === 'Pending') {
       try {
@@ -743,7 +799,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     } else if (tab === 'outbox') {
       this.activeTab = 'mailbox';
       this.mailboxDirection = 'outbox';
-      this.loadMessages().then(() => this.trackOutboxThreads());
+      this.loadMessages();
     } else {
       // Reset filters when leaving mailbox
       this.statusFilter = 'all';
@@ -762,53 +818,19 @@ export class SecurityComponent implements OnInit, OnChanges {
     this.activeTab = 'mailbox';
   }
 
+  setMailboxDirection(dir: 'inbox' | 'outbox' | 'notifications') {
+    this.mailboxDirection = dir;
+    this.resetPagination();
+  }
+
   async trackOutboxThreads() {
     if (!this.activeConnection?.hash) return;
-
-    // Solo rastrear mensajes que sean SEGUIMIENTO y tengan miga
-    const mensajesConSeguimiento = this.messages.filter(m => m.direction === 'outbox' && this.getThreadType(m) === 'seguimiento');
-    if (mensajesConSeguimiento.length === 0) return;
-
-    for (const msg of mensajesConSeguimiento) {
-      try {
-        const content = JSON.parse(msg.content);
-        const miga_id = content.hilos?.[0]?.miga_id;
-
-        if (miga_id) {
-          const endpoint = `v1/api/crud:${this.activeConnection.hash}`;
-          const payload = {
-            "funcion": 'SDC_CMailThread',
-            "parametros": miga_id
-          };
-
-          console.log(payload);
-
-          const response: any = await invoke('api_post_request', {
-            ip: this.activeConnection.ip_address,
-            port: Number(this.activeConnection.port),
-            endpoint: endpoint,
-            payload: payload,
-            hash: this.activeConnection.hash,
-            tempAuthToken: this.activeConnection.jwt
-          });
-
-          // Aquí se podría actualizar el estatus local si la contraparte lo cerró/atendió.
-          if (response && response.exito && response.datos?.length > 0) {
-            const latest = response.datos.reduce((prev: any, current: any) =>
-              (new Date(prev.timestamp).getTime() > new Date(current.timestamp).getTime()) ? prev : current
-            );
-
-            if (latest.workflow?.estado && msg.status !== latest.workflow.estado) {
-              msg.status = latest.workflow.estado;
-              // Actualizamos localmente el estatus
-              await this.securityService.updateMailboxStatus(msg.id, msg.status, `Tracking: Actualizado desde remoto a ${msg.status}`);
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Error tracking outbox thread', e);
-      }
-    }
+    
+    // Invocación a través del servicio para centralizar la lógica y actualizar el contador
+    await this.securityService.syncWorkflowThreads(this.activeConnection, this.clientId);
+    
+    // Forzamos recarga de mensajes locales para reflejar los estados actualizados en la BD
+    this.loadMessages();
   }
 
   backToMailbox() {
@@ -1494,7 +1516,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
       // 2. Persist locally to the Outbox
       await this.securityService.createMailboxMessage({
-        sid: this.newMessage.sid,
+        sid: dynamicMessageId,
         content: JSON.stringify(securePackageV23),
         author: `${this.authorProfile.usuario}@${this.authorProfile.sistema}`.toLowerCase(),
         responsible: this.newMessage.selectedRecipients.join(', ') || 'Draft',
@@ -2613,6 +2635,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     return {
       'active': this.selectedMessage?.id === msg.id,
       'unread': !msg.is_read,
+      'in-revision': msg.status === 'EN PROCESO' || msg.status === 'PENDIENTE' || msg.status === 'REVISION',
       ['thread-' + this.getThreadType(msg)]: true
     };
   }
