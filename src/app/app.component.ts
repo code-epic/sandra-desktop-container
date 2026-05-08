@@ -33,6 +33,7 @@ import { ConfigComponent } from "./components/config/config.component";
 import { AppsComponent } from "./pages/apps/apps.component";
 import { DesktopAppsService } from "./core/services/desktop-apps.service";
 import { ChatComponent } from "./pages/chat/chat.component";
+import { ProyectosComponent } from "./pages/proyectos/proyectos.component";
 import { SecureViewerComponent } from "./components/secure-viewer/secure-viewer.component";
 import { BackgroundProgressComponent } from "./components/background-progress/background-progress.component";
 import { HttpProgressComponent } from "./components/background-progress/http-progress.component";
@@ -74,6 +75,7 @@ interface DesktopApp {
     ConfigComponent,
     AppsComponent,
     ChatComponent,
+    ProyectosComponent,
     SecureViewerComponent,
     BackgroundProgressComponent,
     HttpProgressComponent,
@@ -1120,6 +1122,7 @@ export class AppComponent implements OnInit {
       "connections",
       "security",
       "monitor",
+      "proyectos",
       "apps",
       "secure-viewer",
     ];

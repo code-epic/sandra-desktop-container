@@ -15,7 +15,7 @@
         </button>
         <!-- Refresh Button (Only active for active iframes) -->
         <button class="icon-btn toggle-btn"
-          *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor'  && (activeTabId$ | async) !== 'apps' && (activeTabId$ | async) !== 'security' && (activeTabId$ | async) !== 'secure-viewer'"
+          *ngIf="(activeTabId$ | async) !== 'dashboard' && (activeTabId$ | async) !== 'connections' && (activeTabId$ | async) !== 'monitor' && (activeTabId$ | async) !== 'proyectos' && (activeTabId$ | async) !== 'apps' && (activeTabId$ | async) !== 'security' && (activeTabId$ | async) !== 'secure-viewer'"
           (click)="reloadActiveIframe()" title="Actualizar Aplicación">
           <i class="fas fa-redo-alt"></i>
         </button>
@@ -73,6 +73,7 @@
       <app-connections *ngIf="(activeTabId$ | async) === 'connections'"></app-connections>
       <app-security *ngIf="(activeTabId$ | async) === 'security' && !!getJwtToken()" [activeConnection]="activeConnection"></app-security>
       <app-monitor *ngIf="(activeTabId$ | async) === 'monitor' && !!getJwtToken()"></app-monitor>
+      <app-proyectos *ngIf="(activeTabId$ | async) === 'proyectos' && !!getJwtToken()"></app-proyectos>
       <app-desktop-apps *ngIf="(activeTabId$ | async) === 'apps'"></app-desktop-apps>
       <app-secure-viewer *ngIf="(activeTabId$ | async) === 'secure-viewer' && !!getJwtToken()"></app-secure-viewer>
 

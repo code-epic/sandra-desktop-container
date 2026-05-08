@@ -116,7 +116,7 @@ export class AppStateService {
 
   setActiveTab(id: string) {
     this.activeTabIdSubject.next(id);
-    const staticPages = ['dashboard', 'connections', 'apps', 'security', 'monitor', 'secure-viewer'];
+    const staticPages = ['dashboard', 'connections', 'apps', 'security', 'monitor', 'proyectos', 'secure-viewer'];
 
     if (staticPages.includes(id)) {
       this.lastDashboardSectionSubject.next(id);

@@ -1,0 +1,389 @@
+<div class="proyectos-content-wrapper" [class.panel-open]="funcionalidadSeleccionada">
+  <!-- View Tabs -->
+  <nav class="view-tabs">
+    <div class="tabs-group">
+      <button class="tab-btn" [class.active]="vistaActiva === 'arbol'" (click)="cambiarVista('arbol')">
+        <i class="fas fa-folder-tree"></i>
+        <span>Vista Árbol</span>
+      </button>
+      <button class="tab-btn" [class.active]="vistaActiva === 'tabla'" (click)="cambiarVista('tabla')">
+        <i class="fas fa-table"></i>
+        <span>Vista Tabla</span>
+      </button>
+      <button class="tab-btn" [class.active]="vistaActiva === 'gantt'" (click)="cambiarVista('gantt')">
+        <i class="fas fa-stream"></i>
+        <span>Gantt</span>
+      </button>
+    </div>
+
+    <div class="navbar-toggles">
+      <div class="toggle-group">
+        <button class="toggle-btn" [class.active]="filtros.estados.dev"
+          (click)="filtros.estados.dev = !filtros.estados.dev; aplicarFiltros()">
+          <span class="toggle-dot dev"></span>
+          DEV
+        </button>
+        <button class="toggle-btn" [class.active]="filtros.estados.qa"
+          (click)="filtros.estados.qa = !filtros.estados.qa; aplicarFiltros()">
+          <span class="toggle-dot qa"></span>
+          QA
+        </button>
+        <button class="toggle-btn" [class.active]="filtros.estados.pro"
+          (click)="filtros.estados.pro = !filtros.estados.pro; aplicarFiltros()">
+          <span class="toggle-dot pro"></span>
+          PRO
+        </button>
+      </div>
+      <button class="btn-print" (click)="imprimirReporte()" title="Imprimir Reporte">
+        <i class="fas fa-print"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Dual Container (Side-by-Side Layout) -->
+  <div class="proyectos-dual-container">
+    <!-- Main Content Area -->
+    <div class="proyectos-main-pane glass-card fade-in" [class.panel-open]="funcionalidadSeleccionada">
+
+      <!-- Filters Panel (Moved inside main pane like SandraMailBox) -->
+      <div class="filters-panel">
+        <div class="filters-row">
+          <!-- App Selector -->
+          <div class="filter-group">
+            <label>Aplicación</label>
+            <select [(ngModel)]="filtros.appId" (change)="aplicarFiltros()">
+              <option [ngValue]="null">Todas las Apps</option>
+              <option *ngFor="let app of appsInstaladas" [value]="app.app_id">
+                {{ app.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Search -->
+          <div class="filter-group search">
+            <label>Buscar</label>
+            <div class="search-input-wrapper">
+              <i class="fas fa-search"></i>
+              <input type="text" [(ngModel)]="filtros.busqueda" (input)="aplicarFiltros()"
+                placeholder="Buscar funcionalidad...">
+            </div>
+          </div>
+
+          <!-- Module Filter -->
+          <div class="filter-group">
+            <label>Módulo</label>
+            <select [(ngModel)]="filtros.modulo" (change)="aplicarFiltros()">
+              <option [ngValue]="null">Todos</option>
+              <option *ngFor="let modulo of modulos" [value]="modulo.nombre">
+                {{ modulo.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Situation Filter -->
+          <div class="filter-group">
+            <label>Situación</label>
+            <select [(ngModel)]="filtros.situacion" (change)="aplicarFiltros()">
+              <option value="all">Todas</option>
+              <option value="EN_PROCESO">En Proceso</option>
+              <option value="DEPRECADO">Deprecado</option>
+              <option value="ACTUALIZADA">Actualizada</option>
+              <option value="RECHAZADA">Rechazada</option>
+            </select>
+          </div>
+
+
+
+          <!-- Clear Filters -->
+          <button *ngIf="hayFiltrosActivos()" class="btn-clear-filters" (click)="limpiarFiltros()"
+            title="Limpiar filtros">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+      </div>
+      <!-- Tree View -->
+      <div class="view-container tree-view" *ngIf="vistaActiva === 'arbol' && !cargando">
+        <div class="tree-container">
+          <div *ngFor="let modulo of modulos" class="tree-modulo">
+            <!-- Module Header -->
+            <div class="tree-item modulo-item" [class.expanded]="isModuloExpandido(modulo.nombre)"
+              (click)="toggleModulo(modulo.nombre)">
+              <i class="fas" [class.fa-folder-open]="isModuloExpandido(modulo.nombre)"
+                [class.fa-folder]="!isModuloExpandido(modulo.nombre)"></i>
+              <span class="item-name">{{ modulo.nombre }}</span>
+              <span class="item-badge">{{ modulo.totalFuncionalidades }}</span>
+              <i class="fas fa-chevron-right expand-icon" [class.rotated]="isModuloExpandido(modulo.nombre)"></i>
+            </div>
+
+            <!-- Submodules -->
+            <div class="tree-children" *ngIf="isModuloExpandido(modulo.nombre)">
+              <div *ngFor="let submodulo of modulo.submodulos" class="tree-submodulo">
+                <div class="tree-item submodulo-item"
+                  [class.expanded]="isSubmoduloExpandido(modulo.nombre, submodulo.nombre)"
+                  (click)="toggleSubmodulo(modulo.nombre, submodulo.nombre); $event.stopPropagation()">
+                  <i class="fas" [class.fa-folder-open]="isSubmoduloExpandido(modulo.nombre, submodulo.nombre)"
+                    [class.fa-folder]="!isSubmoduloExpandido(modulo.nombre, submodulo.nombre)"></i>
+                  <span class="item-name">{{ submodulo.nombre }}</span>
+                  <span class="item-badge">{{ submodulo.totalFuncionalidades }}</span>
+                  <i class="fas fa-chevron-right expand-icon"
+                    [class.rotated]="isSubmoduloExpandido(modulo.nombre, submodulo.nombre)"></i>
+                </div>
+
+                <!-- Functionalities -->
+                <div class="tree-children" *ngIf="isSubmoduloExpandido(modulo.nombre, submodulo.nombre)">
+                  <div *ngFor="let func of submodulo.funcionalidades" class="tree-item funcionalidad-item"
+                    (click)="seleccionarFuncionalidad(func); $event.stopPropagation()">
+                    <i class="fas fa-file-code"></i>
+                    <div class="func-content">
+                      <span class="item-name">{{ func.descripcion | slice:0:80 }}{{ func.descripcion.length > 80 ? '...'
+                        :
+                        '' }}</span>
+                      <div class="func-meta">
+                        <span class="badge" [class]="getBadgeColor(func.situacion)">{{ func.situacion }}</span>
+                        <span class="fase-badge">{{ func.fase }}</span>
+                        <input type="date" class="date-input" [value]="func.fecha"
+                          (change)="cambiarFecha(func.id, $event.target.value); $event.stopPropagation()">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <div class="view-container table-view" *ngIf="vistaActiva === 'tabla' && !cargando">
+        <div class="table-container">
+          <table class="proyectos-table">
+            <thead>
+              <tr>
+                <th width="80" class="col-id">ID</th>
+                <th class="col-modulo">Módulo</th>
+                <th>Submódulo</th>
+                <th>Funcionalidad</th>
+                <th width="100">Fecha</th>
+                <th width="80">Sit.</th>
+                <th width="60">Fase</th>
+                <th width="120">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let func of funcionalidadesFiltradas" (click)="seleccionarFuncionalidad(func)">
+                <td class="id-cell col-id">{{ func.id.split('-')[2] }}</td>
+                <td class="col-modulo">
+                  <span class="modulo-full">{{ func.modulo }}</span>
+                  <span class="modulo-short">{{ func.modulo | slice:0:3 }}</span>
+                </td>
+                <td>{{ func.submodulo }}</td>
+                <td class="desc-cell">{{ func.descripcion }}</td>
+                <td>
+                  <input type="date" class="table-date-input" [value]="func.fecha"
+                    (change)="cambiarFecha(func.id, $event.target.value); $event.stopPropagation()">
+                </td>
+                <td>
+                  <span class="badge" [class]="getBadgeColor(func.situacion)">
+                    {{ func.situacion }}
+                  </span>
+                </td>
+                <td>
+                  <span class="fase-badge">{{ func.fase }}</span>
+                </td>
+                <td>
+                  <div class="pipeline-toggles">
+                    <button class="pipe-btn" [class.active]="func.dev === 'X'"
+                      (click)="toggleEstadoPipeline(func.id, 'dev'); $event.stopPropagation()">
+                      D
+                    </button>
+                    <button class="pipe-btn" [class.active]="func.qa === 'X'"
+                      (click)="toggleEstadoPipeline(func.id, 'qa'); $event.stopPropagation()">
+                      Q
+                    </button>
+                    <button class="pipe-btn" [class.active]="func.pro === 'X'"
+                      (click)="toggleEstadoPipeline(func.id, 'pro'); $event.stopPropagation()">
+                      P
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Gantt View - Real Timeline -->
+      <div class="view-container gantt-view" *ngIf="vistaActiva === 'gantt' && !cargando">
+        <div class="gantt-real-container">
+          <!-- Timeline Header -->
+          <div class="gantt-timeline-header">
+            <div class="gantt-task-col">Tarea / Funcionalidad</div>
+            <div class="gantt-timeline-scroll">
+              <div class="gantt-months">
+                <div class="gantt-month" *ngFor="let month of ganttMonths">{{ month }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline Body -->
+          <div class="gantt-timeline-body">
+            <div *ngFor="let func of funcionalidadesFiltradas; let i = index" class="gantt-timeline-row"
+              [class.alt-row]="i % 2 === 1" (click)="seleccionarFuncionalidad(func)">
+
+              <!-- Task Info -->
+              <div class="gantt-task-col">
+                <div class="task-info">
+                  <span class="task-name">{{ func.descripcion | slice:0:45 }}{{ func.descripcion.length > 45 ? '...' :
+                    ''
+                    }}</span>
+                  <span class="task-module">{{ func.modulo }} › {{ func.submodulo }}</span>
+                </div>
+              </div>
+
+              <!-- Timeline Bar Area -->
+              <div class="gantt-timeline-area">
+                <div class="gantt-timeline-grid">
+                  <div class="grid-line" *ngFor="let _ of ganttMonths; let idx = index" [class.month-start]="idx === 0">
+                  </div>
+                </div>
+
+                <!-- Task Bar -->
+                <div class="gantt-task-bar" [class]="'bar-' + getBadgeColor(func.situacion)"
+                  [style.left.%]="getGanttBarPosition(func.fecha).left" [style.width.%]="getGanttBarWidth(func.fecha)">
+                  <div class="bar-content">
+                    <span class="bar-label">{{ getSituacionTexto(func.situacion) }}</span>
+                    <span class="bar-date">{{ func.fecha | date:'dd/MM' }}</span>
+                  </div>
+                  <div class="bar-tooltip">
+                    {{ func.descripcion }}
+                    <br>
+                    <small>{{ func.fecha | date:'dd/MM/yyyy' }} - {{ getSituacionTexto(func.situacion) }}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline Legend -->
+          <div class="gantt-legend">
+            <span class="legend-item"><span class="legend-dot en-proceso"></span> En Proceso</span>
+            <span class="legend-item"><span class="legend-dot actualizada"></span> Actualizada</span>
+            <span class="legend-item"><span class="legend-dot deprecado"></span> Deprecado</span>
+            <span class="legend-item"><span class="legend-dot rechazada"></span> Rechazada</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="cargando">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <span>Cargando proyectos...</span>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!cargando && funcionalidadesFiltradas.length === 0">
+        <i class="fas fa-inbox"></i>
+        <p>No se encontraron funcionalidades</p>
+        <button *ngIf="hayFiltrosActivos()" class="btn-clear" (click)="limpiarFiltros()">
+          Limpiar filtros
+        </button>
+      </div>
+
+      <!-- Main Pane Footer: Results Count -->
+      <div class="main-pane-footer" *ngIf="funcionalidadesFiltradas.length > 0">
+        <span class="results-count">
+          {{ funcionalidadesFiltradas.length }} resultado{{ funcionalidadesFiltradas.length !== 1 ? 's' : '' }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Panel (Sidebar Derecho) -->
+<div class="proyectos-detail-pane glass-card fade-in-right" *ngIf="funcionalidadSeleccionada">
+  
+  <!-- Header Minimalista -->
+  <div class="detail-header-minimal">
+    <div class="header-title-group">
+      <span class="detail-id-pill">{{ funcionalidadSeleccionada.id.split('-')[2] }}</span>
+      <h3>Detalle</h3>
+    </div>
+    <button class="btn-circular-close" (click)="cerrarDetalles()" title="Cerrar">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="detail-body-compact">
+    <!-- Pipeline Priority Section (Al inicio como se pidió) -->
+    <div class="priority-status-strip">
+      <div class="pipeline-minimal-selectors">
+        <button class="mini-pipe-btn dev" [class.active]="funcionalidadSeleccionada.dev === 'X'"
+          (click)="toggleEstadoPipeline(funcionalidadSeleccionada.id, 'dev')">
+          <i class="fas fa-code"></i>
+          <span>DEV</span>
+        </button>
+        <button class="mini-pipe-btn qa" [class.active]="funcionalidadSeleccionada.qa === 'X'"
+          (click)="toggleEstadoPipeline(funcionalidadSeleccionada.id, 'qa')">
+          <i class="fas fa-vial"></i>
+          <span>QA</span>
+        </button>
+        <button class="mini-pipe-btn pro" [class.active]="funcionalidadSeleccionada.pro === 'X'"
+          (click)="toggleEstadoPipeline(funcionalidadSeleccionada.id, 'pro')">
+          <i class="fas fa-rocket"></i>
+          <span>PRO</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Situation Selectors (Elegantes y Minimalistas) -->
+    <div class="situation-minimal-grid">
+      <button class="mini-sit-btn en-proceso" [class.active]="funcionalidadSeleccionada.situacion === 'EN_PROCESO'"
+        (click)="cambiarSituacion(funcionalidadSeleccionada.id, 'EN_PROCESO')" title="En Proceso">
+        <i class="fas fa-spinner"></i>
+      </button>
+      <button class="mini-sit-btn actualizada" [class.active]="funcionalidadSeleccionada.situacion === 'ACTUALIZADA'"
+        (click)="cambiarSituacion(funcionalidadSeleccionada.id, 'ACTUALIZADA')" title="Actualizada">
+        <i class="fas fa-check"></i>
+      </button>
+      <button class="mini-sit-btn deprecado" [class.active]="funcionalidadSeleccionada.situacion === 'DEPRECADO'"
+        (click)="cambiarSituacion(funcionalidadSeleccionada.id, 'DEPRECADO')" title="Deprecado">
+        <i class="fas fa-archive"></i>
+      </button>
+      <button class="mini-sit-btn rechazada" [class.active]="funcionalidadSeleccionada.situacion === 'RECHAZADA'"
+        (click)="cambiarSituacion(funcionalidadSeleccionada.id, 'RECHAZADA')" title="Rechazada">
+        <i class="fas fa-ban"></i>
+      </button>
+    </div>
+
+    <div class="detail-divider"></div>
+
+    <!-- Metadata Section -->
+    <div class="compact-meta-info">
+      <div class="meta-item">
+        <label><i class="fas fa-layer-group"></i> Módulo</label>
+        <span class="val">{{ funcionalidadSeleccionada.modulo }} / {{ funcionalidadSeleccionada.submodulo }}</span>
+      </div>
+      <div class="meta-item">
+        <label><i class="fas fa-calendar-day"></i> Fecha Compromiso</label>
+        <input type="date" class="mini-date-picker" [value]="funcionalidadSeleccionada.fecha"
+          (change)="cambiarFecha(funcionalidadSeleccionada.id, $event.target.value)">
+      </div>
+    </div>
+
+    <div class="detail-divider"></div>
+
+    <!-- Description & Fields -->
+    <div class="content-text-section">
+      <label>Descripción</label>
+      <p class="premium-text">{{ funcionalidadSeleccionada.descripcion }}</p>
+    </div>
+
+    <div class="content-text-section" *ngIf="funcionalidadSeleccionada.camposExistentes">
+      <label>Campos Técnicos</label>
+      <div class="technical-pills-box">
+        {{ funcionalidadSeleccionada.camposExistentes }}
+      </div>
+    </div>
+  </div>
+</div>

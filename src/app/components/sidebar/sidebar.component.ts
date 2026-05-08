@@ -85,7 +85,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   setActive(id: string) {
-    const protectedRoutes = ['security', 'monitor', 'secure-viewer'];
+    const protectedRoutes = ['security', 'monitor', 'proyectos', 'secure-viewer'];
     if (protectedRoutes.includes(id) && !this.hasJwt) {
       // En lugar de ignorar, solicitar login
       this.onLoginRequest.emit();

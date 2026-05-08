@@ -127,7 +127,7 @@ export class SecurityService {
         if (!ctx) return null;
         // Resume synchronously - browsers allow this during user gesture
         if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
+            ctx.resume().catch(() => { });
         }
         return ctx;
     }
@@ -135,12 +135,12 @@ export class SecurityService {
     playDeleteSound() {
         const ctx = this.getAudioContext();
         if (!ctx) return;
-        
+
         // Ensure context is running (synchronous resume during user gesture)
         if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
+            ctx.resume().catch(() => { });
         }
-        
+
         const now = ctx.currentTime;
 
         // Tono principal descendente suave (swoosh elegante)
@@ -212,9 +212,9 @@ export class SecurityService {
         const ctx = this.getAudioContext();
         if (!ctx) return;
         if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
+            ctx.resume().catch(() => { });
         }
-        
+
         const playTone = (freq: number, startTime: number, vol: number, dur: number) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -339,7 +339,7 @@ export class SecurityService {
             const existing = await this.getMailboxMessages(authorProfile.usuario);
             this.existingGuids = new Set(existing.map(m => this.getMessageGuid(m.content)?.toLowerCase()).filter((g): g is string => !!g));
             // También añadir los sid por si acaso
-            existing.forEach(m => { if(m.sid) this.existingGuids.add(m.sid.toLowerCase()); });
+            existing.forEach(m => { if (m.sid) this.existingGuids.add(m.sid.toLowerCase()); });
         } catch (e) {
             this.existingGuids = new Set();
         }
@@ -367,7 +367,7 @@ export class SecurityService {
 
                 const itemGuid = (item.manifest?.guid || item.id);
                 if (!itemGuid) return;
-                
+
                 const guidStr = String(itemGuid).toLowerCase();
                 if (this.existingGuids.has(guidStr)) return;
 
@@ -396,7 +396,7 @@ export class SecurityService {
                 this.flushAcks();
                 if (this._isSyncing.value) {
                     this._syncMessage.next('Verificando hilos...');
-                    
+
                     // Invocación proactiva y esperada del rastreo de hilos (REVISION)
                     const resolvedClientId = clientId || (authorProfile.usuario || 'persona').toLowerCase();
                     await this.syncWorkflowThreads(activeConnection, resolvedClientId);
@@ -405,7 +405,7 @@ export class SecurityService {
                     this._syncMessage.next('Sincronizado');
                     this.stopAmbientSyncSound();
                     this.playSyncCompleteSound();
-                    
+
                     setTimeout(() => this.setSyncState(false), 1200);
                 }
             }
@@ -421,35 +421,35 @@ export class SecurityService {
         try {
             const ctx = this.getAudioContext();
             if (!ctx) return;
-            
+
             if (ctx.state === 'suspended') {
-                ctx.resume().catch(() => {});
+                ctx.resume().catch(() => { });
             }
-            
+
             if (this.syncAmbientOscillator) this.stopAmbientSyncSound();
-            
+
             const osc = ctx.createOscillator();
             const osc2 = ctx.createOscillator();
             const gain = ctx.createGain();
-            
+
             // Frecuencias para crear un 'drone' atmosférico elegante (espacial/tech)
             osc.type = 'sine';
             osc.frequency.setValueAtTime(65.41, ctx.currentTime); // C2
 
             osc2.type = 'triangle';
             osc2.frequency.setValueAtTime(130.81, ctx.currentTime); // C3
-            
+
             osc.connect(gain);
             osc2.connect(gain);
             gain.connect(ctx.destination);
-            
+
             // Fade-in extremadamente suave y volumen bajísimo
             gain.gain.setValueAtTime(0, ctx.currentTime);
             gain.gain.linearRampToValueAtTime(0.015, ctx.currentTime + 1.5);
-            
+
             osc.start();
             osc2.start();
-            
+
             this.syncAmbientOscillator = [osc, osc2];
             this.syncAmbientGain = gain;
         } catch { }
@@ -460,14 +460,14 @@ export class SecurityService {
             if (!this.syncAmbientGain || !this.syncAmbientOscillator) return;
             const ctx = this.getAudioContext();
             if (!ctx) return;
-            
+
             // Elegante fade out
             this.syncAmbientGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
-            
+
             const [o1, o2] = this.syncAmbientOscillator;
-            
+
             setTimeout(() => {
-                try { o1.stop(); o2.stop(); } catch{}
+                try { o1.stop(); o2.stop(); } catch { }
             }, 1000);
 
             this.syncAmbientOscillator = null;
@@ -480,7 +480,7 @@ export class SecurityService {
             const ctx = this.getAudioContext();
             if (!ctx) return;
             if (ctx.state === 'suspended') {
-                ctx.resume().catch(() => {});
+                ctx.resume().catch(() => { });
             }
             if (!ctx) return;
             const playTone = (freq: number, startTime: number, vol: number) => {
@@ -517,14 +517,14 @@ export class SecurityService {
 
         // manifest.guid es la CLAVE (sid) para de-duplicación y rastreo auditado
         const guid = item.manifest?.guid || item.id || String(Date.now());
-        
+
         // Determinar el login del usuario para la segregación de datos. 
         // Priorizamos el perfil activo que inició la sincronización.
         const userLogin = this.activeSyncAuthor?.usuario || 'default';
 
         // Determinar el autor para calcular la dirección del correo
         const authorStr = item.message_envelope?.from || item.message_envelope?.author || item.manifest?.sender || item.author || 'Unknown';
-        
+
         // Determinar si el correo fue enviado por el usuario activo
         const isSentByMe = authorStr.toLowerCase().includes(userLogin.toLowerCase());
         const calculatedDirection = isSentByMe ? 'outbox' : 'inbox';
@@ -541,7 +541,7 @@ export class SecurityService {
             user_login: userLogin,
             status: calculatedStatus
         });
-        
+
         console.log(`[Sync] Documento insertado en BD Local. ID: ${guid} | Bandeja: ${calculatedDirection} | Estado: ${calculatedStatus}`);
     }
 
@@ -556,13 +556,13 @@ export class SecurityService {
     private pendingAcks: string[] = [];
     private async flushAcks() {
         if (this.pendingAcks.length === 0 || !this.activeSyncConnection) return;
-        
+
         const acks = [...this.pendingAcks];
         this.pendingAcks = [];
-        
+
         // Formato solicitado: array##"id1","id2",...
         const paramString = `array##${acks.map(id => `"${id}"`).join(',')}`;
-        
+
         const endpoint = `v1/api/crud:${this.activeSyncConnection.hash}`;
         const payload = {
             "funcion": 'SDC_IMailBoxBulk',
@@ -593,7 +593,7 @@ export class SecurityService {
             // Intentar recuperar de la conexión activa en localStorage
             const activeConn = localStorage.getItem('active_connection');
             const jwt = activeConn ? JSON.parse(activeConn).jwt : (localStorage.getItem('jwt') || sessionStorage.getItem('jwt'));
-            
+
             if (jwt) {
                 const payload = this.safeDecodeJWT(jwt);
                 if (payload) {
@@ -672,18 +672,18 @@ export class SecurityService {
                 next: (remoteMsg) => {
                     console.log("[Service] Hilo recibido en stream:", remoteMsg);
                     currentRevisionItems.push(remoteMsg);
-                    
+
                     // Certificar descarga del hilo (ACK al server)
                     this.certifyDownload(remoteMsg);
-                    
+
                     const localId = remoteMsg.local_id || remoteMsg.id;
                     const remoteStatus = remoteMsg.workflow?.estado || remoteMsg.estado || remoteMsg.status || 'Pending';
                     const remoteContent = JSON.stringify(remoteMsg); // El objeto completo del servidor
-                    
+
                     if (localId) {
                         console.log(`[Service] Sincronización TOTAL para ID ${localId} -> ${remoteStatus}`);
-                        const updatePromise = invoke('update_mailbox_full_by_sid', { 
-                            sid: localId, 
+                        const updatePromise = invoke('update_mailbox_full_by_sid', {
+                            sid: localId,
                             status: remoteStatus,
                             content: remoteContent,
                             trackingInfo: `Workflow Full Sync: ${remoteStatus}`
@@ -698,19 +698,19 @@ export class SecurityService {
                 },
                 complete: async () => {
                     console.log(`[Service] Streaming de hilos completado. Total: ${currentRevisionItems.length}. Esperando escrituras locales...`);
-                    
+
                     // Esperar a que TODAS las actualizaciones en SQLite terminen
                     await Promise.all(updatePromises);
-                    
+
                     console.log(`[Service] Escrituras locales de hilos finalizadas.`);
                     this._revisionCount.next(currentRevisionItems.length);
-                    
+
                     // Certificar el lote final de hilos recibidos
                     this.flushAcks();
-                    
+
                     // Notificar al componente que debe refrescar la vista local AHORA QUE LA BD ESTÁ LISTA
                     this._mailboxRefreshTrigger.next('workflow-sync-complete');
-                    
+
                     resolve(currentRevisionItems.length);
                 }
             });

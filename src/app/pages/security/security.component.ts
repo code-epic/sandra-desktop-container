@@ -772,7 +772,7 @@ export class SecurityComponent implements OnInit, OnChanges {
     console.groupEnd();
 
     // MARCAR COMO LEÍDO si es nuevo o está pendiente
-    if (!msg.status || msg.status === 'Pending') {
+    if (!msg.status || msg.status === 'Pending' || msg.status === 'PENDIENTE') {
       try {
         msg.status = 'Read';
         await this.securityService.updateMailboxStatus(msg.id, 'Read', 'Auto-marcado como leído al abrir');
