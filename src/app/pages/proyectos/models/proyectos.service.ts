@@ -153,25 +153,6 @@ export class ProyectosService {
     const func = this.obtenerFuncionalidadPorId(funcId);
     if (func) {
       func.situacion = nuevaSituacion;
-      // Resetear todos los marcadores primero
-      func.dev = '-';
-      func.qa = '-';
-      func.pro = '-';
-      // Actualizar marcadores según nueva situación
-      switch (nuevaSituacion) {
-        case 'EN_PROCESO':
-          func.dev = 'X';
-          break;
-        case 'ACTUALIZADA':
-          func.qa = 'X';
-          break;
-        case 'DEPRECADO':
-          func.pro = 'X';
-          break;
-        case 'RECHAZADA':
-          // Rechazada no tiene marcador específico
-          break;
-      }
       this.sistemaSubject.next(this.sistemaData);
       return true;
     }
@@ -191,6 +172,13 @@ export class ProyectosService {
     return false;
   }
   
+  /**
+   * Notifica que los datos han cambiado (dispara el subject)
+   */
+  notificarCambios(): void {
+    this.sistemaSubject.next(this.sistemaData);
+  }
+
   /**
    * Cambia el estado de una funcionalidad (toggle DEV/QA/PRO)
    */

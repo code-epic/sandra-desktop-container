@@ -5,7 +5,7 @@
  * Integra el sistema Gantt migrado con el tema SandraDC
  */
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProyectosService } from './models/proyectos.service';
@@ -80,6 +80,17 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   ganttMonths: string[] = [];
   ganttStartDate: Date = new Date();
   ganttEndDate: Date = new Date();
+  
+  // Calendar state
+  calendarMonths: string[] = ['MAYO 2026', 'JUNIO 2026', 'JULIO 2026'];
+  calendarMonthIdx: number = 0;
+  calendarDays: number[] = Array.from({length: 31}, (_, i) => i + 1);
+  calendarEmptyDays: number[] = [1, 2, 3, 4]; // Mayo
+  calendarStartDay: number | null = 15;
+  calendarEndDay: number | null = 21;
+  calendarStartMonthIdx: number = 0;
+  calendarEndMonthIdx: number = 0;
+  isSliding: boolean = false;
 
   constructor(
     private proyectosService: ProyectosService,
@@ -116,6 +127,17 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   
   ngOnDestroy() {}
   
+  /**
+   * Obtiene las funcionalidades agrupadas por fase para la vista de tabla
+   */
+  get funcionalidadesAgrupadasPorFase(): { fase: string, funcionalidades: FuncionalidadJSON[] }[] {
+    const fases = ['F.I', 'F.II', 'F.III', 'F.IV', 'F.V'];
+    return fases.map(fase => ({
+      fase,
+      funcionalidades: this.funcionalidadesFiltradas.filter(func => func.fase === fase)
+    })).filter(group => group.funcionalidades.length > 0);
+  }
+
   /**
    * Carga las aplicaciones instaladas en Freya
    */
@@ -230,12 +252,151 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   }
   
   /**
-   * Cambia el estado del pipeline (toggle D/Q/P)
+   * Cambia el estado del pipeline (toggle D/Q/P) con lógica condicional
    */
   toggleEstadoPipeline(funcId: string, campo: 'dev' | 'qa' | 'pro'): void {
-    const exito = this.proyectosService.cambiarEstadoPipeline(funcId, campo);
-    if (exito) {
-      this.aplicarFiltros();
+    const func = this.funcionalidadesFiltradas.find(f => f.id === funcId);
+    if (!func) return;
+
+    if (campo === 'pro') {
+      // Solo permite activar PRO si QA ya está en 'X'
+      if (func.pro === 'X') {
+        func.pro = '-';
+      } else if (func.qa === 'X') {
+        func.pro = 'X';
+      }
+    } else if (campo === 'qa') {
+      // Solo permite activar QA si DEV ya está en 'X'
+      if (func.qa === 'X') {
+        func.qa = '-';
+        func.pro = '-'; // Si quito QA, pierdo PRO por lógica de flujo
+      } else if (func.dev === 'X') {
+        func.qa = 'X';
+      }
+    } else if (campo === 'dev') {
+      if (func.dev === 'X') {
+        func.dev = '-';
+        func.qa = '-';
+        func.pro = '-';
+      } else {
+        func.dev = 'X';
+      }
+    }
+
+    // Persistir estado y notificar
+    func.estado = func.dev === 'X' || func.qa === 'X' || func.pro === 'X';
+    this.proyectosService.notificarCambios();
+    this.aplicarFiltros();
+  }
+
+  /**
+   * Cambia la fase de una funcionalidad (I, II, III, IV, V)
+   */
+  cambiarFase(funcId: string, fase: string): void {
+    const func = this.funcionalidadesFiltradas.find(f => f.id === funcId);
+    if (func) {
+      func.fase = fase as any;
+      this.proyectosService.notificarCambios();
+    }
+  }
+
+  /**
+   * Actualiza las observaciones de una funcionalidad
+   */
+  actualizarObservaciones(funcId: string, texto: string): void {
+    const func = this.funcionalidadesFiltradas.find(f => f.id === funcId);
+    if (func) {
+      func.observaciones = texto;
+      // Disparamos actualización en el servicio si fuera necesario, 
+      // pero como es por referencia en el array filtrado ya está
+    }
+  }
+
+  /**
+   * Selecciona un día en el calendario (lógica de rango entre meses)
+   */
+  seleccionarDiaCal(dia: number): void {
+    const currentMonthIdx = this.calendarMonthIdx;
+
+    if (!this.calendarStartDay || (this.calendarStartDay && this.calendarEndDay)) {
+      this.calendarStartDay = dia;
+      this.calendarStartMonthIdx = currentMonthIdx;
+      this.calendarEndDay = null;
+      this.calendarEndMonthIdx = -1;
+    } else {
+      // Comparar fechas para determinar orden
+      const startTotal = this.calendarStartMonthIdx * 31 + (this.calendarStartDay || 0);
+      const currentTotal = currentMonthIdx * 31 + dia;
+
+      if (currentTotal < startTotal) {
+        this.calendarEndDay = this.calendarStartDay;
+        this.calendarEndMonthIdx = this.calendarStartMonthIdx;
+        this.calendarStartDay = dia;
+        this.calendarStartMonthIdx = currentMonthIdx;
+      } else {
+        this.calendarEndDay = dia;
+        this.calendarEndMonthIdx = currentMonthIdx;
+      }
+    }
+
+    // Actualizar la funcionalidad seleccionada si existe
+    if (this.funcionalidadSeleccionada) {
+      const startMes = this.calendarMonths[this.calendarStartMonthIdx].split(' ')[0].substring(0, 3);
+      this.funcionalidadSeleccionada.fechaDesde = `${this.calendarStartDay} ${startMes}`;
+
+      if (this.calendarEndDay) {
+        const endMes = this.calendarMonths[this.calendarEndMonthIdx].split(' ')[0].substring(0, 3);
+        this.funcionalidadSeleccionada.fechaHasta = `${this.calendarEndDay} ${endMes}`;
+      } else {
+        this.funcionalidadSeleccionada.fechaHasta = '';
+      }
+      
+      this.proyectosService.notificarCambios();
+    }
+  }
+
+  /**
+   * Verifica si un día está en el rango seleccionado (soporta múltiples meses)
+   */
+  isDayInRange(dia: number, monthIdx: number): boolean {
+    if (!this.calendarStartDay || !this.calendarEndDay) return false;
+
+    const startTotal = this.calendarStartMonthIdx * 32 + (this.calendarStartDay || 0);
+    const endTotal = this.calendarEndMonthIdx * 32 + (this.calendarEndDay || 0);
+    const currentTotal = monthIdx * 32 + dia;
+
+    return currentTotal > startTotal && currentTotal < endTotal;
+  }
+
+  /**
+   * Cambia el mes del calendario
+   */
+  cambiarMesCal(delta: number): void {
+    const nextIdx = this.calendarMonthIdx + delta;
+    if (nextIdx >= 0 && nextIdx < this.calendarMonths.length) {
+      this.isSliding = true;
+      setTimeout(() => {
+        this.calendarMonthIdx = nextIdx;
+        // Ajustar días según el mes (Simplificado)
+        if (this.calendarMonthIdx === 0) { // Mayo
+          this.calendarDays = Array.from({length: 31}, (_, i) => i + 1);
+          this.calendarEmptyDays = [1, 2, 3, 4];
+        } else if (this.calendarMonthIdx === 1) { // Junio
+          this.calendarDays = Array.from({length: 30}, (_, i) => i + 1);
+          this.calendarEmptyDays = [0]; // Empieza lunes
+        }
+        this.isSliding = false;
+      }, 300);
+    }
+  }
+
+  /**
+   * Listener para cerrar con tecla ESC
+   */
+  @HostListener('window:keydown.escape')
+  onKeydownHandler() {
+    if (this.funcionalidadSeleccionada) {
+      this.cerrarDetalles();
     }
   }
   
@@ -244,6 +405,34 @@ export class ProyectosComponent implements OnInit, OnDestroy {
    */
   seleccionarFuncionalidad(func: FuncionalidadJSON): void {
     this.funcionalidadSeleccionada = func;
+    
+    // Cargar fechas existentes en el calendario para el mockup/interacción
+    if (func.fechaDesde) {
+      const parts = func.fechaDesde.split(' ');
+      const day = parseInt(parts[0]);
+      if (!isNaN(day)) this.calendarStartDay = day;
+      
+      // Encontrar índice del mes
+      const mesNombre = parts[1]?.toUpperCase();
+      const idx = this.calendarMonths.findIndex(m => m.startsWith(mesNombre));
+      if (idx !== -1) this.calendarStartMonthIdx = idx;
+    } else {
+      this.calendarStartDay = 15;
+      this.calendarStartMonthIdx = 0;
+    }
+
+    if (func.fechaHasta) {
+      const parts = func.fechaHasta.split(' ');
+      const day = parseInt(parts[0]);
+      if (!isNaN(day)) this.calendarEndDay = day;
+      
+      const mesNombre = parts[1]?.toUpperCase();
+      const idx = this.calendarMonths.findIndex(m => m.startsWith(mesNombre));
+      if (idx !== -1) this.calendarEndMonthIdx = idx;
+    } else {
+      this.calendarEndDay = 21;
+      this.calendarEndMonthIdx = 0;
+    }
   }
   
   /**
@@ -635,26 +824,34 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Calcula la posición left de la barra en el Gantt
+   * Calcula la posición left de la barra en el Gantt basado en fechaDesde
    */
-  getGanttBarPosition(fechaStr: string): { left: number } {
-    const fecha = new Date(fechaStr);
-    const totalDays = (this.ganttEndDate.getTime() - this.ganttStartDate.getTime()) / (1000 * 60 * 60 * 24);
-    const daysFromStart = (fecha.getTime() - this.ganttStartDate.getTime()) / (1000 * 60 * 60 * 24);
-
-    const left = (daysFromStart / totalDays) * 100;
-    return { left: Math.max(0, Math.min(95, left)) };
+  getGanttBarPosition(func: FuncionalidadJSON): { left: number } {
+    if (!func.fechaDesde) return { left: 5 };
+    
+    // Parsear día y mes (ej: "15 May")
+    const day = parseInt(func.fechaDesde.split(' ')[0]);
+    // Simplificación para el demo: mapear a un porcentaje de 0-100 del mes actual
+    const left = ((day - 1) / 31) * 100;
+    return { left: Math.max(0, Math.min(92, left)) };
   }
 
   /**
-   * Calcula el ancho de la barra en el Gantt
+   * Calcula el ancho de la barra en el Gantt basado en el rango
    */
-  getGanttBarWidth(fechaStr: string): number {
-    // Duración de 15 días por defecto
-    const totalDays = (this.ganttEndDate.getTime() - this.ganttStartDate.getTime()) / (1000 * 60 * 60 * 24);
-    const durationDays = 15;
+  getGanttBarWidth(func: FuncionalidadJSON): number {
+    if (!func.fechaDesde || !func.fechaHasta) return 8;
 
-    const width = (durationDays / totalDays) * 100;
-    return Math.max(5, Math.min(20, width));
+    const start = parseInt(func.fechaDesde.split(' ')[0]);
+    const end = parseInt(func.fechaHasta.split(' ')[0]);
+    
+    if (isNaN(start) || isNaN(end)) return 8;
+
+    let duration = end - start;
+    if (duration < 0) duration = 5; // Fallback
+    if (duration === 0) duration = 1;
+
+    const width = (duration / 31) * 100;
+    return Math.max(4, Math.min(100, width));
   }
 }

@@ -45,9 +45,18 @@ export interface FuncionalidadJSON {
   
   /** Fecha de registro (YYYY-MM-DD) */
   fecha: string;
+
+  /** Fecha de inicio del rango */
+  fechaDesde?: string;
+
+  /** Fecha de fin del rango */
+  fechaHasta?: string;
   
   /** Estado activo: true si tiene 'X' en dev/qa/pro */
   estado: boolean;
+  
+  /** Observaciones adicionales */
+  observaciones?: string;
 }
 
 /**

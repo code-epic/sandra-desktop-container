@@ -134,20 +134,38 @@
                 <div class="tree-children" *ngIf="isSubmoduloExpandido(modulo.nombre, submodulo.nombre)">
                   <div *ngFor="let func of submodulo.funcionalidades" class="tree-item funcionalidad-item"
                     (click)="seleccionarFuncionalidad(func); $event.stopPropagation()">
-                    <i class="fas fa-file-code"></i>
-                    <div class="func-content">
-                      <span class="item-name">{{ func.descripcion | slice:0:80 }}{{ func.descripcion.length > 80 ? '...'
-                        :
-                        '' }}</span>
-                      <div class="func-meta">
-                        <span class="badge" [class]="getBadgeColor(func.situacion)">{{ func.situacion }}</span>
-                        <span class="fase-badge">{{ func.fase }}</span>
-                        <input type="date" class="date-input" [value]="func.fecha"
-                          (change)="cambiarFecha(func.id, $event.target.value); $event.stopPropagation()">
+
+                    <div class="func-main-info">
+                      <i class="fas fa-file-code func-icon"></i>
+                      <span class="item-name">{{ func.descripcion }}</span>
+                    </div>
+
+                    <div class="func-status-group">
+                      <!-- Situación Badge -->
+                      <span class="badge badge-premium" [class]="getBadgeColor(func.situacion)">
+                        {{ func.situacion }}
+                      </span>
+
+                      <!-- Timeline / Date Info (Read-only range) -->
+                      <div class="date-status-box">
+                        <div class="premium-date-range-badge">
+                          <i class="far fa-calendar-alt"></i>
+                          <span>{{ func.fechaDesde || '15 May' }}</span>
+                          <span class="range-arrow">›</span>
+                          <span>{{ func.fechaHasta || '21 May' }}</span>
+                        </div>
+                      </div>
+
+                      <!-- Pipeline Indicator (Mini) -->
+                      <div class="mini-pipeline-dots">
+                        <span class="dot" [class.active]="func.dev === 'X'" title="DEV"></span>
+                        <span class="dot" [class.active]="func.qa === 'X'" title="QA"></span>
+                        <span class="dot" [class.active]="func.pro === 'X'" title="PRO"></span>
                       </div>
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
@@ -160,7 +178,7 @@
           <table class="proyectos-table">
             <thead>
               <tr>
-                <th width="80" class="col-id">ID</th>
+                <!-- <th width="80" class="col-id">ID</th> -->
                 <th class="col-modulo">Módulo</th>
                 <th>Submódulo</th>
                 <th>Funcionalidad</th>
@@ -170,18 +188,32 @@
                 <th width="120">Estado</th>
               </tr>
             </thead>
-            <tbody>
-              <tr *ngFor="let func of funcionalidadesFiltradas" (click)="seleccionarFuncionalidad(func)">
-                <td class="id-cell col-id">{{ func.id.split('-')[2] }}</td>
+            <tbody *ngFor="let grupo of funcionalidadesAgrupadasPorFase">
+              <!-- Fila de Encabezado de Grupo (Fases) -->
+              <tr class="fase-group-header">
+                <td colspan="7">
+                  <div class="fase-group-title">
+                    <span class="fase-dot"></span>
+                    <span class="fase-text">FASE {{ grupo.fase.split('.')[1] }}</span>
+                    <span class="fase-count">{{ grupo.funcionalidades.length }} funcionalidades</span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngFor="let func of grupo.funcionalidades" (click)="seleccionarFuncionalidad(func)" class="func-row">
+                <!-- <td class="id-cell col-id">{{ func.id.split('-')[2] }}</td> -->
                 <td class="col-modulo">
                   <span class="modulo-full">{{ func.modulo }}</span>
                   <span class="modulo-short">{{ func.modulo | slice:0:3 }}</span>
                 </td>
                 <td>{{ func.submodulo }}</td>
                 <td class="desc-cell">{{ func.descripcion }}</td>
-                <td>
-                  <input type="date" class="table-date-input" [value]="func.fecha"
-                    (change)="cambiarFecha(func.id, $event.target.value); $event.stopPropagation()">
+                <td class="col-date">
+                  <div class="premium-date-range-badge table-version">
+                    <span>{{ func.fechaDesde || '15 May' }}</span>
+                    <span class="range-arrow">›</span>
+                    <span>{{ func.fechaHasta || '21 May' }}</span>
+                  </div>
                 </td>
                 <td>
                   <span class="badge" [class]="getBadgeColor(func.situacion)">
@@ -244,21 +276,25 @@
               <!-- Timeline Bar Area -->
               <div class="gantt-timeline-area">
                 <div class="gantt-timeline-grid">
-                  <div class="grid-line" *ngFor="let _ of ganttMonths; let idx = index" [class.month-start]="idx === 0">
+                  <div class="grid-line month-line" *ngFor="let _ of ganttMonths; let idx = index">
+                    <div class="day-ticks">
+                      <span *ngFor="let d of [7, 14, 21, 28]" class="day-tick"></span>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Task Bar -->
                 <div class="gantt-task-bar" [class]="'bar-' + getBadgeColor(func.situacion)"
-                  [style.left.%]="getGanttBarPosition(func.fecha).left" [style.width.%]="getGanttBarWidth(func.fecha)">
+                  [style.left.%]="getGanttBarPosition(func).left" [style.width.%]="getGanttBarWidth(func)">
                   <div class="bar-content">
-                    <span class="bar-label">{{ getSituacionTexto(func.situacion) }}</span>
-                    <span class="bar-date">{{ func.fecha | date:'dd/MM' }}</span>
+                    <span class="bar-label">
+                      {{ getGanttBarWidth(func) < 12 ? (getSituacionTexto(func.situacion) | slice:0:1) :
+                        getSituacionTexto(func.situacion) }} </span>
+                        <span class="bar-date" *ngIf="getGanttBarWidth(func) > 25">{{ func.fechaDesde }}</span>
                   </div>
                   <div class="bar-tooltip">
-                    {{ func.descripcion }}
-                    <br>
-                    <small>{{ func.fecha | date:'dd/MM/yyyy' }} - {{ getSituacionTexto(func.situacion) }}</small>
+                    <strong>{{ func.descripcion }}</strong><br>
+                    <span>{{ func.fechaDesde || '15 May' }} - {{ func.fechaHasta || '21 May' }}</span>
                   </div>
                 </div>
               </div>
@@ -302,12 +338,18 @@
 
 <!-- Detail Panel (Sidebar Derecho) -->
 <div class="proyectos-detail-pane glass-card fade-in-right" *ngIf="funcionalidadSeleccionada">
-  
-  <!-- Header Minimalista -->
+
+  <!-- Header Minimalista con Path -->
   <div class="detail-header-minimal">
-    <div class="header-title-group">
-      <span class="detail-id-pill">{{ funcionalidadSeleccionada.id.split('-')[2] }}</span>
-      <h3>Detalle</h3>
+    <div class="header-main-info">
+      <!-- <span class="detail-id-pill">#{{ funcionalidadSeleccionada.id.split('-')[2] }}</span> -->
+      <div class="title-stack">
+        <h3>Detalle de Funcionalidad</h3>
+        <span class="subtitle-path">
+          <i class="fas fa-layer-group"></i> {{ funcionalidadSeleccionada.modulo }} › {{
+          funcionalidadSeleccionada.submodulo }}
+        </span>
+      </div>
     </div>
     <button class="btn-circular-close" (click)="cerrarDetalles()" title="Cerrar">
       <i class="fas fa-times"></i>
@@ -324,17 +366,22 @@
           <span>DEV</span>
         </button>
         <button class="mini-pipe-btn qa" [class.active]="funcionalidadSeleccionada.qa === 'X'"
+          [disabled]="funcionalidadSeleccionada.dev !== 'X'"
           (click)="toggleEstadoPipeline(funcionalidadSeleccionada.id, 'qa')">
           <i class="fas fa-vial"></i>
           <span>QA</span>
         </button>
         <button class="mini-pipe-btn pro" [class.active]="funcionalidadSeleccionada.pro === 'X'"
+          [disabled]="funcionalidadSeleccionada.qa !== 'X'"
           (click)="toggleEstadoPipeline(funcionalidadSeleccionada.id, 'pro')">
           <i class="fas fa-rocket"></i>
           <span>PRO</span>
         </button>
       </div>
     </div>
+
+
+
 
     <!-- Quick Situation Selectors (Elegantes y Minimalistas) -->
     <div class="situation-minimal-grid">
@@ -356,27 +403,72 @@
       </button>
     </div>
 
-    <div class="detail-divider"></div>
+    <!-- Elegant Calendar Component Interactive & Minimalist -->
+    <div class="modern-calendar-section">
+      
+      <!-- Phase Selector at Top -->
+      <div class="phase-selector-mini top-spaced">
+        <button *ngFor="let f of ['F.I', 'F.II', 'F.III', 'F.IV', 'F.V']" 
+          class="phase-dot-btn" [class.active]="funcionalidadSeleccionada.fase === f"
+          (click)="cambiarFase(funcionalidadSeleccionada.id, f)" [title]="f">
+          {{ f.split('.')[1] }}
+        </button>
+      </div>
 
-    <!-- Metadata Section -->
-    <div class="compact-meta-info">
-      <div class="meta-item">
-        <label><i class="fas fa-layer-group"></i> Módulo</label>
-        <span class="val">{{ funcionalidadSeleccionada.modulo }} / {{ funcionalidadSeleccionada.submodulo }}</span>
+      <div class="section-label-row">
+        <label><i class="fas fa-calendar-check"></i> Planificación</label>
+        <span class="compact-range-summary" *ngIf="calendarStartDay">
+          {{ funcionalidadSeleccionada.fechaDesde }}
+          {{ funcionalidadSeleccionada.fechaHasta ? '› ' + funcionalidadSeleccionada.fechaHasta : '' }}
+        </span>
       </div>
-      <div class="meta-item">
-        <label><i class="fas fa-calendar-day"></i> Fecha Compromiso</label>
-        <input type="date" class="mini-date-picker" [value]="funcionalidadSeleccionada.fecha"
-          (change)="cambiarFecha(funcionalidadSeleccionada.id, $event.target.value)">
+
+      <div class="premium-calendar-card minimalist" [class.sliding]="isSliding">
+        <div class="calendar-header-mini">
+          <div class="cal-current-month">{{ calendarMonths[calendarMonthIdx] }}</div>
+          <div class="cal-nav-mini">
+            <button class="cal-nav-btn-mini" (click)="cambiarMesCal(-1)" [disabled]="calendarMonthIdx === 0">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="cal-nav-btn-mini" (click)="cambiarMesCal(1)"
+              [disabled]="calendarMonthIdx === calendarMonths.length - 1">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="calendar-days-grid mini">
+          <span class="cal-day-mini empty" *ngFor="let _ of calendarEmptyDays"></span>
+          <span class="cal-day-mini" *ngFor="let day of calendarDays"
+            [class.selected-start]="day === calendarStartDay && calendarMonthIdx === calendarStartMonthIdx"
+            [class.selected-end]="day === calendarEndDay && calendarMonthIdx === calendarEndMonthIdx"
+            [class.in-range]="isDayInRange(day, calendarMonthIdx)" (click)="seleccionarDiaCal(day)">
+            {{day}}
+          </span>
+        </div>
       </div>
+
     </div>
 
     <div class="detail-divider"></div>
 
-    <!-- Description & Fields -->
+    <!-- Description -->
     <div class="content-text-section">
       <label>Descripción</label>
       <p class="premium-text">{{ funcionalidadSeleccionada.descripcion }}</p>
+    </div>
+
+    <!-- Observations Section -->
+    <div class="content-text-section">
+      <div class="section-header-row">
+        <label><i class="fas fa-comment-alt"></i> Observaciones</label>
+        <button class="btn-save-obs" (click)="cerrarDetalles()">
+          <i class="fas fa-check"></i> Aceptar
+        </button>
+      </div>
+      <textarea class="premium-textarea" [ngModel]="funcionalidadSeleccionada.observaciones"
+        (ngModelChange)="actualizarObservaciones(funcionalidadSeleccionada.id, $event)"
+        placeholder="Agregar notas técnicas u observaciones..."></textarea>
     </div>
 
     <div class="content-text-section" *ngIf="funcionalidadSeleccionada.camposExistentes">
