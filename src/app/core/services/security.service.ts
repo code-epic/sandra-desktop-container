@@ -101,11 +101,21 @@ export class SecurityService {
 
     private lastProgressUpdate = 0;
     private readonly UI_THROTTLE_MS = 150;
-    private activeSyncConnection: any = null;
-    private activeSyncAuthor: any = null;
+    public activeSyncConnection: any = null;
+    public activeSyncAuthor: any = null;
     private existingGuids = new Set<string>();
 
     constructor(private dataStreamService: DataStreamService) {
+        // Recuperar sesión persistida si existe (survive refresh)
+        try {
+            const storedConn = localStorage.getItem('active_connection');
+            const storedAuthor = localStorage.getItem('author_profile');
+            if (storedConn) this.activeSyncConnection = JSON.parse(storedConn);
+            if (storedAuthor) this.activeSyncAuthor = JSON.parse(storedAuthor);
+        } catch (e) {
+            console.warn("[SecurityService] Error recuperando sesión persistida:", e);
+        }
+
         // Escucha global de refresco desde Rust (Remote Control o Sync Interno)
         listen('refresh-mailbox', async (event: any) => {
             console.log("[Service] Señal de refresco recibida de Rust:", event.payload);
@@ -326,6 +336,11 @@ export class SecurityService {
 
     async startMailboxSync(activeConnection: any, authorProfile: any, clientId?: string) {
         if (this._isSyncing.value || !activeConnection || !authorProfile?.usuario) return;
+
+        // Persistir sesión para que sobreviva a recargas (F5)
+        localStorage.setItem('active_connection', JSON.stringify(activeConnection));
+        localStorage.setItem('author_profile', JSON.stringify(authorProfile));
+
         this.activeSyncConnection = activeConnection;
         this.activeSyncAuthor = authorProfile;
 
@@ -408,6 +423,92 @@ export class SecurityService {
 
                     setTimeout(() => this.setSyncState(false), 1200);
                 }
+            }
+        });
+    }
+
+    async startManualsSync(activeConnection: any, authorProfile: any) {
+        console.log("[SecurityService] startManualsSync() invocado", { connectionHash: activeConnection?.hash, user: authorProfile?.usuario });
+
+        if (this._isSyncing.value || !activeConnection || !authorProfile?.usuario) {
+            console.warn("[SecurityService] Sincronización de manuales rechazada: ya está sincronizando o faltan datos", {
+                isSyncing: this._isSyncing.value,
+                connection: !!activeConnection,
+                user: !!authorProfile?.usuario
+            });
+            return;
+        }
+
+        this.setSyncState(true, 'Sincronizando Manuales...', 10, 0);
+        this.startAmbientSyncSound();
+
+        const login = (authorProfile.usuario || 'persona').toLowerCase();
+        const endpoint = `v1/api/crudstream:${activeConnection.hash}`;
+        const payload = { "funcion": 'SDC_CManuals', "parametros": "" };
+
+        console.log(`[SecurityService] Iniciando Stream para endpoint: ${endpoint} con payload:`, payload);
+
+        let count = 0;
+        this.dataStreamService.streamPostRequest<any>(
+            activeConnection.ip_address,
+            Number(activeConnection.port),
+            endpoint,
+            payload,
+            activeConnection.hash,
+            activeConnection.jwt
+        ).subscribe({
+            next: async (item) => {
+                console.log("[SecurityService] Raw manual item received from stream:", item);
+                
+                // Estructura detectada: Usar campos directos del objeto (nombre, categoria, etc.)
+                const fileName = item.nombre || 'Documento sin nombre';
+                const uuid = item._id || item.id || Math.random().toString(36).substring(7);
+                const category = item.categoria || 'Sin Categoría';
+                const fileSize = item.tamanio_human || (item.tamanio_bytes ? `${(item.tamanio_bytes / 1024).toFixed(1)} KB` : 'Vault');
+                const filePath = item.ruta_relativa || item.ruta_completa || '';
+                const sha256 = item.hash?.sha256 || '';
+
+                console.log(`[SecurityService] Item procesado: ${fileName} -> Categoría: ${category}`);
+
+                console.log(`[SecurityService] Guardando manual ${fileName} en historial...`);
+                
+                await invoke('add_document_history', {
+                    fileName,
+                    filePath,
+                    fileSize,
+                    remoteCode: uuid,
+                    source: 'MANUALS',
+                    fileHash: sha256,
+                    groupName: category,
+                    userLogin: login,
+                    metadata: JSON.stringify(item)
+                });
+
+                console.log(`[SecurityService] Manual ${fileName} guardado. Notificando UI...`);
+                invoke('refresh_document_history_signal');
+
+                count++;
+                this._syncCount.next(count);
+                this._syncMessage.next(`Manual: ${fileName}`);
+                this._syncProgress.next(Math.min(count * 5, 95));
+            },
+            error: (err) => {
+                console.error("[SecurityService] Error fatal en streaming de manuales:", err);
+                this.stopAmbientSyncSound();
+                this.setSyncState(false);
+            },
+            complete: () => {
+                console.log(`[SecurityService] Sincronización de manuales terminada. Total: ${count}`);
+                this._syncProgress.next(100);
+                this._syncMessage.next('Manuales Sincronizados');
+                this.stopAmbientSyncSound();
+                this.playSyncCompleteSound();
+
+                // Trigger refresh for secure viewer
+                console.log("[SecurityService] Emitiendo señal de refresco...");
+                invoke('refresh_document_history_signal');
+
+                setTimeout(() => this.setSyncState(false), 1200);
             }
         });
     }

@@ -24,6 +24,15 @@ import { AppStateService } from '../../core/services/app-state.service';
 import { DomSanitizer } from '@angular/platform-browser';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { SecurityService } from '../../core/services/security.service';
+
+interface MonitorSdcConfig {
+  access: {
+    jwtStorage: 'localStorage' | 'sessionStorage';
+    jwtVariableName: string;
+  };
+}
+
 
 @Component({
   selector: 'app-proyectos',
@@ -36,7 +45,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   // Estado de carga
   cargando = false;
   error: string | null = null;
-  
+
   // Datos del sistema
   sistema: SistemaProyectoJSON | null = null;
   modulos: ModuloJSON[] = [];
@@ -48,13 +57,13 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     enProduccion: 0,
     porcentajeAvance: 0
   };
-  
+
   // Apps instaladas
   appsInstaladas: DesktopApp[] = [];
-  
+
   // Vista actual
   vistaActiva: VistaProyecto = 'arbol';
-  
+
   // Filtros
   filtros: FiltrosProyecto = {
     busqueda: '',
@@ -68,23 +77,23 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       pro: false
     }
   };
-  
+
   // Expansión de árbol
   modulosExpandidos: Set<string> = new Set();
   submodulosExpandidos: Set<string> = new Set();
-  
+
   // Funcionalidad seleccionada (para detalles)
   funcionalidadSeleccionada: FuncionalidadJSON | null = null;
-  
+
   // Gantt timeline data
   ganttMonths: string[] = [];
   ganttStartDate: Date = new Date();
   ganttEndDate: Date = new Date();
-  
+
   // Calendar state
   calendarMonths: string[] = ['MAYO 2026', 'JUNIO 2026', 'JULIO 2026'];
   calendarMonthIdx: number = 0;
-  calendarDays: number[] = Array.from({length: 31}, (_, i) => i + 1);
+  calendarDays: number[] = Array.from({ length: 31 }, (_, i) => i + 1);
   calendarEmptyDays: number[] = [1, 2, 3, 4]; // Mayo
   calendarStartDay: number | null = 15;
   calendarEndDay: number | null = 21;
@@ -92,14 +101,29 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   calendarEndMonthIdx: number = 0;
   isSliding: boolean = false;
 
+  // Estado Modal Nueva Tarea
+  mostrarModalNuevaTarea = false;
+  nuevaTarea: any = {
+    descripcion: '',
+    modulo: '',
+    submodulo: '',
+    fase: 'F.I'
+  };
+  currentUserLogin: string = 'default';
+
+
   constructor(
     private proyectosService: ProyectosService,
     private appsService: DesktopAppsService,
     private appState: AppStateService,
-    private sanitizer: DomSanitizer
-  ) {}
-  
+    private sanitizer: DomSanitizer,
+    private securityService: SecurityService
+  ) { }
+
   async ngOnInit() {
+
+    if (!this.checkAuth()) return;
+
     this.cargando = true;
 
     try {
@@ -124,9 +148,48 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.cargando = false;
     }
   }
-  
-  ngOnDestroy() {}
-  
+
+  private checkAuth(): boolean {
+    const configStr = localStorage.getItem('sdc_ui_config');
+    const isRealJwt = (t: any) => t && t.length > 20 && t.includes('.');
+
+    if (configStr) {
+      try {
+        const config: MonitorSdcConfig = JSON.parse(configStr);
+        const storage = config.access.jwtStorage === 'sessionStorage' ? sessionStorage : localStorage;
+        const token = storage.getItem(config.access.jwtVariableName);
+
+        if (!isRealJwt(token)) {
+          console.warn("Proyectos: Acceso denegado. Token no válido o sesión no activa.");
+          this.appState.setActiveTab('dashboard');
+          return false;
+        }
+
+        // Extraer usuario del JWT para filtrado de datos
+        try {
+          if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            this.currentUserLogin = payload.Usuario?.['usuario'] || payload.usuario || 'default';
+          }
+        } catch (e) {
+          this.currentUserLogin = 'default';
+        }
+      } catch (e) {
+        console.error("Error validando auth en Monitor", e);
+        this.appState.setActiveTab('dashboard');
+        return false;
+      }
+    } else {
+      console.warn("Monitor: Configuración no encontrada.");
+      this.appState.setActiveTab('dashboard');
+      return false;
+    }
+    return true;
+  }
+
+
+  ngOnDestroy() { }
+
   /**
    * Obtiene las funcionalidades agrupadas por fase para la vista de tabla
    */
@@ -156,14 +219,14 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       }];
     }
   }
-  
+
   /**
    * Carga los datos del proyecto desde el JSON
    */
   private async cargarDatosProyecto(): Promise<void> {
     // El JSON está en assets/data/project.json (copiado desde man/gantt)
     await this.proyectosService.cargarDatos('assets/data/project.json');
-    
+
     this.proyectosService.sistema$.subscribe(sistema => {
       this.sistema = sistema;
       this.modulos = sistema?.modulos || [];
@@ -171,14 +234,14 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.calcularEstadisticas();
     });
   }
-  
+
   /**
    * Cambia la vista activa
    */
   cambiarVista(vista: VistaProyecto): void {
     this.vistaActiva = vista;
   }
-  
+
   /**
    * Aplica los filtros actuales
    */
@@ -186,14 +249,14 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     this.funcionalidadesFiltradas = this.proyectosService.filtrarFuncionalidades(this.filtros);
     this.calcularEstadisticas();
   }
-  
+
   /**
    * Calcula estadísticas del proyecto
    */
   private calcularEstadisticas(): void {
     this.estadisticas = this.proyectosService.calcularEstadisticas();
   }
-  
+
   /**
    * Expande o colapsa un módulo
    */
@@ -204,7 +267,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.modulosExpandidos.add(nombreModulo);
     }
   }
-  
+
   /**
    * Expande o colapsa un submódulo
    */
@@ -216,21 +279,21 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.submodulosExpandidos.add(key);
     }
   }
-  
+
   /**
    * Verifica si un módulo está expandido
    */
   isModuloExpandido(nombreModulo: string): boolean {
     return this.modulosExpandidos.has(nombreModulo);
   }
-  
+
   /**
    * Verifica si un submódulo está expandido
    */
   isSubmoduloExpandido(moduloNombre: string, submoduloNombre: string): boolean {
     return this.submodulosExpandidos.has(`${moduloNombre}-${submoduloNombre}`);
   }
-  
+
   /**
    * Cambia la fecha de una funcionalidad
    */
@@ -240,7 +303,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.aplicarFiltros();
     }
   }
-  
+
   /**
    * Cambia la situación de una funcionalidad
    */
@@ -250,7 +313,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.aplicarFiltros();
     }
   }
-  
+
   /**
    * Cambia el estado del pipeline (toggle D/Q/P) con lógica condicional
    */
@@ -350,7 +413,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       } else {
         this.funcionalidadSeleccionada.fechaHasta = '';
       }
-      
+
       this.proyectosService.notificarCambios();
     }
   }
@@ -379,10 +442,10 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         this.calendarMonthIdx = nextIdx;
         // Ajustar días según el mes (Simplificado)
         if (this.calendarMonthIdx === 0) { // Mayo
-          this.calendarDays = Array.from({length: 31}, (_, i) => i + 1);
+          this.calendarDays = Array.from({ length: 31 }, (_, i) => i + 1);
           this.calendarEmptyDays = [1, 2, 3, 4];
         } else if (this.calendarMonthIdx === 1) { // Junio
-          this.calendarDays = Array.from({length: 30}, (_, i) => i + 1);
+          this.calendarDays = Array.from({ length: 30 }, (_, i) => i + 1);
           this.calendarEmptyDays = [0]; // Empieza lunes
         }
         this.isSliding = false;
@@ -399,19 +462,19 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.cerrarDetalles();
     }
   }
-  
+
   /**
    * Selecciona una funcionalidad para ver detalles
    */
   seleccionarFuncionalidad(func: FuncionalidadJSON): void {
     this.funcionalidadSeleccionada = func;
-    
+
     // Cargar fechas existentes en el calendario para el mockup/interacción
     if (func.fechaDesde) {
       const parts = func.fechaDesde.split(' ');
       const day = parseInt(parts[0]);
       if (!isNaN(day)) this.calendarStartDay = day;
-      
+
       // Encontrar índice del mes
       const mesNombre = parts[1]?.toUpperCase();
       const idx = this.calendarMonths.findIndex(m => m.startsWith(mesNombre));
@@ -425,7 +488,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       const parts = func.fechaHasta.split(' ');
       const day = parseInt(parts[0]);
       if (!isNaN(day)) this.calendarEndDay = day;
-      
+
       const mesNombre = parts[1]?.toUpperCase();
       const idx = this.calendarMonths.findIndex(m => m.startsWith(mesNombre));
       if (idx !== -1) this.calendarEndMonthIdx = idx;
@@ -434,21 +497,21 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.calendarEndMonthIdx = 0;
     }
   }
-  
+
   /**
    * Cierra el panel de detalles
    */
   cerrarDetalles(): void {
     this.funcionalidadSeleccionada = null;
   }
-  
+
   /**
    * Exporta el sistema a JSON
    */
   exportarJSON(): void {
     this.proyectosService.descargarJSON('proyecto-sssifanb.json');
   }
-  
+
   /**
    * Obtiene el color de badge según situación
    */
@@ -474,7 +537,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       default: return 'En Proceso';
     }
   }
-  
+
   /**
    * Limpia todos los filtros
    */
@@ -493,19 +556,19 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     };
     this.aplicarFiltros();
   }
-  
+
   /**
    * Verifica si hay filtros activos
    */
   hayFiltrosActivos(): boolean {
     return this.filtros.busqueda !== '' ||
-           this.filtros.appId !== null ||
-           this.filtros.modulo !== null ||
-           this.filtros.submodulo !== null ||
-           this.filtros.situacion !== 'all' ||
-           this.filtros.estados.dev ||
-           this.filtros.estados.qa ||
-           this.filtros.estados.pro;
+      this.filtros.appId !== null ||
+      this.filtros.modulo !== null ||
+      this.filtros.submodulo !== null ||
+      this.filtros.situacion !== 'all' ||
+      this.filtros.estados.dev ||
+      this.filtros.estados.qa ||
+      this.filtros.estados.pro;
   }
 
   /**
@@ -516,7 +579,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
    */
   imprimirReporte(): void {
     const datosFiltrados = this.funcionalidadesFiltradas;
-    
+
     if (datosFiltrados.length === 0) {
       alert('❌ No hay datos para generar reporte');
       return;
@@ -561,9 +624,9 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
     // Ordenar para agrupar correctamente
     const sortedData = [...datosFiltrados].sort((a, b) => {
-       if (a.modulo !== b.modulo) return a.modulo.localeCompare(b.modulo);
-       if (a.submodulo !== b.submodulo) return a.submodulo.localeCompare(b.submodulo);
-       return a.descripcion.localeCompare(b.descripcion);
+      if (a.modulo !== b.modulo) return a.modulo.localeCompare(b.modulo);
+      if (a.submodulo !== b.submodulo) return a.submodulo.localeCompare(b.submodulo);
+      return a.descripcion.localeCompare(b.descripcion);
     });
 
     sortedData.forEach(func => {
@@ -573,7 +636,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
         lastSubmodulo = '';
         tableData.push([
           `MÓDULO: ${func.modulo.toUpperCase()}`,
-          '' 
+          ''
         ]);
         rowConfig.push({ type: 'module' });
       }
@@ -612,7 +675,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       },
 
       headStyles: {
-        fillColor: [255, 255, 255], 
+        fillColor: [255, 255, 255],
         textColor: [76, 175, 80], // Green 500
         fontStyle: 'bold',
         halign: 'left',
@@ -634,7 +697,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
             data.cell.styles.fillColor = [232, 245, 233]; // Green 50
             data.cell.styles.fontStyle = 'bold';
             data.cell.styles.textColor = [46, 125, 50]; // Green 800
-            if (data.column.index === 0) data.cell.colSpan = 2; 
+            if (data.column.index === 0) data.cell.colSpan = 2;
           }
 
           if (config && config.type === 'menu_header') {
@@ -650,7 +713,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
           // Vaciar texto en columna de estado si no es privilegio
           if (data.column.index === 1) {
-             data.cell.text = []; 
+            data.cell.text = [];
           }
         }
       },
@@ -662,46 +725,46 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
           if (config && config.type === 'privilege') {
             const estados = data.cell.raw as any;
-            const dim = 5; 
+            const dim = 5;
             const spacing = 8;
-            
+
             // Centrar horizontalmente los 3 rectangulitos
             const startX = data.cell.x + (data.cell.width / 2) - ((dim * 3 + spacing * 2) / 2) + 2;
             const cy = data.cell.y + (data.cell.height / 2) - (dim / 2);
 
             // DEV
             if (estados.dev) {
-               doc.setFillColor(76, 175, 80); // Green
-               doc.roundedRect(startX, cy, dim, dim, 1, 1, 'FD');
+              doc.setFillColor(76, 175, 80); // Green
+              doc.roundedRect(startX, cy, dim, dim, 1, 1, 'FD');
             } else {
-               doc.setDrawColor(224, 224, 224);
-               doc.setFillColor(250, 250, 250);
-               doc.roundedRect(startX, cy, dim, dim, 1, 1, 'FD');
+              doc.setDrawColor(224, 224, 224);
+              doc.setFillColor(250, 250, 250);
+              doc.roundedRect(startX, cy, dim, dim, 1, 1, 'FD');
             }
 
             // QA
             if (estados.qa) {
-               doc.setFillColor(255, 152, 0); // Orange
-               doc.roundedRect(startX + spacing, cy, dim, dim, 1, 1, 'FD');
+              doc.setFillColor(255, 152, 0); // Orange
+              doc.roundedRect(startX + spacing, cy, dim, dim, 1, 1, 'FD');
             } else {
-               doc.setDrawColor(224, 224, 224);
-               doc.setFillColor(250, 250, 250);
-               doc.roundedRect(startX + spacing, cy, dim, dim, 1, 1, 'FD');
+              doc.setDrawColor(224, 224, 224);
+              doc.setFillColor(250, 250, 250);
+              doc.roundedRect(startX + spacing, cy, dim, dim, 1, 1, 'FD');
             }
 
             // PRO
             if (estados.pro) {
-               doc.setFillColor(16, 185, 129); // Emerald
-               doc.roundedRect(startX + spacing * 2, cy, dim, dim, 1, 1, 'FD');
-               // Checkmark
-               doc.setDrawColor(255, 255, 255);
-               doc.setLineWidth(0.6);
-               doc.line(startX + spacing * 2 + 1, cy + 2.5, startX + spacing * 2 + 2, cy + 3.5);
-               doc.line(startX + spacing * 2 + 2, cy + 3.5, startX + spacing * 2 + 4, cy + 1.5);
+              doc.setFillColor(16, 185, 129); // Emerald
+              doc.roundedRect(startX + spacing * 2, cy, dim, dim, 1, 1, 'FD');
+              // Checkmark
+              doc.setDrawColor(255, 255, 255);
+              doc.setLineWidth(0.6);
+              doc.line(startX + spacing * 2 + 1, cy + 2.5, startX + spacing * 2 + 2, cy + 3.5);
+              doc.line(startX + spacing * 2 + 2, cy + 3.5, startX + spacing * 2 + 4, cy + 1.5);
             } else {
-               doc.setDrawColor(224, 224, 224);
-               doc.setFillColor(250, 250, 250);
-               doc.roundedRect(startX + spacing * 2, cy, dim, dim, 1, 1, 'FD');
+              doc.setDrawColor(224, 224, 224);
+              doc.setFillColor(250, 250, 250);
+              doc.roundedRect(startX + spacing * 2, cy, dim, dim, 1, 1, 'FD');
             }
           }
         }
@@ -710,10 +773,10 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
     // Bloque de Resumen Final (Totalizador)
     const finalY = (doc as any).lastAutoTable.finalY + 15;
-    
+
     // Si no hay suficiente espacio para el totalizador, agregar una página
     if (finalY + 40 > pageHeight - 20) {
-        doc.addPage();
+      doc.addPage();
     }
 
     const currentY = (doc as any).lastAutoTable.finalY + 15 > pageHeight - 60 ? 20 : finalY;
@@ -721,7 +784,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     doc.setFillColor(245, 245, 245); // Light grey background
     doc.setDrawColor(224, 224, 224);
     doc.roundedRect(14, currentY, pageWidth - 28, 35, 3, 3, 'FD');
-    
+
     doc.setFontSize(12);
     doc.setTextColor(46, 125, 50); // Green 800
     doc.setFont('helvetica', 'bold');
@@ -729,33 +792,33 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
     const devCount = datosFiltrados.filter(i => i.dev === 'X').length;
     const qaCount = datosFiltrados.filter(i => i.qa === 'X').length;
-    
+
     const colWidth = (pageWidth - 28) / 4;
-    
+
     doc.setFontSize(9);
     doc.setTextColor(117, 117, 117);
     doc.setFont('helvetica', 'normal');
-    
+
     // Labels
-    doc.text(`Total Funciones`, 14 + colWidth/2, currentY + 20, { align: 'center' });
-    doc.text(`En Desarrollo`, 14 + colWidth + colWidth/2, currentY + 20, { align: 'center' });
-    doc.text(`En QA`, 14 + colWidth*2 + colWidth/2, currentY + 20, { align: 'center' });
-    doc.text(`En Producción`, 14 + colWidth*3 + colWidth/2, currentY + 20, { align: 'center' });
+    doc.text(`Total Funciones`, 14 + colWidth / 2, currentY + 20, { align: 'center' });
+    doc.text(`En Desarrollo`, 14 + colWidth + colWidth / 2, currentY + 20, { align: 'center' });
+    doc.text(`En QA`, 14 + colWidth * 2 + colWidth / 2, currentY + 20, { align: 'center' });
+    doc.text(`En Producción`, 14 + colWidth * 3 + colWidth / 2, currentY + 20, { align: 'center' });
 
     // Values
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(33, 33, 33);
-    doc.text(`${total}`, 14 + colWidth/2, currentY + 28, { align: 'center' });
-    
+    doc.text(`${total}`, 14 + colWidth / 2, currentY + 28, { align: 'center' });
+
     doc.setTextColor(76, 175, 80); // Green for Dev
-    doc.text(`${Math.round((devCount/total)*100) || 0}%`, 14 + colWidth + colWidth/2, currentY + 28, { align: 'center' });
-    
+    doc.text(`${Math.round((devCount / total) * 100) || 0}%`, 14 + colWidth + colWidth / 2, currentY + 28, { align: 'center' });
+
     doc.setTextColor(255, 152, 0); // Orange for QA
-    doc.text(`${Math.round((qaCount/total)*100) || 0}%`, 14 + colWidth*2 + colWidth/2, currentY + 28, { align: 'center' });
-    
+    doc.text(`${Math.round((qaCount / total) * 100) || 0}%`, 14 + colWidth * 2 + colWidth / 2, currentY + 28, { align: 'center' });
+
     doc.setTextColor(16, 185, 129); // Emerald for PRO
-    doc.text(`${proPct}%`, 14 + colWidth*3 + colWidth/2, currentY + 28, { align: 'center' });
+    doc.text(`${proPct}%`, 14 + colWidth * 3 + colWidth / 2, currentY + 28, { align: 'center' });
 
     // Paginación Minimalist
     const pageCount = (doc as any).internal.getNumberOfPages();
@@ -767,7 +830,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     }
 
     const fileName = `Reporte_Proyectos_${new Date().getTime()}.pdf`;
-    
+
     // Convert to Blob and open in Visor Seguro
     const pdfBlob = doc.output('blob');
     const url = URL.createObjectURL(pdfBlob);
@@ -775,29 +838,83 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
     // Convert to base64 for data URI (Visor Seguro might need it)
     const reader = new FileReader();
-    reader.readAsDataURL(pdfBlob); 
+    reader.readAsDataURL(pdfBlob);
     reader.onloadend = () => {
-        const base64data = reader.result as string;
+      const base64data = reader.result as string;
 
-        this.appState.addTab({
-            id: 'doc-reporte-' + Date.now(),
-            name: fileName,
-            icon: 'fas fa-file-pdf',
-            type: 'pdf-viewer',
-            content: safeUrl,
-            url: safeUrl,
-            blobData: base64data,
-            originalName: fileName,
-            filePath: '',
-            isProtected: false,
-            isSavedToHistory: false,
-            showToolbar: true,
-            zoomLevel: 1.0,
-            mimeType: 'application/pdf',
-            csvHeader: [],
-            csvRows: []
-        });
+      this.appState.addTab({
+        id: 'doc-reporte-' + Date.now(),
+        name: fileName,
+        icon: 'fas fa-file-pdf',
+        type: 'pdf-viewer',
+        content: safeUrl,
+        url: safeUrl,
+        blobData: base64data,
+        originalName: fileName,
+        filePath: '',
+        isProtected: false,
+        isSavedToHistory: false,
+        showToolbar: true,
+        zoomLevel: 1.0,
+        mimeType: 'application/pdf',
+        csvHeader: [],
+        csvRows: []
+      });
     };
+  }
+
+  /**
+   * Abre el modal para crear una nueva tarea
+   */
+  abrirModalNuevaTarea(): void {
+    this.nuevaTarea = {
+      descripcion: '',
+      modulo: this.modulos[0]?.nombre || '',
+      submodulo: '',
+      fase: 'F.I'
+    };
+    this.onModuloChange();
+    this.mostrarModalNuevaTarea = true;
+  }
+
+  /**
+   * Cierra el modal de nueva tarea
+   */
+  cerrarModalNuevaTarea(): void {
+    this.mostrarModalNuevaTarea = false;
+  }
+
+  /**
+   * Obtiene los submódulos de un módulo específico
+   */
+  getSubmodulos(moduloNombre: string): SubmoduloJSON[] {
+    return this.proyectosService.obtenerSubmodulos(moduloNombre);
+  }
+
+  /**
+   * Maneja el cambio de módulo para resetear el submódulo
+   */
+  onModuloChange(): void {
+    const submodulos = this.getSubmodulos(this.nuevaTarea.modulo);
+    this.nuevaTarea.submodulo = submodulos[0]?.nombre || '';
+  }
+
+  /**
+   * Guarda la nueva tarea
+   */
+  guardarNuevaTarea(): void {
+    if (!this.nuevaTarea.descripcion || !this.nuevaTarea.modulo || !this.nuevaTarea.submodulo) {
+      alert('Por favor complete todos los campos requeridos');
+      return;
+    }
+
+    const exito = this.proyectosService.agregarFuncionalidad(this.nuevaTarea);
+    if (exito) {
+      this.cerrarModalNuevaTarea();
+      this.aplicarFiltros();
+    } else {
+      alert('Error al agregar la tarea. Verifique los datos.');
+    }
   }
 
   // ===== GANTT TIMELINE METHODS =====
@@ -828,7 +945,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
    */
   getGanttBarPosition(func: FuncionalidadJSON): { left: number } {
     if (!func.fechaDesde) return { left: 5 };
-    
+
     // Parsear día y mes (ej: "15 May")
     const day = parseInt(func.fechaDesde.split(' ')[0]);
     // Simplificación para el demo: mapear a un porcentaje de 0-100 del mes actual
@@ -844,7 +961,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
 
     const start = parseInt(func.fechaDesde.split(' ')[0]);
     const end = parseInt(func.fechaHasta.split(' ')[0]);
-    
+
     if (isNaN(start) || isNaN(end)) return 8;
 
     let duration = end - start;

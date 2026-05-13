@@ -100,6 +100,7 @@ pub fn run() {
             commands::connections::get_ws_status,
             commands::api::api_post_request,
             commands::api::api_get_request,
+            commands::api::api_get_binary_request,
             commands::api::api_post_stream_request,
             commands::file_upload::process_and_upload,
             commands::connections::update_connection_auth,
@@ -118,6 +119,7 @@ pub fn run() {
             commands::history::delete_document_group,
             commands::history::save_chat_messages,
             commands::history::get_chat_history,
+            commands::history::refresh_document_history_signal,
             // Mailbox Module
             commands::mailbox::mailbox_download_attachment,
             commands::mailbox::get_mailbox_messages,

@@ -132,7 +132,7 @@
                 title="Guardar en Historial">
                 <i class="fas fa-history"></i> Historial
               </button>
-              <button class="btn-pdf-action" *ngIf="!tab.isProtected" (click)="downloadPdfFromTab(tab)"
+              <button class="btn-pdf-action" *ngIf="!tab.isProtected && tab.source !== 'MANUALS'" (click)="downloadPdfFromTab(tab)"
                 title="Descargar">
                 <i class="fas fa-download"></i> Descargar
               </button>
@@ -200,7 +200,7 @@
               <button class="fv-action-btn save" (click)="savePdfToHistory(tab)" *ngIf="!tab.isSavedToHistory" title="Guardar en Historial">
                 <i class="fas fa-history"></i>
               </button>
-              <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" title="Exportar con Sello">
+              <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" *ngIf="tab.source !== 'MANUALS'" title="Exportar con Sello">
                 <i class="fas fa-file-export"></i>
               </button>
               <div class="fv-divider"></div>
@@ -308,7 +308,7 @@
                 title="Guardar">
                 <i class="fas fa-history"></i>
               </button>
-              <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" title="Descargar">
+              <button class="fv-action-btn download" (click)="downloadPdfFromTab(tab)" *ngIf="tab.source !== 'MANUALS'" title="Descargar">
                 <i class="fas fa-download"></i>
               </button>
               <div class="fv-divider"></div>

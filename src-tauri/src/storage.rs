@@ -167,6 +167,7 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
             file_hash TEXT,
             group_name TEXT,
             user_login TEXT,
+            metadata TEXT,
             opened_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
         [],
@@ -195,6 +196,10 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
     );
     let _ = conn.execute(
         "ALTER TABLE document_history ADD COLUMN user_login TEXT",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE document_history ADD COLUMN metadata TEXT",
         [],
     );
 

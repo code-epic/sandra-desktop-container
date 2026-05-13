@@ -1,7 +1,7 @@
 use crate::storage::DbState;
 use rusqlite::params;
 use std::fs;
-use tauri::{command, AppHandle, Manager, State};
+use tauri::{command, AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
 #[derive(serde::Serialize)]
@@ -14,6 +14,7 @@ pub struct DocumentHistoryItem {
     source: Option<String>,
     file_hash: Option<String>,
     group_name: Option<String>,
+    metadata: Option<String>,
     opened_at: String,
 }
 
@@ -40,6 +41,7 @@ pub fn add_document_history(
     mut file_hash: Option<String>,
     group_name: Option<String>,
     user_login: Option<String>,
+    metadata: Option<String>,
 ) -> Result<String, String> {
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
@@ -105,8 +107,8 @@ pub fn add_document_history(
     };
 
     conn.execute(
-        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, file_hash, group_name, user_login) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        params![file_name, final_path, file_size, remote_code, source.unwrap_or_else(|| "GLOBAL".to_string()), file_hash, group_name, user_login],
+        "INSERT INTO document_history (file_name, file_path, file_size, remote_code, source, file_hash, group_name, user_login, metadata) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![file_name, final_path, file_size, remote_code, source.unwrap_or_else(|| "GLOBAL".to_string()), file_hash, group_name, user_login, metadata],
     )
     .map_err(|e| e.to_string())?;
 
@@ -118,7 +120,7 @@ pub fn get_document_history(db_state: State<DbState>, user_login: String) -> Res
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash, group_name FROM document_history WHERE user_login = ?1 OR user_login IS NULL ORDER BY opened_at DESC LIMIT 50")
+        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash, group_name, metadata FROM document_history WHERE user_login = ?1 OR user_login IS NULL ORDER BY opened_at DESC LIMIT 50")
         .map_err(|e| e.to_string())?;
 
     let history_iter = stmt
@@ -133,6 +135,7 @@ pub fn get_document_history(db_state: State<DbState>, user_login: String) -> Res
                 source: row.get(6)?,
                 file_hash: row.get(7)?,
                 group_name: row.get(8)?,
+                metadata: row.get(9)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -247,6 +250,12 @@ pub fn get_chat_history(
     for item in history_iter {
         history.push(item.map_err(|e| e.to_string())?);
     }
-
     Ok(history)
+}
+
+#[command]
+pub fn refresh_document_history_signal(app: AppHandle) -> Result<(), String> {
+    app.emit("refresh-document-history", ())
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }

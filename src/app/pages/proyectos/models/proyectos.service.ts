@@ -274,4 +274,45 @@ export class ProyectosService {
     
     URL.revokeObjectURL(url);
   }
+
+  /**
+   * Agrega una nueva funcionalidad al sistema
+   */
+  agregarFuncionalidad(nueva: Partial<FuncionalidadJSON>): boolean {
+    if (!this.sistemaData || !nueva.modulo || !nueva.submodulo || !nueva.descripcion) return false;
+
+    const modulo = this.sistemaData.modulos.find(m => m.nombre === nueva.modulo);
+    if (!modulo) return false;
+
+    const submodulo = modulo.submodulos.find(s => s.nombre === nueva.submodulo);
+    if (!submodulo) return false;
+
+    // Generar ID único
+    const id = `${nueva.modulo}-${nueva.submodulo}-${submodulo.funcionalidades.length + 1}`.replace(/\s+/g, '');
+    
+    const nuevaFuncionalidad: FuncionalidadJSON = {
+      id,
+      appId: modulo.appId,
+      modulo: nueva.modulo,
+      submodulo: nueva.submodulo,
+      descripcion: nueva.descripcion,
+      camposExistentes: '',
+      dev: '-',
+      qa: '-',
+      pro: '-',
+      situacion: 'EN_PROCESO',
+      fase: 'F.I',
+      fecha: new Date().toISOString().split('T')[0],
+      estado: false,
+      ...nueva
+    } as FuncionalidadJSON;
+
+    submodulo.funcionalidades.push(nuevaFuncionalidad);
+    submodulo.totalFuncionalidades++;
+    modulo.totalFuncionalidades++;
+    this.sistemaData.totalFuncionalidades++;
+    
+    this.notificarCambios();
+    return true;
+  }
 }

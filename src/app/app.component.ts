@@ -472,7 +472,7 @@ export class AppComponent implements OnInit {
     // Sincronizar la conexión visual para que se le permita el paso
     if (this.activeConnection) {
       this.activeConnection.jwt = token;
-      
+
       // Intentar extraer el perfil del usuario del token para la sincronización
       try {
         const payloadPart = token.split(".")[1];
@@ -491,6 +491,8 @@ export class AppComponent implements OnInit {
 
     // 3. Disparar sincronización de seguridad inmediata (Background)
     if (this.activeConnection) {
+      // Persistir para otros componentes (SecureViewer)
+      localStorage.setItem('active_connection', JSON.stringify(this.activeConnection));
       this.securityService.startMailboxSync(this.activeConnection, this.activeConnection.profile || { usuario: 'root', sistema: 'admin' });
     }
 
@@ -504,7 +506,7 @@ export class AppComponent implements OnInit {
   pendingNavTab: string | null = null;
 
   handleNavigationRequest(tabId: string) {
-    const protectedTabs = ["security", "monitor", "secure-viewer"];
+    const protectedTabs = ["security", "monitor", "proyectos", "secure-viewer"];
 
     if (protectedTabs.includes(tabId)) {
       // 1. Verificar Conexión Real (WSS)
@@ -632,6 +634,7 @@ export class AppComponent implements OnInit {
 
     // Optimistic UI update
     this.activeConnection = conn;
+    localStorage.setItem('active_connection', JSON.stringify(conn));
     try {
       await this.sdcService.connectToServer(conn, this.clientId);
       // Refresh list to sync is_connected flags from DB
@@ -657,7 +660,7 @@ export class AppComponent implements OnInit {
         try {
           // 1. Desconectar físicamente del servidor (Rust)
           await this.sdcService.disconnectFromServer(conn, this.clientId);
-          
+
           // 2. Limpiar sesión local y tokens
           this.performLocalLogout();
 
@@ -667,7 +670,7 @@ export class AppComponent implements OnInit {
           // 4. Mostrar feedback al usuario
           const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
           this.snapService.show("Sesión Finalizada", safeEvent as any, "info", "fa-sign-out-alt");
-          
+
           // 4. Decidir si cerrar o mantener el panel de control
           if (stayInConfig) {
             this.showControlPanel = true;
@@ -690,7 +693,7 @@ export class AppComponent implements OnInit {
    */
   performLocalLogout() {
     console.log("🔐 [System] Ejecutando limpieza de sesión local...");
-    
+
     // 1. Limpiar Storage de sesión
     sessionStorage.clear();
 
@@ -701,7 +704,7 @@ export class AppComponent implements OnInit {
     // 3. Resetear estados visuales
     this.activeConnection = null;
     this.wsStatus = "Desconectado";
-    
+
     // 4. Limpiar cualquier puerto de autorización pendiente
     this.authPorts.clear();
 
@@ -765,63 +768,63 @@ export class AppComponent implements OnInit {
         });
       }
 
-        // Cargar conexiones existentes
-        await this.loadConnections();
+      // Cargar conexiones existentes
+      await this.loadConnections();
 
-        // Si no hay marcada como conectada, pero hay al menos una, comprobamos múltiples
-        if (!this.activeConnection) {
-          if (this.availableConnections.length > 1) {
-            console.log("ℹ️ [Init] Múltiples perfiles. Solicitando selección.");
-            await invoke("emit_splash_status", { message: "Seleccionando Perfil de Red..." });
+      // Si no hay marcada como conectada, pero hay al menos una, comprobamos múltiples
+      if (!this.activeConnection) {
+        if (this.availableConnections.length > 1) {
+          console.log("ℹ️ [Init] Múltiples perfiles. Solicitando selección.");
+          await invoke("emit_splash_status", { message: "Seleccionando Perfil de Red..." });
 
-            setTimeout(async () => {
-              await invoke("close_splash");
-              this.zone.run(() => {
-                this.loginConnections = this.availableConnections;
-                this.requireJwtLogin = this.config.access.enableJwtSession;
-                this.showLoginModal = true;
-              });
-            }, 1000);
-
-            return; // Termina la inicialización, el flujo continúa a través del Modal
-
-          } else if (this.availableConnections.length === 1) {
-            this.activeConnection = this.availableConnections[0];
-            console.log("ℹ️ [Init] Usando único perfil disponible:", this.activeConnection.name);
-          } else {
-            await invoke("emit_splash_status", { message: "Sin Perfiles de Conexión" });
-            console.log("⚠️ [Init] No se encontró ninguna conexión para auto-consecución.");
-          }
-        }
-
-        if (this.activeConnection) {
-          console.log("🔌 [Init] Auto-conectando a:", this.activeConnection.name);
-          await invoke("emit_splash_status", { message: `Enlazando con ${this.activeConnection.name}...` });
-
-          // Refresco proactivo
-          try {
-            await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
-          } catch (e) { }
-
-          await this.sdcService.connectToServer(this.activeConnection, this.clientId);
-          await invoke("emit_splash_status", { message: "Enlace Establecido" });
-
-          // Validar si requiere JWT aunque sea conexión única autoseleccionada
-          if (this.config.access.enableJwtSession && !this.getJwtToken()) {
-            setTimeout(() => {
-              this.loginConnections = [];
-              this.requireJwtLogin = true;
-              this.loginIpAddress = this.activeConnection.ip_address;
-              this.loginPort = Number(this.activeConnection.port);
+          setTimeout(async () => {
+            await invoke("close_splash");
+            this.zone.run(() => {
+              this.loginConnections = this.availableConnections;
+              this.requireJwtLogin = this.config.access.enableJwtSession;
               this.showLoginModal = true;
-            }, 500);
-          }
+            });
+          }, 1000);
 
+          return; // Termina la inicialización, el flujo continúa a través del Modal
+
+        } else if (this.availableConnections.length === 1) {
+          this.activeConnection = this.availableConnections[0];
+          console.log("ℹ️ [Init] Usando único perfil disponible:", this.activeConnection.name);
+        } else {
+          await invoke("emit_splash_status", { message: "Sin Perfiles de Conexión" });
+          console.log("⚠️ [Init] No se encontró ninguna conexión para auto-consecución.");
+        }
+      }
+
+      if (this.activeConnection) {
+        console.log("🔌 [Init] Auto-conectando a:", this.activeConnection.name);
+        await invoke("emit_splash_status", { message: `Enlazando con ${this.activeConnection.name}...` });
+
+        // Refresco proactivo
+        try {
+          await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+        } catch (e) { }
+
+        await this.sdcService.connectToServer(this.activeConnection, this.clientId);
+        await invoke("emit_splash_status", { message: "Enlace Establecido" });
+
+        // Validar si requiere JWT aunque sea conexión única autoseleccionada
+        if (this.config.access.enableJwtSession && !this.getJwtToken()) {
+          setTimeout(() => {
+            this.loginConnections = [];
+            this.requireJwtLogin = true;
+            this.loginIpAddress = this.activeConnection.ip_address;
+            this.loginPort = Number(this.activeConnection.port);
+            this.showLoginModal = true;
+          }, 500);
         }
 
-        setTimeout(async () => {
-          await invoke("close_splash");
-        }, 2000);
+      }
+
+      setTimeout(async () => {
+        await invoke("close_splash");
+      }, 2000);
     } catch (e) {
       console.error("Error during initApplication:", e);
       // Fallback: cerrar splash para no bloquear al usuario
@@ -836,6 +839,7 @@ export class AppComponent implements OnInit {
   async handleConnectionSelect(conn: any) {
     console.log("🔌 [Selector] Conexión seleccionada:", conn.name);
     this.activeConnection = conn;
+    localStorage.setItem('active_connection', JSON.stringify(conn));
     try {
       await this.sdcService.disconnectFromServer(conn, this.clientId).catch(() => { });
       await this.sdcService.connectToServer(conn, this.clientId);
@@ -951,7 +955,7 @@ export class AppComponent implements OnInit {
     const appData = app._original || app;
     const targetUrl = appData.external_url || appData.externalUrl || "";
     const appId = appData.app_id || app.id;
-    
+
     let rawUrl = "";
     let isExternalMode = false;
 
@@ -1177,7 +1181,7 @@ export class AppComponent implements OnInit {
   applyTheme() {
     let theme = this.config.theme || 'sandra';
     if (theme === 'light') theme = 'sandra';
-    
+
     // Remover temas previos
     document.body.classList.remove('theme-claro', 'theme-oscuro', 'theme-sandra', 'theme-verde-mate');
     // Aplicar nuevo tema

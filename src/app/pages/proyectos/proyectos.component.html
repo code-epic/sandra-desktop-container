@@ -80,16 +80,13 @@
             </select>
           </div>
 
-          <!-- Situation Filter -->
+          <!-- Add Task Button -->
           <div class="filter-group">
-            <label>Situación</label>
-            <select [(ngModel)]="filtros.situacion" (change)="aplicarFiltros()">
-              <option value="all">Todas</option>
-              <option value="EN_PROCESO">En Proceso</option>
-              <option value="DEPRECADO">Deprecado</option>
-              <option value="ACTUALIZADA">Actualizada</option>
-              <option value="RECHAZADA">Rechazada</option>
-            </select>
+            <label>&nbsp;</label>
+            <button class="btn-add-task-header" (click)="abrirModalNuevaTarea()" title="Añadir Tarea">
+              <i class="fas fa-plus"></i>
+              <span>Añadir</span>
+            </button>
           </div>
 
 
@@ -336,6 +333,89 @@
   </div>
 </div>
 
+<!-- Modal Nueva Tarea Flotante (Pastel Green & Glassmorphism) -->
+<div class="modal-nueva-tarea-overlay" *ngIf="mostrarModalNuevaTarea" (click)="cerrarModalNuevaTarea()">
+  <div class="modal-nueva-tarea-floating glass-card" (click)="$event.stopPropagation()">
+    <div class="modal-header-modern">
+      <div class="header-title-group">
+        <div class="header-icon-box">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <div class="header-text-group">
+          <h2>Nueva Tarea</h2>
+          <p>Complete los detalles para la nueva funcionalidad</p>
+        </div>
+      </div>
+      <button class="btn-close-modal" (click)="cerrarModalNuevaTarea()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body-modern">
+      <div class="modern-form-row">
+        <div class="modern-form-group">
+          <label>Módulo Principal</label>
+          <div class="select-wrapper-modern">
+            <i class="fas fa-cube input-icon"></i>
+            <select [(ngModel)]="nuevaTarea.modulo" (change)="onModuloChange()">
+              <option *ngFor="let mod of modulos" [value]="mod.nombre">{{ mod.nombre }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modern-form-group">
+          <label>Submódulo</label>
+          <div class="select-wrapper-modern">
+            <i class="fas fa-layer-group input-icon"></i>
+            <select [(ngModel)]="nuevaTarea.submodulo">
+              <option *ngFor="let sub of getSubmodulos(nuevaTarea.modulo)" [value]="sub.nombre">{{ sub.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modern-form-group full-width">
+        <label>Nombre de la Funcionalidad / Tarea</label>
+        <div class="input-wrapper-modern">
+          <i class="fas fa-edit input-icon"></i>
+          <input type="text" [(ngModel)]="nuevaTarea.descripcion" placeholder="Ej: Implementar sistema de logs...">
+        </div>
+      </div>
+
+      <div class="modern-form-row">
+        <div class="modern-form-group">
+          <label>Fase de Proyecto</label>
+          <div class="fase-selector">
+            <button *ngFor="let f of ['F.I', 'F.II', 'F.III']" [class.active]="nuevaTarea.fase === f"
+              (click)="nuevaTarea.fase = f">
+              {{ f }}
+            </button>
+          </div>
+        </div>
+
+        <div class="modern-form-group">
+          <label>Situación Inicial</label>
+          <div class="situacion-badge-preview" [class]="getBadgeColor(nuevaTarea.situacion || 'EN_PROCESO')">
+            <i class="fas fa-info-circle"></i>
+            <span>{{ getSituacionTexto(nuevaTarea.situacion || 'EN_PROCESO') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer-modern">
+      <button class="btn-cancel-modern" (click)="cerrarModalNuevaTarea()">
+        Cancelar
+      </button>
+      <button class="btn-save-modern" (click)="guardarNuevaTarea()">
+        <i class="fas fa-plus-circle"></i>
+        <span>Crear Tarea</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Detail Panel (Sidebar Derecho) -->
 <div class="proyectos-detail-pane glass-card fade-in-right" *ngIf="funcionalidadSeleccionada">
 
@@ -405,12 +485,12 @@
 
     <!-- Elegant Calendar Component Interactive & Minimalist -->
     <div class="modern-calendar-section">
-      
+
       <!-- Phase Selector at Top -->
       <div class="phase-selector-mini top-spaced">
-        <button *ngFor="let f of ['F.I', 'F.II', 'F.III', 'F.IV', 'F.V']" 
-          class="phase-dot-btn" [class.active]="funcionalidadSeleccionada.fase === f"
-          (click)="cambiarFase(funcionalidadSeleccionada.id, f)" [title]="f">
+        <button *ngFor="let f of ['F.I', 'F.II', 'F.III', 'F.IV', 'F.V']" class="phase-dot-btn"
+          [class.active]="funcionalidadSeleccionada.fase === f" (click)="cambiarFase(funcionalidadSeleccionada.id, f)"
+          [title]="f">
           {{ f.split('.')[1] }}
         </button>
       </div>

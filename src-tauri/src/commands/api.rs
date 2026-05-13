@@ -191,6 +191,28 @@ pub async fn api_get_request(
 }
 
 #[tauri::command]
+pub async fn api_get_binary_request(
+    state: tauri::State<'_, DbState>,
+    ip: String,
+    port: u16,
+    endpoint: String,
+    hash: String,
+    temp_auth_token: Option<String>,
+) -> Result<Vec<u8>, String> {
+    let res = api_get_raw_request(state, ip, port, endpoint, hash, temp_auth_token).await?;
+    let status = res.status();
+
+    if !status.is_success() {
+        let text = res.text().await.unwrap_or_default();
+        return Err(format!("HTTP Error {}: {}", status.as_u16(), text));
+    }
+
+    let bytes = res.bytes().await.map_err(|e| format!("Error reading bytes: {}", e))?;
+    Ok(bytes.to_vec())
+}
+
+
+#[tauri::command]
 pub async fn api_post_stream_request(
     state: tauri::State<'_, DbState>,
     app_handle: AppHandle,

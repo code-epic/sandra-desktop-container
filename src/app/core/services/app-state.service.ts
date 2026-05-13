@@ -32,6 +32,7 @@ export interface Tab {
   txtLines?: string[];            // Full array of lines for fast processing
   txtTotalLines?: number;         // Total exact lines count
   txtIsTruncated?: boolean;       // Flag if the view is truncated
+  source?: string;              // Origin: 'GLOBAL', 'HISTORY', 'MANUALS'
   type?: 'iframe' | 'pdf-viewer' | 'file-viewer' | 'csv-viewer';
 }
 

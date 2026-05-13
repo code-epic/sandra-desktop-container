@@ -74,7 +74,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
                 }
             }
         });
-        
+
         // Actualizador de tiempo en vivo
         this.timeInterval = setInterval(() => {
             if (this.activeTab === 'tickets') {
@@ -92,7 +92,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
                 const config: MonitorSdcConfig = JSON.parse(configStr);
                 const storage = config.access.jwtStorage === 'sessionStorage' ? sessionStorage : localStorage;
                 const token = storage.getItem(config.access.jwtVariableName);
-                
+
                 if (!isRealJwt(token)) {
                     console.warn("Monitor: Acceso denegado. Token no válido o sesión no activa.");
                     this.appState.setActiveTab('dashboard');
@@ -103,7 +103,7 @@ export class MonitorComponent implements OnInit, OnDestroy {
                 try {
                     if (token) {
                         const payload = JSON.parse(atob(token.split('.')[1]));
-                        this.currentUserLogin = payload.Usuario?.[ 'usuario' ] || payload.usuario || 'default';
+                        this.currentUserLogin = payload.Usuario?.['usuario'] || payload.usuario || 'default';
                     }
                 } catch (e) {
                     this.currentUserLogin = 'default';
@@ -270,11 +270,11 @@ export class MonitorComponent implements OnInit, OnDestroy {
         const date = new Date(dateStr);
         const diffMs = this.currentTime.getTime() - date.getTime();
         if (diffMs < 0) return '00:00';
-        
+
         const diffSecsTotal = Math.floor(diffMs / 1000);
         const diffMins = Math.floor(diffSecsTotal / 60);
         const diffSecs = diffSecsTotal % 60;
-        
+
         return `${diffMins.toString().padStart(2, '0')}:${diffSecs.toString().padStart(2, '0')}`;
     }
 

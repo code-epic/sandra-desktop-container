@@ -595,7 +595,7 @@
                         <!-- Base Message (First node) -->
                         <div class="forum-card node-base" 
                              [class.minimal-node]="parsedContent?.hilos?.length > 0 && !isBaseNodeExpanded"
-                             [class.in-revision]="selectedMessage?.status === 'EN PROCESO' || selectedMessage?.status === 'PENDIENTE' || selectedMessage?.status === 'REVISION'">
+                             [class.in-revision]="selectedMessage.status === 'EN PROCESO' || selectedMessage.status === 'PENDIENTE' || selectedMessage.status === 'REVISION'">
                             <div class="forum-card-header" 
                                  [style.cursor]="parsedContent?.hilos?.length > 0 ? 'pointer' : 'default'" 
                                  (click)="parsedContent?.hilos?.length > 0 ? (isBaseNodeExpanded = !isBaseNodeExpanded) : null" 

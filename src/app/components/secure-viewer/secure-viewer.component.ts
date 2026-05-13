@@ -18,12 +18,16 @@ import { SecurityService } from '../../core/services/security.service';
 export class SecureViewerComponent {
     @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
+    // Manuals Interface Mapping
+    showManualDetailsModal = false;
+    selectedManual: any = null;
+
     isLoading = false;
     loadingFilePath: string | null = null; // Track which specific path is loading
     fileName: string = '';
     error: string | null = null;
     history: any[] = [];
-    viewerActiveTab: 'global' | 'mailbox' = 'global';
+    viewerActiveTab: 'global' | 'mailbox' | 'manuals' = 'global';
     private _viewerSearchText: string = '';
     get viewerSearchText() { return this._viewerSearchText; }
     set viewerSearchText(val: string) {
@@ -39,6 +43,11 @@ export class SecureViewerComponent {
     pendingFileSelected: string | null = null;
     pendingFileResult: any = null;
 
+    // View state for current document
+    docUrl: SafeResourceUrl | null = null;
+    viewerType: string = '';
+    currentMimeType: string = '';
+
     constructor(
         private sanitizer: DomSanitizer,
         private appState: AppStateService,
@@ -49,9 +58,67 @@ export class SecureViewerComponent {
         this.setupListeners();
     }
 
-    setTab(tab: 'global' | 'mailbox') {
+    setTab(tab: 'global' | 'mailbox' | 'manuals') {
+        console.log("[SecureViewer] Cambiando a tab:", tab);
         this.viewerActiveTab = tab;
         this.updateGroupedHistory();
+
+        // Auto-sync manuals if switching to that tab and empty? 
+        // Or just let the user refresh. Let's do a proactive check.
+        if (tab === 'manuals' && (this.filteredHistory?.length === 0 || !this.filteredHistory)) {
+            console.log("[SecureViewer] Tab Manuales detectado vacío, listo para sincronizar");
+            // this.syncManuals(); // Optional: Auto-sync
+        }
+    }
+
+    async syncManuals() {
+        console.log("[SecureViewer] syncManuals() trigger iniciado");
+        try {
+            // 1. Intentar obtener del servicio (Sesión activa en memoria)
+            let activeConn = this.securityService.activeSyncConnection;
+            let author = this.securityService.activeSyncAuthor;
+
+            console.log("[SecureViewer] Estado inicial del servicio:", {
+                hasConn: !!activeConn,
+                hasAuthor: !!author
+            });
+
+            // 2. Fallback a localStorage si el servicio perdió el estado
+            if (!activeConn || !author) {
+                console.log("[SecureViewer] El servicio no tiene sesión activa, intentando fallback a localStorage...");
+                const activeConnStr = localStorage.getItem('active_connection');
+                const authorStr = localStorage.getItem('author_profile');
+
+                if (activeConnStr) activeConn = JSON.parse(activeConnStr);
+                if (authorStr) author = JSON.parse(authorStr);
+            }
+
+            // 3. Fallback final: Intentar reconstruir autor desde JWT si tenemos conexión
+            if (activeConn && !author) {
+                console.log("[SecureViewer] Reconstruyendo perfil desde JWT...");
+                const login = this.securityService.getCurrentUserLogin();
+                author = { usuario: login, sistema: 'consola' };
+            }
+
+            if (!activeConn?.hash || !author?.usuario) {
+                console.warn("[SecureViewer] Sincronización cancelada: No se encontró sesión válida en Memoria ni Storage", {
+                    activeConn: !!activeConn?.hash,
+                    author: !!author?.usuario
+                });
+                this.error = "No hay sesión de seguridad activa. Por favor, re-conecte su terminal.";
+                return;
+            }
+
+            console.log("[SecureViewer] Iniciando sincronización con:", {
+                host: activeConn.ip_address,
+                user: author.usuario
+            });
+
+            await this.securityService.startManualsSync(activeConn, author);
+            console.log("[SecureViewer] Sincronización de manuales enviada al servicio.");
+        } catch (e) {
+            console.error("[SecureViewer] Error crítico en syncManuals:", e);
+        }
     }
 
     async setupListeners() {
@@ -62,27 +129,32 @@ export class SecureViewerComponent {
 
     async loadHistory() {
         try {
-            this.history = await invoke('get_document_history', { userLogin: this.securityService.getCurrentUserLogin() });
-            this.updateGroupedHistory();
-            // Proactive verification for all history items to show badges
-            this.history.forEach(item => {
-                if (item.file_path) {
-                    this.verifyDocumentCertification(item.file_path);
-                }
+            const login = this.securityService.getCurrentUserLogin();
+            console.log("[SecureViewer] Cargando historial para usuario:", login);
+
+            this.history = await invoke('get_document_history', { userLogin: login });
+            console.log("[SecureViewer] Historial recuperado de SQLite:", this.history);
+
+            // Trigger lazy verification for history items
+            this.history.forEach(doc => {
+                if (doc.file_path) this.verifyDocumentCertification(doc.file_path);
             });
+            this.updateGroupedHistory();
         } catch (e) {
-            console.warn("Could not load history", e);
+            console.warn("[SecureViewer] Error cargando historial desde vault", e);
         }
     }
 
     get filteredHistory() {
         let list = this.history;
 
-        // Filter by Tab (Global vs Mailbox)
+        // Filter by Tab (Global vs Mailbox vs Manuals)
         if (this.viewerActiveTab === 'global') {
             list = list.filter((d: any) => !d.source || d.source === 'GLOBAL');
-        } else {
+        } else if (this.viewerActiveTab === 'mailbox') {
             list = list.filter((d: any) => d.source === 'MAILBOX');
+        } else if (this.viewerActiveTab === 'manuals') {
+            list = list.filter((d: any) => d.source === 'MANUALS');
         }
 
         // Search Filter
@@ -150,9 +222,13 @@ export class SecureViewerComponent {
         this.updateGroupedHistory();
     }
 
-    async deleteFolder(groupName: string, event: Event) {
+    async deleteFolder(folderName: string, event: Event) {
         event.stopPropagation();
-        this.folderToDeleteName = groupName;
+        if (this.viewerActiveTab === 'manuals') {
+            console.warn("[Security] Bloqueo de eliminación: Las carpetas de manuales no pueden ser borradas.");
+            return;
+        }
+        this.folderToDeleteName = folderName;
         this.showFolderDeleteModal = true;
     }
 
@@ -180,7 +256,7 @@ export class SecureViewerComponent {
 
     getFileTypeConfig(fileName: string) {
         const ext = fileName.toLowerCase().split('.').pop() || '';
-        
+
         const configs: { [key: string]: { icon: string, colorClass: string, isMascot?: boolean } } = {
             'pdf': { icon: 'far fa-file-pdf', colorClass: 'icon-pdf' },
             'csv': { icon: 'fas fa-file-csv', colorClass: 'icon-csv' },
@@ -223,7 +299,7 @@ export class SecureViewerComponent {
             this.isLoading = true;
             this.appState.setViewerLoading(true);
             this.appState.setGlobalLoading(true, "Iniciando explorador de archivos...");
-            
+
             const { open } = await import('@tauri-apps/plugin-dialog');
 
             const selected = await open({
@@ -242,7 +318,7 @@ export class SecureViewerComponent {
                 this.fileName = selected.split(/[\\/]/).pop() || selected;
                 this.loadingFilePath = selected; // Mark this as the one loading
                 this.appState.setViewerLoading(true); // Re-activate for the actual processing
-                
+
                 // --- PROACTIVE ALCHEMY VALIDATION ---
                 try {
                     const result = await invoke<any>('verify_file_seal', { filePath: selected });
@@ -296,6 +372,12 @@ export class SecureViewerComponent {
     async openFromHistory(item: any) {
         if (this.isLoading || this.loadingFilePath) return;
 
+        // Restriction: Manuals use remote CDN path
+        if (item.source === 'MANUALS') {
+            await this.openRemoteManual(item);
+            return;
+        }
+
         this.fileName = item.file_name;
         this.loadingFilePath = item.file_path;
         this.isLoading = true;
@@ -312,7 +394,7 @@ export class SecureViewerComponent {
         } else {
             // High visibility loading for history
             this.appState.setGlobalLoading(true, `Abriendo ${this.fileName}...`);
-            
+
             setTimeout(async () => {
                 await this.loadSecureDoc(item.file_path, false);
                 // Re-verify certification as well
@@ -322,6 +404,92 @@ export class SecureViewerComponent {
                 this.appState.setViewerLoading(false);
             }, 100);
         }
+    }
+
+    async openRemoteManual(item: any) {
+        try {
+            const activeConn = this.securityService.activeSyncConnection;
+            if (!activeConn || !activeConn.hash) {
+                this.error = "No hay conexión activa para descargar el manual.";
+                return;
+            }
+
+            this.fileName = item.file_name;
+            this.loadingFilePath = item.file_path;
+            this.isLoading = true;
+            this.appState.setViewerLoading(true);
+            this.appState.setGlobalLoading(true, "Descargando manual desde el nodo seguro...");
+
+            const endpoint = `v1/api/dwscdn/${encodeURIComponent(item.group_name)}/${encodeURIComponent(item.file_name)}`;
+
+            console.log("[SecureViewer] Descargando manual remoto via Tauri API:", endpoint);
+
+            // Bypassing browser fetch to avoid CORS/Preflight 405 and inclusion of security headers
+            const binaryData = await invoke<number[]>('api_get_binary_request', {
+                ip: activeConn.ip_address,
+                port: Number(activeConn.port),
+                endpoint: endpoint,
+                hash: activeConn.hash,
+                tempAuthToken: activeConn.jwt
+            });
+
+            const byteArray = new Uint8Array(binaryData);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob) + '#toolbar=0&navpanes=0';
+            const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl);
+
+            this.docUrl = safeUrl;
+            this.viewerType = 'pdf-viewer';
+            this.currentMimeType = 'application/pdf';
+
+            // Add to App Tabs
+            const tabId = 'manual-' + item.id + '-' + Date.now();
+            this.appState.addTab({
+                id: tabId,
+                name: item.file_name,
+                icon: 'fas fa-book',
+                type: 'pdf-viewer',
+                content: safeUrl,
+                url: safeUrl,
+                originalName: item.file_name,
+                filePath: endpoint,
+                isProtected: false,
+                isSavedToHistory: true, // Already in history
+                showToolbar: true,
+                zoomLevel: 1.0,
+                mimeType: 'application/pdf',
+                source: 'MANUALS'
+            });
+
+            // Re-verify certification if possible
+            this.verifyDocumentCertification(item.file_path);
+
+        } catch (e) {
+            console.error("Error opening remote manual:", e);
+            this.error = "No se pudo descargar el manual del servidor central.";
+        } finally {
+            this.isLoading = false;
+            this.loadingFilePath = null;
+            this.appState.setGlobalLoading(false);
+            this.appState.setViewerLoading(false);
+        }
+    }
+
+    openManualDetails(item: any, event: Event) {
+        event.stopPropagation();
+        if (item.metadata) {
+            try {
+                this.selectedManual = JSON.parse(item.metadata);
+                this.showManualDetailsModal = true;
+            } catch (e) {
+                console.error("Error parsing manual metadata:", e);
+            }
+        }
+    }
+
+    closeManualDetails() {
+        this.showManualDetailsModal = false;
+        this.selectedManual = null;
     }
 
     async verifyDocumentCertification(path: string) {
@@ -359,17 +527,17 @@ export class SecureViewerComponent {
 
     async confirmAttachment() {
         if (!this.pendingFileSelected) return;
-        
+
         const path = this.pendingFileSelected;
         const result = this.pendingFileResult;
-        
+
         // 1. Mark as certified so the badge appears
         this.certificationMap.set(path, result);
-        
+
         // 2. Clear pendings
         this.isPendingValidation = false;
         this.showCertificationModal = false;
-        
+
         // 3. Proceed to load/encrypt/save to history
         if (path.toLowerCase().endsWith('.gpg') || path.toLowerCase().endsWith('.pgp')) {
             this.gpgUnlockFilePath = path;
@@ -379,7 +547,7 @@ export class SecureViewerComponent {
         } else {
             await this.loadSecureDoc(path, true);
         }
-        
+
         this.pendingFileSelected = null;
         this.pendingFileResult = null;
     }
@@ -811,9 +979,9 @@ export class SecureViewerComponent {
             if (this.gpgUnlockSaveToHistory) {
                 // Calculate hash for GPG unlocked file (or use path)
                 const fileHash = await invoke<string>('sha256_hash_file', { filePath: this.gpgUnlockFilePath });
-                
-                invoke('add_document_history', { 
-                    fileName: this.gpgUnlockFileName, 
+
+                invoke('add_document_history', {
+                    fileName: this.gpgUnlockFileName,
                     filePath: this.gpgUnlockFilePath,
                     fileSize: 'Locked',
                     remoteCode: '',
@@ -948,6 +1116,10 @@ export class SecureViewerComponent {
 
     async deleteHistoryItem(item: any, event: Event) {
         event.stopPropagation();
+        if (this.viewerActiveTab === 'manuals' || item.source === 'MANUALS') {
+            console.warn("[Security] Bloqueo de eliminación: Los manuales no pueden ser borrados.");
+            return;
+        }
         this.itemToDelete = item;
         this.showDeleteModal = true;
     }
@@ -1006,8 +1178,8 @@ export class SecureViewerComponent {
             let viewerType: any = 'pdf-viewer';
             let dataUriPrefix = 'data:application/pdf;base64,';
             let iconClass = 'fas fa-file-pdf';
-        let fileSize = '0 KB';
-        let remoteCode = '';
+            let fileSize = '0 KB';
+            let remoteCode = '';
 
             if (cleanName.endsWith('.csv')) { mimeType = 'text/csv'; viewerType = 'file-viewer'; dataUriPrefix = 'data:text/csv;base64,'; iconClass = 'fas fa-file-csv'; }
             else if (cleanName.endsWith('.txt')) { mimeType = 'text/plain'; viewerType = 'file-viewer'; dataUriPrefix = 'data:text/plain;base64,'; iconClass = 'fas fa-file-alt'; }
@@ -1096,15 +1268,16 @@ export class SecureViewerComponent {
                 txtContent,
                 txtLines,
                 txtTotalLines,
-                txtIsTruncated
+                txtIsTruncated,
+                source: saveToHistory ? 'GLOBAL' : (path.startsWith('http') ? 'MANUALS' : 'HISTORY') // Simple detection
             });
 
             // 4. Save to History (Async)
             if (saveToHistory) {
                 const fileHash = await invoke<string>('sha256_hash_file', { filePath: path });
 
-                invoke('add_document_history', { 
-                    fileName: this.fileName, 
+                invoke('add_document_history', {
+                    fileName: this.fileName,
                     filePath: path,
                     fileSize: fileSize,
                     remoteCode: remoteCode,
