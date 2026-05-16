@@ -94,10 +94,10 @@ export class UtilsService {
    * Usado en app.component.ts updateDateTime()
    */
   formatDateCompact(date: Date = new Date()): string {
-    const months = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-    const day   = date.getDate().toString().padStart(2, '0');
+    const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const day = date.getDate().toString().padStart(2, '0');
     const month = months[date.getMonth()];
-    const year  = date.getFullYear().toString().slice(-2);
+    const year = date.getFullYear().toString().slice(-2);
     return `${day}${month}${year}`;
   }
 
@@ -119,13 +119,13 @@ export class UtilsService {
     if (isNaN(date.getTime())) return dateStr;
 
     const now = new Date();
-    const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const itemDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const diffDays = Math.round((today.getTime() - itemDate.getTime()) / 86_400_000);
 
     if (diffDays === 0) return 'Hoy';
     if (diffDays === 1) return 'Ayer';
-    if (diffDays < 7)  return `Hace ${diffDays} días`;
+    if (diffDays < 7) return `Hace ${diffDays} días`;
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' });
   }
 
@@ -152,5 +152,54 @@ export class UtilsService {
     if (isNaN(date.getTime())) return false;
     const cutoff = new Date(Date.now() - days * 86_400_000);
     return date >= cutoff;
+  }
+
+  /**
+   * Genera un hash SHA-256 de una cadena de texto.
+   * Útil para enviar contraseñas de forma segura al backend.
+   */
+  async sha256(text: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
+   * Decodifica el payload de un JWT (Base64URL) de forma segura.
+   * Útil para extraer información del usuario sin dependencias externas.
+   *
+   * @param token El string del JWT (header.payload.signature)
+   */
+  decodeJwt(token: string): any {
+    if (!token) return null;
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+      const base64Url = parts[1];
+
+      // Reemplazo de caracteres Base64URL a Base64 estándar
+      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+
+      // Añadir relleno (padding) si es necesario
+      const pad = base64.length % 4;
+      if (pad) {
+        if (pad === 1) return null;
+        base64 += new Array(5 - pad).join('=');
+      }
+
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.warn("[UtilsService] Error decodificando JWT:", e);
+      return null;
+    }
   }
 }

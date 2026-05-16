@@ -2,7 +2,7 @@
   <!-- Componente Sidebar Modular -->
   <app-sidebar [class.global-blur]="isViewerLoading || showControlPanel"
     [hasJwt]="!!getJwtToken()"
-    (onLogout)="handleGlobalLogout()"
+    (onLogout)="handleExitRequest()"
     (onNavigateRequest)="handleNavigationRequest($event)"
     (onLoginRequest)="checkAndPromptJwt()">
   </app-sidebar>
@@ -113,19 +113,17 @@
         <div *ngIf="tab.type === 'pdf-viewer'" class="pdf-tab-container"
           style="width:100%; height:100%; background:#525659; position: relative;">
           <div class="pdf-overlay-bar">
-            <span class="pdf-title">{{ tab.name }}</span>
+            <div class="pdf-title">
+              <i class="fas fa-file-pdf" style="color: #ff5252;"></i>
+              <span>{{ tab.name }}</span>
+            </div>
             <div class="pdf-actions" *ngIf="tab.showToolbar">
-
-              <button class="btn-pdf-action" *ngIf="!tab.isProtected" (click)="printPdf(tab)"
-                title="Imprimir Documento">
-                <i class="fas fa-print"></i>
-              </button>
               <button class="btn-pdf-action" *ngIf="tab.isProtected" (click)="unlockTab(tab)"
                 title="Desbloquear para Ver">
                 <i class="fas fa-key"></i> Desbloquear
               </button>
 
-              <div class="nav-divider-vertical"
+              <div class="nav-divider-vertical" *ngIf="tab.isProtected"
                 style="width:1px; background:rgba(255,255,255,0.2); height:20px; margin:0 5px;"></div>
 
               <button class="btn-pdf-action" *ngIf="!tab.isSavedToHistory" (click)="savePdfToHistory(tab)"
@@ -135,6 +133,13 @@
               <button class="btn-pdf-action" *ngIf="!tab.isProtected && tab.source !== 'MANUALS'" (click)="downloadPdfFromTab(tab)"
                 title="Descargar">
                 <i class="fas fa-download"></i> Descargar
+              </button>
+
+              <div class="nav-divider-vertical"
+                style="width:1px; background:rgba(255,255,255,0.2); height:20px; margin:0 5px;"></div>
+
+              <button class="btn-pdf-action close-view-btn" (click)="closeTab(tab.id, $event)" title="Cerrar Vista">
+                <i class="fas fa-times"></i>
               </button>
             </div>
           </div>
@@ -506,9 +511,11 @@
 
   <!-- Modal de Configuración Avanzada -->
   <app-config *ngIf="showControlPanel" [config]="config" [networkInfo]="networkInfo"
-    [availableConnections]="availableConnections" [activeConnection]="activeConnection" (onSave)="saveConfig()"
-    (onActivateConnection)="activateConnectionGlobal($event)" (onDisconnect)="disconnectConnection($event)"
-    (close)="showControlPanel = false">
+    [availableConnections]="availableConnections" [activeConnection]="activeConnection"
+    [wsStatus]="wsStatus" [isLoggedIn]="!!getJwtToken()"
+    (onSave)="saveConfig()" (onActivateConnection)="activateConnectionGlobal($event)"
+    (onDisconnect)="disconnectConnection($event)" (close)="showControlPanel = false"
+    (onLoginRequest)="checkAndPromptJwt(true)">
   </app-config>
 
   <app-chat *ngIf="(activeTabId$ | async) !== 'login'"
@@ -659,7 +666,7 @@
   <app-login-modal *ngIf="showLoginModal" [ipAddress]="loginIpAddress" [port]="loginPort"
     [connections]="loginConnections" [requireLogin]="requireJwtLogin" [storageTarget]="config.access.jwtStorage"
     [variableName]="config.access.jwtVariableName" (onConnectionSelect)="handleConnectionSelect($event)"
-    (onClose)="showLoginModal = false" (onLoginSuccess)="handleLoginSuccess($event)">
+    (onClose)="handleLoginModalClose()" (onLoginSuccess)="handleLoginSuccess($event)">
   </app-login-modal>
 
   <!-- Global Snap Message (Subtle Feedback at cursor) -->

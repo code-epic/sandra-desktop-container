@@ -10,6 +10,8 @@ import {
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { invoke } from "@tauri-apps/api/core";
+import { UtilsService } from "../../core/services/utils.service";
+import { ISandraJwtPayload } from "../../core/models/security.model";
 import { lastValueFrom } from "rxjs";
 
 @Component({
@@ -51,9 +53,11 @@ export class LoginModalComponent implements OnInit {
 
   @ViewChild("otp0") otp0!: ElementRef;
 
-  constructor() { }
+  constructor(private utils: UtilsService) { }
 
   ngOnInit() {
+    console.log("🛠️ [LoginModal] Componente inicializado. IP:", this.ipAddress, "Port:", this.port);
+    this.showModal = true;
     if (this.connections && this.connections.length > 0) {
       this.showConnectionSelector = true;
     }
@@ -107,20 +111,16 @@ export class LoginModalComponent implements OnInit {
         tempAuthToken: null,
       });
 
-        if (response && response.token !== "") {
+      if (response && response.token !== "") {
         const token = response.token;
         // Decodificar el JWT para verificar si requiere 2FA (TOTP)
         let totpRequired = false;
         try {
-          const decodedPayload = this.decodeJWT(token);
-          const usuarioData = decodedPayload?.Usuario || decodedPayload;
-          // Si el JWT contiene un atributo 'token' no vacío, significa que el login requiere 2FA
-          console.log("Decoded payload:", usuarioData);
-          if (
-            usuarioData &&
-            usuarioData.token &&
-            String(usuarioData.token).trim() !== ""
-          ) {
+          const payload: ISandraJwtPayload = this.utils.decodeJwt(token);
+          const usuarioData = payload?.Usuario;
+          // Si el JWT contiene un atributo 'token' no vacío en el objeto Usuario, significa que el login requiere 2FA
+          console.log("Decoded Usuario Data:", usuarioData);
+          if (usuarioData && usuarioData.token && String(usuarioData.token).trim() !== "") {
             totpRequired = true;
           }
         } catch (e) {
@@ -244,12 +244,26 @@ export class LoginModalComponent implements OnInit {
 
     // Extraction of login from JWT and MAC Address update
     try {
-      // 1. Extraer el login del usuario del JWT
-      const decodedPayload = this.decodeJWT(token);
-      const usuarioData = decodedPayload?.Usuario || decodedPayload;
-      const login = usuarioData.usuario || usuarioData.Login || usuarioData.usuario_login || this.usuario;
+      // 1. Extraer el payload del JWT usando el patrón centralizado
+      const payload: ISandraJwtPayload = this.utils.decodeJwt(token);
+      const usuarioData = payload?.Usuario;
+      const login = usuarioData?.usuario || payload?.sid || this.usuario;
 
-      // 2. Obtener la MAC Address del sistema
+      // 2. Actualizar active_connection en localStorage con el nuevo perfil y JWT
+      const storedConn = localStorage.getItem('active_connection');
+      if (storedConn) {
+        try {
+          const conn = JSON.parse(storedConn);
+          // Actualizar estrictamente solo el campo username con el login obtenido
+          conn.username = login;
+          localStorage.setItem('active_connection', JSON.stringify(conn));
+          console.log("✅ [Login] active_connection actualizada con username:", login);
+        } catch (e) {
+          console.warn("[Login] Error actualizando active_connection persistida", e);
+        }
+      }
+
+      // 3. Obtener la MAC Address del sistema
       const stats: any = await invoke("get_system_telemetry");
       const macAddress = stats.mac_address || "00:00:00:00:00:00";
 
@@ -353,35 +367,4 @@ export class LoginModalComponent implements OnInit {
     return val;
   }
 
-  /**
-   * Decodifica el payload de un JWT (Base64URL) de forma segura.
-   */
-  private decodeJWT(token: string): any {
-    try {
-      const base64Url = token.split(".")[1];
-      if (!base64Url) return null;
-
-      // Reemplazo de caracteres Base64URL a Base64 estándar
-      let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-
-      // Añadir relleno (padding) si es necesario
-      const pad = base64.length % 4;
-      if (pad) {
-        if (pad === 1) throw new Error("Invalid base64 string");
-        base64 += new Array(5 - pad).join("=");
-      }
-
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join(""),
-      );
-
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      console.error("Critical error decoding JWT:", e);
-      return null;
-    }
-  }
 }

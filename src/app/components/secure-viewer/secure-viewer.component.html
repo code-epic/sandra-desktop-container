@@ -50,7 +50,7 @@
                 {{ viewerActiveTab === 'global' ? 'DOCUMENTOS GLOBAL' : (viewerActiveTab === 'mailbox' ? 'CORREOS Y ARCHIVOS' : 'MANUALES DE USUARIO') }}
             </div>
             <button class="btn-sync-small" *ngIf="viewerActiveTab === 'manuals'" (click)="syncManuals()" title="Sincronizar Manuales">
-                <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i> Sincronizar
+                <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
             </button>
         </div>
 
@@ -66,9 +66,15 @@
                         <div class="folder-text-group">
                             <span class="folder-name">{{ entry.name }}</span>
                             <div class="folder-sub-info">
-                                <i class="fas fa-shield-halved"></i> Paquete de Nómina Seguro
+                                <i class="fas" 
+                                   [class.fa-book]="viewerActiveTab === 'manuals'" 
+                                   [class.fa-inbox]="viewerActiveTab === 'mailbox'"
+                                   [class.fa-globe]="viewerActiveTab === 'global'"></i>
+                                {{ viewerActiveTab === 'manuals' ? 'Repositorio de Manuales' : 
+                                   (viewerActiveTab === 'mailbox' ? 'Paquete de Documentos' : 'Historial de Nómina') }}
                                 <div class="dot-separator">•</div>
-                                <span class="tag-count-inline">{{ entry.items.length }} archivos</span>
+                                <span class="tag-count-inline">{{ entry.items.length }} {{ entry.items.length === 1 ? 'archivo' : 'archivos' }}</span>
+                                <span class="tag-count-inline" style="background: #f0fdf4; color: #16a34a;" *ngIf="entry.displaySize">{{ entry.displaySize }}</span>
                             </div>
                         </div>
                     </div>
@@ -76,7 +82,10 @@
                     <div class="folder-meta">
                         <span class="folder-date">{{ entry.opened_at | date:'dd MMM, HH:mm' }}</span>
                         <div class="folder-labels-group">
-                            <button class="btn-folder-delete" *ngIf="viewerActiveTab !== 'manuals'" (click)="deleteFolder(entry.name, $event)" title="Eliminar Carpeta">
+                            <button class="btn-folder-action" (click)="openItemDetails(entry, $event)" title="Info">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            <button class="btn-folder-delete" *ngIf="viewerActiveTab !== 'manuals'" (click)="deleteFolder(entry.name, $event)" title="Eliminar">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                             <i class="fas folder-arrow" [class.fa-chevron-right]="!entry.isOpen" [class.fa-chevron-down]="entry.isOpen"></i>
@@ -99,16 +108,19 @@
                             </div>
                             <div class="info-secondary">
                                 <div class="meta-group">
-                                    <i class="fas fa-file-contract"></i> <span>{{ item.file_size }}</span>
+                                    <i class="fas fa-file-contract"></i> <span>{{ item.displaySize || item.file_size }}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="col-date"></div>
                         <div class="col-action">
+                            <button class="btn-row-action" (click)="openItemDetails(item, $event)" title="Info">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
                             <button class="btn-row-delete" *ngIf="viewerActiveTab !== 'manuals'" (click)="deleteHistoryItem(item, $event)" title="Eliminar">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
-                            <div class="action-spacer"></div> <!-- Aligns with folder arrow -->
+                            <div class="action-spacer"></div>
                         </div>
                     </div>
                 </ng-container>
@@ -148,9 +160,9 @@
                             <div class="meta-group">
                                 <i class="fas fa-shield-alt"></i> <span>Sandra System</span>
                             </div>
-                            <div class="dot-separator" *ngIf="entry.file_size">•</div>
-                            <div class="meta-group" *ngIf="entry.file_size">
-                                <i class="fas fa-database"></i> <span>{{ entry.file_size }}</span>
+                            <div class="dot-separator" *ngIf="entry.displaySize">•</div>
+                            <div class="meta-group" *ngIf="entry.displaySize">
+                                <i class="fas fa-database"></i> <span>{{ entry.displaySize }}</span>
                             </div>
                         </div>
                     </div>
@@ -160,7 +172,7 @@
                     </div>
 
                     <div class="col-action">
-                        <button class="btn-row-action" *ngIf="entry.metadata" (click)="openManualDetails(entry, $event)" title="Detalles">
+                        <button class="btn-row-action" (click)="openItemDetails(entry, $event)" title="Info">
                             <i class="fas fa-info-circle"></i>
                         </button>
                         <button class="btn-row-action" *ngIf="viewerActiveTab !== 'manuals'" (click)="promptExport(entry, $event)" title="Exportar">
@@ -169,7 +181,7 @@
                         <button class="btn-row-delete" *ngIf="viewerActiveTab !== 'manuals'" (click)="deleteHistoryItem(entry, $event)" title="Eliminar">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                        <div class="action-spacer"></div> <!-- Aligns with folder arrow -->
+                        <div class="action-spacer"></div>
                     </div>
                 </div>
             </ng-container>
@@ -489,77 +501,86 @@
     </div>
 </div>
 
-<!-- MANUAL DETAILS MODAL (ELEGANT & MINIMALIST) -->
-<div class="modal-overlay" *ngIf="showManualDetailsModal">
-    <div class="modal-v2 manual-details-modal fade-in-up">
-        <div class="modal-header-v2 header-blue-dark">
-            <div class="icon-pulse-container blue">
-                <i class="fas fa-book-open"></i>
+<!-- Modal de Detalles Generales del Item -->
+<div class="modal-overlay-v2" *ngIf="showItemDetailsModal" (click)="closeItemDetails()">
+    <div class="modal-card-v2" (click)="$event.stopPropagation()">
+        <div class="modal-header-v2 info-theme">
+            <div class="header-icon-box">
+                <i class="fas" [ngClass]="selectedItem?.isFolder ? 'fa-folder-open' : 'fa-file-alt'"></i>
             </div>
-            <div class="doc-id-badge">{{ selectedManual?._id }}</div>
+            <div class="header-title-box">
+                <h2>Ficha de Información</h2>
+                <p>Metadatos del Sistema Sandra</p>
+            </div>
+            <div class="doc-id-badge">{{ selectedItem?.id }}</div>
         </div>
         
         <div class="modal-content-v2">
-            <h3>{{ selectedManual?.nombre }}</h3>
+            <h3 class="item-display-name">{{ selectedItem?.nombre }}</h3>
             <p class="category-path">
-                <i class="fas fa-folder-open"></i> {{ selectedManual?.categoria }}
+                <i class="fas" [ngClass]="selectedItem?.isFolder ? 'fa-project-diagram' : 'fa-folder-open'"></i> 
+                {{ selectedItem?.categoria }}
             </p>
 
             <div class="rich-details-grid">
-                <!-- Capa Legal -->
+                <!-- Información Principal -->
                 <div class="detail-section">
-                    <label>Información Institucional</label>
+                    <label>{{ selectedItem?.isFolder ? 'Atributos de Carpeta' : 'Información del Documento' }}</label>
                     <div class="detail-row">
-                        <span class="lbl">Origen</span>
-                        <span class="val">{{ selectedManual?.metadatos_legal?.institucion_origen || 'Sandra Legal Core' }}</span>
+                        <span class="lbl">Tamaño</span>
+                        <span class="val size-highlight">{{ selectedItem?.tamanio_human }}</span>
                     </div>
-                    <div class="detail-row" *ngIf="selectedManual?.metadatos_legal?.dependencia">
-                        <span class="lbl">Dependencia</span>
-                        <span class="val">{{ selectedManual?.metadatos_legal?.dependencia }}</span>
+                    <div class="detail-row" *ngIf="!selectedItem?.isFolder">
+                        <span class="lbl">Formato</span>
+                        <span class="val">{{ selectedItem?.formato }}</span>
                     </div>
-                    <div class="detail-row" *ngIf="selectedManual?.metadatos_legal?.numero_norma">
-                        <span class="lbl">Norma</span>
-                        <span class="val badge-norma">{{ selectedManual?.metadatos_legal?.numero_norma }}</span>
+                    <div class="detail-row" *ngIf="selectedItem?.isFolder">
+                        <span class="lbl">Contenido</span>
+                        <span class="val">{{ selectedItem?.archivos_count }} archivos</span>
+                    </div>
+                    <div class="detail-row" *ngIf="selectedItem?.exif_metadata?.PageCount">
+                        <span class="lbl">Páginas</span>
+                        <span class="val badge-norma">{{ selectedItem?.exif_metadata?.PageCount }}</span>
                     </div>
                 </div>
 
-                <!-- Detalles Técnicos -->
-                <div class="detail-section">
-                    <label>Metadatos Técnicos</label>
-                    <div class="detail-row">
-                        <span class="lbl">Páginas</span>
-                        <span class="val">{{ selectedManual?.exif_metadata?.PageCount || 'N/A' }}</span>
+                <!-- Detalles de Origen (Manuales o System) -->
+                <div class="detail-section" *ngIf="selectedItem?.metadatos_legal || selectedItem?.source">
+                    <label>Origen y Seguridad</label>
+                    <div class="detail-row" *ngIf="selectedItem?.metadatos_legal?.institucion_origen">
+                        <span class="lbl">Institución</span>
+                        <span class="val">{{ selectedItem?.metadatos_legal?.institucion_origen }}</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="lbl">Tamaño</span>
-                        <span class="val">{{ selectedManual?.tamanio_human }}</span>
+                    <div class="detail-row" *ngIf="selectedItem?.source">
+                        <span class="lbl">Fuente</span>
+                        <span class="val">{{ selectedItem?.source }}</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="lbl">MIME</span>
-                        <span class="val">{{ selectedManual?.formato }}</span>
+                    <div class="detail-row" *ngIf="selectedItem?.hash">
+                        <span class="lbl">Firma Hash</span>
+                        <span class="val hash-text" [title]="selectedItem?.hash">{{ selectedItem?.hash.substring(0,12) }}...</span>
                     </div>
                 </div>
 
                 <!-- Cronología -->
                 <div class="detail-section full-width">
-                    <label>Cronología de Sistema</label>
+                    <label>Cronología de Actividad</label>
                     <div class="timeline-simple">
                         <div class="time-item">
                             <i class="far fa-calendar-alt"></i>
-                            <span>Indexado: {{ selectedManual?.fecha_indexacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                            <span>{{ selectedItem?.isFolder ? 'Primera Actividad:' : 'Accedido el:' }} {{ selectedItem?.fecha_indexacion | date:'dd MMM yyyy, HH:mm' }}</span>
                         </div>
-                        <div class="time-item">
+                        <div class="time-item" *ngIf="selectedItem?.fecha_modificacion">
                             <i class="far fa-edit"></i>
-                            <span>Modificado: {{ selectedManual?.fecha_modificacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                            <span>Última Modificación: {{ selectedItem?.fecha_modificacion | date:'dd MMM yyyy, HH:mm' }}</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Etiquetas -->
-                <div class="detail-section full-width" *ngIf="selectedManual?.tags?.length">
+                <!-- Etiquetas Inteligentes -->
+                <div class="detail-section full-width" *ngIf="selectedItem?.tags?.length">
                     <label>Etiquetas Inteligentes</label>
                     <div class="tags-cloud">
-                        <span class="smart-tag" *ngFor="let tag of selectedManual?.tags">
+                        <span class="smart-tag" *ngFor="let tag of selectedItem?.tags">
                             #{{ tag }}
                         </span>
                     </div>
@@ -568,7 +589,7 @@
         </div>
 
         <div class="modal-footer-v2">
-            <button class="btn-v2 btn-v2-blue" (click)="closeManualDetails()">Cerrar Detalles</button>
+            <button class="btn-v2 btn-v2-blue" (click)="closeItemDetails()">Cerrar Ficha</button>
         </div>
     </div>
 </div>

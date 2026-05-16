@@ -1,213 +1,240 @@
 <div class="modal-overlay config-overlay" (click)="closeModal()">
-    <div class="modal-card config-card" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2><i class="fas fa-sliders-h header-detail-icon"></i> Configuración del Sistema</h2>
-        <button class="btn-close-modal" (click)="closeModal()"><i class="fas fa-times"></i></button>
+  <div class="modal-card config-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2><i class="fas fa-sliders-h header-detail-icon"></i> Configuración del Sistema</h2>
+      <button class="btn-close-modal" (click)="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body-layout">
+      <div class="config-sidebar">
+        <button [class.active]="activeConfigTab === 'logs'" (click)="activeConfigTab = 'logs'">
+          <i class="fas fa-clipboard-list sidebar-icon"></i> Logs
+        </button>
+        <button [class.active]="activeConfigTab === 'theme'" (click)="activeConfigTab = 'theme'">
+          <i class="fas fa-palette sidebar-icon"></i> Tema
+        </button>
+        <button [class.active]="activeConfigTab === 'network'" (click)="activeConfigTab = 'network'">
+          <i class="fas fa-network-wired sidebar-icon"></i> Red
+        </button>
+        <button [class.active]="activeConfigTab === 'access'" (click)="activeConfigTab = 'access'">
+          <i class="fas fa-shield-alt sidebar-icon"></i> Seguridad
+        </button>
+        <button [class.active]="activeConfigTab === 'updates'" (click)="activeConfigTab = 'updates'">
+          <i class="fas fa-sync-alt sidebar-icon"></i> Updates
+        </button>
+        <button [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'; viewingPolicies = false">
+          <i class="fas fa-info-circle sidebar-icon"></i> Info
+        </button>
+        <button [class.active]="activeConfigTab === 'connections'" (click)="activeConfigTab = 'connections'">
+          <i class="fas fa-plug sidebar-icon"></i> Conexiones
+        </button>
       </div>
-      <div class="modal-body-layout">
-        <div class="config-sidebar">
-          <button [class.active]="activeConfigTab === 'logs'" (click)="activeConfigTab = 'logs'">
-            <i class="fas fa-clipboard-list sidebar-icon"></i> Logs
-          </button>
-          <button [class.active]="activeConfigTab === 'theme'" (click)="activeConfigTab = 'theme'">
-            <i class="fas fa-palette sidebar-icon"></i> Tema
-          </button>
-          <button [class.active]="activeConfigTab === 'network'" (click)="activeConfigTab = 'network'">
-            <i class="fas fa-network-wired sidebar-icon"></i> Red
-          </button>
-          <button [class.active]="activeConfigTab === 'access'" (click)="activeConfigTab = 'access'">
-            <i class="fas fa-shield-alt sidebar-icon"></i> Seguridad
-          </button>
-          <button [class.active]="activeConfigTab === 'updates'" (click)="activeConfigTab = 'updates'">
-            <i class="fas fa-sync-alt sidebar-icon"></i> Updates
-          </button>
-          <button [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'; viewingPolicies = false">
-             <i class="fas fa-info-circle sidebar-icon"></i> Info
-           </button>
-          <button [class.active]="activeConfigTab === 'connections'" (click)="activeConfigTab = 'connections'">
-            <i class="fas fa-plug sidebar-icon"></i> Conexiones
-          </button>
-        </div>
-        <div class="config-content">
-          <!-- Logs Tab -->
-          <div *ngIf="activeConfigTab === 'logs'" class="config-section">
-            <h3>Registros de Eventos</h3>
-            <label class="toggle-row">
-              <span>Activar registro de eventos</span>
-              <input type="checkbox" [(ngModel)]="config.logs.enabled">
-            </label>
-            <label class="toggle-row">
-              <span>Reportar al Creador (Log, Red)</span>
-              <input type="checkbox" [(ngModel)]="config.logs.reportToCreator">
-            </label>
-             <div class="config-group" style="margin-top:15px;">
-               <label>Nivel de Logs</label>
-               <select class="styled-select">
-                 <option>Info</option>
-                 <option>Debug</option>
-                 <option>Error</option>
-               </select>
-             </div>
+      <div class="config-content">
+        <!-- Logs Tab -->
+        <div *ngIf="activeConfigTab === 'logs'" class="config-section">
+          <h3>Registros de Eventos</h3>
+          <label class="toggle-row">
+            <span>Activar registro de eventos</span>
+            <input type="checkbox" [(ngModel)]="config.logs.enabled">
+          </label>
+          <label class="toggle-row">
+            <span>Reportar al Creador (Log, Red)</span>
+            <input type="checkbox" [(ngModel)]="config.logs.reportToCreator">
+          </label>
+          <div class="config-group" style="margin-top:15px;">
+            <label>Nivel de Logs</label>
+            <select class="styled-select">
+              <option>Info</option>
+              <option>Debug</option>
+              <option>Error</option>
+            </select>
           </div>
-  
+        </div>
+
         <!-- Sección Tema -->
         <div *ngIf="activeConfigTab === 'theme'" class="config-section">
           <h3>Apariencia</h3>
           <div class="theme-selector">
-            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'sandra'" (click)="config.theme = 'sandra'">Verde Pastel Elegante</div>
-            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'verde-mate'" (click)="config.theme = 'verde-mate'">Verde Mate Oscuro</div>
-            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'oscuro'" (click)="config.theme = 'oscuro'">Oscuro Night</div>
+            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'sandra'"
+              (click)="config.theme = 'sandra'">Verde Pastel Elegante</div>
+            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'verde-mate'"
+              (click)="config.theme = 'verde-mate'">Verde Mate Oscuro</div>
+            <div class="theme-option" style="width: 130px;" [class.selected]="config.theme === 'oscuro'"
+              (click)="config.theme = 'oscuro'">Oscuro Night</div>
           </div>
 
           <h4 style="margin-top: 25px;"><i class="fas fa-tachometer-alt"></i> Rendimiento de Interfaz</h4>
           <p class="hint-text">Ajusta la carga gráfica según la potencia de tu equipo.</p>
-          
+
           <div class="perf-selector" style="margin-top: 10px;">
             <select class="styled-select" [(ngModel)]="selectedPerfMode" (change)="onPerfChange()">
               <option *ngFor="let opt of perfOptions" [value]="opt.value">{{ opt.label }}</option>
             </select>
           </div>
 
-          <div class="perf-status-note" style="margin-top: 15px; font-size: 11px; color: var(--text-dim); background: rgba(0,0,0,0.03); padding: 10px; border-radius: 6px;">
+          <div class="perf-status-note"
+            style="margin-top: 15px; font-size: 11px; color: var(--text-dim); background: rgba(0,0,0,0.03); padding: 10px; border-radius: 6px;">
             <strong>Estado Actual:</strong> Perfil {{ performance.getCurrentProfile() | uppercase }} activo.
             <span *ngIf="selectedPerfMode === 'auto'"> (Detectado automáticamente)</span>
           </div>
         </div>
-  
-        <div *ngIf="activeConfigTab === 'access'" class="config-section">
-          <h3>Seguridad y Privacidad</h3>
-          
-          <div class="security-card-unified">
-            <!-- Sección: Cambio de Contraseña -->
-            <div class="security-sub-section" style="padding-top: 0;">
-              <form [formGroup]="changePasswordForm" (ngSubmit)="executeChangePassword()">
-                <div class="modern-form-group">
-                  <label>Contraseña Actual</label>
-                  <div class="input-with-icon">
-                    <input [type]="showClave ? 'text' : 'password'" formControlName="clave" placeholder="••••••••">
-                    <i class="fas fa-lock"></i>
-                    <button type="button" class="btn-toggle-eye" (click)="showClave = !showClave">
-                      <i class="fas" [ngClass]="showClave ? 'fa-eye-slash' : 'fa-eye'"></i>
+
+        <div *ngIf="activeConfigTab === 'access'" class="config-section"
+          [class.section-locked]="!isLoggedIn || wsStatus !== 'Conectado'">
+
+          <div class="lockable-container">
+            <h3>Seguridad y Privacidad</h3>
+
+            <div class="security-card-unified">
+              <!-- Sección: Cambio de Contraseña -->
+              <div class="security-sub-section" style="padding-top: 0;">
+                <form [formGroup]="changePasswordForm" (ngSubmit)="executeChangePassword()">
+                  <div class="modern-form-group">
+                    <label>Contraseña Actual</label>
+                    <div class="input-with-icon">
+                      <input [type]="showClave ? 'text' : 'password'" formControlName="clave" placeholder="••••••••">
+                      <i class="fas fa-lock"></i>
+                      <button type="button" class="btn-toggle-eye" (click)="showClave = !showClave">
+                        <i class="fas" [ngClass]="showClave ? 'fa-eye-slash' : 'fa-eye'"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="modern-form-group">
+                      <label>Nueva Contraseña</label>
+                      <div class="input-with-icon">
+                        <input [type]="showNueva ? 'text' : 'password'" formControlName="nueva"
+                          placeholder="Mín. 8 caracteres">
+                        <i class="fas fa-key"></i>
+                        <button type="button" class="btn-toggle-eye" (click)="showNueva = !showNueva">
+                          <i class="fas" [ngClass]="showNueva ? 'fa-eye-slash' : 'fa-eye'"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="modern-form-group">
+                      <label>Confirmar</label>
+                      <div class="input-with-icon">
+                        <input [type]="showRepite ? 'text' : 'password'" formControlName="repite" placeholder="Repetir">
+                        <i class="fas fa-check-double"></i>
+                        <button type="button" class="btn-toggle-eye" (click)="showRepite = !showRepite">
+                          <i class="fas" [ngClass]="showRepite ? 'fa-eye-slash' : 'fa-eye'"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Password Strength -->
+                  <div class="strength-meter" *ngIf="changePasswordForm.get('nueva')?.value">
+                    <div class="strength-labels">
+                      <span>Seguridad:</span>
+                      <span class="strength-text" [class]="passwordStrengthColor">{{ passwordStrengthLabel }}</span>
+                    </div>
+                    <div class="strength-bar-track">
+                      <div class="strength-bar-fill" [style.width.%]="passwordStrengthWidth"
+                        [class]="passwordStrengthColor"></div>
+                    </div>
+                  </div>
+
+                  <div class="button-row-right gap-12">
+                    <button type="submit" class="btn-change-pass-minimal" [disabled]="changePasswordForm.invalid">
+                      <ng-container
+                        *ngIf="changePasswordForm.hasError('notSame') && changePasswordForm.get('repite')?.dirty; else standardLabel">
+                        Claves no coinciden
+                      </ng-container>
+                      <ng-template #standardLabel>
+                        Actualizar Contraseña
+                      </ng-template>
                     </button>
                   </div>
+                </form>
+              </div>
+
+              <div class="section-divider-dotted"></div>
+
+              <!-- Sección: TOTP / Autenticación 2FA -->
+              <div class="security-sub-section">
+                <div class="header-with-toggle">
+                  <h4><i class="fas fa-qrcode"></i> Doble Factor (TOTP)</h4>
+                  <label class="switch">
+                    <input type="checkbox" [ngModel]="isTotpActive" (ngModelChange)="toggleTotp($event)">
+                    <span class="slider round"></span>
+                  </label>
                 </div>
 
-                <div class="form-row">
-                  <div class="modern-form-group">
-                    <label>Nueva Contraseña</label>
-                    <div class="input-with-icon">
-                      <input [type]="showNueva ? 'text' : 'password'" formControlName="nueva" placeholder="Mín. 8 caracteres">
-                      <i class="fas fa-key"></i>
-                      <button type="button" class="btn-toggle-eye" (click)="showNueva = !showNueva">
-                        <i class="fas" [ngClass]="showNueva ? 'fa-eye-slash' : 'fa-eye'"></i>
-                      </button>
+                <div *ngIf="showTotpSection" class="totp-setup-area fade-in-up">
+                  <div class="qr-container">
+                    <div class="qr-image-box">
+                      <img *ngIf="totpQrCodeUrl" [src]="totpQrCodeUrl" alt="QR TOTP">
+                      <div *ngIf="!totpQrCodeUrl" class="qr-loading">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                      </div>
+                    </div>
+                    <div class="qr-secret-box">
+                      <p class="hint-text-mini">Escanee el código QR con una app (Google Auth, Authy).</p>
+                      <label>Clave manual:</label>
+                      <div class="secret-input-group">
+                        <code>{{ totpSecret || '•••• •••• ••••' }}</code>
+                        <button class="btn-copy-secret" (click)="copyTotpSecret()"
+                          [title]="isTotpSecretCopied ? '¡Copiado!' : 'Copiar al portapapeles'">
+                          <i class="fas" [ngClass]="isTotpSecretCopied ? 'fa-check text-success' : 'fa-copy'"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  <div class="modern-form-group">
-                    <label>Confirmar</label>
-                    <div class="input-with-icon">
-                      <input [type]="showRepite ? 'text' : 'password'" formControlName="repite" placeholder="Repetir">
-                      <i class="fas fa-check-double"></i>
-                      <button type="button" class="btn-toggle-eye" (click)="showRepite = !showRepite">
-                        <i class="fas" [ngClass]="showRepite ? 'fa-eye-slash' : 'fa-eye'"></i>
-                      </button>
-                    </div>
-                  </div>
                 </div>
+              </div>
 
-                <!-- Password Strength -->
-                <div class="strength-meter" *ngIf="changePasswordForm.get('nueva')?.value">
-                  <div class="strength-labels">
-                    <span>Seguridad:</span>
-                    <span class="strength-text" [class]="passwordStrengthColor">{{ passwordStrengthLabel }}</span>
-                  </div>
-                  <div class="strength-bar-track">
-                    <div class="strength-bar-fill" [style.width.%]="passwordStrengthWidth" [class]="passwordStrengthColor"></div>
-                  </div>
-                </div>
+              <div class="section-divider-dotted"></div>
 
-                <div class="button-row-right gap-12">
-                  <button type="button" class="btn-secondary-minimal" (click)="generateTotp()">
-                    Obtener Caución
-                  </button>
-                  <button type="submit" class="btn-change-pass-minimal" [disabled]="changePasswordForm.invalid">
-                    <ng-container *ngIf="changePasswordForm.hasError('notSame') && changePasswordForm.get('repite')?.dirty; else standardLabel">
-                      Claves no coinciden
-                    </ng-container>
-                    <ng-template #standardLabel>
-                      Cambiar Contraseña
-                    </ng-template>
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div class="section-divider-dotted"></div>
-
-            <!-- Sección: TOTP / Autenticación 2FA -->
-            <div class="security-sub-section">
-              <div class="header-with-toggle">
-                <h4><i class="fas fa-qrcode"></i> Doble Factor (TOTP)</h4>
-                <label class="switch">
-                  <input type="checkbox" [ngModel]="isTotpActive" (ngModelChange)="toggleTotp($event)">
-                  <span class="slider round"></span>
+              <!-- Sección: Sesión JWT -->
+              <div class="security-sub-section">
+                <h4><i class="fas fa-user-shield"></i> Control de Token y Sesión</h4>
+                <label class="toggle-row no-border no-padding">
+                  <span>Habilitar sesión JWT al inicio</span>
+                  <input type="checkbox" [(ngModel)]="config.access.enableJwtSession">
                 </label>
-              </div>
-              
-              <div *ngIf="showTotpSection" class="totp-setup-area fade-in-up">
-                <div class="qr-container">
-                  <div class="qr-image-box">
-                    <img *ngIf="totpQrCodeUrl" [src]="totpQrCodeUrl" alt="QR TOTP">
-                    <div *ngIf="!totpQrCodeUrl" class="qr-loading">
-                      <i class="fas fa-circle-notch fa-spin"></i>
-                    </div>
+
+                <div class="form-row mt-10" *ngIf="config.access.enableJwtSession">
+                  <div class="modern-form-group">
+                    <label>Almacenamiento</label>
+                    <select class="styled-select" [(ngModel)]="config.access.jwtStorage">
+                      <option value="sessionStorage">Session Storage</option>
+                      <option value="localStorage">Local Storage</option>
+                    </select>
                   </div>
-                  <div class="qr-secret-box">
-                    <p class="hint-text-mini">Escanee el código QR con una app (Google Auth, Authy).</p>
-                    <label>Clave manual:</label>
-                    <div class="secret-input-group">
-                      <code>{{ totpSecret || '•••• •••• ••••' }}</code>
-                      <button class="btn-copy-secret" (click)="copyTotpSecret()" [title]="isTotpSecretCopied ? '¡Copiado!' : 'Copiar al portapapeles'">
-                        <i class="fas" [ngClass]="isTotpSecretCopied ? 'fa-check text-success' : 'fa-copy'"></i>
-                      </button>
-                    </div>
+                  <div class="modern-form-group">
+                    <label>Nombre de variable</label>
+                    <input type="text" [(ngModel)]="config.access.jwtVariableName" placeholder="token">
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="section-divider-dotted"></div>
-
-            <!-- Sección: Sesión JWT -->
-            <div class="security-sub-section">
-              <h4><i class="fas fa-user-shield"></i> Control de Token y Sesión</h4>
-              <label class="toggle-row no-border no-padding">
-                <span>Habilitar sesión JWT al inicio</span>
-                <input type="checkbox" [(ngModel)]="config.access.enableJwtSession">
-              </label>
-
-              <div class="form-row mt-10" *ngIf="config.access.enableJwtSession">
-                <div class="modern-form-group">
-                  <label>Almacenamiento</label>
-                  <select class="styled-select" [(ngModel)]="config.access.jwtStorage">
-                    <option value="sessionStorage">Session Storage</option>
-                    <option value="localStorage">Local Storage</option>
-                  </select>
-                </div>
-                <div class="modern-form-group">
-                  <label>Nombre de variable</label>
-                  <input type="text" [(ngModel)]="config.access.jwtVariableName" placeholder="token">
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Overlay de Bloqueo -->
+          <div class="section-lock-overlay fade-in" *ngIf="!isLoggedIn || wsStatus !== 'Conectado'">
+            <div class="lock-content">
+              <div class="lock-icon">
+                <i class="fas" [ngClass]="wsStatus !== 'Conectado' ? 'fa-plug-circle-exclamation' : 'fa-user-lock'"></i>
+              </div>
+              <h4>Acceso Restringido</h4>
+              <p>{{ wsStatus !== 'Conectado' ? 'Se requiere una conexión activa con el servidor.' : 'Debe iniciar sesión
+                para gestionar la seguridad.' }}</p>
+              <button class="btn-lock-action" (click)="activeConfigTab = 'connections'">
+                <i class="fas fa-network-wired"></i> Ir a Conexiones
+              </button>
+              <button class="btn-lock-action primary" *ngIf="wsStatus === 'Conectado'" (click)="onLoginRequest.emit()">
+                <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+              </button>
+            </div>
+          </div>
         </div>
-  
+
         <!-- Sección Actualizaciones -->
         <div *ngIf="activeConfigTab === 'updates'" class="config-section">
           <h3>Sincronización de Sistema</h3>
-          
+
           <div class="update-card" *ngIf="updateService.status$ | async as status">
             <div class="update-status-header">
               <div class="status-indicator">
@@ -218,14 +245,15 @@
                 }"></i>
                 <span class="status-label">
                   <ng-container *ngIf="status.checking">Buscando actualizaciones...</ng-container>
-                  <ng-container *ngIf="!status.checking && !status.available && !status.downloading">Sistema Actualizado</ng-container>
-                  <ng-container *ngIf="status.available && !status.downloading">Nueva versión detectada (v{{status.version}})</ng-container>
+                  <ng-container *ngIf="!status.checking && !status.available && !status.downloading">Sistema
+                    Actualizado</ng-container>
+                  <ng-container *ngIf="status.available && !status.downloading">Nueva versión detectada
+                    (v{{status.version}})</ng-container>
                   <ng-container *ngIf="status.downloading">Sincronizando Motor Sandra...</ng-container>
                 </span>
               </div>
-              <button class="btn-check-updates" 
-                      [disabled]="status.checking || status.downloading"
-                      (click)="checkUpdates()">
+              <button class="btn-check-updates" [disabled]="status.checking || status.downloading"
+                (click)="checkUpdates()">
                 {{ status.available ? 'Actualizar Ahora' : 'Buscar Ahora' }}
               </button>
             </div>
@@ -262,14 +290,14 @@
             </select>
           </label>
         </div>
-  
+
         <!-- Sección Información -->
         <div *ngIf="activeConfigTab === 'info'" class="config-section info-section">
           <ng-container *ngIf="!viewingPolicies">
             <h3>Sandra Desktop Container</h3>
             <p class="version-text">Versión 1.0.0 Alpha</p>
             <p class="desc-text">Plataforma de orquestación segura para aplicaciones de escritorio distribuidas.</p>
-            
+
             <div class="help-box">
               <h4><i class="fas fa-book"></i> Referencias de Seguridad</h4>
               <ul>
@@ -296,55 +324,67 @@
             <div class="policies-viewer-content" [innerHTML]="policiesHtml"></div>
           </ng-container>
         </div>
-  
-          
-          <!-- Network Tab -->
-           <div *ngIf="activeConfigTab === 'network'">
-             <h3>Información de Red</h3>
-             <div class="config-group" *ngFor="let ip of networkInfo">
-                <label>IP Detectada:</label>
-                <input type="text" [value]="ip" readonly>
-             </div>
-           </div>
-  
-          <!-- Connections Tab (NEW) -->
-          <div *ngIf="activeConfigTab === 'connections'">
-            <h3>Selector de Conexión Global</h3>
-            <p class="hint-text">Define qué conexión remota usarán las aplicaciones locales.</p>
-            
-            <div class="connection-list">
-                <div class="connection-item" *ngFor="let conn of availableConnections" 
-                     [class.active]="activeConnection?.id === conn.id"
-                     (click)="activateConnectionGlobal(conn)">
-                    <div class="conn-icon">
-                        <i class="fas fa-server"></i>
-                    </div>
-                    <div class="conn-info">
-                        <span class="conn-name">{{ conn.name }}</span>
-                        <span class="conn-ip">{{ conn.ip_address }}:{{ conn.port }}</span>
-                    </div>
-                    <div class="conn-status">
-                      <ng-container *ngIf="activeConnection?.id === conn.id; else inactiveStatus">
-                        <button class="btn-disconnect" (click)="$event.stopPropagation(); disconnect(conn)" title="Desconectar / Inactivar">
-                           <i class="fas fa-power-off"></i> Desconectar
-                        </button>
-                      </ng-container>
-                      <ng-template #inactiveStatus>
-                         <!-- Empty or maybe a connect icon if desired, but default clean is fine -->
-                      </ng-template>
-                    </div>
-                </div>
-                <div class="no-data" *ngIf="availableConnections.length === 0">
-                    No hay conexiones guardadas. Ve a la sección de Conexiones.
-                </div>
+
+
+        <!-- Network Tab -->
+        <div *ngIf="activeConfigTab === 'network'">
+          <h3>Información de Red</h3>
+          <div class="config-group" *ngFor="let ip of networkInfo">
+            <label>IP Detectada:</label>
+            <input type="text" [value]="ip" readonly>
+          </div>
+        </div>
+
+        <!-- Connections Tab (NEW) -->
+        <div *ngIf="activeConfigTab === 'connections'">
+          <h3>Selector de Conexión Global</h3>
+          <p class="hint-text">Define qué conexión remota usarán las aplicaciones locales.</p>
+
+          <div class="connection-list">
+            <div class="connection-item" *ngFor="let conn of availableConnections"
+              [class.active]="activeConnection?.id === conn.id" (click)="activateConnectionGlobal(conn)">
+              <div class="conn-icon">
+                <i class="fas fa-server"></i>
+              </div>
+              <div class="conn-info">
+                <span class="conn-name">{{ conn.name }}</span>
+                <span class="conn-ip">{{ conn.ip_address }}:{{ conn.port }}</span>
+              </div>
+              <div class="conn-status">
+                <ng-container *ngIf="activeConnection?.id === conn.id; else inactiveStatus">
+                  <button class="btn-disconnect" (click)="$event.stopPropagation(); disconnect(conn)"
+                    title="Desconectar / Inactivar">
+                    <i class="fas fa-power-off"></i> Desconectar
+                  </button>
+                </ng-container>
+                <ng-template #inactiveStatus>
+                  <!-- Empty or maybe a connect icon if desired, but default clean is fine -->
+                </ng-template>
+              </div>
+            </div>
+            <div class="no-data" *ngIf="availableConnections.length === 0">
+              No hay conexiones guardadas. Ve a la sección de Conexiones.
             </div>
           </div>
-  
         </div>
+
       </div>
-      <div class="modal-footer">
-        <button class="btn-modal-cancel-high" (click)="closeModal()">Cerrar</button>
-        <button class="btn-modal-confirm-high" (click)="saveConfig()">Guardar</button>
+    </div>
+    <div class="modal-footer">
+      <div class="footer-left">
+        <button *ngIf="activeConfigTab === 'access' || activeConfigTab === 'connections'" class="btn-footer-secondary"
+          (click)="generateCaucion()">
+          <i class="fas fa-shield-alt"></i> Obtener Caución
+        </button>
+      </div>
+      <div class="footer-right">
+        <button class="btn-modal-cancel-high" (click)="closeModal()">
+          <i class="fas fa-times"></i> Cerrar
+        </button>
+        <button class="btn-modal-confirm-high" (click)="saveConfig()">
+          <i class="fas fa-check"></i> Aceptar
+        </button>
       </div>
     </div>
   </div>
+</div>

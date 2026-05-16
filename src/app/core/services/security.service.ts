@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { listen } from '@tauri-apps/api/event';
 import { DataStreamService } from './data-stream.service';
+import { UtilsService } from './utils.service';
 
 export interface MailboxMessage {
     id: number;
@@ -105,7 +106,7 @@ export class SecurityService {
     public activeSyncAuthor: any = null;
     private existingGuids = new Set<string>();
 
-    constructor(private dataStreamService: DataStreamService) {
+    constructor(private dataStreamService: DataStreamService, private utils: UtilsService) {
         // Recuperar sesión persistida si existe (survive refresh)
         try {
             const storedConn = localStorage.getItem('active_connection');
@@ -459,7 +460,7 @@ export class SecurityService {
         ).subscribe({
             next: async (item) => {
                 console.log("[SecurityService] Raw manual item received from stream:", item);
-                
+
                 // Estructura detectada: Usar campos directos del objeto (nombre, categoria, etc.)
                 const fileName = item.nombre || 'Documento sin nombre';
                 const uuid = item._id || item.id || Math.random().toString(36).substring(7);
@@ -471,7 +472,7 @@ export class SecurityService {
                 console.log(`[SecurityService] Item procesado: ${fileName} -> Categoría: ${category}`);
 
                 console.log(`[SecurityService] Guardando manual ${fileName} en historial...`);
-                
+
                 await invoke('add_document_history', {
                     fileName,
                     filePath,
@@ -484,8 +485,8 @@ export class SecurityService {
                     metadata: JSON.stringify(item)
                 });
 
-                console.log(`[SecurityService] Manual ${fileName} guardado. Notificando UI...`);
-                invoke('refresh_document_history_signal');
+                console.log(`[SecurityService] Manual ${fileName} guardado.`);
+                // invoke('refresh_document_history_signal'); // Movido al final para mayor eficiencia
 
                 count++;
                 this._syncCount.next(count);
@@ -696,7 +697,7 @@ export class SecurityService {
             const jwt = activeConn ? JSON.parse(activeConn).jwt : (localStorage.getItem('jwt') || sessionStorage.getItem('jwt'));
 
             if (jwt) {
-                const payload = this.safeDecodeJWT(jwt);
+                const payload = this.utils.decodeJwt(jwt);
                 if (payload) {
                     const login = payload.Usuario?.usuario || payload.usuario || payload.Login || 'default';
                     return login.toLowerCase();
@@ -710,34 +711,10 @@ export class SecurityService {
 
     /**
      * Decodifica el payload de un JWT (Base64URL) de forma segura.
+     * @deprecated Use UtilsService.decodeJwt instead
      */
     private safeDecodeJWT(token: string): any {
-        try {
-            const parts = token.split('.');
-            if (parts.length < 2) return null;
-            const base64Url = parts[1];
-
-            // Reemplazo de caracteres Base64URL a Base64 estándar
-            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-
-            // Añadir relleno (padding) si es necesario
-            const pad = base64.length % 4;
-            if (pad) {
-                if (pad === 1) return null;
-                base64 += new Array(5 - pad).join('=');
-            }
-
-            const jsonPayload = decodeURIComponent(
-                atob(base64)
-                    .split('')
-                    .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                    .join('')
-            );
-
-            return JSON.parse(jsonPayload);
-        } catch (e) {
-            return null;
-        }
+        return this.utils.decodeJwt(token);
     }
 
     /**

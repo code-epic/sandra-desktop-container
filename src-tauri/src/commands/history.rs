@@ -120,7 +120,7 @@ pub fn get_document_history(db_state: State<DbState>, user_login: String) -> Res
     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash, group_name, metadata FROM document_history WHERE user_login = ?1 OR user_login IS NULL ORDER BY opened_at DESC LIMIT 50")
+        .prepare("SELECT id, file_name, file_path, opened_at, file_size, remote_code, source, file_hash, group_name, metadata FROM document_history WHERE user_login = ?1 OR user_login IS NULL ORDER BY opened_at DESC LIMIT 500")
         .map_err(|e| e.to_string())?;
 
     let history_iter = stmt

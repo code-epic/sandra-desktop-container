@@ -19,8 +19,8 @@ export class SecureViewerComponent {
     @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
     // Manuals Interface Mapping
-    showManualDetailsModal = false;
-    selectedManual: any = null;
+    showItemDetailsModal = false;
+    selectedItem: any = null;
 
     isLoading = false;
     loadingFilePath: string | null = null; // Track which specific path is loading
@@ -54,6 +54,10 @@ export class SecureViewerComponent {
         private fileService: FileService,
         private securityService: SecurityService // Inyectado para obtener user_login
     ) {
+        const lastTab = localStorage.getItem('secure_viewer_last_tab') as any;
+        if (lastTab && ['global', 'mailbox', 'manuals'].includes(lastTab)) {
+            this.viewerActiveTab = lastTab;
+        }
         this.loadHistory();
         this.setupListeners();
     }
@@ -61,6 +65,7 @@ export class SecureViewerComponent {
     setTab(tab: 'global' | 'mailbox' | 'manuals') {
         console.log("[SecureViewer] Cambiando a tab:", tab);
         this.viewerActiveTab = tab;
+        localStorage.setItem('secure_viewer_last_tab', tab);
         this.updateGroupedHistory();
 
         // Auto-sync manuals if switching to that tab and empty? 
@@ -187,17 +192,50 @@ export class SecureViewerComponent {
                         isFolder: true,
                         name: item.group_name,
                         items: [],
+                        totalSize: 0,
                         opened_at: item.opened_at,
                         isOpen: this.openFolders.has(item.group_name)
                     };
                     groupsMap.set(item.group_name, group);
                     result.push(group);
                 }
-                groupsMap.get(item.group_name).items.push(item);
+                const group = groupsMap.get(item.group_name);
+                group.items.push(item);
+                group.totalSize += this.parseSizeToBytes(item.file_size);
             } else {
-                // Keep original reference for trackBy to work best
                 result.push({ ...item, isFolder: false });
             }
+        });
+
+        // Convert sizes and sort
+        result.forEach(r => {
+            if (r.isFolder) {
+                r.displaySize = this.formatBytes(r.totalSize);
+                r.items.forEach((subItem: any) => {
+                    // Ensure subItem size is formatted if it's raw bytes
+                    if (subItem.file_size && subItem.file_size.endsWith('B') && !subItem.file_size.includes(' ')) {
+                        const bytes = parseInt(subItem.file_size.replace('B', ''));
+                        if (!isNaN(bytes)) subItem.displaySize = this.formatBytes(bytes);
+                    } else {
+                        subItem.displaySize = subItem.file_size;
+                    }
+                });
+            } else {
+                if (r.file_size && r.file_size.endsWith('B') && !r.file_size.includes(' ')) {
+                    const bytes = parseInt(r.file_size.replace('B', ''));
+                    if (!isNaN(bytes)) r.displaySize = this.formatBytes(bytes);
+                } else {
+                    r.displaySize = r.file_size;
+                }
+            }
+        });
+
+        // Sort: Folders first (alphabetical), then individual files (by date)
+        result.sort((a, b) => {
+            if (a.isFolder && b.isFolder) return a.name.localeCompare(b.name);
+            if (a.isFolder) return -1;
+            if (b.isFolder) return 1;
+            return 0; // Keep original order for files (already sorted by date from DB)
         });
 
         this.groupedHistory = result;
@@ -475,21 +513,72 @@ export class SecureViewerComponent {
         }
     }
 
-    openManualDetails(item: any, event: Event) {
+    openItemDetails(item: any, event: Event) {
         event.stopPropagation();
-        if (item.metadata) {
-            try {
-                this.selectedManual = JSON.parse(item.metadata);
-                this.showManualDetailsModal = true;
-            } catch (e) {
-                console.error("Error parsing manual metadata:", e);
+        this.selectedItem = null;
+
+        if (item.isFolder) {
+            // Folder Metadata
+            this.selectedItem = {
+                id: 'DIR-' + item.name.substring(0, 8),
+                nombre: item.name,
+                isFolder: true,
+                categoria: 'Directorio del Sistema',
+                tamanio_human: item.displaySize,
+                archivos_count: item.items.length,
+                fecha_indexacion: item.opened_at,
+                items: item.items
+            };
+        } else {
+            // File Metadata
+            let metadata: any = {};
+            if (item.metadata) {
+                try {
+                    metadata = JSON.parse(item.metadata);
+                } catch (e) {
+                    console.error("Error parsing metadata:", e);
+                }
             }
+
+            this.selectedItem = {
+                id: item.id || item.remote_code,
+                nombre: item.file_name,
+                isFolder: false,
+                categoria: item.group_name || 'Sin Categoría',
+                tamanio_human: item.file_size,
+                formato: item.file_name.split('.').pop()?.toUpperCase() || 'N/A',
+                fecha_indexacion: item.opened_at,
+                source: item.source,
+                hash: item.file_hash,
+                ...metadata // Spread parsed metadata if exists (for manuals)
+            };
         }
+        this.showItemDetailsModal = true;
     }
 
-    closeManualDetails() {
-        this.showManualDetailsModal = false;
-        this.selectedManual = null;
+    closeItemDetails() {
+        this.showItemDetailsModal = false;
+        this.selectedItem = null;
+    }
+
+    private parseSizeToBytes(sizeStr: string): number {
+        if (!sizeStr) return 0;
+        const units: any = { 'B': 1, 'KB': 1024, 'MB': 1024 * 1024, 'GB': 1024 * 1024 * 1024 };
+        const match = sizeStr.match(/^([\d.]+)\s*([a-zA-Z]+)$/);
+        if (match) {
+            const value = parseFloat(match[1]);
+            const unit = match[2].toUpperCase();
+            return value * (units[unit] || 1);
+        }
+        return parseFloat(sizeStr) || 0;
+    }
+
+    private formatBytes(bytes: number): string {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
     async verifyDocumentCertification(path: string) {

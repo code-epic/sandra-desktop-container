@@ -18,6 +18,7 @@ import { FileService } from "./core/services/file.service";
 import { Observable, Subject } from "rxjs";
 import { debounceTime } from "rxjs/operators";
 import { SnapService, SnapData } from "./core/services/snap.service";
+import { ISandraJwtPayload } from "./core/models/security.model";
 import { UtilsService } from "./core/services/utils.service";
 // import { PDFDocument, rgb, degrees } from 'pdf-lib'; // REMOVED: Now handled in DownloadService/ChildApp
 
@@ -421,34 +422,77 @@ export class AppComponent implements OnInit {
 
       event.preventDefault();
       this.zone.run(() => {
-        this.handleGlobalLogout();
+        this.performFullLogout();
       });
     });
   }
 
   getJwtToken(): string | null {
-    if (!this.config.access.enableJwtSession) return null;
+    // Si la sesión JWT está deshabilitada globalmente y no hay un override de fuerza, devolvemos null
+    // Pero si hay un token en el storage, es mejor devolverlo para mantener la UI sincronizada
     const storage =
       this.config.access.jwtStorage === "sessionStorage"
         ? sessionStorage
         : localStorage;
-    return storage.getItem(this.config.access.jwtVariableName);
+    const token = storage.getItem(this.config.access.jwtVariableName);
+
+    if (token) {
+      // Validar expiración del JWT (Pattern: decode and check 'exp')
+      try {
+        const payload = this.utils.decodeJwt(token);
+        if (payload && payload.exp) {
+          const now = Math.floor(Date.now() / 1000);
+          if (payload.exp < now) {
+            console.warn("🔐 [System] Token JWT expirado detectado. Limpiando...");
+            storage.removeItem(this.config.access.jwtVariableName);
+            return null;
+          }
+        }
+        // Si el token es válido pero la bandera está apagada, la sincronizamos (Auto-Heal)
+        if (!this.config.access.enableJwtSession) {
+          this.config.access.enableJwtSession = true;
+        }
+        return token;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    return null;
   }
 
   loginConnections: any[] = [];
   requireJwtLogin: boolean = true;
 
-  checkAndPromptJwt() {
-    if (this.config.access.enableJwtSession && this.activeConnection) {
-      const token = this.getJwtToken();
+  checkAndPromptJwt(force: boolean = false) {
+    console.log("🔍 [System] checkAndPromptJwt llamado. Force:", force, "ActiveConn:", !!this.activeConnection, "JWT Enabled:", this.config.access.enableJwtSession);
+    
+    if (!this.activeConnection) {
+      console.warn("⚠️ [System] No hay conexión activa para solicitar JWT.");
+      return;
+    }
 
-      if (!token) {
-        // Show login modal
-        this.loginConnections = [];
-        this.requireJwtLogin = true;
-        this.loginIpAddress = this.activeConnection.ip_address;
-        this.loginPort = Number(this.activeConnection.port);
+    const token = this.getJwtToken();
+
+    // Si forzamos (clic manual) O si está habilitado y falta el token real
+    if (force || (this.config.access.enableJwtSession && !token)) {
+      console.log("🔓 [System] ACTIVANDO showLoginModal = true");
+      this.loginConnections = [];
+      this.requireJwtLogin = true;
+      this.loginIpAddress = this.activeConnection.ip_address || 'localhost';
+      this.loginPort = Number(this.activeConnection.port) || 443;
+      
+      // Forzar ciclo de detección de cambios
+      this.showLoginModal = false;
+      setTimeout(() => {
         this.showLoginModal = true;
+        console.log("✅ [System] showLoginModal es ahora TRUE");
+      }, 10);
+    } else {
+      // Sincronización silenciosa si ya hay token en storage
+      if (token && (!this.activeConnection.jwt || this.activeConnection.jwt !== token)) {
+        console.log("🔄 [System] Sincronizando JWT existente a la conexión activa.");
+        this.activeConnection.jwt = token;
       }
     }
   }
@@ -468,35 +512,39 @@ export class AppComponent implements OnInit {
       token.substring(0, 10) + "...",
     );
     this.showLoginModal = false;
+    
+    // 1. Sincronizar Preferencias y Estado Global
+    this.config.access.enableJwtSession = true;
+    this.saveConfig(true); 
 
-    // Sincronizar la conexión visual para que se le permita el paso
+    // 2. Sincronizar Identidad en la Conexión Activa
     if (this.activeConnection) {
-      this.activeConnection.jwt = token;
-
-      // Intentar extraer el perfil del usuario del token para la sincronización
+      this.activeConnection.jwt = token; // Sincronizar token en objeto para servicios backend
       try {
-        const payloadPart = token.split(".")[1];
-        const decoded = JSON.parse(atob(payloadPart));
-        if (decoded.Usuario) {
-          this.activeConnection.profile = {
-            usuario: decoded.Usuario.usuario,
-            sistema: decoded.Usuario.sistema || 'consola'
-          };
-          console.log("Perfil extraído del token:", this.activeConnection.profile);
+        const payload: ISandraJwtPayload = this.utils.decodeJwt(token);
+        if (payload?.Usuario) {
+          this.activeConnection.username = payload.Usuario.usuario;
+          this.activeConnection.profile = payload.Usuario.Perfil;
+          console.log("✅ [App] Sesión sincronizada para:", this.activeConnection.username);
         }
       } catch (e) {
-        console.warn("No se pudo decodificar el perfil del token:", e);
+        console.warn("[App] Error decodificando payload para sincronización:", e);
       }
-    }
-
-    // 3. Disparar sincronización de seguridad inmediata (Background)
-    if (this.activeConnection) {
-      // Persistir para otros componentes (SecureViewer)
+      
+      // Persistir objeto de conexión actualizado
       localStorage.setItem('active_connection', JSON.stringify(this.activeConnection));
+      
+      // 3. Iniciar servicios dependientes de identidad
       this.securityService.startMailboxSync(this.activeConnection, this.activeConnection.profile || { usuario: 'root', sistema: 'admin' });
     }
 
-    // Si había una redirección pendiente
+    // 4. Forzar refresco de UI (Candados en Sidebar)
+    setTimeout(() => {
+       // Esto asegura que getJwtToken() sea re-evaluado en el siguiente ciclo
+       console.log("🔄 [App] Forzando refresco de UI post-login...");
+    }, 100);
+
+    // 5. Si había una redirección pendiente
     if (this.pendingNavTab) {
       this.appState.setActiveTab(this.pendingNavTab);
       this.pendingNavTab = null;
@@ -518,12 +566,11 @@ export class AppComponent implements OnInit {
         return;
       }
 
-      // 2. Verificar si la Sesión JWT está habilitada globalmente
+      // 2. Verificar si la Sesión JWT está habilitada o forzar login si intentan entrar
       if (!this.config.access.enableJwtSession) {
-        this.showModal(
-          "Seguridad Requerida",
-          "Para acceder a zonas protegidas, debe activar la 'Sesión JWT' en el panel de Configuración y autorizar el terminal."
-        );
+        console.log("🔒 [System] Sesión JWT deshabilitada, forzando login para acceso a zona protegida.");
+        this.pendingNavTab = tabId;
+        this.checkAndPromptJwt(true);
         return;
       }
 
@@ -627,7 +674,11 @@ export class AppComponent implements OnInit {
   }
 
   async activateConnectionGlobal(conn: any) {
-    if (this.activeConnection && this.activeConnection.id === conn.id) return; // Already active
+    if (this.activeConnection && this.activeConnection.id === conn.id) {
+      // Si ya está activa y pulsamos, forzamos el prompt de login para permitir cambiar de usuario o re-autenticar
+      this.checkAndPromptJwt(true);
+      return; 
+    }
 
     // Deactivate previous if any? connect_to_server handles this in DB.
     // We invoke connect_to_server which sets is_connected=1 and starts WSS.
@@ -639,6 +690,9 @@ export class AppComponent implements OnInit {
       await this.sdcService.connectToServer(conn, this.clientId);
       // Refresh list to sync is_connected flags from DB
       await this.loadConnections();
+      
+      // Forzar el prompt de login tras una conexión manual exitosa
+      this.checkAndPromptJwt(true);
     } catch (e) {
       console.error("Error activating connection", e);
       this.showModal("Error", "Error al activar conexión: " + e);
@@ -710,6 +764,44 @@ export class AppComponent implements OnInit {
 
     // 5. Redireccionar al Dashboard (Zona Pública)
     this.appState.setActiveTab("dashboard");
+  }
+
+  /**
+   * Realiza un cierre de sesión completo: desconexión del servidor y limpieza local.
+   */
+  public async performFullLogout() {
+    console.log("🚫 [System] Iniciando Cierre de Sesión Completo...");
+    
+    // 1. Desconectar del servidor si hay conexión activa
+    if (this.activeConnection) {
+      try {
+        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+        console.log("🔌 Desconectado del servidor correctamente.");
+      } catch (e) {
+        console.error("Error desconectando del servidor durante logout forzado:", e);
+      }
+    }
+
+    // 2. Limpiar estados locales y redireccionar
+    this.performLocalLogout();
+
+    // 3. Mostrar notificación
+    this.snapService.show("Sesión Cerrada Totalmente", undefined, "info", "fa-sign-out-alt");
+  }
+
+  /**
+   * Maneja el cierre del modal de login, forzando logout si era requerido para navegación.
+   */
+  handleLoginModalClose() {
+    this.showLoginModal = false;
+    
+    // Si el modal se cerró y teníamos una navegación pendiente a área protegida, 
+    // asumimos que el login falló o fue cancelado.
+    if (this.pendingNavTab) {
+      console.warn(`⚠️ [System] Login cancelado para área protegida: ${this.pendingNavTab}. Forzando Logout.`);
+      this.performFullLogout();
+      this.pendingNavTab = null;
+    }
   }
 
   // --- Application Lifecycle & Setup ---
@@ -851,7 +943,7 @@ export class AppComponent implements OnInit {
     }
   }
 
-  async handleGlobalLogout() {
+  async handleExitRequest() {
     this.exitModal = { show: true, closing: false };
   }
 
@@ -1157,8 +1249,19 @@ export class AppComponent implements OnInit {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // recursively merge config or simple assign if structure matches
-        this.config = Object.assign(this.config, parsed);
+        this.config = { ...this.config, ...parsed };
+        if (parsed.access) {
+          this.config.access = { ...this.config.access, ...parsed.access };
+        }
+        
+        // AUTO-HEAL: Si al cargar detectamos un token pero la sesión está desactivada, la activamos.
+        // Esto previene que los menús arranquen bloqueados si el usuario no activó el check manualmente.
+        const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+        const token = storage.getItem(this.config.access.jwtVariableName);
+        if (token && !this.config.access.enableJwtSession) {
+          console.log("🛠️ [App] Sincronizando estado de sesión JWT desde almacenamiento.");
+          this.config.access.enableJwtSession = true;
+        }
       } catch (e) {
         console.error("Error loading config", e);
       }
@@ -2327,6 +2430,20 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    // Intelligence for returning to previous context
+    const tabs = this.appState.getTabsSnapshot();
+    const closingTab = tabs.find(t => t.id === tabId);
+
+    if (closingTab && this.currentTabId === tabId) {
+      if (closingTab.source === 'MANUALS') {
+        this.appState.setActiveTab('secure-viewer');
+      } else if (closingTab.source === 'HISTORY' || closingTab.source === 'GLOBAL') {
+        // Optional: you could force dashboard here if that's what "posicion anterior el dashboard" means
+        // But setActiveTab(getLastDashboardSnapshot) is usually better.
+        // Let's stick to the last snapshot for now, but the manuals part is now explicit.
+      }
+    }
+
     this.appState.closeTab(tabId);
   }
 
@@ -2341,6 +2458,16 @@ export class AppComponent implements OnInit {
       } else {
         this.logger.clearLogs(this.tabIdToClose);
       }
+
+      // Intelligence for returning to previous context
+      const tabs = this.appState.getTabsSnapshot();
+      const closingTab = tabs.find(t => t.id === this.tabIdToClose);
+      if (closingTab && this.currentTabId === this.tabIdToClose) {
+        if (closingTab.source === 'MANUALS') {
+          this.appState.setActiveTab('secure-viewer');
+        }
+      }
+
       this.appState.closeTab(this.tabIdToClose);
     }
     this.showSaveLogModal = false;
