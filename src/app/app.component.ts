@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, HostListener } from "@angular/core";
+import { Component, OnInit, NgZone, HostListener, DoCheck, ViewChild } from "@angular/core";
 import { CommonModule, NgIf } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
@@ -8,6 +8,8 @@ import {
 } from "@angular/platform-browser";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Webview } from "@tauri-apps/api/webview";
+import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
 import { SecurityService } from "./core/services/security.service";
 import { SdcService } from "./core/services/sdc.service";
 import { LoggerService } from "./core/services/logger.service";
@@ -86,7 +88,8 @@ interface DesktopApp {
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, DoCheck {
+  @ViewChild("chatComponent") chatComponent?: ChatComponent;
   stats: SystemStats | null = null;
   greetingMessage = "";
   networkInfo: string[] = [];
@@ -114,6 +117,9 @@ export class AppComponent implements OnInit {
   private csvSearchSubject = new Subject<Tab>();
   private txtSearchSubject = new Subject<Tab>();
   private backgroundTaskUnlisten?: UnlistenFn;
+  private resizeObserver?: ResizeObserver;
+  private activePlaceholderId: string | null = null;
+  private transitionInterval: any;
 
   installModal = {
     show: false,
@@ -162,6 +168,7 @@ export class AppComponent implements OnInit {
   availableConnections: any[] = [];
   activeConnection: any = null;
   clientId: string = "";
+  activeNativeWebviews: Record<string, Webview> = {};
 
   activeTabId$: Observable<string>;
   openTabs$: Observable<Tab[]>;
@@ -169,6 +176,9 @@ export class AppComponent implements OnInit {
   rightSidebarOpen$: Observable<boolean>;
   leftSidebarOpen$: Observable<boolean>;
   currentTabId: string = "dashboard";
+  isChatVisible = false;
+  isChatOpen = false;
+  lastOverlayState = false;
 
   isInspectorOpen = false;
 
@@ -263,7 +273,17 @@ export class AppComponent implements OnInit {
 
     this.viewerLoading$.subscribe((val) => (this.isViewerLoading = val));
 
-    this.rightSidebarOpen$.subscribe((val) => (this.isInspectorOpen = val));
+    this.rightSidebarOpen$.subscribe((val) => {
+      this.isInspectorOpen = val;
+      this.syncWebviewDuringTransition();
+    });
+    this.leftSidebarOpen$.subscribe((val) => {
+      this.syncWebviewDuringTransition();
+    });
+    this.chatVisible$.subscribe((val) => {
+      this.isChatVisible = val;
+      setTimeout(() => this.syncNativeWebviews(), 50);
+    });
 
     this.logger.initialize();
 
@@ -273,6 +293,9 @@ export class AppComponent implements OnInit {
       this.updateTitle(id);
       // Aplicar reglas de sidebar al cambiar de pestaña
       setTimeout(() => this.checkSidebarResponsive(window.innerWidth), 0);
+      
+      // Sincronizar Webviews nativos al cambiar de pestaña
+      setTimeout(() => this.syncNativeWebviews(), 50);
 
       // Si volvemos al dashboard, refrescar datos inmediatamente para no esperar 5 min
       if (id === "dashboard") {
@@ -422,7 +445,7 @@ export class AppComponent implements OnInit {
 
       event.preventDefault();
       this.zone.run(() => {
-        this.performFullLogout();
+        this.handleExitRequest();
       });
     });
   }
@@ -1092,7 +1115,7 @@ export class AppComponent implements OnInit {
       rawUrl = `sandra-app://localhost/limitless-proxy/${appId}/?target=${target}`;
       console.log(`🚀 [Limitless Nav] Opening ${appData.name} -> ${rawUrl}`);
     }
-    // 3. Modo "Navegador Libre" (Bypass total de seguridad SDC)
+    // 3. Modo "Navegador Libre" (Apertura como Native Child Webview)
     else if (appData.is_external_browser) {
       if (!targetUrl) {
         this.showModal(
@@ -1101,9 +1124,34 @@ export class AppComponent implements OnInit {
         );
         return;
       }
+      console.log(`🌐 [Native Browser Mode] Creando Webview para -> ${targetUrl}`);
       rawUrl = targetUrl;
       isExternalMode = true;
-      console.log(`🌐 [Free Browser Mode] Opening ${appData.name} -> ${rawUrl}`);
+
+      const safeAppId = appId.replace(/[^a-zA-Z0-9\-\/:_]/g, '-');
+      const webviewId = `webview-${safeAppId}-${Date.now()}`;
+      const appWindow = getCurrentWindow();
+      
+      const webview = new Webview(appWindow, webviewId, {
+        url: targetUrl,
+        x: window.innerWidth, // Oculto inicialmente
+        y: window.innerHeight,
+        width: 100,
+        height: 100
+      });
+
+      this.activeNativeWebviews[appData.id.toString()] = webview;
+
+      webview.once('tauri://created', () => {
+        console.log(`✅ [Native Webview] Creado exitosamente: ${webviewId}`);
+        // Espera 1.2 segundos para mostrar el cargador premium y evitar flashes blancos de renderizado
+        setTimeout(() => this.syncNativeWebviews(), 1200);
+      });
+      
+      webview.once('tauri://error', (e) => {
+        console.error(`❌ [Native Webview] Error al crear: ${webviewId}`, e);
+        this.showModal("Error", "No se pudo crear el navegador nativo.");
+      });
     }
     // 4. Si la App requiere Proxy -> Forzar sandra-app://
     else if (targetUrl && appData.is_proxy_required) {
@@ -1209,6 +1257,7 @@ export class AppComponent implements OnInit {
   @HostListener("window:resize", ["$event"])
   onResize(event: any) {
     this.checkSidebarResponsive(window.innerWidth);
+    this.syncNativeWebviews();
   }
 
   checkSidebarResponsive(width: number) {
@@ -2422,6 +2471,12 @@ export class AppComponent implements OnInit {
 
   async closeTab(tabId: string, evt: Event) {
     evt.stopPropagation();
+    
+    if (this.activeNativeWebviews[tabId]) {
+      console.log(`🗑️ [Native Webview] Destruyendo webview para: ${tabId}`);
+      this.activeNativeWebviews[tabId].close();
+      delete this.activeNativeWebviews[tabId];
+    }
     evt.preventDefault();
 
     if (this.logger.hasXhrLogsForApp(tabId)) {
@@ -2451,12 +2506,74 @@ export class AppComponent implements OnInit {
     this.handleNavigationRequest(tabId);
   }
 
+  handleChatToggle(isOpen: boolean) {
+    this.isChatOpen = isOpen;
+    this.syncNativeWebviews();
+  }
+
+  isCurrentTabExternalMode(): boolean {
+    return !!(this.currentTabId && this.activeNativeWebviews[this.currentTabId.toString()]);
+  }
+
+  isCurrentTabDynamic(): boolean {
+    const staticTabs = ['dashboard', 'connections', 'security', 'monitor', 'proyectos', 'apps', 'secure-viewer'];
+    return !!(this.currentTabId && !staticTabs.includes(this.currentTabId.toString()));
+  }
+
+  setupResizeObserver(placeholder: HTMLElement) {
+    if (this.activePlaceholderId === placeholder.id) return;
+    
+    this.disconnectResizeObserver();
+    
+    this.activePlaceholderId = placeholder.id;
+    this.resizeObserver = new ResizeObserver(() => {
+      this.zone.run(() => {
+        this.syncNativeWebviews();
+      });
+    });
+    
+    this.resizeObserver.observe(placeholder);
+  }
+
+  disconnectResizeObserver() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = undefined;
+      this.activePlaceholderId = null;
+    }
+  }
+
+  syncWebviewDuringTransition() {
+    if (this.transitionInterval) {
+      clearInterval(this.transitionInterval);
+    }
+
+    const startTime = Date.now();
+    const duration = 400; // 300ms CSS + 100ms extra settle room
+
+    this.transitionInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= duration) {
+        clearInterval(this.transitionInterval);
+        this.transitionInterval = null;
+      }
+      this.syncNativeWebviews();
+    }, 16); // ~60fps smooth glide
+  }
+
   async confirmCloseTab(shouldSave: boolean) {
     if (this.tabIdToClose) {
       if (shouldSave) {
         await this.logger.saveAllLogs(this.tabIdToClose);
       } else {
         this.logger.clearLogs(this.tabIdToClose);
+      }
+
+      // Limpiar webview nativo si existe
+      if (this.activeNativeWebviews[this.tabIdToClose]) {
+        console.log(`🗑️ [Native Webview] Destruyendo webview para: ${this.tabIdToClose}`);
+        this.activeNativeWebviews[this.tabIdToClose].close();
+        delete this.activeNativeWebviews[this.tabIdToClose];
       }
 
       // Intelligence for returning to previous context
@@ -2746,5 +2863,114 @@ export class AppComponent implements OnInit {
         iframe.contentWindow.postMessage(completionMsg, "*");
       }
     }
+  }
+
+  isAnyOverlayVisible(): boolean {
+    return this.showLoginModal ||
+           (this.installModal && this.installModal.show) ||
+           (this.confirmModal && this.confirmModal.show) ||
+           this.showDbModal ||
+           (this.genericModal && this.genericModal.show) ||
+           (this.exitModal && this.exitModal.show) ||
+           (this.questionModal && this.questionModal.show) ||
+           this.showJwtSetupModal ||
+           this.showControlPanel ||
+           this.isChatOpen ||
+           this.showUnlockTabModal ||
+           this.showSaveLogModal ||
+           this.showSetupWizard;
+  }
+
+  ngDoCheck() {
+    const overlayState = this.isAnyOverlayVisible();
+    if (overlayState !== this.lastOverlayState) {
+      this.lastOverlayState = overlayState;
+      console.log(`👁️ [Overlay State] Cambió a: ${overlayState ? 'Visible' : 'Oculto'}. Sincronizando webviews...`);
+      // Retraso mínimo para asegurar que los elementos del DOM estén estables antes de sincronizar
+      setTimeout(() => this.syncNativeWebviews(), 50);
+    }
+  }
+
+  syncNativeWebviews() {
+    const isMac = window.navigator.userAgent.includes('Mac');
+    const dpr = window.devicePixelRatio || 1;
+    // Usamos LogicalSize y LogicalPosition que esperan píxeles lógicos.
+    // Tauri maneja la escala DPR automáticamente a nivel nativo en todas las plataformas,
+    // por lo que no debemos multiplicar manualmente por el factor de escala (evita doble escalado en macOS).
+    const scaleFactor = 1;
+    const hasOverlay = this.isAnyOverlayVisible();
+
+    console.log(`🔄 [Native Webview] Sincronizando... currentTabId: ${this.currentTabId} | Overlays: ${hasOverlay} | OS: ${isMac ? 'macOS' : 'Otros'} | DPR: ${dpr} | Factor Escala: ${scaleFactor}`);
+
+    Object.keys(this.activeNativeWebviews).forEach((tabId) => {
+      const webview = this.activeNativeWebviews[tabId];
+      if (!webview) return;
+
+      // El webview solo es visible si es la pestaña activa y NO hay ningún modal u overlay abierto
+      const isVisible = this.currentTabId && this.currentTabId.toString() === tabId && !hasOverlay;
+
+      if (isVisible) {
+        const placeholderId = `webview-placeholder-${tabId}`;
+        const placeholder = document.getElementById(placeholderId);
+        if (placeholder) {
+          this.setupResizeObserver(placeholder);
+
+          const rect = placeholder.getBoundingClientRect();
+          
+          if (rect.width > 0 && rect.height > 0) {
+            import('@tauri-apps/api/dpi').then(({ LogicalSize, LogicalPosition }) => {
+              // Buscar banners flotantes (como la barra de proxy o modo libre) dentro del contenedor
+              const banner = placeholder.parentElement?.querySelector('.proxy-glass-bar');
+              let bannerHeight = banner ? banner.getBoundingClientRect().height : 0;
+              
+              // Evitar saltos de layout si el banner existe pero su altura reportada es 0 debido a transiciones
+              if (banner && bannerHeight === 0) {
+                bannerHeight = 38;
+              }
+              
+              // Ajustar la posición y altura para no pisar el banner y llegar exactamente hasta abajo
+              const adjustedTop = Math.floor(rect.top + bannerHeight);
+              
+              // Medición híbrida ultra-segura para garantizar cobertura total hasta el último píxel físico del viewport:
+              // 1. window.innerHeight - adjustedTop (medición absoluta respecto a la ventana del SO)
+              // 2. rect.height - bannerHeight (medición reactiva respecto al contenedor de Angular)
+              const heightFromWindow = window.innerHeight - adjustedTop;
+              const heightFromRect = rect.height - bannerHeight;
+              
+              // Tomamos el máximo de ambas mediciones y sumamos un sangrado de seguridad generoso de +30px.
+              // El WebView de Tauri se estirará de forma impecable y el sistema operativo lo recortará (OS clipping)
+              // exactamente en el borde inferior físico de la ventana, eliminando cualquier franja residual.
+              const adjustedHeight = Math.max(heightFromWindow, heightFromRect) + 30;
+
+              const targetWidth = Math.ceil(rect.width * scaleFactor);
+              const targetHeight = Math.ceil(adjustedHeight * scaleFactor);
+              const targetX = Math.floor(rect.left * scaleFactor);
+              const targetY = Math.floor(adjustedTop * scaleFactor);
+
+              console.log(`  📐 Medidas Angular: ${rect.width}x${rect.height} (Banner: ${bannerHeight}px) en (${rect.left}, ${rect.top})`);
+              console.log(`  🚀 Enviando a Tauri: ${targetWidth}x${targetHeight} en (${targetX}, ${targetY})`);
+
+              webview.setSize(new LogicalSize(targetWidth, targetHeight))
+                .catch(e => console.error("Error setSize:", e));
+              
+              webview.setPosition(new LogicalPosition(targetX, targetY))
+                .catch(e => console.error("Error setPosition:", e));
+              
+              webview.show().catch(e => console.error("Error show:", e));
+            });
+          } else {
+             webview.hide();
+          }
+        } else {
+          this.disconnectResizeObserver();
+          webview.hide();
+        }
+      } else {
+        if (this.currentTabId && this.currentTabId.toString() === tabId) {
+          this.disconnectResizeObserver();
+        }
+        webview.hide();
+      }
+    });
   }
 }

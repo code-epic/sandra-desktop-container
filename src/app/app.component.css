@@ -734,6 +734,14 @@
   flex-direction: column;
 }
 
+/* Quitar padding y forzar overflow oculto cuando hay pestañas activas,
+   eliminando cualquier posibilidad de desplazamiento o rebote en el layout principal */
+.content-area:has(.app-iframe-wrapper),
+.content-area.full-bleed-tab {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
 .app-iframe-wrapper {
   position: absolute;
   top: 0;
@@ -3035,3 +3043,197 @@ iframe {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Premium Native Webview Loader */
+.webview-loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+  position: relative;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.webview-loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.05),
+              0 0 0 1px rgba(15, 23, 42, 0.02);
+  max-width: 380px;
+  width: 90%;
+  transform: translateY(0);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: float-card 4s ease-in-out infinite;
+}
+
+.webview-loader-logo-ring {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 24px;
+}
+
+.webview-loader-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(2, 136, 209, 0.08);
+  animation: pulse-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.webview-loader-circle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3.5px solid transparent;
+  border-top-color: #0288d1;
+  border-right-color: rgba(2, 136, 209, 0.3);
+  animation: premium-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.webview-loader-icon {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #0288d1 0%, #01579b 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  box-shadow: 0 8px 16px -4px rgba(2, 136, 209, 0.3);
+}
+
+.webview-loader-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.webview-loader-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.webview-loader-progress-bar {
+  width: 160px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.webview-loader-progress-fill {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, #0288d1 50%, transparent 100%);
+  animation: progress-slide 1.5s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+@keyframes float-card {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes progress-slide {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* ==========================================
+   Header Chat Button & Badge Styles
+   ========================================== */
+.header-chat-btn {
+  background: rgba(102, 187, 106, 0.12);
+  border: 1px solid rgba(102, 187, 106, 0.25);
+  color: #549057;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  margin-right: 12px;
+  position: relative;
+}
+
+.header-chat-btn:hover {
+  background: rgba(102, 187, 106, 0.22);
+  color: #3b6c3e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 187, 106, 0.1);
+}
+
+.header-chat-btn:active {
+  transform: translateY(1px);
+}
+
+.header-chat-btn.active {
+  background: linear-gradient(135deg, #7cac80 0%, #5d8e62 100%);
+  color: #ffffff;
+  border-color: #7cac80;
+  box-shadow: 0 4px 15px rgba(124, 172, 128, 0.4);
+}
+
+.header-chat-btn i {
+  font-size: 0.95rem;
+}
+
+.header-chat-btn .badge-mini {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #EF5350;
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid white;
+  box-shadow: 0 2px 5px rgba(239, 83, 80, 0.35);
+}
+

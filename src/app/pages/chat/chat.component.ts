@@ -1,6 +1,8 @@
 import {
   Component,
   Input,
+  Output,
+  EventEmitter,
   OnInit,
   OnDestroy,
   ViewChild,
@@ -84,8 +86,10 @@ export class ChatComponent implements OnInit, OnChanges, OnDestroy, AfterViewChe
   @Input() config: any;
   @Input() clientId: string = "";
   @Input() visible: boolean = true;
+  @Input() hideFab: boolean = false;
   @Input() hasJwt: boolean = false;
   @Input() userProfile: any; // Perfil del usuario activo (usuario, sistema)
+  @Output() onToggle = new EventEmitter<boolean>();
 
   @ViewChild("scrollContainer") scrollContainer!: ElementRef;
 
@@ -475,6 +479,7 @@ export class ChatComponent implements OnInit, OnChanges, OnDestroy, AfterViewChe
     // No abrir si está desconectado o sin sesión
     if (!this.isOpen && !this.isLoggedIn()) return;
     this.isOpen = !this.isOpen;
+    this.onToggle.emit(this.isOpen);
     if (this.isOpen) setTimeout(() => this.scrollToBottom(), 150);
   }
 

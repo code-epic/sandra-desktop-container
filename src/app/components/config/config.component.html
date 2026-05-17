@@ -372,7 +372,7 @@
     </div>
     <div class="modal-footer">
       <div class="footer-left">
-        <button *ngIf="activeConfigTab === 'access' || activeConfigTab === 'connections'" class="btn-footer-secondary"
+        <button *ngIf="activeConfigTab === 'access' && isLoggedIn && wsStatus === 'Conectado'" class="btn-footer-secondary"
           (click)="generateCaucion()">
           <i class="fas fa-shield-alt"></i> Obtener Caución
         </button>

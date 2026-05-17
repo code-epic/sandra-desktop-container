@@ -1,5 +1,5 @@
 <!-- FAB -->
-<div class="chat-fab-container" [class.hidden]="!visible">
+<div class="chat-fab-container" [class.hidden]="!visible || hideFab">
     <button class="chat-fab" (click)="toggleChat()"
         [class.fab-locked]="!isLoggedIn() && !isOpen"
         [attr.title]="!isLoggedIn() ? 'Inicia sesión para usar el chat' : 'Chat'">
