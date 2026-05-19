@@ -87,3 +87,225 @@ pub fn reset_database(state: tauri::State<'_, crate::storage::DbState>) -> Resul
 
     Ok("Base de datos reiniciada correctamente".into())
 }
+
+#[derive(serde::Serialize)]
+pub struct DiagnosticStep {
+    pub name: String,
+    pub success: bool,
+    pub message: String,
+    pub duration_ms: u64,
+}
+
+#[derive(serde::Serialize)]
+pub struct DiagnosticReport {
+    pub target_url: String,
+    pub parsed_domain: String,
+    pub parsed_port: u16,
+    pub dns_ips: Vec<String>,
+    pub tcp_connected: bool,
+    pub http_status: Option<u16>,
+    pub http_headers: std::collections::HashMap<String, String>,
+    pub steps: Vec<DiagnosticStep>,
+}
+
+#[tauri::command]
+pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticReport, String> {
+    use std::net::ToSocketAddrs;
+    use std::net::TcpStream;
+    use std::time::{Duration, Instant};
+    use url::Url;
+    use std::collections::HashMap;
+
+    let mut steps = Vec::new();
+    let mut dns_ips = Vec::new();
+    let mut tcp_connected = false;
+    let mut http_status = None;
+    let mut http_headers = HashMap::new();
+
+    // 1. Parse URL
+    let parse_start = Instant::now();
+    let url = match Url::parse(&target_url) {
+        Ok(u) => u,
+        Err(e) => {
+            steps.push(DiagnosticStep {
+                name: "Análisis de URL".to_string(),
+                success: false,
+                message: format!("URL inválida '{}': {}", target_url, e),
+                duration_ms: parse_start.elapsed().as_millis() as u64,
+            });
+            return Ok(DiagnosticReport {
+                target_url,
+                parsed_domain: "".to_string(),
+                parsed_port: 0,
+                dns_ips,
+                tcp_connected,
+                http_status,
+                http_headers,
+                steps,
+            });
+        }
+    };
+
+    let domain = url.host_str().unwrap_or("localhost").to_string();
+    let port = url.port_or_known_default().unwrap_or(80);
+
+    steps.push(DiagnosticStep {
+        name: "Análisis de URL".to_string(),
+        success: true,
+        message: format!("Dominio extraído: '{}', Puerto: {}", domain, port),
+        duration_ms: parse_start.elapsed().as_millis() as u64,
+    });
+
+    // 2. DNS Resolution
+    let dns_start = Instant::now();
+    let socket_addr_str = format!("{}:{}", domain, port);
+    match socket_addr_str.to_socket_addrs() {
+        Ok(addrs) => {
+            for addr in addrs {
+                dns_ips.push(addr.ip().to_string());
+            }
+            if dns_ips.is_empty() {
+                steps.push(DiagnosticStep {
+                    name: "Resolución de DNS".to_string(),
+                    success: false,
+                    message: "No se encontraron IPs asociadas a este dominio.".to_string(),
+                    duration_ms: dns_start.elapsed().as_millis() as u64,
+                });
+            } else {
+                steps.push(DiagnosticStep {
+                    name: "Resolución de DNS".to_string(),
+                    success: true,
+                    message: format!("Resuelto a {} IPs: {:?}", dns_ips.len(), dns_ips),
+                    duration_ms: dns_start.elapsed().as_millis() as u64,
+                });
+            }
+        }
+        Err(e) => {
+            steps.push(DiagnosticStep {
+                name: "Resolución de DNS".to_string(),
+                success: false,
+                message: format!("Fallo al resolver dominio '{}'. ¿Está conectada la VPN? Detalle: {}", domain, e),
+                duration_ms: dns_start.elapsed().as_millis() as u64,
+            });
+        }
+    }
+
+    // 3. TCP Port Ping
+    if !dns_ips.is_empty() {
+        let tcp_start = Instant::now();
+        let target_socket = format!("{}:{}", dns_ips[0], port);
+        match target_socket.to_socket_addrs() {
+            Ok(mut addrs) => {
+                if let Some(addr) = addrs.next() {
+                    match TcpStream::connect_timeout(&addr, Duration::from_secs(4)) {
+                        Ok(_) => {
+                            tcp_connected = true;
+                            steps.push(DiagnosticStep {
+                                name: "Prueba de Puerto TCP (Ping)".to_string(),
+                                success: true,
+                                message: format!("Conexión TCP establecida con éxito a {} en el puerto {}", dns_ips[0], port),
+                                duration_ms: tcp_start.elapsed().as_millis() as u64,
+                            });
+                        }
+                        Err(e) => {
+                            steps.push(DiagnosticStep {
+                                name: "Prueba de Puerto TCP (Ping)".to_string(),
+                                success: false,
+                                message: format!("Fallo de conexión TCP a {} en el puerto {}. ¿El puerto está bloqueado o el servidor apagado? Detalle: {}", dns_ips[0], port, e),
+                                duration_ms: tcp_start.elapsed().as_millis() as u64,
+                            });
+                        }
+                    }
+                } else {
+                    steps.push(DiagnosticStep {
+                        name: "Prueba de Puerto TCP (Ping)".to_string(),
+                        success: false,
+                        message: "Fallo al estructurar socket de red.".to_string(),
+                        duration_ms: tcp_start.elapsed().as_millis() as u64,
+                    });
+                }
+            }
+            Err(e) => {
+                steps.push(DiagnosticStep {
+                    name: "Prueba de Puerto TCP (Ping)".to_string(),
+                    success: false,
+                    message: format!("Fallo al parsear dirección de red: {}", e),
+                    duration_ms: tcp_start.elapsed().as_millis() as u64,
+                });
+            }
+        }
+    } else {
+        steps.push(DiagnosticStep {
+            name: "Prueba de Puerto TCP (Ping)".to_string(),
+            success: false,
+            message: "Omitido debido a fallo previo en resolución DNS.".to_string(),
+            duration_ms: 0,
+        });
+    }
+
+    // 4. HTTP Handshake
+    if tcp_connected {
+        let http_start = Instant::now();
+        let client_res = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(6))
+            .danger_accept_invalid_certs(true)
+            .build();
+
+        match client_res {
+            Ok(client) => {
+                match client.get(&target_url).header("User-Agent", "SandraDC-Diagnostics/1.0").send() {
+                    Ok(resp) => {
+                        let status = resp.status();
+                        http_status = Some(status.as_u16());
+                        for (name, value) in resp.headers().iter() {
+                            if let Ok(val_str) = value.to_str() {
+                                http_headers.insert(name.as_str().to_string(), val_str.to_string());
+                            }
+                        }
+                        steps.push(DiagnosticStep {
+                            name: "Petición de Protocolo HTTP".to_string(),
+                            success: status.is_success() || status.is_redirection(),
+                            message: format!("Respuesta HTTP recibida: {} {}. Latencia total: {}ms", status.as_u16(), status.canonical_reason().unwrap_or(""), http_start.elapsed().as_millis()),
+                            duration_ms: http_start.elapsed().as_millis() as u64,
+                        });
+                    }
+                    Err(e) => {
+                        steps.push(DiagnosticStep {
+                            name: "Petición de Protocolo HTTP".to_string(),
+                            success: false,
+                            message: format!("Error al enviar HTTP GET handshake: {}", e),
+                            duration_ms: http_start.elapsed().as_millis() as u64,
+                        });
+                    }
+                }
+            }
+            Err(e) => {
+                steps.push(DiagnosticStep {
+                    name: "Petición de Protocolo HTTP".to_string(),
+                    success: false,
+                    message: format!("No se pudo inicializar el cliente HTTP reqwest: {}", e),
+                    duration_ms: http_start.elapsed().as_millis() as u64,
+                });
+            }
+        }
+    } else {
+        steps.push(DiagnosticStep {
+            name: "Petición de Protocolo HTTP".to_string(),
+            success: false,
+            message: "Omitido debido a falta de conectividad TCP básica.".to_string(),
+            duration_ms: 0,
+        });
+    }
+
+    Ok(DiagnosticReport {
+        target_url,
+        parsed_domain: domain,
+        parsed_port: port,
+        dns_ips,
+        tcp_connected,
+        http_status,
+        http_headers,
+        steps,
+    })
+}
+

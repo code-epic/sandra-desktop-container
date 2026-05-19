@@ -21,7 +21,7 @@
         "visible": false,
         "minWidth": 1024,
         "minHeight": 768,
-        "additionalBrowserArgs": "--ignore-certificate-errors --disable-gpu --disable-software-rasterizer"
+        "additionalBrowserArgs": "--ignore-certificate-errors"
       },
       {
         "width": 750,
@@ -32,7 +32,7 @@
         "center": true,
         "transparent": true,
         "alwaysOnTop": true,
-        "additionalBrowserArgs": "--ignore-certificate-errors --disable-gpu --disable-software-rasterizer"
+        "additionalBrowserArgs": "--ignore-certificate-errors"
       }
     ],
     "security": {

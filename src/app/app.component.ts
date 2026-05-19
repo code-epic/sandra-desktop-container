@@ -90,6 +90,7 @@ interface DesktopApp {
 })
 export class AppComponent implements OnInit, DoCheck {
   @ViewChild("chatComponent") chatComponent?: ChatComponent;
+  @ViewChild("configComponent") configComponent?: ConfigComponent;
   stats: SystemStats | null = null;
   greetingMessage = "";
   networkInfo: string[] = [];
@@ -1140,10 +1141,9 @@ export class AppComponent implements OnInit, DoCheck {
         height: 100
       });
 
-      this.activeNativeWebviews[appData.id.toString()] = webview;
-
       webview.once('tauri://created', () => {
         console.log(`✅ [Native Webview] Creado exitosamente: ${webviewId}`);
+        this.activeNativeWebviews[appData.id.toString()] = webview;
         // Espera 1.2 segundos para mostrar el cargador premium y evitar flashes blancos de renderizado
         setTimeout(() => this.syncNativeWebviews(), 1200);
       });
@@ -2919,35 +2919,20 @@ export class AppComponent implements OnInit, DoCheck {
           
           if (rect.width > 0 && rect.height > 0) {
             import('@tauri-apps/api/dpi').then(({ LogicalSize, LogicalPosition }) => {
-              // Buscar banners flotantes (como la barra de proxy o modo libre) dentro del contenedor
-              const banner = placeholder.parentElement?.querySelector('.proxy-glass-bar');
-              let bannerHeight = banner ? banner.getBoundingClientRect().height : 0;
+              // Para Native Webview, ignoramos banners (quedan por debajo del renderizado nativo de Tauri)
+              // Ajustamos la posición +26px para bajarlo al punto ideal
+              const adjustedTop = Math.floor(rect.top) + 29;
               
-              // Evitar saltos de layout si el banner existe pero su altura reportada es 0 debido a transiciones
-              if (banner && bannerHeight === 0) {
-                bannerHeight = 38;
-              }
-              
-              // Ajustar la posición y altura para no pisar el banner y llegar exactamente hasta abajo
-              const adjustedTop = Math.floor(rect.top + bannerHeight);
-              
-              // Medición híbrida ultra-segura para garantizar cobertura total hasta el último píxel físico del viewport:
-              // 1. window.innerHeight - adjustedTop (medición absoluta respecto a la ventana del SO)
-              // 2. rect.height - bannerHeight (medición reactiva respecto al contenedor de Angular)
+              // Medición ultra-segura para llegar hasta el borde inferior y completar dimensiones
               const heightFromWindow = window.innerHeight - adjustedTop;
-              const heightFromRect = rect.height - bannerHeight;
-              
-              // Tomamos el máximo de ambas mediciones y sumamos un sangrado de seguridad generoso de +30px.
-              // El WebView de Tauri se estirará de forma impecable y el sistema operativo lo recortará (OS clipping)
-              // exactamente en el borde inferior físico de la ventana, eliminando cualquier franja residual.
-              const adjustedHeight = Math.max(heightFromWindow, heightFromRect) + 30;
+              const adjustedHeight = heightFromWindow + 30; // Extra padding para completar el bottom
 
-              const targetWidth = Math.ceil(rect.width * scaleFactor);
+              const targetWidth = Math.ceil(rect.width * scaleFactor) + 15; // Extra padding para completar el ancho
               const targetHeight = Math.ceil(adjustedHeight * scaleFactor);
               const targetX = Math.floor(rect.left * scaleFactor);
               const targetY = Math.floor(adjustedTop * scaleFactor);
 
-              console.log(`  📐 Medidas Angular: ${rect.width}x${rect.height} (Banner: ${bannerHeight}px) en (${rect.left}, ${rect.top})`);
+              console.log(`  📐 Medidas Angular: ${rect.width}x${rect.height} en (${rect.left}, ${rect.top})`);
               console.log(`  🚀 Enviando a Tauri: ${targetWidth}x${targetHeight} en (${targetX}, ${targetY})`);
 
               webview.setSize(new LogicalSize(targetWidth, targetHeight))
@@ -2972,5 +2957,35 @@ export class AppComponent implements OnInit, DoCheck {
         webview.hide();
       }
     });
+  }
+
+  openQuickDiagnostics(tab: any) {
+    console.log("🔍 Quick diagnostics requested for tab:", tab);
+    
+    // 1. Mostrar el panel de configuración
+    this.showControlPanel = true;
+    this.loadNetwork();
+    
+    // 2. Esperar a que se renderice el componente e invocar el test
+    setTimeout(async () => {
+      if (this.configComponent) {
+        this.configComponent.activeConfigTab = 'network';
+        
+        let target = tab.url;
+        if (target && typeof target === 'object' && (target as any).changingThisBreaksApplicationSecurity) {
+          target = (target as any).changingThisBreaksApplicationSecurity;
+        }
+        
+        if (target && typeof target === 'string') {
+          if (target.includes('/bypass-proxy/') || target.includes('localhost/pace/')) {
+            this.configComponent.diagnosticsTargetUrl = 'http://pace.ipsfa.gob.ve:8080/pace/';
+          } else {
+            this.configComponent.diagnosticsTargetUrl = target;
+          }
+        }
+        
+        await this.configComponent.testNetworkConnection();
+      }
+    }, 150);
   }
 }

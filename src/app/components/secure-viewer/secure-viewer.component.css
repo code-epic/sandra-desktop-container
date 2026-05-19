@@ -117,6 +117,8 @@
     position: relative;
     max-width: 1100px;
     margin: 0 auto; 
+    width: 100%;
+    min-width: 0;
 }
 
 /* --- HEADER CARD --- */
@@ -247,7 +249,10 @@
 .history-container {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-bottom: 24px;
+    min-width: 0;
+    min-height: 0;
 
     .section-label-container {
         display: flex;
@@ -303,6 +308,9 @@
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid #f1f5f9;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 .doc-row {
@@ -314,6 +322,9 @@
     transition: all 0.2s ease;
     cursor: pointer;
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 
     &:nth-child(even) {
         background: rgba(135, 161, 142, 0.04);
@@ -361,14 +372,27 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+        min-width: 0; /* Prevents flexbox blowout */
+
+        .info-primary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            overflow: hidden;
+        }
 
         .doc-name {
             font-size: 0.93rem;
-            font-weight: 600;
+            font-weight: 500; /* Less aggressive font */
             color: #334155;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            flex-shrink: 1;
+            min-width: 0;
+            display: block;
+            max-width: 100%;
         }
 
         .info-secondary {
@@ -383,9 +407,10 @@
 
     .col-date {
         font-size: 0.72rem;
-        font-weight: 600;
+        font-weight: 500; /* Less aggressive font */
         color: #64748b;
-        width: 110px;
+        min-width: 120px; /* Wider to prevent date cutoff */
+        white-space: nowrap;
         text-align: right;
     }
 
@@ -394,8 +419,10 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        width: 100px;
+        width: auto; /* Prevent button squeeze */
+        min-width: 90px;
         justify-content: flex-end;
+        flex-shrink: 0;
     }
 }
 
@@ -407,6 +434,9 @@
     border-bottom: 1px solid #f1f5f9;
     cursor: pointer;
     transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 
     &:hover {
         background: #f8fafc;
@@ -416,6 +446,7 @@
         display: flex;
         align-items: center;
         flex: 1;
+        min-width: 0; /* Prevent blowout in Manuales tab */
     }
 
     .folder-icon-wrapper {
@@ -429,18 +460,26 @@
         justify-content: center;
         margin-right: 18px;
         font-size: 1.1rem;
+        flex-shrink: 0;
     }
 
     .folder-text-group {
         display: flex;
         flex-direction: column;
+        flex: 1;
+        min-width: 0; /* Truncation support */
     }
 
     .folder-name {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
+            font-size: 0.9rem;
+            font-weight: 600; /* Less aggressive */
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            max-width: 100%;
+        }
 
     .folder-sub-info {
         font-size: 0.7rem;
@@ -762,17 +801,18 @@
     background: #87a18e !important;
     color: #ffffff !important;
     font-size: 0.6rem;
-    padding: 3px 10px;
+    padding: 3px 8px;
     border-radius: 100px;
-    font-weight: 800;
+    font-weight: 600; /* Less aggressive font */
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.4px;
     box-shadow: 0 2px 6px rgba(135, 161, 142, 0.2);
+    flex-shrink: 0; /* Prevents badge from squishing */
 }
 
 .cert-tag:hover {

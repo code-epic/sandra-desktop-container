@@ -2,6 +2,7 @@
   <!-- Componente Sidebar Modular -->
   <app-sidebar [class.global-blur]="isViewerLoading || showControlPanel"
     [hasJwt]="!!getJwtToken()"
+    [username]="activeConnection?.username || ''"
     (onLogout)="handleExitRequest()"
     (onNavigateRequest)="handleNavigationRequest($event)"
     (onLoginRequest)="checkAndPromptJwt()">
@@ -90,21 +91,23 @@
 
       <!-- Container Dinámico de Pestañas (Apps & Docs) -->
       <div class="app-iframe-wrapper" *ngFor="let tab of (openTabs$ | async); trackBy: trackByTabId"
-        [hidden]="(activeTabId$ | async) !== tab.id">
+        [hidden]="(activeTabId$ | async) !== tab.id"
+        [class.has-proxy-bar]="tab.isExternalMode || (tab.isProxyRequired && activeConnection)">
 
         <!-- PROXY ACTIVE INDICATOR -->
-        <div class="proxy-glass-bar" *ngIf="tab.isProxyRequired && activeConnection">
+        <div class="proxy-glass-bar" *ngIf="tab.isProxyRequired && !tab.isExternalMode && activeConnection">
           <i class="fas fa-network-wired"></i>
           <span class="proxy-label">Conectado vía</span>
-          <span style="font-weight: 700; color: #455A64;">{{ activeConnection.name }}</span>
+          <span style="font-weight: 700; color: #455A64; margin-right: 15px;">{{ activeConnection.name }}</span>
+          
+          <!-- QUICK DIAGNOSTICS SHORTCUT BUTTON -->
+          <button class="btn-quick-diagnose" (click)="openQuickDiagnostics(tab)" title="Ejecutar diagnóstico de red en este enlace">
+            <i class="fas fa-stethoscope"></i> Diagnosticar Enlace
+          </button>
         </div>
 
         <!-- NAVEGACION LIBRE ACTIVE INDICATOR -->
-        <div class="proxy-glass-bar external-mode-bar" *ngIf="tab.isExternalMode">
-          <i class="fas fa-globe-americas"></i>
-          <span class="proxy-label">Modo Libre</span>
-          <span style="font-weight: 700; color: #0288d1;">Conexión Directa</span>
-        </div>
+        <!-- Oculto para webview nativo ya que Tauri lo renderiza encima del DOM -->
         <!-- IFRAME ESTÁNDAR (SANDBOX RESTRICTIVO) -->
         <iframe *ngIf="(!tab.type || tab.type === 'iframe') && !tab.isExternalMode" [id]="'iframe-' + tab.id"
           [src]="tab.url" frameborder="0"
@@ -128,6 +131,12 @@
             <p class="webview-loader-subtitle">Iniciando contenedor nativo...</p>
             <div class="webview-loader-progress-bar">
               <div class="webview-loader-progress-fill"></div>
+            </div>
+            <div class="webview-loader-diagnostics-hint">
+              <span class="hint-text"><i class="fas fa-info-circle"></i> ¿Tarda demasiado o no carga la página?</span>
+              <button class="btn-loader-diagnose" (click)="openQuickDiagnostics(tab)">
+                <i class="fas fa-stethoscope"></i> Diagnosticar Conexión
+              </button>
             </div>
           </div>
         </div>
@@ -532,7 +541,7 @@
 
 
   <!-- Modal de Configuración Avanzada -->
-  <app-config *ngIf="showControlPanel" [config]="config" [networkInfo]="networkInfo"
+  <app-config #configComponent *ngIf="showControlPanel" [config]="config" [networkInfo]="networkInfo"
     [availableConnections]="availableConnections" [activeConnection]="activeConnection"
     [wsStatus]="wsStatus" [isLoggedIn]="!!getJwtToken()"
     (onSave)="saveConfig()" (onActivateConnection)="activateConnectionGlobal($event)"

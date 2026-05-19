@@ -75,6 +75,7 @@ pub fn run() {
             commands::system::remote_reboot,
             commands::system::export_database,
             commands::system::reset_database,
+            commands::system::run_network_diagnostics,
             commands::apps::download_app_repo,
             commands::apps::open_app_window,
             commands::apps::update_app_repo,

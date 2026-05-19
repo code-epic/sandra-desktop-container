@@ -84,9 +84,44 @@
           <div class="lockable-container">
             <h3>Seguridad y Privacidad</h3>
 
-            <div class="security-card-unified">
+              <!-- Sección: TOTP / Autenticación 2FA -->
+              <div class="security-sub-section">
+                <div class="header-with-toggle">
+                  <h4><i class="fas fa-qrcode"></i> Doble Factor (TOTP)</h4>
+                  <label class="switch">
+                    <input type="checkbox" [ngModel]="isTotpActive" (ngModelChange)="toggleTotp($event)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <div *ngIf="showTotpSection" class="totp-setup-area fade-in-up">
+                  <div class="qr-container">
+                    <div class="qr-image-box">
+                      <img *ngIf="totpQrCodeUrl" [src]="totpQrCodeUrl" alt="QR TOTP">
+                      <div *ngIf="!totpQrCodeUrl" class="qr-loading">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                      </div>
+                    </div>
+                    <div class="qr-secret-box">
+                      <p class="hint-text-mini">Escanee el código QR con una app (Google Auth, Authy).</p>
+                      <label>Clave manual:</label>
+                      <div class="secret-input-group">
+                        <code>{{ totpSecret || '•••• •••• ••••' }}</code>
+                        <button class="btn-copy-secret" (click)="copyTotpSecret()"
+                          [title]="isTotpSecretCopied ? '¡Copiado!' : 'Copiar al portapapeles'">
+                          <i class="fas" [ngClass]="isTotpSecretCopied ? 'fa-check text-success' : 'fa-copy'"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section-divider-dotted"></div>
+
+
               <!-- Sección: Cambio de Contraseña -->
-              <div class="security-sub-section" style="padding-top: 0;">
+              <div class="security-sub-section">
                 <form [formGroup]="changePasswordForm" (ngSubmit)="executeChangePassword()">
                   <div class="modern-form-group">
                     <label>Contraseña Actual</label>
@@ -152,41 +187,6 @@
 
               <div class="section-divider-dotted"></div>
 
-              <!-- Sección: TOTP / Autenticación 2FA -->
-              <div class="security-sub-section">
-                <div class="header-with-toggle">
-                  <h4><i class="fas fa-qrcode"></i> Doble Factor (TOTP)</h4>
-                  <label class="switch">
-                    <input type="checkbox" [ngModel]="isTotpActive" (ngModelChange)="toggleTotp($event)">
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-
-                <div *ngIf="showTotpSection" class="totp-setup-area fade-in-up">
-                  <div class="qr-container">
-                    <div class="qr-image-box">
-                      <img *ngIf="totpQrCodeUrl" [src]="totpQrCodeUrl" alt="QR TOTP">
-                      <div *ngIf="!totpQrCodeUrl" class="qr-loading">
-                        <i class="fas fa-circle-notch fa-spin"></i>
-                      </div>
-                    </div>
-                    <div class="qr-secret-box">
-                      <p class="hint-text-mini">Escanee el código QR con una app (Google Auth, Authy).</p>
-                      <label>Clave manual:</label>
-                      <div class="secret-input-group">
-                        <code>{{ totpSecret || '•••• •••• ••••' }}</code>
-                        <button class="btn-copy-secret" (click)="copyTotpSecret()"
-                          [title]="isTotpSecretCopied ? '¡Copiado!' : 'Copiar al portapapeles'">
-                          <i class="fas" [ngClass]="isTotpSecretCopied ? 'fa-check text-success' : 'fa-copy'"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="section-divider-dotted"></div>
-
               <!-- Sección: Sesión JWT -->
               <div class="security-sub-section">
                 <h4><i class="fas fa-user-shield"></i> Control de Token y Sesión</h4>
@@ -209,7 +209,7 @@
                   </div>
                 </div>
               </div>
-            </div>
+            
           </div>
 
           <!-- Overlay de Bloqueo -->
@@ -327,11 +327,153 @@
 
 
         <!-- Network Tab -->
-        <div *ngIf="activeConfigTab === 'network'">
+        <div *ngIf="activeConfigTab === 'network'" class="config-section fade-in-up">
           <h3>Información de Red</h3>
-          <div class="config-group" *ngFor="let ip of networkInfo">
-            <label>IP Detectada:</label>
-            <input type="text" [value]="ip" readonly>
+          
+          <!-- IP Info Cards -->
+          <div class="network-cards-grid">
+            <div class="network-card-mini" *ngFor="let ip of networkInfo">
+              <div class="card-mini-icon"><i class="fas fa-network-wired"></i></div>
+              <div class="card-mini-content">
+                <span class="card-mini-label">Dirección de Red</span>
+                <span class="card-mini-value">{{ ip }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-divider-dotted" style="margin: 20px 0;"></div>
+
+          <!-- Diagnostics Tool -->
+          <div class="diagnostics-panel">
+            <h4><i class="fas fa-stethoscope"></i> Analizador y Diagnóstico de Enlaces</h4>
+            <p class="hint-text">Utiliza esta herramienta estilo <code>curl</code> y <code>ping</code> para rastrear problemas de conexión con servidores remotos o gubernamentales.</p>
+
+            <div class="diagnostics-input-row">
+              <div class="modern-form-group search-group" style="flex: 1; margin: 0;">
+                <div class="input-with-icon">
+                  <input type="text" [(ngModel)]="diagnosticsTargetUrl" placeholder="http://pace.ipsfa.gob.ve:8080/pace/" [disabled]="diagnosing">
+                  <i class="fas fa-link"></i>
+                </div>
+              </div>
+              <button type="button" class="btn-diagnosticar" (click)="testNetworkConnection()" [disabled]="diagnosing || !diagnosticsTargetUrl">
+                <i class="fas" [ngClass]="diagnosing ? 'fa-spinner fa-spin' : 'fa-play-circle'"></i>
+                {{ diagnosing ? 'Analizando...' : 'Probar Conexión' }}
+              </button>
+            </div>
+
+            <!-- Terminal Visualizer -->
+            <div class="terminal-container" *ngIf="diagnosing || diagnosticsReport">
+              <div class="terminal-header">
+                <div class="terminal-dots">
+                  <span class="dot red"></span>
+                  <span class="dot yellow"></span>
+                  <span class="dot green"></span>
+                </div>
+                <div class="terminal-title">sandra-diagnostics-shell</div>
+              </div>
+              <div class="terminal-body">
+                <!-- Diagnosing state -->
+                <div class="terminal-line system" *ngIf="diagnosing">
+                  <span class="prompt">$</span> sandra-net-probe --target={{ diagnosticsTargetUrl }}
+                </div>
+                <div class="terminal-line info" *ngIf="diagnosing">
+                  <span class="bullet">ℹ</span> Iniciando secuencia de diagnóstico multi-nivel...
+                </div>
+
+                <!-- Finished steps -->
+                <ng-container *ngIf="diagnosticsReport">
+                  <div class="terminal-line system">
+                    <span class="prompt">$</span> sandra-net-probe --target={{ diagnosticsReport.target_url }}
+                  </div>
+                  
+                  <div *ngFor="let step of diagnosticsReport.steps" class="terminal-line-step animate-line">
+                    <span class="step-status" [ngClass]="step.success ? 'success' : 'failed'">
+                      <i class="fas" [ngClass]="step.success ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                    </span>
+                    <span class="step-name">[{{ step.name }}]</span>
+                    <span class="step-msg">{{ step.message }}</span>
+                    <span class="step-duration" *ngIf="step.duration_ms > 0">({{ step.duration_ms }}ms)</span>
+                  </div>
+
+                  <!-- Summary Block -->
+                  <div class="terminal-summary" *ngIf="!diagnosing">
+                    <div class="summary-divider"></div>
+                    <div class="summary-title">=== REPORTE SINTÉTICO DE RED ===</div>
+                    <div class="summary-grid">
+                      <div class="summary-item">
+                        <span class="label">Dominio:</span>
+                        <span class="val">{{ diagnosticsReport.parsed_domain || 'localhost' }}</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">Puerto:</span>
+                        <span class="val font-code">{{ diagnosticsReport.parsed_port }}</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">DNS IPs:</span>
+                        <span class="val font-code">{{ diagnosticsReport.dns_ips.join(', ') || 'Ninguna' }}</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="label">TCP Ping:</span>
+                        <span class="val" [class.text-success]="diagnosticsReport.tcp_connected" [class.text-danger]="!diagnosticsReport.tcp_connected">
+                          {{ diagnosticsReport.tcp_connected ? 'ABIERTO / ALCANZABLE' : 'CERRADO / RECHAZADO' }}
+                        </span>
+                      </div>
+                      <div class="summary-item" *ngIf="diagnosticsReport.http_status !== null">
+                        <span class="label">Código HTTP:</span>
+                        <span class="val font-code" [class.text-success]="diagnosticsReport.http_status >= 200 && diagnosticsReport.http_status < 400" [class.text-danger]="diagnosticsReport.http_status >= 400">
+                          {{ diagnosticsReport.http_status }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <!-- Spinner line while executing -->
+                <div class="terminal-line executing" *ngIf="diagnosing">
+                  <span class="spinner-icon"><i class="fas fa-circle-notch fa-spin"></i></span>
+                  <span>Ejecutando pruebas activas de socket TCP y traza HTTP...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Diagnostic Recommendations -->
+            <div class="diagnostic-recommendations fade-in-up" *ngIf="diagnosticsReport && !diagnosing">
+              <!-- Recom: DNS Error / No IPS -->
+              <div class="recom-card warning" *ngIf="diagnosticsReport.dns_ips.length === 0">
+                <div class="recom-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="recom-content">
+                  <h5>Fallo de Resolución DNS</h5>
+                  <p>No se pudo traducir el dominio a una dirección IP. Si está intentando cargar el sistema <strong>PACE IPSFA</strong>, asegúrese de estar conectado a la <strong>VPN del IPSFA (o red del sistema)</strong>. Sin la VPN activa, el dominio no es visible desde redes de internet públicas.</p>
+                </div>
+              </div>
+
+              <!-- Recom: TCP Blocked -->
+              <div class="recom-card danger" *ngIf="diagnosticsReport.dns_ips.length > 0 && !diagnosticsReport.tcp_connected">
+                <div class="recom-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="recom-content">
+                  <h5>Puerto TCP 8080 Inalcanzable</h5>
+                  <p>La IP del dominio es visible, pero el puerto <code>{{ diagnosticsReport.parsed_port }}</code> está rechazando las peticiones. Esto indica que el puerto está bloqueado por el firewall, requiere un canal proxy exclusivo, o que el servicio web de CodeIgniter en el servidor remoto se encuentra apagado.</p>
+                </div>
+              </div>
+
+              <!-- Recom: HTTP Failure -->
+              <div class="recom-card warning" *ngIf="diagnosticsReport.tcp_connected && (diagnosticsReport.http_status === null || diagnosticsReport.http_status >= 400)">
+                <div class="recom-icon"><i class="fas fa-bug"></i></div>
+                <div class="recom-content">
+                  <h5>Error de Protocolo HTTP (Código {{ diagnosticsReport.http_status }})</h5>
+                  <p>La comunicación de red básica funciona, pero el servidor web respondió con un error. Compruebe los parámetros de seguridad o asegúrese de que el servidor no tiene restricciones de acceso basadas en tokens o cabeceras adicionales.</p>
+                </div>
+              </div>
+
+              <!-- Recom: Success -->
+              <div class="recom-card success" *ngIf="diagnosticsReport.tcp_connected && diagnosticsReport.http_status !== null && diagnosticsReport.http_status < 400">
+                <div class="recom-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="recom-content">
+                  <h5>Conectividad Exitosa</h5>
+                  <p>Todos los tests de red han pasado correctamente. Gracias a la reescritura en caliente de <strong>Sandra Container Proxy</strong>, los assets estáticos y redirecciones duras a <code>localhost</code> se resolverán automáticamente a través de nuestro proxy seguro.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

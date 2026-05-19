@@ -9,6 +9,7 @@ import { SecurityService } from '../../core/services/security.service';
 import { invoke } from '@tauri-apps/api/core';
 import { ISandraJwtPayload } from '../../core/models/security.model';
 import { SnapService } from '../../core/services/snap.service';
+import { CaucionService } from '../../core/services/caucion.service';
 
 @Component({
   selector: 'app-config',
@@ -60,6 +61,11 @@ export class ConfigComponent implements OnInit {
   isTotpSecretCopied: boolean = false;
   isTotpActive: boolean = false;
 
+  // --- Diagnóstico de Red ---
+  diagnosticsTargetUrl: string = 'http://pace.ipsfa.gob.ve:8080/pace/';
+  diagnosing: boolean = false;
+  diagnosticsReport: any = null;
+
   constructor(
     public performance: PerformanceService,
     public updateService: UpdateService,
@@ -67,7 +73,8 @@ export class ConfigComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private utils: UtilsService,
     private securityService: SecurityService,
-    private snapService: SnapService
+    private snapService: SnapService,
+    private caucionService: CaucionService
   ) {
     const saved = localStorage.getItem('sandra_perf_mode') || 'auto';
     this.selectedPerfMode = saved;
@@ -200,26 +207,30 @@ export class ConfigComponent implements OnInit {
 
         if (!totpUrl) {
           console.error("No se recibió URL para generar QR:", response);
-          return;
         }
       }
-      this.cdr.detectChanges();
     } catch (error) {
       console.error('Error al generar TOTP:', error);
+    } finally {
+      this.cdr.detectChanges();
     }
   }
 
   async limpiarTotp() {
+    // Optimistic UI Update: Ocultar y limpiar inmediatamente para feedback instantáneo
+    this.showTotpSection = false;
+    this.totpQrCodeUrl = '';
+    this.totpSecret = '';
+    this.cdr.detectChanges();
+
     try {
       const hash = this.getConnectionHash();
       const token = this.getJwtToken();
 
-
-
       const endpoint = `v1/api/crud:${hash}`;
       const payload = {
         funcion: "_SYS_UUserTOTP",
-        parametros: `${this.totpSecret},` // Enviamos el login y el secreto vacío para limpiar
+        parametros: `,` // Enviamos vacío para limpiar
       };
 
       await invoke("api_post_request", {
@@ -231,16 +242,14 @@ export class ConfigComponent implements OnInit {
         tempAuthToken: token,
       });
 
-      // Limpiar UI
-      this.totpQrCodeUrl = '';
-      this.totpSecret = '';
-      this.showTotpSection = false;
-      this.cdr.detectChanges();
-
-      this.snapService.show("Doble Factor Desactivado", null as any, "info", "fa-unlock");
+      this.snapService.show("Doble Factor Desactivado", undefined, "info", "fa-unlock");
     } catch (error) {
       console.error('Error al limpiar TOTP:', error);
-      this.snapService.show("Error al desactivar 2FA", null as any, "error", "fa-exclamation-triangle");
+      // Revertir UI si falla el backend
+      this.isTotpActive = true;
+      this.showTotpSection = true;
+      this.cdr.detectChanges();
+      this.snapService.show("Error al desactivar 2FA", undefined, "error", "fa-exclamation-triangle");
     }
   }
 
@@ -423,6 +432,48 @@ export class ConfigComponent implements OnInit {
   }
 
   generateCaucion() {
+    const token = this.getJwtToken();
+    if (!token) {
+      this.snapService.show('Error: Sesión no válida. No se puede generar la caución.', undefined, 'error', 'fa-times-circle');
+      return;
+    }
+    this.caucionService.generarCaucionPdf(token);
+    this.closeModal(); // Opcional: Cerrar el modal después de generarla
+  }
 
+  async testNetworkConnection() {
+    if (!this.diagnosticsTargetUrl) return;
+    this.diagnosing = true;
+    this.diagnosticsReport = null;
+    this.cdr.detectChanges();
+
+    try {
+      this.diagnosticsReport = await invoke("run_network_diagnostics", {
+        targetUrl: this.diagnosticsTargetUrl
+      });
+      console.log("Diagnostics report received:", this.diagnosticsReport);
+    } catch (e) {
+      console.error("Diagnostics failed:", e);
+      this.diagnosticsReport = {
+        target_url: this.diagnosticsTargetUrl,
+        parsed_domain: '',
+        parsed_port: 0,
+        dns_ips: [],
+        tcp_connected: false,
+        http_status: null,
+        http_headers: {},
+        steps: [
+          {
+            name: "Error Crítico de Diagnóstico",
+            success: false,
+            message: `Fallo inesperado al ejecutar el motor de diagnóstico de Tauri: ${e}`,
+            duration_ms: 0
+          }
+        ]
+      };
+    } finally {
+      this.diagnosing = false;
+      this.cdr.detectChanges();
+    }
   }
 }

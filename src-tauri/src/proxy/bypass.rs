@@ -137,6 +137,27 @@ pub fn proxy_bypass_url(
         .unwrap_or(false)
     {
         if let Ok(html) = String::from_utf8(body_bytes.clone()) {
+            // REESCRITURA QUIRÚRGICA EXCLUSIVA PARA EL SISTEMA PACE:
+            // Esto garantiza un 100% de aislamiento para no afectar ninguna otra app existente.
+            let is_pace = remote_url.to_lowercase().contains("/pace");
+            let html_processed = if is_pace {
+                let proxy_prefix = format!("sandra-app://localhost/bypass-proxy/{}/", app_id);
+                println!("🔄 [Bypass-PACE] Reescribiendo enlaces duros a ruta de proxy: {}", proxy_prefix);
+                let mut temp = html.replace("http://localhost/pace/", &proxy_prefix);
+                temp = temp.replace("http://localhost/pace", &proxy_prefix.trim_end_matches('/'));
+                
+                // Reemplazar enlaces absolutos del servidor de producción PACE
+                temp = temp.replace("http://pace.ipsfa.gob.ve:8080/pace/", &proxy_prefix);
+                temp = temp.replace("http://pace.ipsfa.gob.ve:8080/pace", &proxy_prefix.trim_end_matches('/'));
+                temp = temp.replace("http://pace.ipsfa.gob.ve/pace/", &proxy_prefix);
+                temp = temp.replace("http://pace.ipsfa.gob.ve/pace", &proxy_prefix.trim_end_matches('/'));
+                temp = temp.replace("https://pace.ipsfa.gob.ve/pace/", &proxy_prefix);
+                temp = temp.replace("https://pace.ipsfa.gob.ve/pace", &proxy_prefix.trim_end_matches('/'));
+                temp
+            } else {
+                html
+            };
+
             // Calcular el server_base correctamente - debe incluir /backend/web
             let server_base = if let Some(idx) = remote_url.find("/backend/web") {
                 &remote_url[..idx + "/backend/web".len()]
@@ -262,7 +283,7 @@ pub fn proxy_bypass_url(
     }};
     
     // Agregar base tag al inicio del head (crítico para assets)
-    const baseHref = SERVER_ORIGIN.endsWith('/') ? SERVER_ORIGIN : SERVER_ORIGIN + '/';
+    const baseHref = PROXY_PATH.endsWith('/') ? PROXY_PATH : PROXY_PATH + '/';
     const existingBase = document.querySelector('base');
     if (existingBase) {{
         existingBase.href = baseHref;
@@ -280,12 +301,12 @@ pub fn proxy_bypass_url(
             );
 
             // Insertar script al INICIO del head (para ejecutarse antes que los assets)
-            let new_html = if html.contains("<head>") {
-                html.replace("<head>", &format!("<head>{}</head>", script))
-            } else if html.contains("<html>") {
-                html.replace("<html>", &format!("<html><head>{}</head>", script))
+            let new_html = if html_processed.contains("<head>") {
+                html_processed.replace("<head>", &format!("<head>{}", script))
+            } else if html_processed.contains("<html>") {
+                html_processed.replace("<html>", &format!("<html><head>{}</head>", script))
             } else {
-                script.clone() + &html
+                script.clone() + &html_processed
             };
 
             body_bytes = new_html.into_bytes();

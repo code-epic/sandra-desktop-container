@@ -9,6 +9,7 @@ import {
 import { CommonModule } from "@angular/common";
 import { DomSanitizer } from "@angular/platform-browser";
 import { AppStateService } from "../../core/services/app-state.service";
+import { SnapService } from "../../core/services/snap.service";
 import { Observable } from "rxjs";
 
 @Component({
@@ -20,6 +21,7 @@ import { Observable } from "rxjs";
 })
 export class SidebarComponent implements OnInit, OnDestroy {
   @Input() hasJwt: boolean = false;
+  @Input() username: string = "";
   @Input() wsConnected: boolean = false;
   @Output() onLogout = new EventEmitter<void>();
   @Output() onNavigateRequest = new EventEmitter<string>();
@@ -36,9 +38,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
   constructor(
     public appState: AppStateService,
     private sanitizer: DomSanitizer,
+    private snapService: SnapService
   ) {
     this.isOpen$ = this.appState.leftSidebarOpen$;
     this.activeTab$ = this.appState.activeTabId$;
+  }
+
+  get canAccessProjects(): boolean {
+    if (!this.hasJwt || !this.username) return false;
+    // user inicie con el prefijo [inf|pla|sec|audi].[dev|qa|pro].
+    return /^(inf|pla|sec|audi)\.(dev|qa|pro)/.test(this.username.toLowerCase());
   }
 
   ngOnInit() {
@@ -91,6 +100,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.onLoginRequest.emit();
       return;
     }
+
+    if (id === 'proyectos' && !this.canAccessProjects) {
+      this.snapService.show("No autorizado para acceder a Proyectos", undefined, "error", "fa-ban");
+      return;
+    }
+
     this.onNavigateRequest.emit(id);
   }
 

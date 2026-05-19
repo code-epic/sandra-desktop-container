@@ -42,13 +42,14 @@
             <i class="fas fa-lock nav-lock-icon" *ngIf="!hasJwt"></i>
         </div>
         <div class="nav-item nav-item-protected"
+            *ngIf="hasJwt"
             [class.active]="(activeTab$ | async) === 'proyectos'"
-            [class.nav-locked]="!hasJwt"
+            [class.nav-locked]="!canAccessProjects"
             (click)="setActive('proyectos')"
-            [attr.title]="!hasJwt ? 'Requiere autenticación JWT' : 'Proyectos'">
+            [attr.title]="!canAccessProjects ? 'No autorizado para proyectos' : 'Proyectos'">
             <i class="fas fa-project-diagram"></i>
             <span>Proyectos</span>
-            <i class="fas fa-lock nav-lock-icon" *ngIf="!hasJwt"></i>
+            <i class="fas fa-lock nav-lock-icon" *ngIf="!canAccessProjects"></i>
         </div>
 
         <div class="nav-spacer"></div>
