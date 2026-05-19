@@ -29,7 +29,8 @@
         <div class="app-tile" *ngFor="let app of apps">
 
             <!-- Technical Badges (Stacked Layout) -->
-            <span class="tile-badge tile-badge-proxy" *ngIf="app.is_proxy_required && !app.is_external_browser" title="Proxy Seguro Activo">
+            <span class="tile-badge tile-badge-proxy" *ngIf="app.is_proxy_required && !app.is_external_browser"
+                title="Proxy Seguro Activo">
                 <i class="fas fa-shield-alt"></i>
             </span>
             <span class="tile-badge tile-badge-free" *ngIf="app.is_external_browser" title="Navegación Libre">
@@ -76,7 +77,7 @@
 <!-- Modal para Crear/Editar (Tabbed Matte Version) -->
 <div class="modal-overlay" *ngIf="showModal">
     <div class="modal-card wide-modal simple-modal fade-in-up">
-        
+
         <!-- Tab Navigation Header -->
         <div class="modal-tabs">
             <div class="tab-btn" [class.active]="activeTab === 'general'" (click)="activeTab = 'general'">
@@ -95,11 +96,11 @@
                 <div class="simple-identity-row">
                     <div class="simple-icon-selector" (click)="showIconPicker = !showIconPicker" title="Cambiar icono">
                         <i [class]="currentApp.icon || 'fas fa-cube'"></i>
-                        <div class="icon-picker-dropdown fade-in" *ngIf="showIconPicker" (click)="$event.stopPropagation()">
+                        <div class="icon-picker-dropdown fade-in" *ngIf="showIconPicker"
+                            (click)="$event.stopPropagation()">
                             <div class="icons-grid">
-                                <div class="icon-opt" *ngFor="let icon of availableIcons" 
-                                     (click)="selectIcon(icon)"
-                                     [class.selected]="currentApp.icon === icon">
+                                <div class="icon-opt" *ngFor="let icon of availableIcons" (click)="selectIcon(icon)"
+                                    [class.selected]="currentApp.icon === icon">
                                     <i [class]="icon"></i>
                                 </div>
                             </div>
@@ -110,11 +111,13 @@
                         <div class="row-grid-2">
                             <div class="input-card">
                                 <div class="input-label">Nombre Comercial</div>
-                                <input type="text" [(ngModel)]="currentApp.name" placeholder="Ej: Gestión Documentos" class="input-field-clean">
+                                <input type="text" [(ngModel)]="currentApp.name" placeholder="Ej: Gestión Documentos"
+                                    class="input-field-clean">
                             </div>
                             <div class="input-card">
                                 <div class="input-label">Identificador de Sistema</div>
-                                <input type="text" [(ngModel)]="currentApp.app_id" [disabled]="isEditing" placeholder="sandra.app.gdoc" class="input-field-clean monospace">
+                                <input type="text" [(ngModel)]="currentApp.app_id" [disabled]="isEditing"
+                                    placeholder="sandra.app.gdoc" class="input-field-clean monospace">
                             </div>
                         </div>
                     </div>
@@ -124,17 +127,20 @@
                 <div class="row-grid-2" style="margin-top: 25px;">
                     <div class="input-card">
                         <div class="input-label"><i class="fas fa-link"></i> Endpoint / URL de Destino</div>
-                        <input type="text" [(ngModel)]="currentApp.external_url" placeholder="http://localhost:4200" class="input-field-clean">
+                        <input type="text" [(ngModel)]="currentApp.external_url" placeholder="http://localhost:4200"
+                            class="input-field-clean">
                     </div>
                     <div class="input-card">
                         <div class="input-label"><i class="fab fa-git-alt"></i> Repositorio Fuente</div>
-                        <input type="text" [(ngModel)]="currentApp.repo" placeholder="git@github.com:..." class="input-field-clean">
+                        <input type="text" [(ngModel)]="currentApp.repo" placeholder="git@github.com:..."
+                            class="input-field-clean">
                     </div>
                 </div>
 
                 <div class="input-card" style="margin-top: 20px;">
                     <div class="input-label"><i class="fas fa-folder-tree"></i> Contexto de Aplicación (Base Path)</div>
-                    <input type="text" [(ngModel)]="currentApp.base_path" placeholder="Ej: /gdoc/" class="input-field-clean monospace">
+                    <input type="text" [(ngModel)]="currentApp.base_path" placeholder="Ej: /gdoc/"
+                        class="input-field-clean monospace">
                 </div>
             </div>
 
@@ -143,7 +149,8 @@
                 <div class="col-header">Modo de Operación Primario</div>
                 <div class="matte-selection-grid">
                     <!-- Proxy Card -->
-                    <div class="matte-card" [class.active-green]="currentApp.is_proxy_required" (click)="currentApp.is_proxy_required = !currentApp.is_proxy_required; toggleProxy()">
+                    <div class="matte-card" [class.active-green]="currentApp.is_proxy_required"
+                        (click)="currentApp.is_proxy_required = !currentApp.is_proxy_required; toggleProxy()">
                         <div class="matte-icon"><i class="fas fa-shield-alt"></i></div>
                         <div class="matte-info">
                             <div class="matte-title">Proxy Seguro</div>
@@ -152,7 +159,8 @@
                     </div>
 
                     <!-- Libre Card -->
-                    <div class="matte-card" [class.active-blue]="currentApp.is_external_browser" (click)="currentApp.is_external_browser = !currentApp.is_external_browser; toggleExternal()">
+                    <div class="matte-card" [class.active-blue]="currentApp.is_external_browser"
+                        (click)="currentApp.is_external_browser = !currentApp.is_external_browser; toggleExternal()">
                         <div class="matte-icon"><i class="fas fa-globe-americas"></i></div>
                         <div class="matte-info">
                             <div class="matte-title">Navegación Libre</div>
@@ -161,7 +169,8 @@
                     </div>
 
                     <!-- Limitless Card -->
-                    <div class="matte-card" [class.active-purple]="currentApp.is_limitless" (click)="currentApp.is_limitless = !currentApp.is_limitless; toggleLimitless()">
+                    <div class="matte-card" [class.active-purple]="currentApp.is_limitless"
+                        (click)="currentApp.is_limitless = !currentApp.is_limitless; toggleLimitless()">
                         <div class="matte-icon"><i class="fas fa-rocket"></i></div>
                         <div class="matte-info">
                             <div class="matte-title">Limitless</div>
@@ -172,14 +181,16 @@
 
                 <div class="col-header" style="margin-top: 25px;">Configuraciones Especiales</div>
                 <div class="matte-selection-grid">
-                    <div class="matte-card" [class.active-orange]="currentApp.is_csrf_sync" (click)="currentApp.is_csrf_sync = !currentApp.is_csrf_sync; toggleCsrfSync()">
+                    <div class="matte-card" [class.active-orange]="currentApp.is_csrf_sync"
+                        (click)="currentApp.is_csrf_sync = !currentApp.is_csrf_sync; toggleCsrfSync()">
                         <div class="matte-icon"><i class="fas fa-sync-alt"></i></div>
                         <div class="matte-info">
                             <div class="matte-title">CSRF Sync</div>
                             <div class="matte-desc">Sincroniza sesiones</div>
                         </div>
                     </div>
-                    <div class="matte-card" [class.active-red]="currentApp.is_bypass" (click)="currentApp.is_bypass = !currentApp.is_bypass; toggleBypass()">
+                    <div class="matte-card" [class.active-red]="currentApp.is_bypass"
+                        (click)="currentApp.is_bypass = !currentApp.is_bypass; toggleBypass()">
                         <div class="matte-icon"><i class="fas fa-door-open"></i></div>
                         <div class="matte-info">
                             <div class="matte-title">Bypass</div>
@@ -223,7 +234,8 @@
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-setup-back" (click)="closeModal()">Cancelar</button>
-                <button class="btn-setup-next" (click)="saveApp()">{{ isEditing ? 'Guardar Cambios' : 'Crear Aplicación' }}</button>
+                <button class="btn-setup-next" (click)="saveApp()">{{ isEditing ? 'Guardar Cambios' : 'Crear Aplicación'
+                    }}</button>
             </div>
         </div>
     </div>
@@ -231,31 +243,32 @@
 
 <!-- Modal Confirmación Eliminar (High-Fidelity Match) -->
 <div class="modal-overlay" *ngIf="showDeleteModal" style="margin: 0px; padding: 0px;">
-    <div class="modal-card certificate-modal-card fade-in-up" style=" padding: 0px;"> 
+    <div class="modal-card certificate-modal-card fade-in-up" style=" padding: 0px;">
         <div class="cert-header alert">
             <div class="cert-icon-circle">
                 <i class="fas fa-trash-alt"></i>
             </div>
-            
+
         </div>
 
         <div class="cert-content">
             <h3 class="cert-title">Desinstalar Aplicación</h3>
 
             <div class="cert-inner-card">
-                
+
                 <p class="cert-msg">
                     ¿Estás seguro de que deseas eliminar esta aplicación permanentemente?
                 </p>
 
                 <div class="cert-divider-dashed"></div>
 
-               
+
             </div>
 
             <div class="cert-footer-info">
                 <i class="fas fa-info-circle"></i>
-                <p>Esta acción eliminará permanentemente la configuración de la aplicación de la base de datos local.</p>
+                <p>Esta acción eliminará permanentemente la configuración de la aplicación de la base de datos local.
+                </p>
             </div>
         </div>
 
@@ -273,7 +286,7 @@
             <div class="cert-icon-circle" style="color: #10b981;">
                 <i class="fas fa-check-double"></i>
             </div>
-           
+
         </div>
 
         <div class="cert-content">
@@ -281,12 +294,12 @@
             <p class="cert-subtitle">Estado: <strong>Sincronizado</strong></p>
 
             <div class="cert-inner-card">
-                
+
                 <p class="cert-msg">{{ successMessage }}</p>
-                
+
                 <div class="cert-divider-dashed"></div>
 
-               
+
             </div>
         </div>
 
