@@ -3,7 +3,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>sandradc</id>
-    <version>0.1.6</version>
+    <version>0.1.7</version>
     <packageSourceUrl>https://github.com/code-epic/sandra-desktop-container</packageSourceUrl>
     <owners>code-epic</owners>
     

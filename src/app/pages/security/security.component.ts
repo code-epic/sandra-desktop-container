@@ -1489,7 +1489,7 @@ export class SecurityComponent implements OnInit, OnChanges {
 
     const securePackageV23 = {
       manifest: {
-        version: '0.1.6-SEC',
+        version: '0.1.7-SEC',
         timestamp: new Date().toISOString(),
         guid: dynamicMessageId,
         sender: this.machineName || this.activeConnection?.name || 'Sandra Node',
