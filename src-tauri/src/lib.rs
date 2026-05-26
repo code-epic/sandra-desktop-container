@@ -111,6 +111,7 @@ pub fn run() {
             commands::window::close_splash,
             commands::window::emit_splash_status,
             commands::window::exit_app,
+            commands::window::open_devtools,
             commands::pdf::save_protected_pdf,
             commands::pdf::load_sse_document,
             commands::pdf::print_pdf_direct,

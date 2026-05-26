@@ -39,6 +39,14 @@ pub fn proxy_limitless_url(
     base_href: Option<String>,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Result<Response<Vec<u8>>, Box<dyn std::error::Error>> {
+    let scheme = request.uri().scheme_str().unwrap_or("sandra-app");
+    let host = request.uri().host().unwrap_or("localhost");
+    let base_url_prefix = if let Some(port) = request.uri().port() {
+        format!("{}://{}:{}", scheme, host, port)
+    } else {
+        format!("{}://{}", scheme, host)
+    };
+
     let client = get_or_create_client(app_id)?;
 
     if remote_url.contains("sockjs-node")
@@ -314,14 +322,14 @@ pub fn proxy_limitless_url(
                 if let Ok(loc_str) = value.to_str() {
                     let new_loc = if loc_str.starts_with('/') {
                         format!(
-                            "sandra-app://localhost/limitless-proxy/{}{}",
-                            app_id, loc_str
+                            "{}/limitless-proxy/{}{}",
+                            base_url_prefix, app_id, loc_str
                         )
                     } else if loc_str.starts_with("http") {
                         let target = urlencoding::encode(loc_str);
                         format!(
-                            "sandra-app://localhost/limitless-proxy/{}/?target={}",
-                            app_id, target
+                            "{}/limitless-proxy/{}/?target={}",
+                            base_url_prefix, app_id, target
                         )
                     } else {
                         loc_str.to_string()

@@ -1066,6 +1066,14 @@ export class AppComponent implements OnInit, DoCheck {
     }
   }
 
+  getAppProtocolBase(): string {
+    const ua = window.navigator.userAgent.toLowerCase();
+    if (ua.includes('windows') || ua.includes('win64') || ua.includes('win32')) {
+      return 'http://sandra-app.localhost';
+    }
+    return 'sandra-app://localhost';
+  }
+
   openApp(app: any) {
     // Fix: Los datos pueden estar en _original o directamente en app
     const appData = app._original || app;
@@ -1085,6 +1093,8 @@ export class AppComponent implements OnInit, DoCheck {
       targetUrl: targetUrl
     });
 
+    const protocolBase = this.getAppProtocolBase();
+
     // Lógica inteligente de URL:
     // 0. Modo Bypass (pass-through sin modificación)
     if (appData.is_bypass) {
@@ -1093,7 +1103,7 @@ export class AppComponent implements OnInit, DoCheck {
         return;
       }
       const target = encodeURIComponent(targetUrl);
-      rawUrl = `sandra-app://localhost/bypass-proxy/${appId}/?target=${target}`;
+      rawUrl = `${protocolBase}/bypass-proxy/${appId}/?target=${target}`;
       console.log(`🚧 [Bypass Nav] Opening ${appData.name} -> ${rawUrl}`);
     }
     // 1. Modo CSRF Sync (auto-sincroniza tokens CSRF)
@@ -1103,7 +1113,7 @@ export class AppComponent implements OnInit, DoCheck {
         return;
       }
       const target = encodeURIComponent(targetUrl);
-      rawUrl = `sandra-app://localhost/csrf-sync-proxy/${appId}/?target=${target}`;
+      rawUrl = `${protocolBase}/csrf-sync-proxy/${appId}/?target=${target}`;
       console.log(`🔐 [CSRF Sync Nav] Opening ${appData.name} -> ${rawUrl}`);
     }
     // 2. Modo "Motor Limitless" (Proxied via Rust CookieJar)
@@ -1113,7 +1123,7 @@ export class AppComponent implements OnInit, DoCheck {
         return;
       }
       const target = encodeURIComponent(targetUrl);
-      rawUrl = `sandra-app://localhost/limitless-proxy/${appId}/?target=${target}`;
+      rawUrl = `${protocolBase}/limitless-proxy/${appId}/?target=${target}`;
       console.log(`🚀 [Limitless Nav] Opening ${appData.name} -> ${rawUrl}`);
     }
     // 3. Modo "Navegador Libre" (Apertura como Native Child Webview)
@@ -1156,7 +1166,7 @@ export class AppComponent implements OnInit, DoCheck {
     // 4. Si la App requiere Proxy -> Forzar sandra-app://
     else if (targetUrl && appData.is_proxy_required) {
       const target = encodeURIComponent(targetUrl);
-      rawUrl = `sandra-app://localhost/external-proxy/${appId}/?target=${target}`;
+      rawUrl = `${protocolBase}/external-proxy/${appId}/?target=${target}`;
       console.log(`🛡️ [Proxy Nav] Wrapping External ${appData.name} -> ${rawUrl}`);
     } else if (targetUrl) {
       // Caso Externa Directa
@@ -1164,7 +1174,7 @@ export class AppComponent implements OnInit, DoCheck {
       console.log(`🌍 [External Nav] Direct ${appData.name} -> ${rawUrl}`);
     } else {
       // Caso Local
-      rawUrl = `sandra-app://localhost/${appId}/`;
+      rawUrl = `${protocolBase}/${appId}/`;
       console.log(`🏠 [Local Nav] Opening ${appData.name} via ${rawUrl}`);
     }
 
@@ -1496,6 +1506,35 @@ export class AppComponent implements OnInit, DoCheck {
   showUnlockTabModal = false;
   unlockTabPin = "";
   tabToUnlock: any = null;
+
+  // DevTools Key Access State
+  showDevToolsModal = false;
+  devToolsPassword = "";
+
+  openDevToolsAccess() {
+    this.devToolsPassword = "";
+    this.showDevToolsModal = true;
+  }
+
+  cancelDevToolsUnlock() {
+    this.showDevToolsModal = false;
+    this.devToolsPassword = "";
+  }
+
+  async submitDevToolsUnlock() {
+    if (!this.devToolsPassword) return;
+    if (this.devToolsPassword === "230785") {
+      this.showDevToolsModal = false;
+      this.devToolsPassword = "";
+      try {
+        await invoke("open_devtools");
+      } catch (err) {
+        console.error("Error opening devtools via Tauri invoke:", err);
+      }
+    } else {
+      this.showModal("Acceso Denegado", "La clave de acceso ingresada es incorrecta.", "error");
+    }
+  }
 
   unlockTab(tab: any) {
     if (!tab.filePath && !tab.hiddenContent) {
@@ -2156,6 +2195,20 @@ export class AppComponent implements OnInit, DoCheck {
 
   @HostListener("window:keydown", ["$event"])
   async handleKeyboardEvent(event: KeyboardEvent) {
+    const isDevToolsShortcut = 
+      (event.key.toLowerCase() === "i" && (
+        (event.ctrlKey && event.shiftKey) ||
+        (event.metaKey && event.shiftKey) ||
+        (event.metaKey && event.altKey)
+      )) || 
+      (event.key === "F12");
+
+    if (isDevToolsShortcut) {
+      event.preventDefault();
+      this.openDevToolsAccess();
+      return;
+    }
+
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") {
       event.preventDefault();
 

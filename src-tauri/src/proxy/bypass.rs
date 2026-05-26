@@ -33,6 +33,14 @@ pub fn proxy_bypass_url(
     remote_url: &str,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Result<Response<Vec<u8>>, Box<dyn std::error::Error>> {
+    let scheme = request.uri().scheme_str().unwrap_or("sandra-app");
+    let host = request.uri().host().unwrap_or("localhost");
+    let base_url_prefix = if let Some(port) = request.uri().port() {
+        format!("{}://{}:{}", scheme, host, port)
+    } else {
+        format!("{}://{}", scheme, host)
+    };
+
     let client = get_client(app_id)?;
 
     let method = request.method().clone();
@@ -141,7 +149,7 @@ pub fn proxy_bypass_url(
             // Esto garantiza un 100% de aislamiento para no afectar ninguna otra app existente.
             let is_pace = remote_url.to_lowercase().contains("/pace");
             let html_processed = if is_pace {
-                let proxy_prefix = format!("sandra-app://localhost/bypass-proxy/{}/", app_id);
+                let proxy_prefix = format!("{}/bypass-proxy/{}/", base_url_prefix, app_id);
                 println!("🔄 [Bypass-PACE] Reescribiendo enlaces duros a ruta de proxy: {}", proxy_prefix);
                 let mut temp = html.replace("http://localhost/pace/", &proxy_prefix);
                 temp = temp.replace("http://localhost/pace", &proxy_prefix.trim_end_matches('/'));
@@ -171,14 +179,18 @@ pub fn proxy_bypass_url(
                 r##"<script>
 (function(){{
     const SERVER_ORIGIN = "{}";
-    const PROXY_PATH = "sandra-app://localhost/bypass-proxy/{}";
+    let baseOrigin = window.location.origin;
+    if (!baseOrigin || baseOrigin === "null" || baseOrigin === "opaque") {{
+        baseOrigin = "{}";
+    }}
+    const PROXY_PATH = baseOrigin.endsWith('/') ? baseOrigin + "bypass-proxy/{}" : baseOrigin + "/bypass-proxy/{}";
     
     // Función para reescribir URLs
     function rewriteUrl(url) {{
         if (!url || typeof url !== 'string') return url;
         
-        // Si ya es una URL de sandra-app, no la tocamos
-        if (url.startsWith('sandra-app://')) return url;
+        // Si ya es una URL de sandra-app o está reescrita, no la tocamos
+        if (url.startsWith('sandra-app://') || url.startsWith('http://sandra-app.localhost') || url.startsWith('https://sandra-app.localhost') || url.startsWith(PROXY_PATH)) return url;
 
         // Si es URL completa del servidor
         if (url.startsWith(SERVER_ORIGIN)) {{
@@ -292,12 +304,9 @@ pub fn proxy_bypass_url(
         base.href = baseHref;
         document.head.insertBefore(base, document.head.firstChild);
     }}
-    console.log('[Bypass] Base tag:', baseHref);
-    
-    console.log('[Bypass] Interception active for', SERVER_ORIGIN);
 }})();
 </script>"##,
-                server_base, app_id
+                server_base, base_url_prefix, app_id, app_id
             );
 
             // Insertar script al INICIO del head (para ejecutarse antes que los assets)
@@ -358,12 +367,12 @@ pub fn proxy_bypass_url(
             if n_str == "location" {
                 if let Ok(loc_str) = v.to_str() {
                     let new_loc = if loc_str.starts_with('/') {
-                        format!("sandra-app://localhost/bypass-proxy/{}{}", app_id, loc_str)
+                        format!("{}/bypass-proxy/{}{}", base_url_prefix, app_id, loc_str)
                     } else if loc_str.starts_with("http") {
                         let target = urlencoding::encode(loc_str);
                         format!(
-                            "sandra-app://localhost/bypass-proxy/{}/?target={}",
-                            app_id, target
+                            "{}/bypass-proxy/{}/?target={}",
+                            base_url_prefix, app_id, target
                         )
                     } else {
                         loc_str.to_string()

@@ -273,7 +273,9 @@ pub fn handle_request(app_handle: &AppHandle, request: &Request<Vec<u8>>) -> Res
         if let Some(referer) = referer_opt {
             let after_scheme_opt = referer
                 .strip_prefix("sandra-app://127.0.0.1/")
-                .or_else(|| referer.strip_prefix("sandra-app://localhost/"));
+                .or_else(|| referer.strip_prefix("sandra-app://localhost/"))
+                .or_else(|| referer.strip_prefix("http://sandra-app.localhost/"))
+                .or_else(|| referer.strip_prefix("https://sandra-app.localhost/"));
             if let Some(after_scheme) = after_scheme_opt {
                 let app_id_candidates = if after_scheme.starts_with("external-proxy/") {
                     let part = after_scheme.strip_prefix("external-proxy/").unwrap_or("");

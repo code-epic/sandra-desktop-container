@@ -44,7 +44,11 @@
         // Solo reescribimos si es una URL absoluta hacia http/https externa
         if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
             if (!urlStr.includes('localhost') && !urlStr.includes('127.0.0.1')) {
-                return `sandra-app://localhost/external-proxy/${appId}?target=${encodeURIComponent(urlStr)}`;
+                let baseOrigin = window.location.origin;
+                if (!baseOrigin || baseOrigin === "null" || baseOrigin === "opaque") {
+                    baseOrigin = "sandra-app://localhost";
+                }
+                return `${baseOrigin}/external-proxy/${appId}?target=${encodeURIComponent(urlStr)}`;
             }
         }
         return urlStr;

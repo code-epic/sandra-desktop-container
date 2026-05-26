@@ -1,9 +1,8 @@
 use local_ip_address::local_ip;
-use reqwest::blocking::get;
 use std::process::Command;
 
 #[tauri::command]
-pub fn get_network_info() -> Result<Vec<String>, String> {
+pub async fn get_network_info() -> Result<Vec<String>, String> {
     let mut info = Vec::new();
 
     // IP Local
@@ -12,8 +11,9 @@ pub fn get_network_info() -> Result<Vec<String>, String> {
     }
 
     // IP Pública
-    if let Ok(response) = get("https://api.ipify.org") {
-        if let Ok(ip_pub) = response.text() {
+    let client = reqwest::Client::new();
+    if let Ok(response) = client.get("https://api.ipify.org").send().await {
+        if let Ok(ip_pub) = response.text().await {
             info.push(format!("Public: {}", ip_pub));
         }
     }
@@ -110,9 +110,9 @@ pub struct DiagnosticReport {
 
 #[tauri::command]
 pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticReport, String> {
-    use std::net::ToSocketAddrs;
-    use std::net::TcpStream;
-    use std::time::{Duration, Instant};
+    use tokio::net::lookup_host;
+    use tokio::time::{timeout, Duration};
+    use std::time::Instant;
     use url::Url;
     use std::collections::HashMap;
 
@@ -159,7 +159,7 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
     // 2. DNS Resolution
     let dns_start = Instant::now();
     let socket_addr_str = format!("{}:{}", domain, port);
-    match socket_addr_str.to_socket_addrs() {
+    match lookup_host(&socket_addr_str).await {
         Ok(addrs) => {
             for addr in addrs {
                 dns_ips.push(addr.ip().to_string());
@@ -194,35 +194,34 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
     if !dns_ips.is_empty() {
         let tcp_start = Instant::now();
         let target_socket = format!("{}:{}", dns_ips[0], port);
-        match target_socket.to_socket_addrs() {
-            Ok(mut addrs) => {
-                if let Some(addr) = addrs.next() {
-                    match TcpStream::connect_timeout(&addr, Duration::from_secs(4)) {
-                        Ok(_) => {
-                            tcp_connected = true;
-                            steps.push(DiagnosticStep {
-                                name: "Prueba de Puerto TCP (Ping)".to_string(),
-                                success: true,
-                                message: format!("Conexión TCP establecida con éxito a {} en el puerto {}", dns_ips[0], port),
-                                duration_ms: tcp_start.elapsed().as_millis() as u64,
-                            });
-                        }
-                        Err(e) => {
-                            steps.push(DiagnosticStep {
-                                name: "Prueba de Puerto TCP (Ping)".to_string(),
-                                success: false,
-                                message: format!("Fallo de conexión TCP a {} en el puerto {}. ¿El puerto está bloqueado o el servidor apagado? Detalle: {}", dns_ips[0], port, e),
-                                duration_ms: tcp_start.elapsed().as_millis() as u64,
-                            });
-                        }
+        match target_socket.parse::<std::net::SocketAddr>() {
+            Ok(addr) => {
+                match timeout(Duration::from_secs(4), tokio::net::TcpStream::connect(addr)).await {
+                    Ok(Ok(_)) => {
+                        tcp_connected = true;
+                        steps.push(DiagnosticStep {
+                            name: "Prueba de Puerto TCP (Ping)".to_string(),
+                            success: true,
+                            message: format!("Conexión TCP establecida con éxito a {} en el puerto {}", dns_ips[0], port),
+                            duration_ms: tcp_start.elapsed().as_millis() as u64,
+                        });
                     }
-                } else {
-                    steps.push(DiagnosticStep {
-                        name: "Prueba de Puerto TCP (Ping)".to_string(),
-                        success: false,
-                        message: "Fallo al estructurar socket de red.".to_string(),
-                        duration_ms: tcp_start.elapsed().as_millis() as u64,
-                    });
+                    Ok(Err(e)) => {
+                        steps.push(DiagnosticStep {
+                            name: "Prueba de Puerto TCP (Ping)".to_string(),
+                            success: false,
+                            message: format!("Fallo de conexión TCP a {} en el puerto {}. ¿El puerto está bloqueado o el servidor apagado? Detalle: {}", dns_ips[0], port, e),
+                            duration_ms: tcp_start.elapsed().as_millis() as u64,
+                        });
+                    }
+                    Err(_) => {
+                        steps.push(DiagnosticStep {
+                            name: "Prueba de Puerto TCP (Ping)".to_string(),
+                            success: false,
+                            message: format!("Tiempo de espera agotado (4s) intentando conectar a {} en el puerto {}", dns_ips[0], port),
+                            duration_ms: tcp_start.elapsed().as_millis() as u64,
+                        });
+                    }
                 }
             }
             Err(e) => {
@@ -246,14 +245,14 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
     // 4. HTTP Handshake
     if tcp_connected {
         let http_start = Instant::now();
-        let client_res = reqwest::blocking::Client::builder()
+        let client_res = reqwest::Client::builder()
             .timeout(Duration::from_secs(6))
             .danger_accept_invalid_certs(true)
             .build();
 
         match client_res {
             Ok(client) => {
-                match client.get(&target_url).header("User-Agent", "SandraDC-Diagnostics/1.0").send() {
+                match client.get(&target_url).header("User-Agent", "SandraDC-Diagnostics/1.0").send().await {
                     Ok(resp) => {
                         let status = resp.status();
                         http_status = Some(status.as_u16());
@@ -308,4 +307,3 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
         steps,
     })
 }
-

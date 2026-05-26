@@ -1,11 +1,14 @@
 <div class="modal-overlay config-overlay" (click)="closeModal()">
-  <div class="modal-card config-card" (click)="$event.stopPropagation()">
+  <div class="modal-card config-card" [class.diagnostics-mode]="showFullDiagnostics" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2><i class="fas fa-sliders-h header-detail-icon"></i> Configuración del Sistema</h2>
+      <h2 *ngIf="!showFullDiagnostics"><i class="fas fa-sliders-h header-detail-icon"></i> Configuración del Sistema</h2>
+      <h2 *ngIf="showFullDiagnostics" class="diagnostic-title-pulsing">
+        <i class="fas fa-stethoscope header-detail-icon text-pulse"></i> Diagnóstico: {{ diagnosticsTargetUrl }}
+      </h2>
       <button class="btn-close-modal" (click)="closeModal()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body-layout">
-      <div class="config-sidebar">
+      <div class="config-sidebar" *ngIf="!showFullDiagnostics">
         <button [class.active]="activeConfigTab === 'logs'" (click)="activeConfigTab = 'logs'">
           <i class="fas fa-clipboard-list sidebar-icon"></i> Logs
         </button>
@@ -328,10 +331,10 @@
 
         <!-- Network Tab -->
         <div *ngIf="activeConfigTab === 'network'" class="config-section fade-in-up">
-          <h3>Información de Red</h3>
+          <h3 *ngIf="!showFullDiagnostics">Información de Red</h3>
           
           <!-- IP Info Cards -->
-          <div class="network-cards-grid">
+          <div class="network-cards-grid" *ngIf="!showFullDiagnostics">
             <div class="network-card-mini" *ngFor="let ip of networkInfo">
               <div class="card-mini-icon"><i class="fas fa-network-wired"></i></div>
               <div class="card-mini-content">
@@ -341,14 +344,14 @@
             </div>
           </div>
 
-          <div class="section-divider-dotted" style="margin: 20px 0;"></div>
+          <div class="section-divider-dotted" style="margin: 20px 0;" *ngIf="!showFullDiagnostics"></div>
 
           <!-- Diagnostics Tool -->
-          <div class="diagnostics-panel">
-            <h4><i class="fas fa-stethoscope"></i> Analizador y Diagnóstico de Enlaces</h4>
-            <p class="hint-text">Utiliza esta herramienta estilo <code>curl</code> y <code>ping</code> para rastrear problemas de conexión con servidores remotos o gubernamentales.</p>
+          <div class="diagnostics-panel" [class.full-panel]="showFullDiagnostics">
+            <h4 *ngIf="!showFullDiagnostics"><i class="fas fa-stethoscope"></i> Analizador y Diagnóstico de Enlaces</h4>
+            <p class="hint-text" *ngIf="!showFullDiagnostics">Utiliza esta herramienta estilo <code>curl</code> y <code>ping</code> para rastrear problemas de conexión con servidores remotos o gubernamentales.</p>
 
-            <div class="diagnostics-input-row">
+            <div class="diagnostics-input-row" *ngIf="!showFullDiagnostics">
               <div class="modern-form-group search-group" style="flex: 1; margin: 0;">
                 <div class="input-with-icon">
                   <input type="text" [(ngModel)]="diagnosticsTargetUrl" placeholder="http://pace.ipsfa.gob.ve:8080/pace/" [disabled]="diagnosing">

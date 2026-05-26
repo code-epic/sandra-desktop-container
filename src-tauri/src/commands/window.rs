@@ -30,3 +30,9 @@ pub fn emit_splash_status(app_handle: AppHandle, message: String) {
 pub fn exit_app(app_handle: AppHandle) {
     app_handle.exit(0);
 }
+
+#[tauri::command]
+pub fn open_devtools(webview_window: tauri::WebviewWindow) {
+    webview_window.open_devtools();
+}
+

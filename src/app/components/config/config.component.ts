@@ -65,6 +65,7 @@ export class ConfigComponent implements OnInit {
   diagnosticsTargetUrl: string = 'http://pace.ipsfa.gob.ve:8080/pace/';
   diagnosing: boolean = false;
   diagnosticsReport: any = null;
+  showFullDiagnostics: boolean = false;
 
   constructor(
     public performance: PerformanceService,
@@ -428,6 +429,11 @@ export class ConfigComponent implements OnInit {
   }
 
   closeModal() {
+    if (this.showFullDiagnostics) {
+      this.showFullDiagnostics = false;
+      this.cdr.detectChanges();
+      return;
+    }
     this.close.emit();
   }
 
@@ -444,6 +450,7 @@ export class ConfigComponent implements OnInit {
   async testNetworkConnection() {
     if (!this.diagnosticsTargetUrl) return;
     this.diagnosing = true;
+    this.showFullDiagnostics = true;
     this.diagnosticsReport = null;
     this.cdr.detectChanges();
 
