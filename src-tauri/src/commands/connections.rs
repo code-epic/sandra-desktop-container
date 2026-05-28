@@ -231,9 +231,27 @@ pub async fn get_setup_status(
         )
         .unwrap_or_default();
 
+    let area: String = conn
+        .query_row(
+            "SELECT value FROM config WHERE key = 'machine_area'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_default();
+
+    let description: String = conn
+        .query_row(
+            "SELECT value FROM config WHERE key = 'machine_description'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_default();
+
     Ok(serde_json::json!({
         "is_done": is_done == "1",
-        "machine_name": name
+        "machine_name": name,
+        "machine_area": area,
+        "machine_description": description
     }))
 }
 
@@ -245,20 +263,20 @@ pub async fn save_setup_data(
     area: String,
 ) -> Result<(), String> {
     let conn = state.0.lock().unwrap();
-    conn.execute("UPDATE config SET value = '1' WHERE key = 'setup_done'", [])
+    conn.execute("INSERT OR REPLACE INTO config (key, value) VALUES ('setup_done', '1')", [])
         .map_err(|e| e.to_string())?;
     conn.execute(
-        "UPDATE config SET value = ?1 WHERE key = 'machine_name'",
+        "INSERT OR REPLACE INTO config (key, value) VALUES ('machine_name', ?1)",
         [&name],
     )
     .map_err(|e| e.to_string())?;
     conn.execute(
-        "UPDATE config SET value = ?1 WHERE key = 'machine_description'",
+        "INSERT OR REPLACE INTO config (key, value) VALUES ('machine_description', ?1)",
         [&description],
     )
     .map_err(|e| e.to_string())?;
     conn.execute(
-        "UPDATE config SET value = ?1 WHERE key = 'machine_area'",
+        "INSERT OR REPLACE INTO config (key, value) VALUES ('machine_area', ?1)",
         [&area],
     )
     .map_err(|e| e.to_string())?;

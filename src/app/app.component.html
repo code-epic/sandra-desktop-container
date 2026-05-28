@@ -64,14 +64,67 @@
           <span class="badge-mini" *ngIf="chatComponent && (chatComponent.totalUnread || 0) > 0">{{ chatComponent.totalUnread }}</span>
         </button>
 
-        <div class="connection-pill" [style.border-color]="statusColor">
-          <div class="pulse-dot" [style.background-color]="statusColor"
-            [class.pulse-animation]="wsStatus === 'Conectado'"></div>
-          <span class="status-text">{{ wsStatus }}</span>
+        <!-- Pill JWT Activa: Sesión y Tiempo -->
+        <div class="jwt-active-pill fade-in" *ngIf="getJwtToken() && sessionTimeRemaining" (click)="toggleMachinePopover($event)" style="cursor: pointer;">
+          <div class="user-info">
+            <i class="fas fa-user-circle"></i>
+            <span>{{ sessionUsername || 'Usuario' }}</span>
+          </div>
+          <div class="session-timer" [class.danger]="sessionSecondsLeft <= 60" title="Tiempo restante de sesión">
+            <i class="fas fa-stopwatch"></i>
+            <span style="font-variant-numeric: tabular-nums;">{{ sessionTimeRemaining }}</span>
+          </div>
         </div>
-        <div class="app-brand-display">{{ machineNameMain }}<span class="brand-lite">{{ machineNameSuffix }}</span></div>
+
+        <div class="connection-pill" [style.border-color]="statusColor" (click)="toggleMachinePopover($event)" *ngIf="!getJwtToken() || !sessionTimeRemaining">
+          <div class="pulse-dot" [style.background-color]="statusColor"></div>
+          <!-- Branding Local (Sandra DC) -->
+          <div class="app-brand data-drag" data-tauri-drag-region>
+            <div class="app-brand-text">
+              <div class="app-brand-display" style="line-height: 1.2;">
+                <span style="font-weight: 600; font-size: 15px;">{{ machineNameMain }}<span class="brand-lite">{{ machineNameSuffix }}</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
+
+    <!-- Popover Elegante de Máquina -->
+    <div class="machine-popover fade-in" *ngIf="showMachinePopover" (click)="$event.stopPropagation()">
+      <div class="mp-header">
+        <div class="mp-icon"><i class="fas fa-server"></i></div>
+        <div class="mp-title">
+          <h4>{{ machineNameMain }}{{ machineNameSuffix ? '-' + machineNameSuffix : '' }}</h4>
+          <span class="mp-status" [class.connected]="wsStatus === 'Conectado'">
+            <div class="status-dot"></div> {{ wsStatus }}
+          </span>
+        </div>
+      </div>
+      <div class="mp-body">
+        <div class="mp-item" *ngIf="sessionUsername">
+          <i class="fas fa-user-shield"></i>
+          <div>
+            <label>Usuario (JWT)</label>
+            <span>{{ jwtNombre || sessionUsername }}</span>
+          </div>
+        </div>
+        <div class="mp-item" *ngIf="jwtCargo || machineArea">
+          <i class="fas fa-briefcase"></i>
+          <div>
+            <label>Cargo / Perfil</label>
+            <span>{{ jwtCargo || machineArea }}</span>
+          </div>
+        </div>
+        <div class="mp-item" *ngIf="jwtDescripcion || machineDescription">
+          <i class="fas fa-align-left"></i>
+          <div>
+            <label>Descripción</label>
+            <span>{{ jwtDescripcion || machineDescription }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <section class="content-area" [class.sidebar-left-open]="leftSidebarOpen$ | async"
       [class.inspector-open]="rightSidebarOpen$ | async" [class.global-blur]="showControlPanel"
@@ -80,7 +133,7 @@
       <app-dashboard *ngIf="(activeTabId$ | async) === 'dashboard'" [stats]="stats" [networkInfo]="networkInfo"
         [apps]="apps" [dbStats]="dbStats" (onInstall)="DownloadAppRepo($event)" (onOpen)="openApp($event)"
         (onUpdate)="updateApp($event)" (onDelete)="deleteApp($event)" (onDbClick)="showDbModal = true"
-        (onIpClick)="showIpInfo()" (onMacClick)="showMacInfo()"></app-dashboard>
+        (onIpClick)="showIpInfo()" (onMacClick)="showMacInfo()" (onIdentityUpdate)="handleIdentityUpdate()"></app-dashboard>
 
       <app-connections *ngIf="(activeTabId$ | async) === 'connections'"></app-connections>
       <app-security *ngIf="(activeTabId$ | async) === 'security' && !!getJwtToken()" [activeConnection]="activeConnection"></app-security>

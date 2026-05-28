@@ -116,56 +116,124 @@
 
     <div class="im-body">
 
-        <!-- MAC / Hardware ID -->
-        <div class="im-row">
-            <span class="im-row-icon">
-                <i class="fas fa-fingerprint"></i>
-            </span>
-            <div class="im-row-info">
-                <span class="im-row-label">ID de Hardware (MAC)</span>
-                <span class="im-row-value mono copyable" title="Copiar">{{ stats?.mac_address || '---' }}</span>
+        <!-- Tabs Nav -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px;">
+            <div (click)="activeModalTab = 'network'" 
+                 [style.color]="activeModalTab === 'network' ? '#2e7d32' : '#78909c'"
+                 [style.borderBottom]="activeModalTab === 'network' ? '2px solid #2e7d32' : '2px solid transparent'"
+                 style="font-size: 13px; font-weight: 600; cursor: pointer; padding-bottom: 5px; transition: all 0.2s;">
+                <i class="fas fa-network-wired" style="margin-right: 5px;"></i> Información de Red
+            </div>
+            <div (click)="activeModalTab = 'identity'" 
+                 [style.color]="activeModalTab === 'identity' ? '#2e7d32' : '#78909c'"
+                 [style.borderBottom]="activeModalTab === 'identity' ? '2px solid #2e7d32' : '2px solid transparent'"
+                 style="font-size: 13px; font-weight: 600; cursor: pointer; padding-bottom: 5px; transition: all 0.2s;">
+                <i class="fas fa-id-badge" style="margin-right: 5px;"></i> Identidad de la Máquina
             </div>
         </div>
 
-        <div class="im-divider"></div>
-
-        <!-- IPs Locales -->
-        <span class="im-section-title">IPs Locales</span>
-        <div class="im-row" *ngFor="let ip of networkInfo">
-            <span class="im-row-icon">
-                <i class="fas fa-network-wired"></i>
-            </span>
-            <div class="im-row-info">
-                <span class="im-row-value mono">{{ ip }}</span>
+        <!-- Tab: Network -->
+        <ng-container *ngIf="activeModalTab === 'network'">
+            <!-- MAC / Hardware ID -->
+            <div class="im-row">
+                <span class="im-row-icon">
+                    <i class="fas fa-fingerprint"></i>
+                </span>
+                <div class="im-row-info">
+                    <span class="im-row-label">ID de Hardware (MAC)</span>
+                    <span class="im-row-value mono copyable" title="Copiar">{{ stats?.mac_address || '---' }}</span>
+                </div>
             </div>
-        </div>
-        <div class="im-row" *ngIf="networkInfo.length === 0">
-            <span class="im-row-icon">
-                <i class="fas fa-unlink"></i>
-            </span>
-            <div class="im-row-info">
-                <span class="im-row-value im-muted">Sin conexión local detectada</span>
-            </div>
-        </div>
 
-        <div class="im-divider"></div>
+            <div class="im-divider"></div>
 
-        <!-- IP Pública -->
-        <div class="im-row im-highlight">
-            <span class="im-row-icon">
-                <i class="fas fa-globe-americas"></i>
-            </span>
-            <div class="im-row-info">
-                <span class="im-row-label">IP Pública</span>
-                <span class="im-row-value mono">{{ publicIp }}</span>
+            <!-- IPs Locales -->
+            <span class="im-section-title">IPs Locales</span>
+            <div class="im-row" *ngFor="let ip of networkInfo">
+                <span class="im-row-icon">
+                    <i class="fas fa-network-wired"></i>
+                </span>
+                <div class="im-row-info">
+                    <span class="im-row-value mono">{{ ip }}</span>
+                </div>
             </div>
-        </div>
+            <div class="im-row" *ngIf="networkInfo.length === 0">
+                <span class="im-row-icon">
+                    <i class="fas fa-unlink"></i>
+                </span>
+                <div class="im-row-info">
+                    <span class="im-row-value im-muted">Sin conexión local detectada</span>
+                </div>
+            </div>
+
+            <div class="im-divider"></div>
+
+            <!-- IP Pública -->
+            <div class="im-row im-highlight">
+                <span class="im-row-icon">
+                    <i class="fas fa-globe-americas"></i>
+                </span>
+                <div class="im-row-info">
+                    <span class="im-row-label">IP Pública</span>
+                    <span class="im-row-value mono">{{ publicIp }}</span>
+                </div>
+            </div>
+        </ng-container>
+
+        <!-- Tab: Identity -->
+        <ng-container *ngIf="activeModalTab === 'identity'">
+            <!-- Identity Edition Fields -->
+            <div class="im-row-form" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 5px;">
+                <div class="form-group">
+                    <label style="font-size: 11px; font-weight: 600; color: #78909c; text-transform: uppercase; margin-bottom: 5px; display: block;">Nombre del Sistema</label>
+                    <div class="input-with-icon" style="position: relative;">
+                        <i class="fas fa-desktop" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #90a4ae;"></i>
+                        <input type="text" [(ngModel)]="machineName" placeholder="Ej. Nodo-Principal" style="width: 100%; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05); padding: 8px 12px 8px 32px; border-radius: 6px; color: #455a64; font-size: 14px; font-weight: 500; outline: none; transition: all 0.2s;" [disabled]="isSavingIdentity">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size: 11px; font-weight: 600; color: #78909c; text-transform: uppercase; margin-bottom: 5px; display: block;">Cargo / Área</label>
+                    <div class="input-with-icon" style="position: relative;">
+                        <i class="fas fa-briefcase" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #90a4ae;"></i>
+                        <input type="text" [(ngModel)]="machineArea" placeholder="Ej. Operaciones" style="width: 100%; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05); padding: 8px 12px 8px 32px; border-radius: 6px; color: #455a64; font-size: 14px; font-weight: 500; outline: none; transition: all 0.2s;" [disabled]="isSavingIdentity">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size: 11px; font-weight: 600; color: #78909c; text-transform: uppercase; margin-bottom: 5px; display: block;">Descripción del Equipo</label>
+                    <textarea [(ngModel)]="machineDescription" placeholder="Detalles de la máquina..." style="width: 100%; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05); padding: 10px 12px; border-radius: 6px; color: #455a64; font-size: 13px; outline: none; transition: all 0.2s; resize: vertical; min-height: 60px;" [disabled]="isSavingIdentity"></textarea>
+                </div>
+            </div>
+        </ng-container>
 
     </div>
 
     <!-- Footer personalizado -->
-    <div footer class="im-footer-inline">
-        <button class="btn-im-primary" (click)="closeModal()">Entendido</button>
+    <div footer class="im-footer-inline" style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; position: relative;">
+        <!-- Estado normal -->
+        <ng-container *ngIf="!confirmingSave">
+            <button class="btn-im-secondary" (click)="closeModal()" style="background: transparent; border: 1px solid rgba(0,0,0,0.1); color: #78909c; padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer;">Cancelar</button>
+            <button class="btn-im-primary" (click)="confirmingSave = true" [disabled]="!machineName" style="background: #2e7d32; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 500; cursor: pointer;">Guardar y Sincronizar</button>
+        </ng-container>
+
+        <!-- Estado de confirmación elegante -->
+        <div *ngIf="confirmingSave" style="display: flex; width: 100%; align-items: center; justify-content: space-between; background: #fff3e0; padding: 10px 15px; border-radius: 8px; border: 1px solid #ffe0b2; animation: slideIn 0.3s ease;">
+            <div style="display: flex; align-items: center; gap: 10px; color: #e65100; font-size: 12px; font-weight: 500;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 16px;"></i>
+                <div style="line-height: 1.3;">
+                    Se reiniciará la sesión para aplicar cambios.<br>
+                    <span style="opacity: 0.8; font-size: 11px;">Deberá reconectar e iniciar sesión.</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button (click)="confirmingSave = false" style="background: transparent; border: none; color: #78909c; padding: 6px 12px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 12px;">Cancelar</button>
+                <button (click)="saveIdentity()" [disabled]="isSavingIdentity" style="background: #e65100; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; box-shadow: 0 2px 4px rgba(230,81,0,0.2);">
+                    <i class="fas fa-spinner fa-spin" *ngIf="isSavingIdentity"></i>
+                    {{ isSavingIdentity ? 'Aplicando...' : 'Confirmar' }}
+                </button>
+            </div>
+        </div>
     </div>
 
 </app-modal>

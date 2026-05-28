@@ -113,6 +113,20 @@ export class AppComponent implements OnInit, DoCheck {
   wsStatus: ConnectionStatus = "Desconectado";
   machineNameMain: string = "Sandra";
   machineNameSuffix: string = "DC";
+  machineArea: string = "";
+  machineDescription: string = "";
+  showMachinePopover: boolean = false;
+  
+  // --- JWT SESSION STATE ---
+  sessionUsername: string = "";
+  jwtNombre: string = "";
+  jwtCargo: string = "";
+  jwtDescripcion: string = "";
+  sessionTimeRemaining: string = "";
+  sessionSecondsLeft: number = 0;
+  private jwtTimerInterval: any;
+  private jwtWarningShown: boolean = false;
+  
   attemptNumber: number = 0;
   pendingTicketsCount: number = 0;
   private csvSearchSubject = new Subject<Tab>();
@@ -363,6 +377,8 @@ export class AppComponent implements OnInit, DoCheck {
       if (this.showControlPanel) this.loadConnections();
     });
 
+    this.startJwtSessionTimer();
+
     // Global Connection Status Listener
     await listen("connection-status", (event: any) => {
       this.zone.run(() => {
@@ -373,10 +389,12 @@ export class AppComponent implements OnInit, DoCheck {
           this.checkAndPromptJwt();
         } else if (s === "disconnected") {
           this.wsStatus = "Desconectado";
+          this.performLocalLogout();
         } else if (s === "connecting") {
           this.wsStatus = "Reintentando";
         } else if (s === "error") {
           this.wsStatus = "Desconectado";
+          this.performLocalLogout();
         }
       });
     });
@@ -501,6 +519,7 @@ export class AppComponent implements OnInit, DoCheck {
     // Si forzamos (clic manual) O si está habilitado y falta el token real
     if (force || (this.config.access.enableJwtSession && !token)) {
       console.log("🔓 [System] ACTIVANDO showLoginModal = true");
+      this.showControlPanel = false; // Cerramos el panel para ver el login claramente
       this.loginConnections = [];
       this.requireJwtLogin = true;
       this.loginIpAddress = this.activeConnection.ip_address || 'localhost';
@@ -686,14 +705,17 @@ export class AppComponent implements OnInit, DoCheck {
           this.wsStatus = "Reintentando";
         } else {
           this.wsStatus = "Desconectado";
+          this.performLocalLogout();
         }
       } else {
         // Host no responde (Servidor apagado o inaccesible)
-        this.wsStatus = "Reintentando";
+        this.wsStatus = "Desconectado";
+        this.performLocalLogout();
       }
     } catch (e) {
       console.error("Error verifying connection status", e);
       this.wsStatus = "Desconectado";
+      this.performLocalLogout();
     }
   }
 
@@ -729,40 +751,37 @@ export class AppComponent implements OnInit, DoCheck {
       return;
     }
 
-    this.showQuestionModal(
-      "Confirmar Desconexión",
-      "¿Estás seguro de que deseas desconectarte? Se cerrará la sesión actual y será necesario ingresar credenciales nuevamente.",
-      "Desconectar",
-      "Mantener Conexión",
-      async () => {
-        try {
-          // 1. Desconectar físicamente del servidor (Rust)
-          await this.sdcService.disconnectFromServer(conn, this.clientId);
+    const performDisconnect = async () => {
+      try {
+        await this.sdcService.disconnectFromServer(conn, this.clientId);
+        this.performLocalLogout();
+        await this.loadConnections();
+        const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
+        this.snapService.show("Sesión Finalizada", safeEvent as any, "info", "fa-sign-out-alt");
 
-          // 2. Limpiar sesión local y tokens
-          this.performLocalLogout();
-
-          // 3. Actualizar lista de conexiones
-          await this.loadConnections();
-
-          // 4. Mostrar feedback al usuario
-          const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
-          this.snapService.show("Sesión Finalizada", safeEvent as any, "info", "fa-sign-out-alt");
-
-          // 4. Decidir si cerrar o mantener el panel de control
-          if (stayInConfig) {
-            this.showControlPanel = true;
-            this.loadConnections();
-          } else {
-            this.showControlPanel = false;
-          }
-
-        } catch (e) {
-          console.error("Error al desconectar:", e);
-          this.showModal("Error", "Error al desconectar: " + e);
+        if (stayInConfig) {
+          this.showControlPanel = true;
+          this.loadConnections();
+        } else {
+          this.showControlPanel = false;
         }
+      } catch (e) {
+        console.error("Error al desconectar:", e);
+        this.genericModal = { show: true, type: "error", title: "Error", message: "Error al desconectar: " + e };
       }
-    );
+    };
+
+    if (!this.getJwtToken() || this.wsStatus !== 'Conectado') {
+      await performDisconnect();
+    } else {
+      this.showQuestionModal(
+        "Confirmar Desconexión",
+        "¿Estás seguro de que deseas desconectarte? Se cerrará la sesión actual y será necesario ingresar credenciales nuevamente.",
+        "Desconectar",
+        "Mantener Conexión",
+        performDisconnect
+      );
+    }
   }
 
   /**
@@ -878,6 +897,7 @@ export class AppComponent implements OnInit, DoCheck {
             this.machineNameMain = name;
             this.machineNameSuffix = "";
           }
+          this.machineArea = setupStatus.machine_area || "";
         }
         await invoke("emit_splash_status", {
           message: `Bienvenido, ${setupStatus.machine_name}`,
@@ -3040,5 +3060,129 @@ export class AppComponent implements OnInit, DoCheck {
         await this.configComponent.testNetworkConnection();
       }
     }, 150);
+  }
+
+  async handleIdentityUpdate() {
+    console.log("🔄 [App] Actualizando identidad del sistema...");
+    try {
+      const setupStatus = await invoke<any>("get_setup_status");
+      if (setupStatus.machine_name) {
+        this.zone.run(() => {
+          const name = setupStatus.machine_name;
+          const parts = name.split(/[-_]/);
+          if (parts.length > 1) {
+            this.machineNameMain = parts[0];
+            this.machineNameSuffix = parts.slice(1).join("-");
+          } else {
+            this.machineNameMain = name;
+            this.machineNameSuffix = "";
+          }
+          this.machineArea = setupStatus.machine_area || "";
+          this.machineDescription = setupStatus.machine_description || "";
+        });
+      }
+
+      if (this.activeConnection) {
+        this.snapService.show("Identidad Actualizada", { clientX: window.innerWidth / 2, clientY: 50 } as any, "info", "fa-sync");
+        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+        this.zone.run(() => {
+          this.performLocalLogout();
+        });
+        await this.loadConnections();
+        setTimeout(() => {
+          this.snapService.show("Por favor, reconecte para aplicar los cambios", { clientX: window.innerWidth / 2, clientY: 50 } as any, "warning", "fa-plug");
+        }, 1500);
+      } else {
+        this.snapService.show("Identidad Actualizada", { clientX: window.innerWidth / 2, clientY: 50 } as any, "success", "fa-check");
+      }
+    } catch (e) {
+      console.error("Error al refrescar identidad", e);
+    }
+  }
+
+  toggleMachinePopover(event: MouseEvent) {
+    event.stopPropagation();
+    this.showMachinePopover = !this.showMachinePopover;
+    if (this.showMachinePopover) {
+      // Close popover when clicking outside
+      const closePopover = () => {
+        this.zone.run(() => {
+          this.showMachinePopover = false;
+        });
+        document.removeEventListener('click', closePopover);
+      };
+      setTimeout(() => document.addEventListener('click', closePopover), 0);
+    }
+  }
+
+  // --- JWT SESSION TIMER ---
+  startJwtSessionTimer() {
+    if (this.jwtTimerInterval) {
+      clearInterval(this.jwtTimerInterval);
+    }
+    
+    this.jwtTimerInterval = setInterval(() => {
+      this.zone.run(() => {
+        const token = this.getJwtToken();
+        if (token && this.wsStatus === 'Conectado') {
+          try {
+            const payload = this.utils.decodeJwt(token);
+            if (payload) {
+              // Username and Extracted Details
+              if (payload.Usuario) {
+                this.sessionUsername = payload.Usuario.usuario || payload.sub || payload.name || "";
+                this.jwtNombre = payload.Usuario.nombre || this.sessionUsername;
+                this.jwtCargo = payload.Usuario.cargo || payload.Usuario.Perfil?.nombre || "";
+                this.jwtDescripcion = payload.Usuario.descripcion || "";
+              } else if (payload.sub || payload.name) {
+                this.sessionUsername = payload.sub || payload.name;
+                this.jwtNombre = this.sessionUsername;
+              }
+
+              // Calcular tiempo restante basado en 'exp' y la FirmaDigital por si exp falla
+              let expTime = 0;
+              if (payload.exp) {
+                expTime = payload.exp * 1000;
+              } else if (payload.FirmaDigital?.tiempo && payload.FirmaDigital?.duracion) {
+                const start = new Date(payload.FirmaDigital.tiempo).getTime();
+                expTime = start + (payload.FirmaDigital.duracion * 60 * 1000); // asumiendo que duracion son minutos, el exp deberia venir
+              }
+
+              if (expTime > 0) {
+                const now = Date.now();
+                const diffSeconds = Math.floor((expTime - now) / 1000);
+                
+                if (diffSeconds > 0) {
+                  this.sessionSecondsLeft = diffSeconds;
+                  const h = Math.floor(diffSeconds / 3600);
+                  const m = Math.floor((diffSeconds % 3600) / 60);
+                  const s = diffSeconds % 60;
+                  
+                  if (h > 0) {
+                    this.sessionTimeRemaining = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                  } else {
+                    this.sessionTimeRemaining = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                  }
+                  
+                  // Notificación de advertencia 5 segundos antes
+                  if (diffSeconds <= 5 && diffSeconds > 0 && !this.jwtWarningShown) {
+                    this.jwtWarningShown = true;
+                    this.snapService.show(`La sesión expirará en ${diffSeconds} segundos`, undefined, "warning", "fa-clock");
+                  }
+                } else {
+                  this.sessionTimeRemaining = "00:00";
+                  this.sessionSecondsLeft = 0;
+                }
+              }
+            }
+          } catch (e) {}
+        } else {
+          this.sessionTimeRemaining = "";
+          this.sessionSecondsLeft = 0;
+          this.sessionUsername = "";
+          this.jwtWarningShown = false;
+        }
+      });
+    }, 1000);
   }
 }
