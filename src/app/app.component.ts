@@ -2769,7 +2769,7 @@ export class AppComponent implements OnInit, DoCheck {
     this.backgroundTaskUnlisten = await listen("background-task-event", (event: any) => {
       this.zone.run(() => {
         const payload = event.payload;
-        if (payload.type === "exec-fnx" && payload.from === "system") {
+        if (payload.type === "exec-fnx" && (payload.from === "system" || payload.from === "Ejecución de Función" || !payload.from)) {
           this.handleExecFnxTask(payload);
         }
       });

@@ -7724,3 +7724,133 @@ span.req {
   background: linear-gradient(135deg, rgba(254, 243, 199, 0.3) 0%, #ffffff 100%);
   border-left-color: #f59e0b;
 }
+
+/* --- PAYROLL DOWNLOAD CARD (PREMIUM GLASSMORPHISM) --- */
+.payroll-download-card {
+  margin-top: 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(255, 255, 255, 0.85) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.payroll-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.payroll-icon {
+  font-size: 2.2rem;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  padding: 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payroll-title-info h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+}
+
+.payroll-title-info .sub-text {
+  margin: 6px 0 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.payroll-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.payroll-meta-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(248, 250, 252, 0.8);
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.payroll-meta-grid .meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.payroll-meta-grid .meta-row .label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.payroll-meta-grid .meta-row .value {
+  font-weight: 600;
+  color: #1e293b;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.payroll-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-download-payroll {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-download-payroll:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
+}
+
+.btn-download-payroll:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);
+}
+
+.btn-download-payroll:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-download-payroll i {
+  font-size: 1.1rem;
+}

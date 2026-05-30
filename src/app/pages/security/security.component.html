@@ -848,6 +848,43 @@
                             <div *ngIf="!parsedContent" class="msg-content-text"
                                 [innerHTML]="getSafeHtml(selectedMessage.content)">
                             </div>
+
+                            <!-- Case D: Ejecución de Función with Payroll Download details -->
+                            <div *ngIf="hasPayrollPayload(selectedMessage)" class="payroll-download-card fade-in">
+                                <div class="payroll-card-header">
+                                    <i class="fas fa-file-invoice-dollar payroll-icon"></i>
+                                    <div class="payroll-title-info">
+                                        <h4>Paquete de Nómina Disponible</h4>
+                                        <p class="sub-text">Esta notificación contiene una nómina lista para descargar de forma segura.</p>
+                                    </div>
+                                </div>
+                                <div class="payroll-card-body">
+                                    <div class="payroll-meta-grid">
+                                        <div class="meta-row">
+                                            <span class="label">ID de Nómina:</span>
+                                            <span class="value font-mono">{{ getPayrollPayloadData(selectedMessage)?.id }}</span>
+                                        </div>
+                                        <div class="meta-row">
+                                            <span class="label">Tracking ID:</span>
+                                            <span class="value font-mono">{{ getPayrollPayloadData(selectedMessage)?.trackingId }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="payroll-actions">
+                                        <button class="btn-download-payroll" 
+                                            [disabled]="downloadingStatus.has('dl_' + getPayrollPayloadData(selectedMessage)?.id + '_' + getPayrollPayloadData(selectedMessage)?.trackingId)"
+                                            (click)="downloadPayrollFromMail(selectedMessage)">
+                                            <i class="fas" [class.fa-cloud-download-alt]="!downloadingStatus.has('dl_' + getPayrollPayloadData(selectedMessage)?.id + '_' + getPayrollPayloadData(selectedMessage)?.trackingId)"
+                                                [class.fa-sync-alt]="downloadingStatus.has('dl_' + getPayrollPayloadData(selectedMessage)?.id + '_' + getPayrollPayloadData(selectedMessage)?.trackingId)"
+                                                [class.fa-spin]="downloadingStatus.has('dl_' + getPayrollPayloadData(selectedMessage)?.id + '_' + getPayrollPayloadData(selectedMessage)?.trackingId)"></i>
+                                            <span>
+                                                {{ downloadingStatus.has('dl_' + getPayrollPayloadData(selectedMessage)?.id + '_' + getPayrollPayloadData(selectedMessage)?.trackingId) ? 
+                                                    'Descargando ' + downloadingStatus.get('dl_' + getPayrollPayloadData(selectedMessage)?.id + '_' + getPayrollPayloadData(selectedMessage)?.trackingId) + '%' : 
+                                                    'Descargar Nómina Completa' }}
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                     </div>

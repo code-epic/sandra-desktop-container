@@ -2039,6 +2039,76 @@ export class SecurityComponent implements OnInit, OnChanges {
     } catch { return false; }
   }
 
+  hasPayrollPayload(msg: MailboxMessage): boolean {
+    if (!msg || msg.author !== 'Ejecución de Función' || !msg.tracking_info) return false;
+    try {
+      const payload = JSON.parse(msg.tracking_info);
+      const hasTracking = !!(payload.trackingId || payload.tracking_id);
+      const hasId = !!(payload.id || payload.id_nomina || payload.idNomina);
+      return hasTracking && hasId;
+    } catch {
+      return false;
+    }
+  }
+
+  getPayrollPayloadData(msg: MailboxMessage): any {
+    if (!msg || !msg.tracking_info) return null;
+    try {
+      const payload = JSON.parse(msg.tracking_info);
+      return {
+        id: payload.id || payload.id_nomina || payload.idNomina,
+        trackingId: payload.trackingId || payload.tracking_id
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async downloadPayrollFromMail(msg: MailboxMessage) {
+    const data = this.getPayrollPayloadData(msg);
+    if (!data) return;
+
+    if (!this.activeConnection) {
+      this.errorMessage = "No hay una conexión activa para descargar.";
+      this.showErrorModal = true;
+      return;
+    }
+
+    const taskId = `dl_${data.id}_${data.trackingId}`;
+    this.downloadingStatus.set(taskId, 0);
+
+    const unlisten = await listen('secure-download-progress', (event: any) => {
+      if (event.payload.id === taskId) {
+        this.downloadingStatus.set(taskId, event.payload.progress);
+      }
+    });
+
+    try {
+      const resultPath = await invoke<string>("procesar_descarga_segura", {
+        idNomina: String(data.id),
+        trackingId: String(data.trackingId),
+        ip: this.activeConnection.ip_address,
+        port: Number(this.activeConnection.port),
+        hash: this.activeConnection.hash || "",
+        tempAuthToken: this.activeConnection.jwt || null
+      });
+
+      this.snapService.show("Descarga Finalizada", undefined, "success");
+      console.log("Archivos guardados en:", resultPath);
+
+      // Refresh history
+      await this.loadHistory();
+
+    } catch (error: any) {
+      console.error("Error en descarga segura:", error);
+      this.errorMessage = typeof error === 'string' ? error : (error.message || "Error al procesar la descarga de nómina.");
+      this.showErrorModal = true;
+    } finally {
+      unlisten();
+      this.downloadingStatus.delete(taskId);
+    }
+  }
+
   async downloadAttachment(att: any, msg: MailboxMessage) {
     if (this.isAttachmentDownloaded(att)) {
       this.openAttachment(att);
