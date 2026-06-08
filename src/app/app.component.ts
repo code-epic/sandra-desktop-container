@@ -785,27 +785,70 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   /**
+   * Cierra todas las pestañas dinámicas y destruye los webviews nativos.
+   */
+  async closeAllTabsAndWebviews() {
+    console.log("🗑️ [System] Cerrando todas las pestañas y webviews...");
+    
+    // 1. Cerrar todos los webviews nativos activos y borrar sus datos de navegación
+    for (const tabId of Object.keys(this.activeNativeWebviews)) {
+      try {
+        console.log(`🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${tabId}`);
+        await this.activeNativeWebviews[tabId].clearAllBrowsingData();
+        await this.activeNativeWebviews[tabId].close();
+      } catch (e) {
+        console.error("Error al cerrar/limpiar webview nativo:", e);
+      }
+      delete this.activeNativeWebviews[tabId];
+    }
+
+    // 2. Limpiar todos los logs (memoria y base de datos backend)
+    await this.logger.clearLogs();
+
+    // 3. Limpiar todos los tabs en el estado global
+    this.appState.clearAllTabs();
+  }
+
+  /**
    * Limpia todos los rastros de la sesión actual sin cerrar la aplicación.
    * Centraliza la lógica de "Logout" para reutilización.
    */
-  performLocalLogout() {
+  async performLocalLogout() {
     console.log("🔐 [System] Ejecutando limpieza de sesión local...");
 
-    // 1. Limpiar Storage de sesión
+    // 1. Cerrar todas las pestañas y webviews
+    await this.closeAllTabsAndWebviews();
+
+    // 2. Limpiar Storage de sesión
     sessionStorage.clear();
 
-    // 2. Limpiar Token JWT según configuración de persistencia
+    // 3. Limpiar Token JWT y persistencia de conexión según configuración
     const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
     storage.removeItem(this.config.access.jwtVariableName);
+    
+    // Limpiar localStorage de sesión y caches, manteniendo solo configuraciones globales
+    const keysToKeep = ['sdc_ui_config', 'sandra_perf_mode'];
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && !keysToKeep.includes(key)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
 
-    // 3. Resetear estados visuales
+    // 4. Resetear estados visuales y de sesión
     this.activeConnection = null;
     this.wsStatus = "Desconectado";
+    this.sessionUsername = "";
+    this.sessionTimeRemaining = "";
+    this.sessionSecondsLeft = 0;
+    this.jwtWarningShown = false;
 
-    // 4. Limpiar cualquier puerto de autorización pendiente
+    // 5. Limpiar cualquier puerto de autorización pendiente
     this.authPorts.clear();
 
-    // 5. Redireccionar al Dashboard (Zona Pública)
+    // 6. Redireccionar al Dashboard (Zona Pública)
     this.appState.setActiveTab("dashboard");
   }
 
@@ -830,6 +873,29 @@ export class AppComponent implements OnInit, DoCheck {
 
     // 3. Mostrar notificación
     this.snapService.show("Sesión Cerrada Totalmente", undefined, "info", "fa-sign-out-alt");
+  }
+
+  /**
+   * Realiza el cierre de sesión específico para cuando el token expira.
+   */
+  async handleSessionExpiration() {
+    console.log("🔐 [System] Iniciando Cierre de Sesión por Expiración...");
+    
+    // 1. Desconectar del servidor si hay conexión activa
+    if (this.activeConnection) {
+      try {
+        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+        console.log("🔌 Desconectado del servidor correctamente por expiración.");
+      } catch (e) {
+        console.error("Error desconectando del servidor durante expiración de sesión:", e);
+      }
+    }
+
+    // 2. Limpiar estados locales y redireccionar
+    this.performLocalLogout();
+
+    // 3. Mostrar notificación de expiración
+    this.snapService.show("Sesión expirada por límite de tiempo", undefined, "warning", "fa-clock");
   }
 
   /**
@@ -1207,6 +1273,7 @@ export class AppComponent implements OnInit, DoCheck {
       isProxyRequired: appData.is_proxy_required,
       isExternal: !targetUrl,
       isExternalMode: isExternalMode,
+      appId: appId
     });
   }
 
@@ -2546,8 +2613,13 @@ export class AppComponent implements OnInit, DoCheck {
     evt.stopPropagation();
     
     if (this.activeNativeWebviews[tabId]) {
-      console.log(`🗑️ [Native Webview] Destruyendo webview para: ${tabId}`);
-      this.activeNativeWebviews[tabId].close();
+      console.log(`🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${tabId}`);
+      try {
+        await this.activeNativeWebviews[tabId].clearAllBrowsingData();
+        await this.activeNativeWebviews[tabId].close();
+      } catch (e) {
+        console.error("Error al cerrar/limpiar webview nativo:", e);
+      }
       delete this.activeNativeWebviews[tabId];
     }
     evt.preventDefault();
@@ -2558,6 +2630,9 @@ export class AppComponent implements OnInit, DoCheck {
       return;
     }
 
+    // Limpiar logs temporales (memoria y DB)
+    await this.logger.clearLogs(tabId);
+
     // Intelligence for returning to previous context
     const tabs = this.appState.getTabsSnapshot();
     const closingTab = tabs.find(t => t.id === tabId);
@@ -2565,10 +2640,6 @@ export class AppComponent implements OnInit, DoCheck {
     if (closingTab && this.currentTabId === tabId) {
       if (closingTab.source === 'MANUALS') {
         this.appState.setActiveTab('secure-viewer');
-      } else if (closingTab.source === 'HISTORY' || closingTab.source === 'GLOBAL') {
-        // Optional: you could force dashboard here if that's what "posicion anterior el dashboard" means
-        // But setActiveTab(getLastDashboardSnapshot) is usually better.
-        // Let's stick to the last snapshot for now, but the manuals part is now explicit.
       }
     }
 
@@ -2639,13 +2710,18 @@ export class AppComponent implements OnInit, DoCheck {
       if (shouldSave) {
         await this.logger.saveAllLogs(this.tabIdToClose);
       } else {
-        this.logger.clearLogs(this.tabIdToClose);
+        await this.logger.clearLogs(this.tabIdToClose);
       }
 
       // Limpiar webview nativo si existe
       if (this.activeNativeWebviews[this.tabIdToClose]) {
-        console.log(`🗑️ [Native Webview] Destruyendo webview para: ${this.tabIdToClose}`);
-        this.activeNativeWebviews[this.tabIdToClose].close();
+        console.log(`🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${this.tabIdToClose}`);
+        try {
+          await this.activeNativeWebviews[this.tabIdToClose].clearAllBrowsingData();
+          await this.activeNativeWebviews[this.tabIdToClose].close();
+        } catch (e) {
+          console.error("Error al cerrar/limpiar webview nativo:", e);
+        }
         delete this.activeNativeWebviews[this.tabIdToClose];
       }
 
@@ -2819,8 +2895,14 @@ export class AppComponent implements OnInit, DoCheck {
     const appId = payload.appId;
     if (!appId) return;
 
-    const normalizedId = appId.toLowerCase();
-    const port = this.authPorts.get(normalizedId);
+    const normalizedId = String(appId).toLowerCase();
+
+    // Resolver la pestaña correcta comparando tanto appId de texto como el id numérico
+    const tabs = this.appState.getTabsSnapshot();
+    const tab = tabs.find(t => t.appId?.toLowerCase() === normalizedId || t.id?.toString().toLowerCase() === normalizedId);
+    const resolvedTabId = tab ? tab.id : appId;
+
+    const port = this.authPorts.get(resolvedTabId.toString().toLowerCase());
     const completionMsg = {
       type: "EXEC_FNX_FINALIZADO",
       payload: {
@@ -2831,18 +2913,21 @@ export class AppComponent implements OnInit, DoCheck {
     };
 
     if (port) {
+      console.log(`🔌 [Bridge] Re-enviando EXEC_FNX_FINALIZADO vía MessagePort para Tab: ${resolvedTabId}`);
       port.postMessage(completionMsg);
     } else {
-      // Intentar buscar el iframe directamente si no hay puerto
-      const iframeId = "iframe-" + appId;
-      const iframeExtId = "iframe-ext-" + appId;
+      // Buscar el iframe usando el ID numérico correcto del Tab
+      const iframeId = "iframe-" + resolvedTabId;
+      const iframeExtId = "iframe-ext-" + resolvedTabId;
       const iframe = (document.getElementById(iframeId) ||
         document.getElementById(iframeExtId)) as HTMLIFrameElement;
 
       if (iframe && iframe.contentWindow) {
+        console.log(`📡 [Bridge] Re-enviando EXEC_FNX_FINALIZADO vía IFrame postMessage para Tab: ${resolvedTabId}`);
         iframe.contentWindow.postMessage(completionMsg, "*");
       } else {
         // Fallback a broadcast global (menos recomendado pero útil como último recurso)
+        console.warn(`⚠️ [Bridge] IFrame no encontrado para ${resolvedTabId}. Usando fallback postMessage.`);
         window.postMessage(completionMsg, "*");
       }
     }
@@ -2858,6 +2943,8 @@ export class AppComponent implements OnInit, DoCheck {
       this.showModal("Error", "No hay una conexión activa para descargar.");
       return;
     }
+
+    const tabIdInitiated = this.currentTabId; // Capturar la pestaña activa que inició la descarga
 
     const taskId = `dl_${data.id}_${data.trackingId}`;
     const task: BackgroundTask = {
@@ -2898,7 +2985,7 @@ export class AppComponent implements OnInit, DoCheck {
       console.log("Archivos guardados en:", resultPath);
 
       // Notificar a la app hija si es necesario
-      this.notifyDownloadCompletion(data, resultPath);
+      this.notifyDownloadCompletion(data, resultPath, tabIdInitiated);
 
     } catch (error: any) {
       console.error("Error en descarga segura:", error);
@@ -2912,28 +2999,33 @@ export class AppComponent implements OnInit, DoCheck {
     }
   }
 
-  private notifyDownloadCompletion(originalData: any, path: string) {
-    const appId = originalData.id; // Suponiendo que el ID enviado es el del App
-    if (!appId) return;
+  private notifyDownloadCompletion(originalData: any, path: string, tabIdInitiated?: any) {
+    const appId = tabIdInitiated !== undefined && tabIdInitiated !== null ? tabIdInitiated : originalData.id;
+    if (appId === undefined || appId === null) return;
 
-    const normalizedId = appId.toLowerCase();
+    const normalizedId = String(appId).toLowerCase();
     const port = this.authPorts.get(normalizedId);
     const completionMsg = {
       type: "DOWNLOAD_FINISHED",
       payload: {
-        id_nomina: originalData.id_nomina,
+        id_nomina: originalData.id_nomina || originalData.id,
         trackingId: originalData.trackingId,
         path: path
       }
     };
 
     if (port) {
+      console.log(`🔌 [Bridge] Re-enviando DOWNLOAD_FINISHED vía MessagePort para Tab: ${appId}`);
       port.postMessage(completionMsg);
     } else {
       const iframeId = "iframe-" + appId;
       const iframe = document.getElementById(iframeId) as HTMLIFrameElement;
       if (iframe && iframe.contentWindow) {
+        console.log(`📡 [Bridge] Re-enviando DOWNLOAD_FINISHED vía IFrame postMessage para Tab: ${appId}`);
         iframe.contentWindow.postMessage(completionMsg, "*");
+      } else {
+        console.warn(`⚠️ [Bridge] IFrame no encontrado para DOWNLOAD_FINISHED: ${iframeId}. Re-enviando vía broadcast global.`);
+        window.postMessage(completionMsg, "*");
       }
     }
   }
@@ -3124,7 +3216,15 @@ export class AppComponent implements OnInit, DoCheck {
     this.jwtTimerInterval = setInterval(() => {
       this.zone.run(() => {
         const token = this.getJwtToken();
-        if (token && this.wsStatus === 'Conectado') {
+        
+        // Si teníamos un usuario de sesión pero ya no hay token válido, la sesión ha expirado
+        if (this.sessionUsername && !token) {
+          console.warn("🔐 [System] Sesión expirada detectada (teníamos usuario pero no hay token válido). Cerrando sesión...");
+          this.handleSessionExpiration();
+          return;
+        }
+
+        if (token) {
           try {
             const payload = this.utils.decodeJwt(token);
             if (payload) {
@@ -3172,6 +3272,8 @@ export class AppComponent implements OnInit, DoCheck {
                 } else {
                   this.sessionTimeRemaining = "00:00";
                   this.sessionSecondsLeft = 0;
+                  console.warn("🔐 [System] Tiempo de token agotado en contador. Cerrando sesión...");
+                  this.handleSessionExpiration();
                 }
               }
             }

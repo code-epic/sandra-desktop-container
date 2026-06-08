@@ -6,6 +6,7 @@ export interface Tab {
   id: string;
   name: string;
   icon: string;
+  appId?: string;
   url?: SafeResourceUrl;
   content?: SafeResourceUrl;      // Content for internal viewers
   blobData?: string;              // Raw Base64/DataUri for saving later
@@ -150,6 +151,11 @@ export class AppStateService {
     if (this.activeTabIdSubject.value === id) {
       this.setActiveTab(this.getLastDashboardSnapshot());
     }
+  }
+
+  clearAllTabs() {
+    this.openTabsSubject.next([]);
+    this.setActiveTab('dashboard');
   }
 
   // Gestión de Tareas (WebSocket)

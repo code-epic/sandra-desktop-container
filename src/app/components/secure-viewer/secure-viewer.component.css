@@ -489,15 +489,23 @@
         gap: 6px;
     }
 
-    .folder-meta {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+    .folder-date-col {
+        font-size: 0.72rem;
+        font-weight: 500;
+        color: #64748b;
+        min-width: 120px;
+        white-space: nowrap;
+        text-align: right;
     }
 
-    .folder-date {
-        font-size: 0.72rem;
-        color: #94a3b8;
+    .folder-action-col {
+        margin-left: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 90px;
+        justify-content: flex-end;
+        flex-shrink: 0;
     }
 }
 
@@ -505,27 +513,37 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #f1f5f9;
+    border: 1px solid #e2e8f0;
     background: #ffffff;
-    color: #94a3b8;
+    color: #64748b;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.85rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .btn-folder-action:hover, .btn-row-action:hover {
-    background: #f0fdf4;
-    color: #16a34a;
-    border-color: #dcfce7;
+    background: #f0f9ff; /* Soft blue background for Info */
+    color: #0284c7;      /* Clean blue icon for Info */
+    border-color: #bae6fd;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.1);
 }
 
 .btn-row-delete:hover, .btn-folder-delete:hover {
-    background: #fef2f2;
-    color: #dc2626;
-    border-color: #fee2e2;
+    background: #fef2f2; /* Soft red background for Delete */
+    color: #ef4444;      /* Destructive red icon for Delete */
+    border-color: #fecaca;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1);
+}
+
+.action-spacer {
+    width: 20px;
+    flex-shrink: 0;
 }
 
 .sub-row {
@@ -1021,32 +1039,7 @@
     gap: 8px;
 }
 
-.btn-folder-action {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: #ffffff;
-    border: 1px solid #f1f5f9;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
 
-.btn-folder-action:hover {
-    background: #f8fafc;
-    color: #1e293b;
-    border-color: #cbd5e1;
-}
-
-.btn-folder-action.delete-btn:hover {
-    background: #fef2f2;
-    color: #dc2626;
-    border-color: #fee2e2;
-}
 
 .folder-arrow {
     margin-left: 8px;

@@ -55,11 +55,21 @@ export class LoggerService {
     return this.unsavedLogs;
   }
 
-  clearLogs(appId?: string) {
+  async clearLogs(appId?: string) {
     if (appId) {
       this.unsavedLogs = this.unsavedLogs.filter(l => l.app_id !== appId);
+      try {
+        await invoke('clear_app_logs', { appId });
+      } catch (err) {
+        console.error('Failed to clear app logs in backend:', err);
+      }
     } else {
       this.unsavedLogs = [];
+      try {
+        await invoke('clear_app_logs', { appId: null });
+      } catch (err) {
+        console.error('Failed to clear all app logs in backend:', err);
+      }
     }
   }
 
@@ -85,7 +95,7 @@ export class LoggerService {
       await this.persistBackend(log.type, log.message, log.details, log.app_id, log.timestamp.toISOString(), log.source);
     }
 
-    this.clearLogs(appId);
+    await this.clearLogs(appId);
   }
 
   initialize() {

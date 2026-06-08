@@ -911,7 +911,6 @@
 
 /* Quitar padding y forzar overflow oculto cuando hay pestañas activas,
    eliminando cualquier posibilidad de desplazamiento o rebote en el layout principal */
-.content-area:has(.app-iframe-wrapper),
 .content-area.full-bleed-tab {
   padding: 0 !important;
   overflow: hidden !important;
