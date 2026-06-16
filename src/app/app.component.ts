@@ -506,11 +506,31 @@ export class AppComponent implements OnInit, DoCheck {
   loginConnections: any[] = [];
   requireJwtLogin: boolean = true;
 
-  checkAndPromptJwt(force: boolean = false) {
+  async checkAndPromptJwt(force: boolean = false) {
     console.log("🔍 [System] checkAndPromptJwt llamado. Force:", force, "ActiveConn:", !!this.activeConnection, "JWT Enabled:", this.config.access.enableJwtSession);
     
     if (!this.activeConnection) {
+      try {
+        this.availableConnections = await this.sdcService.getConnections();
+        this.activeConnection =
+          this.availableConnections.find((c) => c.is_connected) || null;
+        
+        if (!this.activeConnection && this.availableConnections.length > 0) {
+          this.activeConnection = this.availableConnections[0];
+          console.log("ℹ️ [System] Usando primer perfil de conexión disponible como fallback:", this.activeConnection.name);
+        }
+      } catch (e) {
+        console.error("❌ [System] Error al cargar conexiones en checkAndPromptJwt:", e);
+      }
+    }
+
+    if (!this.activeConnection) {
       console.warn("⚠️ [System] No hay conexión activa para solicitar JWT.");
+      this.zone.run(() => {
+        this.showControlPanel = true;
+        const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
+        this.snapService.show("Configure una conexión primero", safeEvent as any, "error", "fa-network-wired");
+      });
       return;
     }
 
@@ -519,18 +539,22 @@ export class AppComponent implements OnInit, DoCheck {
     // Si forzamos (clic manual) O si está habilitado y falta el token real
     if (force || (this.config.access.enableJwtSession && !token)) {
       console.log("🔓 [System] ACTIVANDO showLoginModal = true");
-      this.showControlPanel = false; // Cerramos el panel para ver el login claramente
-      this.loginConnections = [];
-      this.requireJwtLogin = true;
-      this.loginIpAddress = this.activeConnection.ip_address || 'localhost';
-      this.loginPort = Number(this.activeConnection.port) || 443;
-      
-      // Forzar ciclo de detección de cambios
-      this.showLoginModal = false;
-      setTimeout(() => {
-        this.showLoginModal = true;
-        console.log("✅ [System] showLoginModal es ahora TRUE");
-      }, 10);
+      this.zone.run(() => {
+        this.showControlPanel = false; // Cerramos el panel para ver el login claramente
+        this.loginConnections = [];
+        this.requireJwtLogin = true;
+        this.loginIpAddress = this.activeConnection.ip_address || 'localhost';
+        this.loginPort = Number(this.activeConnection.port) || 443;
+        
+        // Forzar ciclo de detección de cambios
+        this.showLoginModal = false;
+        setTimeout(() => {
+          this.zone.run(() => {
+            this.showLoginModal = true;
+            console.log("✅ [System] showLoginModal es ahora TRUE");
+          });
+        }, 10);
+      });
     } else {
       // Sincronización silenciosa si ya hay token en storage
       if (token && (!this.activeConnection.jwt || this.activeConnection.jwt !== token)) {

@@ -5,7 +5,7 @@
     [username]="activeConnection?.username || ''"
     (onLogout)="handleExitRequest()"
     (onNavigateRequest)="handleNavigationRequest($event)"
-    (onLoginRequest)="checkAndPromptJwt()">
+    (onLoginRequest)="checkAndPromptJwt(true)">
   </app-sidebar>
 
   <main class="main-stage">
@@ -44,7 +44,7 @@
 
         <!-- Pill JWT pendiente: conectado sin autenticar -->
         <div class="jwt-pending-pill" *ngIf="wsStatus === 'Conectado' && !getJwtToken()"
-          (click)="checkAndPromptJwt()" title="Iniciar sesión para acceder a módulos protegidos">
+          (click)="checkAndPromptJwt(true)" title="Iniciar sesión para acceder a módulos protegidos">
           <i class="fas fa-lock"></i>
           <span>Iniciar Sesión</span>
         </div>
