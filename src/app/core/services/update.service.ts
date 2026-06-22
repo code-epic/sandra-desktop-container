@@ -65,7 +65,11 @@ export class UpdateService {
         }
       }
     } catch (error) {
-      console.error('Update check failed:', error);
+      if (!silent) {
+        console.error('Update check failed:', error);
+      } else {
+        console.warn('Silent update check failed:', error);
+      }
       this.updateState({ checking: false, error: String(error) });
     }
   }
