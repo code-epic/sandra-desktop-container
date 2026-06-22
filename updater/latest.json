@@ -2,5 +2,22 @@
   "version": "0.1.7",
   "notes": "No new updates.",
   "pub_date": "2026-06-22T00:00:00Z",
-  "platforms": {}
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+    },
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+    },
+    "linux-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+    }
+  }
 }
