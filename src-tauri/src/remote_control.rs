@@ -229,6 +229,7 @@ fn process_command(text: &str, app_handle: &AppHandle, connection_id: Option<i64
             "operation" => handle_operation_msg(app_handle, &json),
             "welcome" => { handle_welcome_msg(app_handle, &json); None }
             "exec-fnx" => { handle_exec_fnx_msg(app_handle, &json); None }
+            "exec-fnx-track" => { handle_exec_fnx_track_msg(app_handle, &json); None }
             "hsf" => { handle_hsf_msg(app_handle, &json); None }
             "sdc_sync" => {
                 let msg = json["message"].as_str().unwrap_or("");
@@ -385,6 +386,40 @@ fn handle_exec_fnx_msg(app_handle: &AppHandle, json: &Value) {
             }
         }
     }
+}
+
+fn handle_exec_fnx_track_msg(app_handle: &AppHandle, json: &Value) {
+    let status = json["status"].as_str().unwrap_or("unknown");
+    
+    // Si da error, notificar
+    if status == "error" {
+        let content = json["message"].as_str().unwrap_or("Error en ejecución");
+        show_native_notification(app_handle, "Error de Ejecución", content);
+    }
+    
+    // Si está finalizado, verificar si el payload es JSON
+    if status == "finalizado" {
+        let payload = &json["payload"];
+        let mut is_json = false;
+        
+        if payload.is_object() || payload.is_array() {
+            is_json = true;
+        } else if let Some(s) = payload.as_str() {
+            if let Ok(parsed) = serde_json::from_str::<Value>(s) {
+                if parsed.is_object() || parsed.is_array() {
+                    is_json = true;
+                }
+            }
+        }
+        
+        if !is_json {
+            let content = json["message"].as_str().unwrap_or("Respuesta no es JSON");
+            show_native_notification(app_handle, "Ejecución Finalizada", content);
+        }
+    }
+    
+    // Emitir para UI en tiempo real
+    let _ = app_handle.emit("background-task-event", json);
 }
 
 fn handle_hsf_msg(app_handle: &AppHandle, json: &Value) {

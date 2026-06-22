@@ -102,7 +102,7 @@
       <!-- Tree View -->
       <div class="view-container tree-view" *ngIf="vistaActiva === 'arbol' && !cargando">
         <div class="tree-container">
-          <div *ngFor="let modulo of modulos" class="tree-modulo">
+          <div *ngFor="let modulo of modulosFiltrados; trackBy: trackByModuloNombre" class="tree-modulo">
             <!-- Module Header -->
             <div class="tree-item modulo-item" [class.expanded]="isModuloExpandido(modulo.nombre)"
               (click)="toggleModulo(modulo.nombre)">
@@ -115,7 +115,7 @@
 
             <!-- Submodules -->
             <div class="tree-children" *ngIf="isModuloExpandido(modulo.nombre)">
-              <div *ngFor="let submodulo of modulo.submodulos" class="tree-submodulo">
+              <div *ngFor="let submodulo of modulo.submodulos; trackBy: trackBySubmoduloNombre" class="tree-submodulo">
                 <div class="tree-item submodulo-item"
                   [class.expanded]="isSubmoduloExpandido(modulo.nombre, submodulo.nombre)"
                   (click)="toggleSubmodulo(modulo.nombre, submodulo.nombre); $event.stopPropagation()">
@@ -129,7 +129,7 @@
 
                 <!-- Functionalities -->
                 <div class="tree-children" *ngIf="isSubmoduloExpandido(modulo.nombre, submodulo.nombre)">
-                  <div *ngFor="let func of submodulo.funcionalidades" class="tree-item funcionalidad-item"
+                  <div *ngFor="let func of submodulo.funcionalidades; trackBy: trackByFuncId" class="tree-item funcionalidad-item"
                     (click)="seleccionarFuncionalidad(func); $event.stopPropagation()">
 
                     <div class="func-main-info">
@@ -185,7 +185,7 @@
                 <th width="120">Estado</th>
               </tr>
             </thead>
-            <tbody *ngFor="let grupo of funcionalidadesAgrupadasPorFase">
+            <tbody *ngFor="let grupo of funcionalidadesAgrupadasPorFase; trackBy: trackByFase">
               <!-- Fila de Encabezado de Grupo (Fases) -->
               <tr class="fase-group-header">
                 <td colspan="7">
@@ -197,7 +197,7 @@
                 </td>
               </tr>
 
-              <tr *ngFor="let func of grupo.funcionalidades" (click)="seleccionarFuncionalidad(func)" class="func-row">
+              <tr *ngFor="let func of grupo.funcionalidades; trackBy: trackByFuncId" (click)="seleccionarFuncionalidad(func)" class="func-row">
                 <!-- <td class="id-cell col-id">{{ func.id.split('-')[2] }}</td> -->
                 <td class="col-modulo">
                   <span class="modulo-full">{{ func.modulo }}</span>

@@ -1,25 +1,25 @@
 {
   "sistema": "SSSIFANB",
-  "fecha_generacion": "2026-05-07T15:53:17.293732Z",
-  "total_funcionalidades": 107,
+  "fecha_generacion": "2026-06-18T12:46:16.488862Z",
+  "total_funcionalidades": 149,
   "apps_disponibles": [
-    "App.SDC"
+    "sandra.app.ipsfa"
   ],
   "modulos": [
     {
       "nombre": "BENEFICIARIO",
-      "app_id": "App.SDC",
-      "total_submodulos": 12,
-      "total_funcionalidades": 71,
+      "app_id": "sandra.app.ipsfa",
+      "total_submodulos": 11,
+      "total_funcionalidades": 93,
       "submodulos": [
         {
           "nombre": "Actualizar",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 1,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Actualizar-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Actualizar",
               "campos_existentes": "Actualizar (Beneficiario) Datos Básicos. Consulta con la Cédula: Cédula, Número Cuenta, Nombres, Apellidos, Sexo, Componente, Grado, Estatus, Fecha Ingreso, Tiempo Servicio, Nro. Hijos, Último Ascenso, No ascenso, Estatus Prof., Años Recon., Meses Recon., Días Recon., Fecha de Retiro, Saldo Disp. en Banco.Datos de Asignación de Antigüedad:Comisión de Servicio, Monto Recuperado Activo, Fecha de carga y Descripción.",
@@ -36,12 +36,12 @@
         },
         {
           "nombre": "Anticipos",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 2,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Anticipos-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Anticipos",
               "campos_existentes": "Datos BásicosConsulta por Cédula:Cédula, No Cuenta, Nombres, Apellidos, Sexo, Componente, Grado, Estatus, Fecha de Ingreso, Tiempo Servicio, No Hijos, Ultimo Ascenso, No Ascenso, Estatus de Prof., Años Recon., Meses Recon., Días Recon., Fecha de Retiro.",
@@ -56,7 +56,7 @@
             },
             {
               "id": "BENEFICIARIO-Anticipos-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Anticipos",
               "campos_existentes": "Nuevo Anticipo Garantías, Capital en Banco, Anticipos, Dep. en Banco, M/J Activos, Motivo (combo), Porcentaje, Por Monto.",
@@ -73,12 +73,12 @@
         },
         {
           "nombre": "Consultar",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 7,
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 20,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Consultar-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Consultar",
               "campos_existentes": "Hoja de Vida Panel principal de PACE Datos Basícos Cédula, No. Cuenta, Nombres, Apellidos, Sexo, Componente, Grado, Estatus, Fecha de Ingreso, Tiempo de servicio, Nro. Hijos, Fecha Último Ascenso, No Ascenso, St. Prof., Años recon., Mes recon., Días recon., Fecha de Retiro, Motivo de Paralización.",
@@ -93,7 +93,7 @@
             },
             {
               "id": "BENEFICIARIO-Consultar-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Consultar",
               "campos_existentes": "Asignación de AntigüedadAsignación de Antigüedad, Capital en Banco, Garantías, Días Adicionales, Depositado en Banco, Saldo Disponible, Diferencia A.A., Fecha ult. Depósito, % Aportado, Embargo, Anticipos, Fecha Ú. Anticipo, Comisión de Servicio, Monto Rec. Activo.",
@@ -108,7 +108,7 @@
             },
             {
               "id": "BENEFICIARIO-Consultar-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Consultar",
               "campos_existentes": "Datos SueldosSueldo Base, Sueldo Mensual, Sueldo Integral, Alic. Bono fin, Alic. Bono vaca.Prima Compensación Esp. de Prot. y mov., Prima Descendencia, Prima Productividad, Prima Años Servicio, Prima No Ascenso, Prima Profesionalización y Prima de Estabilidad.",
@@ -123,7 +123,7 @@
             },
             {
               "id": "BENEFICIARIO-Consultar-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Consultar",
               "campos_existentes": "Imprimir Hoja de Vida (PRINT)Asignación de Antigüedad, Datos Sueldos Prima Datos Sueldos, Prima, Movimientos (Anticipos).",
@@ -138,7 +138,7 @@
             },
             {
               "id": "BENEFICIARIO-Consultar-005",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Consultar",
               "campos_existentes": "Pagos por PatriaMontos Cancelados, Fecha de Pago, Beneficiario y Observación.",
@@ -153,7 +153,7 @@
             },
             {
               "id": "BENEFICIARIO-Consultar-006",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Consultar",
               "campos_existentes": "Historial de Sueldos#, Fecha, Sueldo Base, Sueldo Global.",
@@ -168,7 +168,7 @@
             },
             {
               "id": "BENEFICIARIO-Consultar-007",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Consultar",
               "campos_existentes": "Historial de MovimientosSeleccionar Tipo de Movimiento:#, Fecha, Tipo de Movimiento, Monto, Observaciones.Tipo de Movimiento Tenemos un menú despegable de Selección donde tenemos: Intereses dejado de Percibir, Pago Intereses Dejado de Percibir, Deposito AA, interes Semestral y Anticipo.",
@@ -180,17 +180,212 @@
               "fase": "F.I",
               "fecha": "2026-05-07",
               "estado": true
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-008",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Automatizar la carga del archivo de Nómina del Fondo de fideicomiso emitido por el BDV.",
+              "descripcion": "Implementar un proceso automatizado para la carga del archivo de la nómina de fideicomiso emitido por el BDV, asegurando la integridad de los saldos de los beneficiarios.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-009",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Agregar la situación de Reincorporado en el sistema.",
+              "descripcion": "Agregar el estatus de Reincorporado según Resolución del (MPPD) y habilitarlo para que el personal reingresado mantenga los mismos derechos y procesos de cálculo que el personal en servicio activo.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-010",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Agregar la situación de Fallecido en el sistema.",
+              "descripcion": "Para gestionar el finiquito por fallecimiento en el sistema, se debe crear y configurar el estatus \"Finiquito Fallecido\" para separar administrativamente estos casos de los retiros ordinarios y que sean identificables en la base de datos para gestionar reportes.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-011",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Eliminar del Reporte Hoja de Vida (print) los campos correspondientes a Intereses caídos (Total Calculados, Total Cancelados, Total Adeudado, Fecha último Depósito, Embargo).",
+              "descripcion": "Eliminar de la Hoja de Vida (PRINT) los campos que corresponden a pagos por Intereses Caídos (final del cuadro de Asignación de Antigüedad).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-012",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Agregar al Reporte Hoja de Vida (print) los campos correspondientes a los pagos por Nómina Patria: (Monto Cancelado, Beneficiario, Fecha de Pago, Observación).",
+              "descripcion": "Agregar a la Hoja de Vida (print) los campos que corresponden a pagos procesados por Nómina Patria que se reflejan al final de la consulta de Beneficiario.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-013",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Mostrar el sueldo básico y las primas que correspondan según Directiva de sueldo vigente para la fecha.",
+              "descripcion": "Por ej: fecha de retiro: 01-07-2001. El sistema debe seleccionar la Directiva vigente para esa fecha y mostrar en la consulta el sueldo básico y las primas correspondientes.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-014",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Manejo de histórico de Directivas de Sueldo (1990-2026).",
+              "descripcion": "Para realizar las consultas de sueldo se debe manejar el histórico de las Directivas de Sueldo (1990-2026) Remitidas por el MPPD. Registradas en las tablas de (Directiva_Sueldo, Detalle_Directiva, fn_formula, fn_prima).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-015",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Actualización automática de la Prima de Profesionalización cuando se actualice el grado.",
+              "descripcion": "Cuando se modifique el grado de un militar activo según Resolución del (MPPD), el sistema debe actualizar automáticamente la Prima de Profesionalización que corresponda al grado modificado, de acuerdo a la Directiva de sueldos vigente.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-016",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Crear validación en el sistema que evalúe el campo \"Situación\" antes de permitir cualquier modificación de datos.",
+              "descripcion": "Implementar validación para garantizar que solo los militares en situación de Activo puedan tener datos modificables, preservando la integridad de la información de quienes estén en otras condiciones (Paralizado, Retiro, Finiquito, Fallecido, etc.).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-017",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Actualización o cambio de estatus de Finiquito a Activo.",
+              "descripcion": "Las analistas de Fideicomiso realizan la activación del afiliado: Cambian su estatus de Finiquito a Activo. Si el tiempo de servicio no es continuo cambian la Fecha de Ingreso por la Fecha de reincorporado (SEGUNDO Ingreso) que indica el Resuelto. Cargan los años, meses y días reconocidos según Resuelto.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-018",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Ajustar automáticamente el Saldo Disponible en banco a saldo cero (0).",
+              "descripcion": "Cuando se reincorpora un militar se debe ajustar en la consulta de Beneficiario el saldo del campo Saldo Disponible en banco a saldo cero (0).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-019",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Ajustar automáticamente la Diferencia de Asignación de Antigüedad a saldo cero (0).",
+              "descripcion": "Cuando se reincorpora un militar se debe ajustar en la consulta de Beneficiario el saldo de la diferencia de Asignación de Antigüedad a saldo cero (0).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Consultar-020",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Consultar",
+              "campos_existentes": "Permitir múltiples reincorporaciones por beneficiario de forma estándar.",
+              "descripcion": "En los casos en que el afiliado es Reincorporado varias veces según Resuelto, debe aplicarse otro procedimiento manual que permita registrar varios finiquitos y ajustar el monto cancelado por la Diferencia de Asignación de Antigüedad y capital no depositada en Banco.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
             }
           ]
         },
         {
           "nombre": "Cuentas Bancarias",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 1,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Cuentas Bancarias-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Cuentas Bancarias",
               "campos_existentes": "Carga y Actualiza Cuenta BancariaConsulta por Cédula:Cédula, Nombres, Apellidos, Componente, Grado, Número de Cuenta (0102) Banco De Venezuela",
@@ -207,12 +402,12 @@
         },
         {
           "nombre": "Fideicomitente",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 4,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Fideicomitente-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Fideicomitente",
               "campos_existentes": "Generar reportes de conciliación de datos",
@@ -227,7 +422,7 @@
             },
             {
               "id": "BENEFICIARIO-Fideicomitente-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Fideicomitente",
               "campos_existentes": "Validación de entrada, discriminación de registros y salida de resultados.",
@@ -242,7 +437,7 @@
             },
             {
               "id": "BENEFICIARIO-Fideicomitente-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Fideicomitente",
               "campos_existentes": "Validación de actualización, discriminación de registros y salida de resultados.",
@@ -257,7 +452,7 @@
             },
             {
               "id": "BENEFICIARIO-Fideicomitente-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Fideicomitente",
               "campos_existentes": "Validación de entrada y actualiación, discriminación de registros y salida de resultados.",
@@ -274,12 +469,12 @@
         },
         {
           "nombre": "Finiquito",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 13,
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 21,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Finiquito-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Detalles del FiniquitoReversar, Imprimir Hoja de Vida, Cartas Según la Partida en formato PDF.Consulta por Cédula:Acciones (botón), F. creación, Componente, Grado, T. Servicio, Total (bs.), F. Finiquito, Motivo o Concepto, Estatus.",
@@ -294,7 +489,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Registrar FiniquitoQuitar el campo de Causa Muerte.Consulta por Cédula:Datos Básicos:Cédula, No Cuenta, Nombres, Apellidos, Sexo, Componente, Grado, Estatus, Fecha de Ingreso, Tiempo Servicio, No Hijos, Ultimo Ascenso, No Ascenso, Estatus de Prof., Años Recon., Meses Recon., Días Recon., Fecha de Retiro.Datos Finiquito:Motivo Finiquito (combo), Fecha de Retiro, Directiva.Datos de Asignación:A.A. Generada, A.A. Depositada, Anticipos, Días Adicionales, Embargo, Garantías, Comisión Servicio, Monto a Recuperar, A.A. Diferencia, Asig. Otros Datos:Monto por Deuda, Ajuste por Intereses, Cap. Total en Banco, Partida Presupuestaria (combo), Proyecto, Unidad Ejecutora (combo), Monto Recuperado Activo, Notas (Observaciones).",
@@ -309,7 +504,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Crear Módulo para los finiquitos del militar Fallecido.",
@@ -324,7 +519,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Crear combo de selección para las Indemnizaciones.",
@@ -339,7 +534,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-005",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Crear el Motivo de finiquito Fallecido.",
@@ -354,7 +549,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-006",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Crear combo Partida Presupuestaria.",
@@ -369,7 +564,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-007",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Importar Registros de Afiliación.",
@@ -384,7 +579,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-008",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Distribución de Capital y diferencia de Asignación según el orden de suceder establecido en el Código Civil.",
@@ -399,7 +594,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-009",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Agregar Familiares con derecho no afiliados.",
@@ -414,7 +609,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-010",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Generar reporte de Carta a Banco.",
@@ -429,7 +624,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-011",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Generar reportes: Hoja de Vida (Print), Consultoría Jurídica, Carta a Banco, Diferencia de Asignación.",
@@ -444,7 +639,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-012",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Validación de Familiares.",
@@ -459,7 +654,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito-013",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito",
               "campos_existentes": "Cambio de estatus (situaciòn).",
@@ -471,17 +666,137 @@
               "fase": "F.I",
               "fecha": "2026-05-07",
               "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-014",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Generar el movimiento con saldo cero (0) pago de capital en banco y carta a banco para casos sin capital en banco.",
+              "descripcion": "Cuando se efectúa el finiquito de los nuevos que no tienen capital en banco, el sistema debe generar el movimiento de pago de capital en banco y la carta a Banco con saldo en cero (0).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-015",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Corregir error de ejecución de finiquitos no procesados.",
+              "descripcion": "Corregir error en la ejecución de un finiquito, no se ejecuta completo (se actualiza la situación del militar y no generan los movimientos) y se deben reversar manualmente.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-016",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Corregir error de ejecución de los reversos de finiquitos no procesados.",
+              "descripcion": "Corregir error en la ejecución de los reversos de finiquitos no ejecutados completos (se reversa el movimiento y no se actualiza el estatus del militar) y se deben reversar manualmente.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-017",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Ajustar Finiquito con Deuda.",
+              "descripcion": "Cuando el militar posee una deuda, el sistema debe restarla del Monto Disponible en Banco, y la diferencia de la deuda se debe restar de la Asignación de Antigüedad.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-018",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Ejecución de finiquito parcial con Medida Judicial activa.",
+              "descripcion": "Cuando se ejecuta un finiquito parcial con medida judicial activa se debe restar del Monto Disponible en Banco y el monto restante de la diferencia de Asignación de Antigüedad.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-019",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Actualizar combo de motivos de retiro Tiempo de Servicio Cumplido.",
+              "descripcion": "En el Formulario Registrar Finiquito se deben actualizar los Motivos de Finiquito o Descripción del Retiro, este combo solo debe contener los siguientes motivos: Factor Prima de Transporte, Prima de Transporte, Factor Prima de Productividad, Prima de Productividad, Estatus no Ascenso, Prima de no Ascenso.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-020",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Aplicar las reconversiones monetarias de 2018 y 2021 con su denominación.",
+              "descripcion": "Corregir las unidades monetarias según las respectivas reconversiones de fecha 01SEP2018 y 01OCT2021. Así como también reflejar la denominación de la moneda.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Finiquito-021",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Finiquito",
+              "campos_existentes": "Incluir el Componente militar en la Carta de Finiquito.",
+              "descripcion": "Incluir el componente al cual pertenece el Profesional Militar en la Carta de Finiquito.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
             }
           ]
         },
         {
           "nombre": "Finiquito Fallecido / Indemnización",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 21,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Crear Sub-Módulo para las Indemnizaciones de los finiquitos del militar Fallecido.",
@@ -496,7 +811,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Crear combo de selección para las Indemnizaciones.",
@@ -511,7 +826,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Automatizar el càlculo de las Indemnizaciones para el fallecimiento de los militares Profesionales Activos.",
@@ -526,7 +841,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Distribución de Capital y diferencia de Asignación de Antigüedad, según artículo N° 43 de la LOSSFANB para los militares Profesionales Activos.",
@@ -541,7 +856,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-005",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Conexiòn con el Sistema de Afiliación/Pensión.",
@@ -556,7 +871,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-006",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Automatizar el càlculo de las Indemnizaciones para los Cadetes, Alumnos y Tropa Alistada.",
@@ -571,7 +886,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-007",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Distribución de Capital y diferencia de Asignación de Antigüedad, según el orden de suceder establecido en el Código Civil para Cadetes, Alumnos y Tropa Alistada.",
@@ -586,7 +901,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-008",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Automatizar el càlculo de las Indemnizaciones para los Oficiales o Tropa Profesional de Reserva Movilizada.",
@@ -601,7 +916,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-009",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Distribución de Capital y diferencia de Asignación de Antigüedad, según el orden de suceder establecido en el Código Civil para Oficial o Tropa Profesional de Reserva Movilizada.",
@@ -616,7 +931,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-010",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Automatizar el càlculo de las Indemnizaciones para la Milicia Movilizada.",
@@ -631,7 +946,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-011",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Distribución de Capital y diferencia de Asignación de Antigüedad, según el orden de suceder establecido en el Código Civil para la Milicia Movilizada.",
@@ -646,7 +961,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-012",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Conexiòn con el Sistema de Afiliación.",
@@ -661,7 +976,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-013",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Conexiòn con el Sistema de Afiliación.",
@@ -676,7 +991,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-014",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Crear combo Partida Presupuestaria.",
@@ -691,7 +1006,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-015",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Agregar Familiares con derecho no afiliados.",
@@ -706,7 +1021,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-016",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Crear proceso para cancelar en fechas diferentes a cada Beneficiario.",
@@ -721,7 +1036,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-017",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Crear histórico de pagos.",
@@ -736,7 +1051,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-018",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Crear alertas para evitar duplicidad de pago.",
@@ -751,7 +1066,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-019",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Generar reporte de Carta a Banco.",
@@ -766,7 +1081,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-020",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Generar reportes: Hoja de Vida (Print), Consultoría Jurídica, Carta a Banco, Diferencia de Asignación.",
@@ -781,7 +1096,7 @@
             },
             {
               "id": "BENEFICIARIO-Finiquito Fallecido / Indemnización-021",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Finiquito Fallecido / Indemnización",
               "campos_existentes": "Validación de Familiares.",
@@ -798,12 +1113,12 @@
         },
         {
           "nombre": "Medidas Judiciales",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 2,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Medidas Judiciales-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Medidas Judiciales",
               "campos_existentes": "Datos BásicosCédula, No. Cuenta, Nombres, Apellidos, Sexo, Componente, Grado, Estatus, Fecha de Ingreso, Tiempo de servicio, Nro. Hijos, Fecha Último Ascenso, No Ascenso, St. Prof., Años recon., Mes recon., Días recon.Retenciones: Porcentaje %, Unidad Tributaria, Cant. Mensualidades, Sueldo Mensual, Botón Calcular, Monto Total. Forma de Pago (combo). Datos Jurídicos:Institución, Descripción Institución,Autoridad, Cargo, Estado (combo), Ciudad (combo), Municipio (combo). Datos Beneficiarios:Cédula Beneficiario, Nombre Benef., Parentesco (combo), Cédula Autorizado y Nombre Autorizado.",
@@ -818,7 +1133,7 @@
             },
             {
               "id": "BENEFICIARIO-Medidas Judiciales-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Medidas Judiciales",
               "campos_existentes": "Imprime detalle de la Medida. Acciones (botón), ver Detalles, inactivar e imprimirTipo, Status, Fecha, Oficio, Expediente, Cédula, Beneficiario, Estado.",
@@ -835,12 +1150,12 @@
         },
         {
           "nombre": "Movimientos",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 1,
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 4,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Movimientos-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Movimientos",
               "campos_existentes": "Relación de SueldoConsultar MovimientoComponente (combo), Fecha de Inicio, Fecha Fin.Botones:Consultar.Genera Carta a Finanzas.Imprime Reporte.",
@@ -852,17 +1167,62 @@
               "fase": "F.I",
               "fecha": "2026-05-07",
               "estado": true
+            },
+            {
+              "id": "BENEFICIARIO-Movimientos-002",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Movimientos",
+              "campos_existentes": "Renombrar Consultar Movimiento a \"Reporte de Anticipos y Finiquitos\".",
+              "descripcion": "Cambiar el nombre del submenú Consultar Movimiento ya que en este solo se consultan e imprimen los anticipos otorgados por un periodo de fecha para enviar a la Gerencia de Finanzas.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Movimientos-003",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Movimientos",
+              "campos_existentes": "Generar reporte por componente de los finiquitos procesados por un periodo de fecha.",
+              "descripcion": "Realizar un proceso que genere un reporte con los finiquitos por componente y por un periodo de fecha. Igual al proceso de Anticipos.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "BENEFICIARIO-Movimientos-004",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "BENEFICIARIO",
+              "submodulo": "Movimientos",
+              "campos_existentes": "Generar carta de los finiquitos procesados por un periodo de fecha dirigida a la Gerencia de Finanzas.",
+              "descripcion": "Este proceso de finiquito debe generar la carta dirigida a la Gerencia de Finanzas. Igual al proceso de Anticipos.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
             }
           ]
         },
         {
           "nombre": "Reincorporados",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 5,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Reincorporados-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Reincorporados",
               "campos_existentes": "Implementar estatus específico para REINCORPORADO.",
@@ -877,7 +1237,7 @@
             },
             {
               "id": "BENEFICIARIO-Reincorporados-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Reincorporados",
               "campos_existentes": "Actualización o cambio de estatus de Finiquito a Activo.",
@@ -892,7 +1252,7 @@
             },
             {
               "id": "BENEFICIARIO-Reincorporados-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Reincorporados",
               "campos_existentes": "Ajustar automaticamente el Saldo Disponible en banco a saldo cero (0).",
@@ -907,7 +1267,7 @@
             },
             {
               "id": "BENEFICIARIO-Reincorporados-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Reincorporados",
               "campos_existentes": "Ajustar automaticamente la Diferencia de Asignación de Antiguedad a saldo cero(0).",
@@ -922,7 +1282,7 @@
             },
             {
               "id": "BENEFICIARIO-Reincorporados-005",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Reincorporados",
               "campos_existentes": "Permitir múltiples reincorporaciones por beneficiario de forma estándar.",
@@ -938,50 +1298,13 @@
           ]
         },
         {
-          "nombre": "Reporte",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 2,
-          "funcionalidades": [
-            {
-              "id": "BENEFICIARIO-Reporte-001",
-              "app_id": "App.SDC",
-              "modulo": "BENEFICIARIO",
-              "submodulo": "Reporte",
-              "campos_existentes": "Reporte de BeneficiariosLista de BeneficiariosConsulta por Cédula, por Situación (Paralizar, Desparalizar, Retirar, Activar,Reincorporar), Nombres y Apellidos, Componentes y Grados.Combos Para Seleccionar Tipo de Reporte:Cédula, situación (combo), Nombres y Apellidos, Componente (combo), Grado (combo), Fecha de Ingreso (desde - hasta) promoción. Consulta Al Afiliado:Acciones (botón), Cédula, Grado, Componente, Beneficiario, Cuenta, Asig. Antg., Fecha de Ingreso, Situación.",
-              "descripcion": "Permite consultar los datos básicos de un beneficiario, dependiendo de la situación que seleccione.",
-              "dev": "X",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": true
-            },
-            {
-              "id": "BENEFICIARIO-Reporte-002",
-              "app_id": "App.SDC",
-              "modulo": "BENEFICIARIO",
-              "submodulo": "Reporte",
-              "campos_existentes": "Imprimir Cédula, Nombres y Apellidos, Fecha de Ingreso.",
-              "descripcion": "Nos permite imprimir un reporte con los datos basicos del militar",
-              "dev": "X",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": true
-            }
-          ]
-        },
-        {
           "nombre": "Simulador",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 12,
           "funcionalidades": [
             {
               "id": "BENEFICIARIO-Simulador-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Ingresar Fecha de Calculo",
@@ -996,7 +1319,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Ingresar Componente",
@@ -1011,7 +1334,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Ingresar Grado",
@@ -1026,7 +1349,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Ingresar Fecha de Ingreso",
@@ -1041,7 +1364,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-005",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Ingresar Nùmero de Hijos",
@@ -1056,7 +1379,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-006",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Ingresar Fecha de Ultimo Ascenso",
@@ -1071,7 +1394,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-007",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Validar Sueldo Bàsico.",
@@ -1086,7 +1409,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-008",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Calcular Primas.",
@@ -1101,7 +1424,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-009",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Calcular Sueldo Mensual.",
@@ -1116,7 +1439,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-010",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Calcular Alicuotas.",
@@ -1131,7 +1454,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-011",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Calcular Sueldo Integral",
@@ -1146,7 +1469,7 @@
             },
             {
               "id": "BENEFICIARIO-Simulador-012",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "BENEFICIARIO",
               "submodulo": "Simulador",
               "campos_existentes": "Calcular Asignaciòn de Antigüedad.",
@@ -1165,18 +1488,18 @@
     },
     {
       "nombre": "CONFIGURACION",
-      "app_id": "App.SDC",
-      "total_submodulos": 1,
-      "total_funcionalidades": 7,
+      "app_id": "sandra.app.ipsfa",
+      "total_submodulos": 4,
+      "total_funcionalidades": 20,
       "submodulos": [
         {
           "nombre": "Directiva de Sueldo",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 7,
           "funcionalidades": [
             {
               "id": "CONFIGURACION-Directiva de Sueldo-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "CONFIGURACION",
               "submodulo": "Directiva de Sueldo",
               "campos_existentes": "Crear registro de nueva directiva sueldo.",
@@ -1191,7 +1514,7 @@
             },
             {
               "id": "CONFIGURACION-Directiva de Sueldo-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "CONFIGURACION",
               "submodulo": "Directiva de Sueldo",
               "campos_existentes": "Crear un registro con el detalle de sueldo por cada grado.",
@@ -1206,7 +1529,7 @@
             },
             {
               "id": "CONFIGURACION-Directiva de Sueldo-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "CONFIGURACION",
               "submodulo": "Directiva de Sueldo",
               "campos_existentes": "Registrar las nuevas primas.",
@@ -1221,7 +1544,7 @@
             },
             {
               "id": "CONFIGURACION-Directiva de Sueldo-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "CONFIGURACION",
               "submodulo": "Directiva de Sueldo",
               "campos_existentes": "Establecer relación entre las primas y la nueva directiva.",
@@ -1236,7 +1559,7 @@
             },
             {
               "id": "CONFIGURACION-Directiva de Sueldo-005",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "CONFIGURACION",
               "submodulo": "Directiva de Sueldo",
               "campos_existentes": "Crear las fórmulas para las primas nuevas.",
@@ -1251,7 +1574,7 @@
             },
             {
               "id": "CONFIGURACION-Directiva de Sueldo-006",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "CONFIGURACION",
               "submodulo": "Directiva de Sueldo",
               "campos_existentes": "Vincular las nuevas formulas con la nueva directiva.",
@@ -1266,11 +1589,227 @@
             },
             {
               "id": "CONFIGURACION-Directiva de Sueldo-007",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "CONFIGURACION",
               "submodulo": "Directiva de Sueldo",
               "campos_existentes": "Crear proceso automático para modificar la Prima de Profesionalización del militar Activo.",
               "descripcion": "Si la directiva trae cambio de los porcentajes de la Prima de Profesionalización se debe crear un proceso automático para actualizar en la tabla Beneficiario a cada militar Activo el porcentaje de acuerdo al grado como indica la directiva nueva.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": false
+            }
+          ]
+        },
+        {
+          "nombre": "Cálculo",
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 11,
+          "funcionalidades": [
+            {
+              "id": "PROCESOS EN LOTE-Cálculo-001",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Cálculos (Aporte de Capital)Aporte de CapitalFecha, Directiva (combo), Situación (combo), Componentes (combo), Grados (combo), por Fecha Desde - Hasta (promoción).Acciones:Salir de Aportes, Preparar Índices.Pendientes por procesar Genera Registros de Log.:Fecha y Hora del Servidor.Tiempo Empleado.Acciones:Salir de Aportes, Generar Calculos de Aportes",
+              "descripcion": "Nos permite realizar los calculos de aporte a capital, introduciendo los parametros claves.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": false
+            },
+            {
+              "id": "PROCESOS EN LOTE-Cálculo-002",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Genera Cálculos de aporte, descarga Base de Cálculo en formato csv.Genera Base de Cálculo.Descarga Archivo Formt. CSV.Registros de Log.:Fecha y Hora del Servidor.Tiempo Empleado.Peso.",
+              "descripcion": "Cálculo de los días adicionales, Asignación de Antigüedad y garantías del personal militar de la FANB.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": false
+            },
+            {
+              "id": "PROCESOS EN LOTE-Cálculo-003",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Proceso Pendiente por ProcesarGenerar (botón), Llave del Archivo, Registros, Fecha, Garantías, Días Adic., Dif. Asignación A.",
+              "descripcion": "",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": false
+            },
+            {
+              "id": "PROCESOS EN LOTE-Cálculo-004",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Generar ArchivoMotivo (combo), Garantías, Días, Dif. A., Porcentaje (100% y menor a 100%).Descarga Segunda Base de Cálculo según Concepto en formato CSV.Ejecuta la Distribución en la tabla Movimiento.Descarga Archivos:Apertura, Aporte, Retiro.txt.",
+              "descripcion": "Permite culminar el calculo para generar la distribucion del pago enviado por el estado para la poblacion",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": false
+            },
+            {
+              "id": "CONFIGURACION-Cálculo-005",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Validar que el porcentaje de la distribución de aportes no exceda el 100%.",
+              "descripcion": "Cuando se genera el cálculo el sistema permite colocar un porcentaje mayor al 100% y no da mensaje de error, pero la distribución la realiza al 100%.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "CONFIGURACION-Cálculo-006",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Ajustar archivos de pago (Apertura, Aporte y Retiro.txt).",
+              "descripcion": "Se deben ajustar los archivos de pagos: Apertura, Aporte y Retiro.txt, de acuerdo al proceso y los formatos de Registro.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "CONFIGURACION-Cálculo-007",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Corregir la lógica de validación en los archivos de pago para diferenciar la categorización de Nuevos y antiguos Fideicomitentes tras reconversión.",
+              "descripcion": "Como Consecuencia de la Reconversión Monetaria, los históricos de aportes de capital de un grupo de militares se reexpresaron en cero (0). El sistema actual interpreta erróneamente esta ausencia de saldo como un \"Nuevo Ingreso\".",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "CONFIGURACION-Cálculo-008",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Ajustar en las bases de cálculo las primas que correspondan según Directiva Vigente.",
+              "descripcion": "En las Bases de Cálculo de los procesos de pago se deben eliminar las columnas de las Primas de Transporte, de Productividad y No ascenso. Ajustar a la Directiva de Sueldo vigente.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "CONFIGURACION-Cálculo-009",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Crear función para registrar rechazos.",
+              "descripcion": "Agregar una función para Registrar los Rechazos de los procesos en lote una vez ejecutados en banco.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "CONFIGURACION-Cálculo-010",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Crear función para Activar e inactivar movimientos.",
+              "descripcion": "Agregar una función que permita Inactivar-Activar movimientos de Cálculo que no se haya ejecutado el pago en Banco.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "CONFIGURACION-Cálculo-011",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Cálculo",
+              "campos_existentes": "Crear función para Inactivar un Proceso de Cálculo en Lote.",
+              "descripcion": "Agregar una función que permita Inactivar un Proceso de Cálculo en Lote que no se haya ejecutado el pago en Banco.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            }
+          ]
+        },
+        {
+          "nombre": "Directivas",
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 1,
+          "funcionalidades": [
+            {
+              "id": "PROCESOS EN LOTE-Directivas-001",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Directivas",
+              "campos_existentes": "Consulta para cada Directiva el sueldo Básico por grados y antigüedad.Imprime y actualiza por grado.Selecciona Directiva (combo):Consulta la Directiva Seleccionada:Fecha de Inicio, Fecha de Vigencia, ID, Grado, Antigüedad, Sueldo Base, U.T.Imprimir (botón):Grado, Antigüedad, U.T., Monto Sueldo.Actualiza el Sueldo.",
+              "descripcion": "Realiza la consulta de una Directiva y refleja los detalles.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": false
+            }
+          ]
+        },
+        {
+          "nombre": "Tasas BCV",
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 1,
+          "funcionalidades": [
+            {
+              "id": "PROCESOS EN LOTE-Tasas BCV-001",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "CONFIGURACION",
+              "submodulo": "Tasas BCV",
+              "campos_existentes": "Histórico, lista las tasas BCV por fecha.Botón Tasa del Banco Central de Venezuela: Agregar, Monto, Fecha, Lista Todas las Tasas:#, Interés, Fecha, F. Creación.",
+              "descripcion": "Nos muestra un historial de los Intereses.",
               "dev": "-",
               "qa": "-",
               "pro": "-",
@@ -1285,18 +1824,18 @@
     },
     {
       "nombre": "ORDENES DE PAGO",
-      "app_id": "App.SDC",
+      "app_id": "sandra.app.ipsfa",
       "total_submodulos": 2,
-      "total_funcionalidades": 2,
+      "total_funcionalidades": 3,
       "submodulos": [
         {
           "nombre": "Ejecutadas",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 1,
           "funcionalidades": [
             {
               "id": "ORDENES DE PAGO-Ejecutadas-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "ORDENES DE PAGO",
               "submodulo": "Ejecutadas",
               "campos_existentes": "Consulta Ordenes de Pago Ejecutadas.Reversa Ordenes de Pago Ejecutadas.Consulta por Cédula:Acciones (botón) Reversar, Cédula, Beneficiario, Fecha, Monto (bs), Motivo.",
@@ -1313,12 +1852,12 @@
         },
         {
           "nombre": "Pendiente",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 1,
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 2,
           "funcionalidades": [
             {
               "id": "ORDENES DE PAGO-Pendiente-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "ORDENES DE PAGO",
               "submodulo": "Pendiente",
               "campos_existentes": "Ordenes de PagoEjecuta Orden de Pago PendienteConsulta por Cédula, (Busqueda)Acciones (botón) Reversar, Cédula, Beneficiario, Fecha, Monto (bs), Motivo.",
@@ -1330,6 +1869,21 @@
               "fase": "F.I",
               "fecha": "2026-05-07",
               "estado": false
+            },
+            {
+              "id": "ORDENES DE PAGO-Pendiente-002",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "ORDENES DE PAGO",
+              "submodulo": "Pendiente",
+              "campos_existentes": "Corregir error de ejecución de anticipos no procesados.",
+              "descripcion": "Corregir error en la ejecución de un Anticipo, no se ejecuta completo (se carga el movimiento y no se generan la Orden de Pago) y se deben reversar manualmente.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
             }
           ]
         }
@@ -1337,18 +1891,18 @@
     },
     {
       "nombre": "PATRIA",
-      "app_id": "App.SDC",
+      "app_id": "sandra.app.ipsfa",
       "total_submodulos": 1,
       "total_funcionalidades": 17,
       "submodulos": [
         {
           "nombre": "Nomina Patria",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 17,
           "funcionalidades": [
             {
               "id": "PATRIA-Nomina Patria-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Automatizar la carga del archivo de Nómina del Fondo de fideicomiso emitido por el BDV.",
@@ -1363,7 +1917,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Crear un proceso para generar el Archivo plano para el pago de la diferencia de Asignaciòn de Antigüedad.",
@@ -1378,7 +1932,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-003",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Seleccionar fecha de Proceso.",
@@ -1393,7 +1947,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-004",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Seleccionar fecha de Finiquito.",
@@ -1408,7 +1962,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-005",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Seleccionar monto del finiquito de la Diferencia de Asignación de Antigüedad.",
@@ -1423,7 +1977,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-006",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Excluir montos negativos.",
@@ -1438,7 +1992,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-007",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Excluir los movimientos que tengan reversos.",
@@ -1453,7 +2007,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-008",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Excluir montos con caducidad.",
@@ -1468,7 +2022,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-009",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Registrar monto del finiquito parcial cuando el finiquito es con Medida Judicial Activa.",
@@ -1483,7 +2037,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-010",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Incluir distribución de familiares en casos de finiquito por fallecimiento.",
@@ -1498,7 +2052,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-011",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Incluir campo para carga manual de cuenta bancaria si no posee registro en Banco de Venezuela.",
@@ -1513,7 +2067,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-012",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Generar archivo .txt (formato Patria).",
@@ -1528,7 +2082,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-013",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Generar archivo de la nomina Patria en Excel.",
@@ -1543,7 +2097,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-014",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Incluir mecanismo de alerta para detectar y reportar pagos ya ejecutados anteriormente.",
@@ -1558,7 +2112,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-015",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Generar reportes de registros en negativos, sin cuenta y caducidad (SAIME).",
@@ -1573,7 +2127,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-016",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Actualizar en lote el pago de la nomina.",
@@ -1588,7 +2142,7 @@
             },
             {
               "id": "PATRIA-Nomina Patria-017",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "PATRIA",
               "submodulo": "Nomina Patria",
               "campos_existentes": "Mostrar información de pago Patria en la sección correspondiente de Consulta de Beneficiario.",
@@ -1606,138 +2160,19 @@
       ]
     },
     {
-      "nombre": "PROCESOS EN LOTE",
-      "app_id": "App.SDC",
-      "total_submodulos": 3,
-      "total_funcionalidades": 6,
-      "submodulos": [
-        {
-          "nombre": "Cálculo",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 4,
-          "funcionalidades": [
-            {
-              "id": "PROCESOS EN LOTE-Cálculo-001",
-              "app_id": "App.SDC",
-              "modulo": "PROCESOS EN LOTE",
-              "submodulo": "Cálculo",
-              "campos_existentes": "Cálculos (Aporte de Capital)Aporte de CapitalFecha, Directiva (combo), Situación (combo), Componentes (combo), Grados (combo), por Fecha Desde - Hasta (promoción).Acciones:Salir de Aportes, Preparar Índices.Pendientes por procesar Genera Registros de Log.:Fecha y Hora del Servidor.Tiempo Empleado.Acciones:Salir de Aportes, Generar Calculos de Aportes",
-              "descripcion": "Nos permite realizar los calculos de aporte a capital, introduciendo los parametros claves.",
-              "dev": "-",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": false
-            },
-            {
-              "id": "PROCESOS EN LOTE-Cálculo-002",
-              "app_id": "App.SDC",
-              "modulo": "PROCESOS EN LOTE",
-              "submodulo": "Cálculo",
-              "campos_existentes": "Genera Cálculos de aporte, descarga Base de Cálculo en formato csv.Genera Base de Cálculo.Descarga Archivo Formt. CSV.Registros de Log.:Fecha y Hora del Servidor.Tiempo Empleado.Peso.",
-              "descripcion": "Cálculo de los días adicionales, Asignación de Antigüedad y garantías del personal militar de la FANB.",
-              "dev": "-",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": false
-            },
-            {
-              "id": "PROCESOS EN LOTE-Cálculo-003",
-              "app_id": "App.SDC",
-              "modulo": "PROCESOS EN LOTE",
-              "submodulo": "Cálculo",
-              "campos_existentes": "Proceso Pendiente por ProcesarGenerar (botón), Llave del Archivo, Registros, Fecha, Garantías, Días Adic., Dif. Asignación A.",
-              "descripcion": "",
-              "dev": "-",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": false
-            },
-            {
-              "id": "PROCESOS EN LOTE-Cálculo-004",
-              "app_id": "App.SDC",
-              "modulo": "PROCESOS EN LOTE",
-              "submodulo": "Cálculo",
-              "campos_existentes": "Generar ArchivoMotivo (combo), Garantías, Días, Dif. A., Porcentaje (100% y menor a 100%).Descarga Segunda Base de Cálculo según Concepto en formato CSV.Ejecuta la Distribución en la tabla Movimiento.Descarga Archivos:Apertura, Aporte, Retiro.txt.",
-              "descripcion": "Permite culminar el calculo para generar la distribucion del pago enviado por el estado para la poblacion",
-              "dev": "-",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": false
-            }
-          ]
-        },
-        {
-          "nombre": "Directivas",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 1,
-          "funcionalidades": [
-            {
-              "id": "PROCESOS EN LOTE-Directivas-001",
-              "app_id": "App.SDC",
-              "modulo": "PROCESOS EN LOTE",
-              "submodulo": "Directivas",
-              "campos_existentes": "Consulta para cada Directiva el sueldo Básico por grados y antigüedad.Imprime y actualiza por grado.Selecciona Directiva (combo):Consulta la Directiva Seleccionada:Fecha de Inicio, Fecha de Vigencia, ID, Grado, Antigüedad, Sueldo Base, U.T.Imprimir (botón):Grado, Antigüedad, U.T., Monto Sueldo.Actualiza el Sueldo.",
-              "descripcion": "Realiza la consulta de una Directiva y refleja los detalles.",
-              "dev": "-",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": false
-            }
-          ]
-        },
-        {
-          "nombre": "Tasas BCV",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 1,
-          "funcionalidades": [
-            {
-              "id": "PROCESOS EN LOTE-Tasas BCV-001",
-              "app_id": "App.SDC",
-              "modulo": "PROCESOS EN LOTE",
-              "submodulo": "Tasas BCV",
-              "campos_existentes": "Histórico, lista las tasas BCV por fecha.Botón Tasa del Banco Central de Venezuela: Agregar, Monto, Fecha, Lista Todas las Tasas:#, Interés, Fecha, F. Creación.",
-              "descripcion": "Nos muestra un historial de los Intereses.",
-              "dev": "-",
-              "qa": "-",
-              "pro": "-",
-              "situacion": "D",
-              "fase": "F.I",
-              "fecha": "2026-05-07",
-              "estado": false
-            }
-          ]
-        }
-      ]
-    },
-    {
       "nombre": "SEGURIDAD",
-      "app_id": "App.SDC",
-      "total_submodulos": 2,
-      "total_funcionalidades": 4,
+      "app_id": "sandra.app.ipsfa",
+      "total_submodulos": 1,
+      "total_funcionalidades": 3,
       "submodulos": [
         {
           "nombre": "Administrar Usuarios",
-          "app_id": "App.SDC",
-          "total_funcionalidades": 2,
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 3,
           "funcionalidades": [
             {
               "id": "SEGURIDAD-Administrar Usuarios-001",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "SEGURIDAD",
               "submodulo": "Administrar Usuarios",
               "campos_existentes": "Consulta de Usuarios Activos, Agregar y actualizar datos de cada usuario. Crear clave de acceso para cada usuario.Administrador:Usuarios Cant.Ultima Conexión.Personal Activo.Usuarios:Lista de Usuarios.Registrar Usuario:Nombre Completo, Seudónimo, Teléfono, Correo Electrónico, Clave, Repetir Clave, Fecha de ult. Modificación, Estatus (combo), Observación.",
@@ -1752,7 +2187,7 @@
             },
             {
               "id": "SEGURIDAD-Administrar Usuarios-002",
-              "app_id": "App.SDC",
+              "app_id": "sandra.app.ipsfa",
               "modulo": "SEGURIDAD",
               "submodulo": "Administrar Usuarios",
               "campos_existentes": "Configuración de MenúAsigna y Elimina Permisos y Privilegios.Se selecciona un Usuario:Muestra los permisos Asignados.Usuarios (combo), Menú (combo), Sub_Menú (combo), Perfil (combo), Privilegios (Accion).",
@@ -1764,18 +2199,153 @@
               "fase": "F.I",
               "fecha": "2026-05-07",
               "estado": false
+            },
+            {
+              "id": "SEGURIDAD-Administrar Usuarios-003",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "SEGURIDAD",
+              "submodulo": "Administrar Usuarios",
+              "campos_existentes": "Completar gestión de permisos (Menú, Perfil y Privilegios).",
+              "descripcion": "Las funciones de administración son incompletas, impidiendo la asignación y revocación total de permisos en Menús, Submenús, Perfiles y Privilegios. Se requiere habilitar el control absoluto de estas acciones desde la aplicación.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "REPORTES",
+      "app_id": "sandra.app.ipsfa",
+      "total_submodulos": 2,
+      "total_funcionalidades": 9,
+      "submodulos": [
+        {
+          "nombre": "Reporte",
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 7,
+          "funcionalidades": [
+            {
+              "id": "BENEFICIARIO-Reporte-001",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
+              "submodulo": "Reporte",
+              "campos_existentes": "Reporte de BeneficiariosLista de BeneficiariosConsulta por Cédula, por Situación (Paralizar, Desparalizar, Retirar, Activar,Reincorporar), Nombres y Apellidos, Componentes y Grados.Combos Para Seleccionar Tipo de Reporte:Cédula, situación (combo), Nombres y Apellidos, Componente (combo), Grado (combo), Fecha de Ingreso (desde - hasta) promoción. Consulta Al Afiliado:Acciones (botón), Cédula, Grado, Componente, Beneficiario, Cuenta, Asig. Antg., Fecha de Ingreso, Situación.",
+              "descripcion": "Permite consultar los datos básicos de un beneficiario, dependiendo de la situación que seleccione.",
+              "dev": "X",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": true
+            },
+            {
+              "id": "BENEFICIARIO-Reporte-002",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
+              "submodulo": "Reporte",
+              "campos_existentes": "Imprimir Cédula, Nombres y Apellidos, Fecha de Ingreso.",
+              "descripcion": "Nos permite imprimir un reporte con los datos basicos del militar",
+              "dev": "X",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-05-07",
+              "estado": true
+            },
+            {
+              "id": "REPORTES-Reporte-003",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
+              "submodulo": "Reporte",
+              "campos_existentes": "Agregar al Reporte de Auditoría los Datos Básicos.",
+              "descripcion": "Agregar al Reporte de Auditoría los Datos Básicos (Tiempo de Servicio, Fecha de Retiro, Status_id, Número Cuenta, St. Profesionalización, Fecha Reincorporación, Motivo Paralización).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "REPORTES-Reporte-004",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
+              "submodulo": "Reporte",
+              "campos_existentes": "Eliminar del Reporte de Auditoría el campo \"St. No Ascenso\".",
+              "descripcion": "Eliminar del Reporte de Auditoría el campo \"St. No Ascenso\".",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "REPORTES-Reporte-005",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
+              "submodulo": "Reporte",
+              "campos_existentes": "Generar un reporte de militares finiquitados por lapso de tiempo.",
+              "descripcion": "El sistema debe permitir generar reportes por los diferentes estatus del militar, en un lapso de tiempo específico (fecha desde - fecha hasta).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "REPORTES-Reporte-006",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
+              "submodulo": "Reporte",
+              "campos_existentes": "Incluir campos adicionales al reporte: Grado, F_ult_ascenso y Componente.",
+              "descripcion": "Agregar a los reportes los campos del Grado, F_ult_ascenso y Componente.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "REPORTES-Reporte-007",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
+              "submodulo": "Reporte",
+              "campos_existentes": "Exportación del reporte directamente a Excel.",
+              "descripcion": "El analista solicita exportar el reporte en una hoja de Excel.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
             }
           ]
         },
         {
           "nombre": "Reporte de Auditoria",
-          "app_id": "App.SDC",
+          "app_id": "sandra.app.ipsfa",
           "total_funcionalidades": 2,
           "funcionalidades": [
             {
               "id": "SEGURIDAD-Reporte de Auditoria-001",
-              "app_id": "App.SDC",
-              "modulo": "SEGURIDAD",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
               "submodulo": "Reporte de Auditoria",
               "campos_existentes": "Ordenes de Pago (Situacion Actual) Consulta por Cédula Situación Actual Nombre, Componente, Grado, Fecha de Ingreso, St. No Ascenso, Hijos, F. Ult. Ascenso, Años Recon., Meses Recon., Días Recon., F. Ing. Fide., Usuario C., Fecha C., Usuario M., Fecha M.",
               "descripcion": "Permite consultar por cedula y seleccionar beneficiario.",
@@ -1789,8 +2359,8 @@
             },
             {
               "id": "SEGURIDAD-Reporte de Auditoria-002",
-              "app_id": "App.SDC",
-              "modulo": "SEGURIDAD",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "REPORTES",
               "submodulo": "Reporte de Auditoria",
               "campos_existentes": "Historial del militar Nombre, Componente, Grado, Fecha de Ingreso, St. No Ascenso, Hijos, F. Ult. Ascenso, Años Recon., Meses Recon., Días Recon., F. Ing. Fide., Usuario C., Fecha C., Usuario M., Fecha M.",
               "descripcion": "Muestra el Historial Beneficiario, para verificar las actualizaciones y modificaciones de datos realizadas al militar.",
@@ -1803,6 +2373,87 @@
               "estado": true
             }
           ]
+        }
+      ]
+    },
+    {
+      "nombre": "OPERACIONES",
+      "app_id": "sandra.app.ipsfa",
+      "total_submodulos": 2,
+      "total_funcionalidades": 4,
+      "submodulos": [
+        {
+          "nombre": "Migración",
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 4,
+          "funcionalidades": [
+            {
+              "id": "OPERACIONES-Migración-001",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "OPERACIONES",
+              "submodulo": "Migración",
+              "campos_existentes": "Ajustar y Redondear los montos acumulados de los movimientos para que coincidan con la Nómina del Banco de Venezuela.",
+              "descripcion": "Realizar un ajuste o normalización de saldos en los montos acumulados de los movimientos ya que no cuadran por diferencia de decimales con la Nómina del Fondo de Fideicomiso emitida por el BDV.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "OPERACIONES-Migración-002",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "OPERACIONES",
+              "submodulo": "Migración",
+              "campos_existentes": "Crear y automatizar una tabla para el cambio de Grados y Autoridades de la Gerencia BYSS.",
+              "descripcion": "Automatizar y configurar los cambios de Grado y Nombres de las Autoridades de la Gerencia de Bienestar y Seguridad Social para que se actualicen automáticamente en los reportes.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "OPERACIONES-Migración-003",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "OPERACIONES",
+              "submodulo": "Migración",
+              "campos_existentes": "Optimización de la base de datos de PACE e integración de tablas.",
+              "descripcion": "Optimizar la base de Datos de PACE ya que existe duplicidad en algunas tablas como las Primas Directivas, que se encuentran en ambos esquemas (public, space).",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            },
+            {
+              "id": "OPERACIONES-Migración-004",
+              "app_id": "sandra.app.ipsfa",
+              "modulo": "OPERACIONES",
+              "submodulo": "Migración",
+              "campos_existentes": "Automatizar la carga del archivo de Nómina del Fondo de fideicomiso emitido por el BDV.",
+              "descripcion": "Implementar un proceso automatizado para la carga del archivo de la nómina de fideicomiso emitido por el BDV, asegurando la integridad de los saldos de los beneficiarios.",
+              "dev": "-",
+              "qa": "-",
+              "pro": "-",
+              "situacion": "D",
+              "fase": "F.I",
+              "fecha": "2026-06-18",
+              "estado": false
+            }
+          ]
+        },
+        {
+          "nombre": "Bitácoras / Trazas",
+          "app_id": "sandra.app.ipsfa",
+          "total_funcionalidades": 0,
+          "funcionalidades": []
         }
       ]
     }

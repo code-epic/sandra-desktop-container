@@ -39,7 +39,7 @@ export class LoggerService {
       if (['dashboard', 'connections', 'security', 'monitor', 'system', 'apps', 'secure-viewer'].includes(id)) {
         this.currentAppId = 'App.SDC';
       } else {
-        this.currentAppId = id;
+        this.currentAppId = this.appState.resolveAppId(id) || 'App.SDC';
       }
     });
   }
@@ -48,14 +48,16 @@ export class LoggerService {
     return this.unsavedLogs;
   }
 
-  getUnsavedLogs(appId?: string) {
+  getUnsavedLogs(appIdOrTabId?: string) {
+    const appId = appIdOrTabId ? this.appState.resolveAppId(appIdOrTabId) : undefined;
     if (appId) {
       return this.unsavedLogs.filter(l => l.app_id === appId);
     }
     return this.unsavedLogs;
   }
 
-  async clearLogs(appId?: string) {
+  async clearLogs(appIdOrTabId?: string) {
+    const appId = appIdOrTabId ? this.appState.resolveAppId(appIdOrTabId) : undefined;
     if (appId) {
       this.unsavedLogs = this.unsavedLogs.filter(l => l.app_id !== appId);
       try {
@@ -73,14 +75,16 @@ export class LoggerService {
     }
   }
 
-  hasLogs(appId?: string): boolean {
+  hasLogs(appIdOrTabId?: string): boolean {
+    const appId = appIdOrTabId ? this.appState.resolveAppId(appIdOrTabId) : undefined;
     if (appId) {
       return this.unsavedLogs.some(l => l.app_id === appId);
     }
     return this.unsavedLogs.length > 0;
   }
 
-  hasXhrLogsForApp(appId?: string): boolean {
+  hasXhrLogsForApp(appIdOrTabId?: string): boolean {
+    const appId = appIdOrTabId ? this.appState.resolveAppId(appIdOrTabId) : undefined;
     const isNetwork = (l: LogEntry) => l.type === 'XHR' || l.type === 'FETCH' || l.message.includes('XHR');
     if (appId) {
       return this.unsavedLogs.some(l => l.app_id === appId && isNetwork(l));
@@ -88,7 +92,8 @@ export class LoggerService {
     return this.unsavedLogs.some(isNetwork);
   }
 
-  async saveAllLogs(appId?: string) {
+  async saveAllLogs(appIdOrTabId?: string) {
+    const appId = appIdOrTabId ? this.appState.resolveAppId(appIdOrTabId) : undefined;
     const logsToSave = appId ? this.unsavedLogs.filter(l => l.app_id === appId) : this.unsavedLogs;
 
     for (const log of logsToSave) {
@@ -230,7 +235,8 @@ export class LoggerService {
     this.logSubject.next(entry);
   }
 
-  public async persistBackend(type: string, message: string, details: any, appId: string, timestamp?: string, source?: string): Promise<number | null> {
+  public async persistBackend(type: string, message: string, details: any, appIdOrTabId: string, timestamp?: string, source?: string): Promise<number | null> {
+    const appId = this.appState.resolveAppId(appIdOrTabId) || appIdOrTabId;
     let backendType = type;
     if (type === 'INFO') backendType = 'LOG';
 
@@ -259,7 +265,8 @@ export class LoggerService {
     this.persistLog(type, message, source, appId || this.currentAppId);
   }
 
-  async getAppLogs(appId: string): Promise<LogEntry[]> {
+  async getAppLogs(appIdOrTabId: string): Promise<LogEntry[]> {
+    const appId = this.appState.resolveAppId(appIdOrTabId) || appIdOrTabId;
     return await invoke('get_app_logs', { 
       appId, 
       userLogin: this.securityService.getCurrentUserLogin() 

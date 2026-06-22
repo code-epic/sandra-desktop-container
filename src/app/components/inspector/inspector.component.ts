@@ -107,14 +107,15 @@ export class InspectorComponent implements OnInit {
   }
 
   private shouldShowLogForCurrentTab(logAppId: string): boolean {
-    if (this.currentTabId === logAppId) return true;
+    const resolvedTabId = this.appState.resolveAppId(this.currentTabId);
+    if (resolvedTabId === logAppId) return true;
     const systemTabs = ['dashboard', 'connections', 'security', 'monitor', 'system', 'apps', 'secure-viewer'];
     if (systemTabs.includes(this.currentTabId) && logAppId === 'App.SDC') return true;
     return false;
   }
 
   async loadLogsForActiveTab() {
-    let targetAppId = this.currentTabId;
+    let targetAppId = this.appState.resolveAppId(this.currentTabId) || this.currentTabId;
     const systemTabs = ['dashboard', 'connections', 'security', 'monitor', 'system', 'apps', 'secure-viewer'];
     if (systemTabs.includes(targetAppId)) {
       targetAppId = 'App.SDC';
@@ -354,7 +355,7 @@ export class InspectorComponent implements OnInit {
     this.currentAppLogs = [];
 
     // 2. determine targetAppId
-    let targetAppId = this.currentTabId;
+    let targetAppId = this.appState.resolveAppId(this.currentTabId) || this.currentTabId;
     if (['dashboard', 'connections', 'security', 'monitor', 'system'].includes(targetAppId)) {
       targetAppId = 'App.SDC';
     }

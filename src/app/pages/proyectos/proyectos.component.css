@@ -452,7 +452,7 @@
 
  .view-container {
    flex: 1;
-   overflow: hidden;
+   overflow-y: auto;
    /* Forces scrollbar to prevent page width shifting when switching tabs */
    overflow-x: hidden;
    /* Prevent horizontal scroll on the wrapper, let cards handle their own overflow */
@@ -785,7 +785,8 @@
    width: 100%;
    min-width: 600px;
    /* Previene que las columnas se aplasten */
-   border-collapse: collapse;
+   border-collapse: separate;
+   border-spacing: 0;
    font-size: 12px;
  }
 

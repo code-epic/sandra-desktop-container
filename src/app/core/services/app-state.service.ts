@@ -48,6 +48,7 @@ export interface BackgroundTask {
   timestamp: Date;
   logs?: string[];
   isExpanded?: boolean;
+  type?: string;
 }
 
 @Injectable({
@@ -143,6 +144,16 @@ export class AppStateService {
 
   getTabsSnapshot(): Tab[] {
     return this.openTabsSubject.value;
+  }
+
+  resolveAppId(idOrAppId?: string | number): string | undefined {
+    if (idOrAppId === undefined || idOrAppId === null) return undefined;
+    const currentTabs = this.openTabsSubject.value;
+    const tab = currentTabs.find(t => 
+      t.id.toString() === idOrAppId.toString() || 
+      (t.appId && t.appId.toString() === idOrAppId.toString())
+    );
+    return tab?.appId || idOrAppId.toString();
   }
 
   closeTab(id: string) {

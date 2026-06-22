@@ -1,4 +1,11 @@
-import { Component, OnInit, NgZone, HostListener, DoCheck, ViewChild } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  NgZone,
+  HostListener,
+  DoCheck,
+  ViewChild,
+} from "@angular/core";
 import { CommonModule, NgIf } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
@@ -14,7 +21,11 @@ import { SecurityService } from "./core/services/security.service";
 import { SdcService } from "./core/services/sdc.service";
 import { LoggerService } from "./core/services/logger.service";
 import { SystemStats } from "./core/models/telemetry.model";
-import { AppStateService, Tab, BackgroundTask } from "./core/services/app-state.service";
+import {
+  AppStateService,
+  Tab,
+  BackgroundTask,
+} from "./core/services/app-state.service";
 import { DownloadService } from "./core/services/download.service";
 import { FileService } from "./core/services/file.service";
 import { Observable, Subject } from "rxjs";
@@ -116,7 +127,7 @@ export class AppComponent implements OnInit, DoCheck {
   machineArea: string = "";
   machineDescription: string = "";
   showMachinePopover: boolean = false;
-  
+
   // --- JWT SESSION STATE ---
   sessionUsername: string = "";
   jwtNombre: string = "";
@@ -126,7 +137,7 @@ export class AppComponent implements OnInit, DoCheck {
   sessionSecondsLeft: number = 0;
   private jwtTimerInterval: any;
   private jwtWarningShown: boolean = false;
-  
+
   attemptNumber: number = 0;
   pendingTicketsCount: number = 0;
   private csvSearchSubject = new Subject<Tab>();
@@ -182,6 +193,7 @@ export class AppComponent implements OnInit, DoCheck {
   // Connections
   availableConnections: any[] = [];
   activeConnection: any = null;
+  isChangingConnection: boolean = false;
   clientId: string = "";
   activeNativeWebviews: Record<string, Webview> = {};
 
@@ -203,7 +215,13 @@ export class AppComponent implements OnInit, DoCheck {
     message: string;
     type: "success" | "error" | "info";
     infoIcon?: string;
-  } = { show: false, title: "", message: "", type: "info", infoIcon: "fa-info-circle" };
+  } = {
+    show: false,
+    title: "",
+    message: "",
+    type: "info",
+    infoIcon: "fa-info-circle",
+  };
   exitModal = { show: false, closing: false };
   isExitConfirmed = false;
 
@@ -224,8 +242,8 @@ export class AppComponent implements OnInit, DoCheck {
     message: "",
     confirmText: "Aceptar",
     cancelText: "Cancelar",
-    onConfirm: () => { },
-    onCancel: () => { },
+    onConfirm: () => {},
+    onCancel: () => {},
   };
 
   showJwtSetupModal = false;
@@ -236,7 +254,7 @@ export class AppComponent implements OnInit, DoCheck {
     confirmText: string,
     cancelText: string,
     onConfirm: () => void,
-    onCancel: () => void = () => { },
+    onCancel: () => void = () => {},
   ) {
     this.questionModal.title = title;
     this.questionModal.message = message;
@@ -267,7 +285,7 @@ export class AppComponent implements OnInit, DoCheck {
     public securityService: SecurityService,
     public utils: UtilsService,
     private performance: PerformanceService,
-    private updateService: UpdateService
+    private updateService: UpdateService,
   ) {
     // ... existing constructor logic ...
     this.performance.initialize();
@@ -308,7 +326,7 @@ export class AppComponent implements OnInit, DoCheck {
       this.updateTitle(id);
       // Aplicar reglas de sidebar al cambiar de pestaña
       setTimeout(() => this.checkSidebarResponsive(window.innerWidth), 0);
-      
+
       // Sincronizar Webviews nativos al cambiar de pestaña
       setTimeout(() => this.syncNativeWebviews(), 50);
 
@@ -319,10 +337,10 @@ export class AppComponent implements OnInit, DoCheck {
     });
 
     // --- Search Optimization Logic ---
-    this.csvSearchSubject.pipe(debounceTime(400)).subscribe(tab => {
+    this.csvSearchSubject.pipe(debounceTime(400)).subscribe((tab) => {
       this.executeCsvSearch(tab);
     });
-    this.txtSearchSubject.pipe(debounceTime(400)).subscribe(tab => {
+    this.txtSearchSubject.pipe(debounceTime(400)).subscribe((tab) => {
       this.executeTxtSearch(tab);
     });
 
@@ -381,7 +399,7 @@ export class AppComponent implements OnInit, DoCheck {
 
     // Global Connection Status Listener
     await listen("connection-status", (event: any) => {
-      this.zone.run(() => {
+      this.zone.run(async () => {
         const s = event.payload as string;
         if (s === "connected") {
           this.wsStatus = "Conectado";
@@ -389,12 +407,16 @@ export class AppComponent implements OnInit, DoCheck {
           this.checkAndPromptJwt();
         } else if (s === "disconnected") {
           this.wsStatus = "Desconectado";
-          this.performLocalLogout();
+          if (!this.isChangingConnection) {
+            await this.performLocalLogout();
+          }
         } else if (s === "connecting") {
           this.wsStatus = "Reintentando";
         } else if (s === "error") {
           this.wsStatus = "Desconectado";
-          this.performLocalLogout();
+          if (!this.isChangingConnection) {
+            await this.performLocalLogout();
+          }
         }
       });
     });
@@ -408,33 +430,45 @@ export class AppComponent implements OnInit, DoCheck {
           const authId = (rawAuthId || "").toLowerCase();
           const key = msgData.from; // key enviada en from
 
-          console.log(`🛡️ [Sec] Intento de autorización HSF para ${authId}`);
+          // console.log(`🛡️ [Sec] Intento de autorización HSF para ${authId}`);
 
-          const decryptedData = await invoke<string>("process_hsf_authorization", {
-            authId: rawAuthId, // Enviar el original a Rust por si acaso la DB es case-sensitive
-            key,
-            userLogin: this.securityService.getCurrentUserLogin()
-          });
+          const decryptedData = await invoke<string>(
+            "process_hsf_authorization",
+            {
+              authId: rawAuthId, // Enviar el original a Rust por si acaso la DB es case-sensitive
+              key,
+              userLogin: this.securityService.getCurrentUserLogin(),
+            },
+          );
 
           this.pendingTicketsCount = Math.max(0, this.pendingTicketsCount - 1);
           // this.snapService.show(`Seguridad: Ticket #${rawAuthId} procesado con éxito`, undefined as any, "success", "fa-shield-check");
 
           // Notificar a la app hija si guardamos su puerto
           const port = this.authPorts.get(authId);
-          console.log(`🔌 [Sec] Buscando puerto para ${authId}:`, port ? "ENCONTRADO" : "NO ENCONTRADO");
+          // console.log(
+          //   `🔌 [Sec] Buscando puerto para ${authId}:`,
+          //   port ? "ENCONTRADO" : "NO ENCONTRADO",
+          // );
 
           if (port) {
-            console.log(`📤 [Sec] Enviando mensaje de aprobación a la app hija para ${authId}`);
+            // console.log(
+            //   `📤 [Sec] Enviando mensaje de aprobación a la app hija para ${authId}`,
+            // );
             port.postMessage({
               type: "AUTORIZACION_APROBADA",
               authId: rawAuthId,
-              data: decryptedData
+              data: decryptedData,
             });
             this.authPorts.delete(authId);
           }
         } catch (e: any) {
           console.error("Error procesando autorización HSF:", e);
-          this.snapService.show("Fallo en Desencriptación", undefined as any, "error");
+          this.snapService.show(
+            "Fallo en Desencriptación",
+            undefined as any,
+            "error",
+          );
         }
       });
     });
@@ -485,7 +519,9 @@ export class AppComponent implements OnInit, DoCheck {
         if (payload && payload.exp) {
           const now = Math.floor(Date.now() / 1000);
           if (payload.exp < now) {
-            console.warn("🔐 [System] Token JWT expirado detectado. Limpiando...");
+            // console.warn(
+            //   "🔐 [System] Token JWT expirado detectado. Limpiando...",
+            // );
             storage.removeItem(this.config.access.jwtVariableName);
             return null;
           }
@@ -507,29 +543,47 @@ export class AppComponent implements OnInit, DoCheck {
   requireJwtLogin: boolean = true;
 
   async checkAndPromptJwt(force: boolean = false) {
-    console.log("🔍 [System] checkAndPromptJwt llamado. Force:", force, "ActiveConn:", !!this.activeConnection, "JWT Enabled:", this.config.access.enableJwtSession);
-    
+    console.log(
+      "🔍 [System] checkAndPromptJwt llamado. Force:",
+      force,
+      "ActiveConn:",
+      !!this.activeConnection,
+      "JWT Enabled:",
+      this.config.access.enableJwtSession,
+    );
+
     if (!this.activeConnection) {
       try {
         this.availableConnections = await this.sdcService.getConnections();
         this.activeConnection =
           this.availableConnections.find((c) => c.is_connected) || null;
-        
+
         if (!this.activeConnection && this.availableConnections.length > 0) {
           this.activeConnection = this.availableConnections[0];
-          console.log("ℹ️ [System] Usando primer perfil de conexión disponible como fallback:", this.activeConnection.name);
+          // console.log(
+          //   "ℹ️ [System] Usando primer perfil de conexión disponible como fallback:",
+          //   this.activeConnection.name,
+          // );
         }
       } catch (e) {
-        console.error("❌ [System] Error al cargar conexiones en checkAndPromptJwt:", e);
+        console.error(
+          "❌ [System] Error al cargar conexiones en checkAndPromptJwt:",
+          e,
+        );
       }
     }
 
     if (!this.activeConnection) {
-      console.warn("⚠️ [System] No hay conexión activa para solicitar JWT.");
+      // console.warn("⚠️ [System] No hay conexión activa para solicitar JWT.");
       this.zone.run(() => {
         this.showControlPanel = true;
         const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
-        this.snapService.show("Configure una conexión primero", safeEvent as any, "error", "fa-network-wired");
+        this.snapService.show(
+          "Configure una conexión primero",
+          safeEvent as any,
+          "error",
+          "fa-network-wired",
+        );
       });
       return;
     }
@@ -538,27 +592,32 @@ export class AppComponent implements OnInit, DoCheck {
 
     // Si forzamos (clic manual) O si está habilitado y falta el token real
     if (force || (this.config.access.enableJwtSession && !token)) {
-      console.log("🔓 [System] ACTIVANDO showLoginModal = true");
+      // console.log("🔓 [System] ACTIVANDO showLoginModal = true");
       this.zone.run(() => {
         this.showControlPanel = false; // Cerramos el panel para ver el login claramente
         this.loginConnections = [];
         this.requireJwtLogin = true;
-        this.loginIpAddress = this.activeConnection.ip_address || 'localhost';
+        this.loginIpAddress = this.activeConnection.ip_address || "localhost";
         this.loginPort = Number(this.activeConnection.port) || 443;
-        
+
         // Forzar ciclo de detección de cambios
         this.showLoginModal = false;
         setTimeout(() => {
           this.zone.run(() => {
             this.showLoginModal = true;
-            console.log("✅ [System] showLoginModal es ahora TRUE");
+            // console.log("✅ [System] showLoginModal es ahora TRUE");
           });
         }, 10);
       });
     } else {
       // Sincronización silenciosa si ya hay token en storage
-      if (token && (!this.activeConnection.jwt || this.activeConnection.jwt !== token)) {
-        console.log("🔄 [System] Sincronizando JWT existente a la conexión activa.");
+      if (
+        token &&
+        (!this.activeConnection.jwt || this.activeConnection.jwt !== token)
+      ) {
+        // console.log(
+        //   "🔄 [System] Sincronizando JWT existente a la conexión activa.",
+        // );
         this.activeConnection.jwt = token;
       }
     }
@@ -574,15 +633,15 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   handleLoginSuccess(token: string) {
-    console.log(
-      "JWT Login completado. Token almacenado:",
-      token.substring(0, 10) + "...",
-    );
+    // console.log(
+    //   "JWT Login completado. Token almacenado:",
+    //   token.substring(0, 10) + "...",
+    // );
     this.showLoginModal = false;
-    
+
     // 1. Sincronizar Preferencias y Estado Global
     this.config.access.enableJwtSession = true;
-    this.saveConfig(true); 
+    this.saveConfig(true);
 
     // 2. Sincronizar Identidad en la Conexión Activa
     if (this.activeConnection) {
@@ -592,23 +651,35 @@ export class AppComponent implements OnInit, DoCheck {
         if (payload?.Usuario) {
           this.activeConnection.username = payload.Usuario.usuario;
           this.activeConnection.profile = payload.Usuario.Perfil;
-          console.log("✅ [App] Sesión sincronizada para:", this.activeConnection.username);
+          // console.log(
+          //   "✅ [App] Sesión sincronizada para:",
+          //   this.activeConnection.username,
+          // );
         }
       } catch (e) {
-        console.warn("[App] Error decodificando payload para sincronización:", e);
+        console.warn(
+          "[App] Error decodificando payload para sincronización:",
+          e,
+        );
       }
-      
+
       // Persistir objeto de conexión actualizado
-      localStorage.setItem('active_connection', JSON.stringify(this.activeConnection));
-      
+      localStorage.setItem(
+        "active_connection",
+        JSON.stringify(this.activeConnection),
+      );
+
       // 3. Iniciar servicios dependientes de identidad
-      this.securityService.startMailboxSync(this.activeConnection, this.activeConnection.profile || { usuario: 'root', sistema: 'admin' });
+      this.securityService.startMailboxSync(
+        this.activeConnection,
+        this.activeConnection.profile || { usuario: "root", sistema: "admin" },
+      );
     }
 
     // 4. Forzar refresco de UI (Candados en Sidebar)
     setTimeout(() => {
-       // Esto asegura que getJwtToken() sea re-evaluado en el siguiente ciclo
-       console.log("🔄 [App] Forzando refresco de UI post-login...");
+      // Esto asegura que getJwtToken() sea re-evaluado en el siguiente ciclo
+      console.log("🔄 [App] Forzando refresco de UI post-login...");
     }, 100);
 
     // 5. Si había una redirección pendiente
@@ -625,27 +696,34 @@ export class AppComponent implements OnInit, DoCheck {
 
     if (protectedTabs.includes(tabId)) {
       // 1. Verificar Conexión Real (WSS)
-      if (!this.activeConnection || this.wsStatus !== 'Conectado') {
+      if (!this.activeConnection || this.wsStatus !== "Conectado") {
         this.showModal(
           "Sin Conexión Activa",
-          "El acceso a " + tabId.toUpperCase() + " requiere una conexión WebSocket establecida y estable con Sandra Server."
+          "El acceso a " +
+            tabId.toUpperCase() +
+            " requiere una conexión WebSocket establecida y estable con Sandra Server.",
         );
         return;
       }
 
       // 2. Verificar si la Sesión JWT está habilitada o forzar login si intentan entrar
       if (!this.config.access.enableJwtSession) {
-        console.log("🔒 [System] Sesión JWT deshabilitada, forzando login para acceso a zona protegida.");
+        console.log(
+          "🔒 [System] Sesión JWT deshabilitada, forzando login para acceso a zona protegida.",
+        );
         this.pendingNavTab = tabId;
         this.checkAndPromptJwt(true);
         return;
       }
 
       // 3. Validación Robusta de JWT (Token real vs placeholder)
-      const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+      const storage =
+        this.config.access.jwtStorage === "sessionStorage"
+          ? sessionStorage
+          : localStorage;
       const token = storage.getItem(this.config.access.jwtVariableName);
 
-      const isRealJwt = (t: any) => t && t.length > 20 && t.includes('.');
+      const isRealJwt = (t: any) => t && t.length > 20 && t.includes(".");
       const connectionHasJwt = isRealJwt(this.activeConnection.jwt);
       const storageHasJwt = isRealJwt(token);
 
@@ -729,17 +807,17 @@ export class AppComponent implements OnInit, DoCheck {
           this.wsStatus = "Reintentando";
         } else {
           this.wsStatus = "Desconectado";
-          this.performLocalLogout();
+          await this.performLocalLogout();
         }
       } else {
         // Host no responde (Servidor apagado o inaccesible)
         this.wsStatus = "Desconectado";
-        this.performLocalLogout();
+        await this.performLocalLogout();
       }
     } catch (e) {
       console.error("Error verifying connection status", e);
       this.wsStatus = "Desconectado";
-      this.performLocalLogout();
+      await this.performLocalLogout();
     }
   }
 
@@ -747,25 +825,33 @@ export class AppComponent implements OnInit, DoCheck {
     if (this.activeConnection && this.activeConnection.id === conn.id) {
       // Si ya está activa y pulsamos, forzamos el prompt de login para permitir cambiar de usuario o re-autenticar
       this.checkAndPromptJwt(true);
-      return; 
+      return;
     }
 
-    // Deactivate previous if any? connect_to_server handles this in DB.
-    // We invoke connect_to_server which sets is_connected=1 and starts WSS.
-
-    // Optimistic UI update
-    this.activeConnection = conn;
-    localStorage.setItem('active_connection', JSON.stringify(conn));
+    this.isChangingConnection = true;
     try {
+      if (this.activeConnection) {
+        await this.performLocalLogout();
+      }
+
+      // Deactivate previous if any? connect_to_server handles this in DB.
+      // We invoke connect_to_server which sets is_connected=1 and starts WSS.
+
+      // Optimistic UI update
+      this.activeConnection = conn;
+      localStorage.setItem("active_connection", JSON.stringify(conn));
+
       await this.sdcService.connectToServer(conn, this.clientId);
       // Refresh list to sync is_connected flags from DB
       await this.loadConnections();
-      
+
       // Forzar el prompt de login tras una conexión manual exitosa
       this.checkAndPromptJwt(true);
     } catch (e) {
       console.error("Error activating connection", e);
       this.showModal("Error", "Error al activar conexión: " + e);
+    } finally {
+      this.isChangingConnection = false;
     }
   }
 
@@ -778,10 +864,15 @@ export class AppComponent implements OnInit, DoCheck {
     const performDisconnect = async () => {
       try {
         await this.sdcService.disconnectFromServer(conn, this.clientId);
-        this.performLocalLogout();
+        await this.performLocalLogout();
         await this.loadConnections();
         const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
-        this.snapService.show("Sesión Finalizada", safeEvent as any, "info", "fa-sign-out-alt");
+        this.snapService.show(
+          "Sesión Finalizada",
+          safeEvent as any,
+          "info",
+          "fa-sign-out-alt",
+        );
 
         if (stayInConfig) {
           this.showControlPanel = true;
@@ -791,11 +882,16 @@ export class AppComponent implements OnInit, DoCheck {
         }
       } catch (e) {
         console.error("Error al desconectar:", e);
-        this.genericModal = { show: true, type: "error", title: "Error", message: "Error al desconectar: " + e };
+        this.genericModal = {
+          show: true,
+          type: "error",
+          title: "Error",
+          message: "Error al desconectar: " + e,
+        };
       }
     };
 
-    if (!this.getJwtToken() || this.wsStatus !== 'Conectado') {
+    if (!this.getJwtToken() || this.wsStatus !== "Conectado") {
       await performDisconnect();
     } else {
       this.showQuestionModal(
@@ -803,7 +899,7 @@ export class AppComponent implements OnInit, DoCheck {
         "¿Estás seguro de que deseas desconectarte? Se cerrará la sesión actual y será necesario ingresar credenciales nuevamente.",
         "Desconectar",
         "Mantener Conexión",
-        performDisconnect
+        performDisconnect,
       );
     }
   }
@@ -813,11 +909,13 @@ export class AppComponent implements OnInit, DoCheck {
    */
   async closeAllTabsAndWebviews() {
     console.log("🗑️ [System] Cerrando todas las pestañas y webviews...");
-    
+
     // 1. Cerrar todos los webviews nativos activos y borrar sus datos de navegación
     for (const tabId of Object.keys(this.activeNativeWebviews)) {
       try {
-        console.log(`🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${tabId}`);
+        console.log(
+          `🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${tabId}`,
+        );
         await this.activeNativeWebviews[tabId].clearAllBrowsingData();
         await this.activeNativeWebviews[tabId].close();
       } catch (e) {
@@ -840,18 +938,68 @@ export class AppComponent implements OnInit, DoCheck {
   async performLocalLogout() {
     console.log("🔐 [System] Ejecutando limpieza de sesión local...");
 
-    // 1. Cerrar todas las pestañas y webviews
+    // 1. Notificar a todas las pestañas tipo iframe que limpien su sesión antes de desmontarlas
+    try {
+      const tabs = this.appState.getTabsSnapshot();
+      for (const tab of tabs) {
+        if (!tab.type || tab.type === "iframe") {
+          const iframeId = "iframe-" + tab.id;
+          const iframeExtId = "iframe-ext-" + tab.id;
+          const iframe = (document.getElementById(iframeId) ||
+            document.getElementById(iframeExtId)) as HTMLIFrameElement;
+
+          if (iframe && iframe.contentWindow) {
+            const targetOrigin =
+              iframe.src && iframe.src.startsWith("http")
+                ? new URL(iframe.src).origin
+                : "*";
+
+            console.log(
+              `🔑 [System] Enviando señales de cierre a iframe de pestaña: ${tab.id}`,
+            );
+
+            // Enviar mensaje CLEAR_SESSION
+            iframe.contentWindow.postMessage(
+              {
+                type: "CLEAR_SESSION",
+                keyName: this.config?.access?.jwtVariableName || "token",
+              },
+              targetOrigin,
+            );
+
+            // Enviar mensaje SET_SESSION con token: null para compatibilidad
+            iframe.contentWindow.postMessage(
+              {
+                type: "SET_SESSION",
+                token: null,
+              },
+              targetOrigin,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error enviando señales de limpieza a los iframes:", e);
+    }
+
+    // Esperar un breve momento (150ms) para que el navegador complete el postMessage antes de destruir los iframes del DOM
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // 2. Cerrar todas las pestañas y webviews
     await this.closeAllTabsAndWebviews();
 
-    // 2. Limpiar Storage de sesión
+    // 3. Limpiar Storage de sesión
     sessionStorage.clear();
 
     // 3. Limpiar Token JWT y persistencia de conexión según configuración
-    const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+    const storage =
+      this.config.access.jwtStorage === "sessionStorage"
+        ? sessionStorage
+        : localStorage;
     storage.removeItem(this.config.access.jwtVariableName);
-    
+
     // Limpiar localStorage de sesión y caches, manteniendo solo configuraciones globales
-    const keysToKeep = ['sdc_ui_config', 'sandra_perf_mode'];
+    const keysToKeep = ["sdc_ui_config", "sandra_perf_mode"];
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -859,7 +1007,7 @@ export class AppComponent implements OnInit, DoCheck {
         keysToRemove.push(key);
       }
     }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
 
     // 4. Resetear estados visuales y de sesión
     this.activeConnection = null;
@@ -881,22 +1029,33 @@ export class AppComponent implements OnInit, DoCheck {
    */
   public async performFullLogout() {
     console.log("🚫 [System] Iniciando Cierre de Sesión Completo...");
-    
+
     // 1. Desconectar del servidor si hay conexión activa
     if (this.activeConnection) {
       try {
-        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
+        await this.sdcService.disconnectFromServer(
+          this.activeConnection,
+          this.clientId,
+        );
         console.log("🔌 Desconectado del servidor correctamente.");
       } catch (e) {
-        console.error("Error desconectando del servidor durante logout forzado:", e);
+        console.error(
+          "Error desconectando del servidor durante logout forzado:",
+          e,
+        );
       }
     }
 
     // 2. Limpiar estados locales y redireccionar
-    this.performLocalLogout();
+    await this.performLocalLogout();
 
     // 3. Mostrar notificación
-    this.snapService.show("Sesión Cerrada Totalmente", undefined, "info", "fa-sign-out-alt");
+    this.snapService.show(
+      "Sesión Cerrada Totalmente",
+      undefined,
+      "info",
+      "fa-sign-out-alt",
+    );
   }
 
   /**
@@ -904,22 +1063,35 @@ export class AppComponent implements OnInit, DoCheck {
    */
   async handleSessionExpiration() {
     console.log("🔐 [System] Iniciando Cierre de Sesión por Expiración...");
-    
+
     // 1. Desconectar del servidor si hay conexión activa
     if (this.activeConnection) {
       try {
-        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
-        console.log("🔌 Desconectado del servidor correctamente por expiración.");
+        await this.sdcService.disconnectFromServer(
+          this.activeConnection,
+          this.clientId,
+        );
+        console.log(
+          "🔌 Desconectado del servidor correctamente por expiración.",
+        );
       } catch (e) {
-        console.error("Error desconectando del servidor durante expiración de sesión:", e);
+        console.error(
+          "Error desconectando del servidor durante expiración de sesión:",
+          e,
+        );
       }
     }
 
     // 2. Limpiar estados locales y redireccionar
-    this.performLocalLogout();
+    await this.performLocalLogout();
 
     // 3. Mostrar notificación de expiración
-    this.snapService.show("Sesión expirada por límite de tiempo", undefined, "warning", "fa-clock");
+    this.snapService.show(
+      "Sesión expirada por límite de tiempo",
+      undefined,
+      "warning",
+      "fa-clock",
+    );
   }
 
   /**
@@ -927,11 +1099,13 @@ export class AppComponent implements OnInit, DoCheck {
    */
   handleLoginModalClose() {
     this.showLoginModal = false;
-    
-    // Si el modal se cerró y teníamos una navegación pendiente a área protegida, 
+
+    // Si el modal se cerró y teníamos una navegación pendiente a área protegida,
     // asumimos que el login falló o fue cancelado.
     if (this.pendingNavTab) {
-      console.warn(`⚠️ [System] Login cancelado para área protegida: ${this.pendingNavTab}. Forzando Logout.`);
+      console.warn(
+        `⚠️ [System] Login cancelado para área protegida: ${this.pendingNavTab}. Forzando Logout.`,
+      );
       this.performFullLogout();
       this.pendingNavTab = null;
     }
@@ -1001,7 +1175,9 @@ export class AppComponent implements OnInit, DoCheck {
       if (!this.activeConnection) {
         if (this.availableConnections.length > 1) {
           console.log("ℹ️ [Init] Múltiples perfiles. Solicitando selección.");
-          await invoke("emit_splash_status", { message: "Seleccionando Perfil de Red..." });
+          await invoke("emit_splash_status", {
+            message: "Seleccionando Perfil de Red...",
+          });
 
           setTimeout(async () => {
             await invoke("close_splash");
@@ -1013,26 +1189,40 @@ export class AppComponent implements OnInit, DoCheck {
           }, 1000);
 
           return; // Termina la inicialización, el flujo continúa a través del Modal
-
         } else if (this.availableConnections.length === 1) {
           this.activeConnection = this.availableConnections[0];
-          console.log("ℹ️ [Init] Usando único perfil disponible:", this.activeConnection.name);
+          console.log(
+            "ℹ️ [Init] Usando único perfil disponible:",
+            this.activeConnection.name,
+          );
         } else {
-          await invoke("emit_splash_status", { message: "Sin Perfiles de Conexión" });
-          console.log("⚠️ [Init] No se encontró ninguna conexión para auto-consecución.");
+          await invoke("emit_splash_status", {
+            message: "Sin Perfiles de Conexión",
+          });
+          console.log(
+            "⚠️ [Init] No se encontró ninguna conexión para auto-consecución.",
+          );
         }
       }
 
       if (this.activeConnection) {
         console.log("🔌 [Init] Auto-conectando a:", this.activeConnection.name);
-        await invoke("emit_splash_status", { message: `Enlazando con ${this.activeConnection.name}...` });
+        await invoke("emit_splash_status", {
+          message: `Enlazando con ${this.activeConnection.name}...`,
+        });
 
         // Refresco proactivo
         try {
-          await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
-        } catch (e) { }
+          await this.sdcService.disconnectFromServer(
+            this.activeConnection,
+            this.clientId,
+          );
+        } catch (e) {}
 
-        await this.sdcService.connectToServer(this.activeConnection, this.clientId);
+        await this.sdcService.connectToServer(
+          this.activeConnection,
+          this.clientId,
+        );
         await invoke("emit_splash_status", { message: "Enlace Establecido" });
 
         // Validar si requiere JWT aunque sea conexión única autoseleccionada
@@ -1045,7 +1235,6 @@ export class AppComponent implements OnInit, DoCheck {
             this.showLoginModal = true;
           }, 500);
         }
-
       }
 
       setTimeout(async () => {
@@ -1060,20 +1249,36 @@ export class AppComponent implements OnInit, DoCheck {
 
   // ...
 
-  logoutStep: string = '';
+  logoutStep: string = "";
 
   async handleConnectionSelect(conn: any) {
     console.log("🔌 [Selector] Conexión seleccionada:", conn.name);
-    this.activeConnection = conn;
-    localStorage.setItem('active_connection', JSON.stringify(conn));
+    this.isChangingConnection = true;
+    this.requireJwtLogin = true; // Forzar que la modal requiera credenciales
     try {
-      await this.sdcService.disconnectFromServer(conn, this.clientId).catch(() => { });
+      if (this.activeConnection) {
+        await this.performLocalLogout();
+      }
+      this.activeConnection = conn;
+      localStorage.setItem("active_connection", JSON.stringify(conn));
+
+      await this.sdcService
+        .disconnectFromServer(conn, this.clientId)
+        .catch(() => {});
       await this.sdcService.connectToServer(conn, this.clientId);
       this.wsStatus = "Reintentando"; // Initial state, will update via event listener
       await this.loadConnections(); // Sync is_connected ref
+
+      // Forzar la visualización de la ventana de login (Acceso Requerido)
+      this.checkAndPromptJwt(true);
     } catch (e) {
       console.error("Error conectando tras selección de perfil:", e);
-      this.showModal("Error de Conexión", "Revisa que tu servidor Sandra esté ejecutándose localmente: " + e);
+      this.showModal(
+        "Error de Conexión",
+        "Revisa que tu servidor Sandra esté ejecutándose localmente: " + e,
+      );
+    } finally {
+      this.isChangingConnection = false;
     }
   }
 
@@ -1094,22 +1299,21 @@ export class AppComponent implements OnInit, DoCheck {
           this.clientId,
         );
       }
-      await new Promise(r => setTimeout(r, 800)); // Visual delay
+      await new Promise((r) => setTimeout(r, 800)); // Visual delay
 
       // Step 2: Disconnect WebSocket (Simulated wait as actual socket closes with disconnectFromServer)
       this.logoutStep = "Desconectando el WebSocket";
-      await new Promise(r => setTimeout(r, 800)); // Visual delay
+      await new Promise((r) => setTimeout(r, 800)); // Visual delay
 
       // Step 3 & 4: Clear Storage & JWT Connections (Unified)
       this.logoutStep = "Limpiando rastros de sesión";
-      this.performLocalLogout();
-      await new Promise(r => setTimeout(r, 800)); // Visual delay
+      await this.performLocalLogout();
+      await new Promise((r) => setTimeout(r, 800)); // Visual delay
 
       // Final Exit
       this.isExitConfirmed = true;
       console.log("🚀 [System] Ejecutando exit_app...");
       await invoke("exit_app");
-
     } catch (e) {
       console.error("Error al cerrar sesión durante salida:", e);
       this.isExitConfirmed = true;
@@ -1178,30 +1382,34 @@ export class AppComponent implements OnInit, DoCheck {
 
   getAppProtocolBase(): string {
     const ua = window.navigator.userAgent.toLowerCase();
-    if (ua.includes('windows') || ua.includes('win64') || ua.includes('win32')) {
-      return 'http://sandra-app.localhost';
+    if (
+      ua.includes("windows") ||
+      ua.includes("win64") ||
+      ua.includes("win32")
+    ) {
+      return "http://sandra-app.localhost";
     }
-    return 'sandra-app://localhost';
+    return "sandra-app://localhost";
   }
 
   openApp(app: any) {
     // Fix: Los datos pueden estar en _original o directamente en app
     const appData = app._original || app;
     const targetUrl = appData.external_url || appData.externalUrl || "";
-    const appId = appData.app_id || app.id;
+    const appId = (appData.app_id || app.id)?.toString() || "";
 
     let rawUrl = "";
     let isExternalMode = false;
 
-    console.log("📋 App data:", appData);
-    console.log("🔑 Flags:", {
-      is_bypass: appData.is_bypass,
-      is_csrf_sync: appData.is_csrf_sync,
-      is_limitless: appData.is_limitless,
-      is_external_browser: appData.is_external_browser,
-      is_proxy_required: appData.is_proxy_required,
-      targetUrl: targetUrl
-    });
+    // console.log("📋 App data:", appData);
+    // console.log("🔑 Flags:", {
+    //   is_bypass: appData.is_bypass,
+    //   is_csrf_sync: appData.is_csrf_sync,
+    //   is_limitless: appData.is_limitless,
+    //   is_external_browser: appData.is_external_browser,
+    //   is_proxy_required: appData.is_proxy_required,
+    //   targetUrl: targetUrl,
+    // });
 
     const protocolBase = this.getAppProtocolBase();
 
@@ -1209,7 +1417,10 @@ export class AppComponent implements OnInit, DoCheck {
     // 0. Modo Bypass (pass-through sin modificación)
     if (appData.is_bypass) {
       if (!targetUrl) {
-        this.showModal("Error de Configuración", "La aplicación en modo Bypass no tiene URL definida.");
+        this.showModal(
+          "Error de Configuración",
+          "La aplicación en modo Bypass no tiene URL definida.",
+        );
         return;
       }
       const target = encodeURIComponent(targetUrl);
@@ -1219,7 +1430,10 @@ export class AppComponent implements OnInit, DoCheck {
     // 1. Modo CSRF Sync (auto-sincroniza tokens CSRF)
     else if (appData.is_csrf_sync) {
       if (!targetUrl) {
-        this.showModal("Error de Configuración", "La aplicación CSRF Sync no tiene URL definida.");
+        this.showModal(
+          "Error de Configuración",
+          "La aplicación CSRF Sync no tiene URL definida.",
+        );
         return;
       }
       const target = encodeURIComponent(targetUrl);
@@ -1229,7 +1443,10 @@ export class AppComponent implements OnInit, DoCheck {
     // 2. Modo "Motor Limitless" (Proxied via Rust CookieJar)
     else if (appData.is_limitless) {
       if (!targetUrl) {
-        this.showModal("Error de Configuración", "La aplicación Limitless no tiene URL definida.");
+        this.showModal(
+          "Error de Configuración",
+          "La aplicación Limitless no tiene URL definida.",
+        );
         return;
       }
       const target = encodeURIComponent(targetUrl);
@@ -1245,30 +1462,32 @@ export class AppComponent implements OnInit, DoCheck {
         );
         return;
       }
-      console.log(`🌐 [Native Browser Mode] Creando Webview para -> ${targetUrl}`);
+      console.log(
+        `🌐 [Native Browser Mode] Creando Webview para -> ${targetUrl}`,
+      );
       rawUrl = targetUrl;
       isExternalMode = true;
 
-      const safeAppId = appId.replace(/[^a-zA-Z0-9\-\/:_]/g, '-');
+      const safeAppId = appId.replace(/[^a-zA-Z0-9\-\/:_]/g, "-");
       const webviewId = `webview-${safeAppId}-${Date.now()}`;
       const appWindow = getCurrentWindow();
-      
+
       const webview = new Webview(appWindow, webviewId, {
         url: targetUrl,
         x: window.innerWidth, // Oculto inicialmente
         y: window.innerHeight,
         width: 100,
-        height: 100
+        height: 100,
       });
 
-      webview.once('tauri://created', () => {
+      webview.once("tauri://created", () => {
         console.log(`✅ [Native Webview] Creado exitosamente: ${webviewId}`);
         this.activeNativeWebviews[appData.id.toString()] = webview;
         // Espera 1.2 segundos para mostrar el cargador premium y evitar flashes blancos de renderizado
         setTimeout(() => this.syncNativeWebviews(), 1200);
       });
-      
-      webview.once('tauri://error', (e) => {
+
+      webview.once("tauri://error", (e) => {
         console.error(`❌ [Native Webview] Error al crear: ${webviewId}`, e);
         this.showModal("Error", "No se pudo crear el navegador nativo.");
       });
@@ -1277,7 +1496,9 @@ export class AppComponent implements OnInit, DoCheck {
     else if (targetUrl && appData.is_proxy_required) {
       const target = encodeURIComponent(targetUrl);
       rawUrl = `${protocolBase}/external-proxy/${appId}/?target=${target}`;
-      console.log(`🛡️ [Proxy Nav] Wrapping External ${appData.name} -> ${rawUrl}`);
+      console.log(
+        `🛡️ [Proxy Nav] Wrapping External ${appData.name} -> ${rawUrl}`,
+      );
     } else if (targetUrl) {
       // Caso Externa Directa
       rawUrl = targetUrl;
@@ -1290,14 +1511,14 @@ export class AppComponent implements OnInit, DoCheck {
 
     const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl);
     this.appState.addTab({
-      id: appData.id,
+      id: appData.id.toString(),
       name: appData.name,
       icon: appData.icon,
       url: safeUrl,
       isProxyRequired: appData.is_proxy_required,
       isExternal: !targetUrl,
       isExternalMode: isExternalMode,
-      appId: appId
+      appId: appId.toString(),
     });
   }
 
@@ -1423,13 +1644,18 @@ export class AppComponent implements OnInit, DoCheck {
         if (parsed.access) {
           this.config.access = { ...this.config.access, ...parsed.access };
         }
-        
+
         // AUTO-HEAL: Si al cargar detectamos un token pero la sesión está desactivada, la activamos.
         // Esto previene que los menús arranquen bloqueados si el usuario no activó el check manualmente.
-        const storage = this.config.access.jwtStorage === "sessionStorage" ? sessionStorage : localStorage;
+        const storage =
+          this.config.access.jwtStorage === "sessionStorage"
+            ? sessionStorage
+            : localStorage;
         const token = storage.getItem(this.config.access.jwtVariableName);
         if (token && !this.config.access.enableJwtSession) {
-          console.log("🛠️ [App] Sincronizando estado de sesión JWT desde almacenamiento.");
+          console.log(
+            "🛠️ [App] Sincronizando estado de sesión JWT desde almacenamiento.",
+          );
           this.config.access.enableJwtSession = true;
         }
       } catch (e) {
@@ -1452,14 +1678,19 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   applyTheme() {
-    let theme = this.config.theme || 'sandra';
-    if (theme === 'light') theme = 'sandra';
+    let theme = this.config.theme || "sandra";
+    if (theme === "light") theme = "sandra";
 
     // Remover temas previos
-    document.body.classList.remove('theme-claro', 'theme-oscuro', 'theme-sandra', 'theme-verde-mate');
+    document.body.classList.remove(
+      "theme-claro",
+      "theme-oscuro",
+      "theme-sandra",
+      "theme-verde-mate",
+    );
     // Aplicar nuevo tema
     document.body.classList.add(`theme-${theme}`);
-    console.log(`🎨 [Theme] Aplicado: ${theme}`);
+    // console.log(`🎨 [Theme] Aplicado: ${theme}`);
   }
 
   dbStats: any = null;
@@ -1643,7 +1874,11 @@ export class AppComponent implements OnInit, DoCheck {
         console.error("Error opening devtools via Tauri invoke:", err);
       }
     } else {
-      this.showModal("Acceso Denegado", "La clave de acceso ingresada es incorrecta.", "error");
+      this.showModal(
+        "Acceso Denegado",
+        "La clave de acceso ingresada es incorrecta.",
+        "error",
+      );
     }
   }
 
@@ -1755,8 +1990,12 @@ export class AppComponent implements OnInit, DoCheck {
     if (!event.data || !event.data.type) return;
 
     const { type, payload } = event.data;
-    const logInfo = payload?.fileName || (type === 'EXEC_FNX_FINALIZADO' ? payload?.taskId : '');
-    console.log(`📥 [Bridge] Mensaje recibido: ${type}${logInfo ? ' – ' + logInfo : ''}`);
+    const logInfo =
+      payload?.fileName ||
+      (type === "EXEC_FNX_FINALIZADO" ? payload?.taskId : "");
+    console.log(
+      `📥 [Bridge] Mensaje recibido: ${type}${logInfo ? " – " + logInfo : ""}`,
+    );
 
     switch (type) {
       case "DOWNLOAD_PDF":
@@ -1814,7 +2053,8 @@ export class AppComponent implements OnInit, DoCheck {
           const normalizedId = (authId || "").toLowerCase();
 
           // Convert content to string if it's an object, as Rust expects a String
-          const contentStr = typeof content === 'object' ? JSON.stringify(content) : content;
+          const contentStr =
+            typeof content === "object" ? JSON.stringify(content) : content;
 
           await invoke("register_authorization_ticket", {
             authId,
@@ -1824,14 +2064,17 @@ export class AppComponent implements OnInit, DoCheck {
 
           // Save the message port to reply back later
           if (event.ports && event.ports.length > 0) {
-            console.log(`📥 [Sec] Registrando puerto para Ticket: ${normalizedId}`);
+            console.log(
+              `📥 [Sec] Registrando puerto para Ticket: ${normalizedId}`,
+            );
             this.authPorts.set(normalizedId, event.ports[0]);
           } else {
-            console.warn(`⚠️ [Sec] No se recibió MessagePort para Ticket: ${normalizedId}`);
+            console.warn(
+              `⚠️ [Sec] No se recibió MessagePort para Ticket: ${normalizedId}`,
+            );
           }
 
           this.pendingTicketsCount++;
-
         } catch (e: any) {
           console.error("Error al registrar autorización en Rust:", e);
           this.snapService.show(
@@ -1849,38 +2092,56 @@ export class AppComponent implements OnInit, DoCheck {
           console.log(`📡 [Sync] Solicitud manual para: [${authId}]`);
 
           // Consultar a Rust el estado real del ticket
-          const ticket = await invoke<any>("get_authorization_ticket_by_id", { authId });
+          const ticket = await invoke<any>("get_authorization_ticket_by_id", {
+            authId,
+          });
 
-          if (ticket && ticket.status && ticket.status.toLowerCase() === 'procesado') {
-            console.log(`✅ [Sync] Ticket ${authId} APROBADO. Preparando respuesta.`);
+          if (
+            ticket &&
+            ticket.status &&
+            ticket.status.toLowerCase() === "procesado"
+          ) {
+            console.log(
+              `✅ [Sync] Ticket ${authId} APROBADO. Preparando respuesta.`,
+            );
 
             const port = this.authPorts.get(normalizedId);
-            console.log(`🔌 [Sync] Puerto para ${normalizedId}:`, port ? "CONECTADO" : "FALLBACK (Window)");
+            console.log(
+              `🔌 [Sync] Puerto para ${normalizedId}:`,
+              port ? "CONECTADO" : "FALLBACK (Window)",
+            );
 
             // Intentar parsear el contenido si viene como string
             let finalData = ticket.content;
             try {
-              if (typeof ticket.content === 'string') {
+              if (typeof ticket.content === "string") {
                 finalData = JSON.parse(ticket.content);
               }
             } catch (e) {
-              console.warn(`⚠️ [Sync] No se pudo parsear como JSON para ${authId}`, e);
+              console.warn(
+                `⚠️ [Sync] No se pudo parsear como JSON para ${authId}`,
+                e,
+              );
             }
 
             const responseData = {
               type: "AUTORIZACION_APROBADA",
               authId: authId,
-              data: finalData
+              data: finalData,
             };
 
             if (port) {
               port.postMessage(responseData);
               this.authPorts.delete(normalizedId);
             } else if (event.source) {
-              (event.source as Window).postMessage(responseData, { targetOrigin: '*' } as any);
+              (event.source as Window).postMessage(responseData, {
+                targetOrigin: "*",
+              } as any);
             }
           } else {
-            console.log(`⏳ [Sync] Ticket ${authId} sigue en estado: ${ticket?.status || 'desconocido'}`);
+            console.log(
+              `⏳ [Sync] Ticket ${authId} sigue en estado: ${ticket?.status || "desconocido"}`,
+            );
           }
         } catch (e: any) {
           console.error("❌ [Sync] Error en consulta manual:", e);
@@ -1888,7 +2149,7 @@ export class AppComponent implements OnInit, DoCheck {
         break;
 
       case "START_DOWNLOAD":
-        console.log('Contando las veces que paso por aqui ')
+        console.log("Contando las veces que paso por aqui ");
         this.handleStartDownload(event.data);
         break;
 
@@ -1987,18 +2248,23 @@ export class AppComponent implements OnInit, DoCheck {
       let finalViewerType: any = viewerType;
 
       if (ext === "csv") {
-        this.appState.setGlobalLoading(true, "Analizando base de datos masiva...");
+        this.appState.setGlobalLoading(
+          true,
+          "Analizando base de datos masiva...",
+        );
         try {
           const { header, rows } = await this.fileService.parseCSV(blob);
           if (header.length > 0) {
             csvHeader = header;
             csvRows = rows;
-            finalViewerType = 'csv-viewer';
+            finalViewerType = "csv-viewer";
             icon = "fas fa-table-list";
 
             // OPTIMIZATION: Pre-calculate lowercase strings for fast full-text search
-            console.log(`⚡ [Performance] Generando cache de búsqueda para ${rows.length} registros...`);
-            csvSearchCache = rows.map(row => row.join(" ").toLowerCase());
+            console.log(
+              `⚡ [Performance] Generando cache de búsqueda para ${rows.length} registros...`,
+            );
+            csvSearchCache = rows.map((row) => row.join(" ").toLowerCase());
           }
         } catch (csvErr) {
           console.error("Error parsing CSV for grid view:", csvErr);
@@ -2021,7 +2287,9 @@ export class AppComponent implements OnInit, DoCheck {
 
           if (txtLines.length > 1000) {
             txtIsTruncated = true;
-            console.log(`⚡ [Performance] Archivo de texto grande (${txtTotalLines} lineas). Truncando vista a 1000...`);
+            console.log(
+              `⚡ [Performance] Archivo de texto grande (${txtTotalLines} lineas). Truncando vista a 1000...`,
+            );
             txtContent = txtLines.slice(0, 1000).join("\n");
           } else {
             txtContent = fullText;
@@ -2054,7 +2322,7 @@ export class AppComponent implements OnInit, DoCheck {
         txtContent,
         txtLines,
         txtTotalLines,
-        txtIsTruncated
+        txtIsTruncated,
       });
     } catch (e) {
       console.error("Error opening document tab:", e);
@@ -2087,10 +2355,10 @@ export class AppComponent implements OnInit, DoCheck {
       await invoke("add_document_history", {
         fileName: finalName,
         filePath: path,
-        fileSize: 'Local',
-        remoteCode: '',
-        source: 'GLOBAL',
-        userLogin: this.securityService.getCurrentUserLogin()
+        fileSize: "Local",
+        remoteCode: "",
+        source: "GLOBAL",
+        userLogin: this.securityService.getCurrentUserLogin(),
       });
       this.showModal(
         "Descarga Completada",
@@ -2152,20 +2420,16 @@ export class AppComponent implements OnInit, DoCheck {
       await invoke("add_document_history", {
         fileName: savedName,
         filePath: fullPath,
-        fileSize: 'LocalCache',
+        fileSize: "LocalCache",
         remoteCode: tab.id,
-        source: 'APP_CACHE',
-        userLogin: this.securityService.getCurrentUserLogin()
+        source: "APP_CACHE",
+        userLogin: this.securityService.getCurrentUserLogin(),
       });
 
       // HIDE HISTORY BUTTON
       tab.isSavedToHistory = true;
 
-      this.snapService.show(
-        "Guardado en Historial",
-        undefined,
-        "success",
-      );
+      this.snapService.show("Guardado en Historial", undefined, "success");
     } catch (e: any) {
       console.error("History save error:", e);
       const msg = typeof e === "string" ? e : e.message || JSON.stringify(e);
@@ -2200,7 +2464,13 @@ export class AppComponent implements OnInit, DoCheck {
       type = "success";
     }
 
-    this.genericModal = { show: true, title, message, type, infoIcon: infoIcon || "fa-info-circle" };
+    this.genericModal = {
+      show: true,
+      title,
+      message,
+      type,
+      infoIcon: infoIcon || "fa-info-circle",
+    };
   }
 
   closeGenericModal() {
@@ -2214,22 +2484,25 @@ export class AppComponent implements OnInit, DoCheck {
     let finalFileName = tab.originalName;
 
     // --- CSV ALCHEMY: Filter columns and format dates for safe export ---
-    if (tab.type === 'csv-viewer' && tab.csvHeader && tab.csvRows) {
-      console.log("🧪 [Alchemy] Formateando fechas y columnas para exportación segura...");
+    if (tab.type === "csv-viewer" && tab.csvHeader && tab.csvRows) {
+      console.log(
+        "🧪 [Alchemy] Formateando fechas y columnas para exportación segura...",
+      );
 
       const visibleCols = tab.csvVisibleColumns || tab.csvHeader;
-      const visibleIndices = visibleCols.map(name => tab.csvHeader!.indexOf(name)).filter(i => i !== -1);
+      const visibleIndices = visibleCols
+        .map((name) => tab.csvHeader!.indexOf(name))
+        .filter((i) => i !== -1);
 
       // Crear nuevas filas solo con datos visibles y formatedatos
-      const filteredRows = tab.csvRows.map(row =>
-        visibleIndices.map(idx => this.formatCsvExportCell(row[idx])).join(",")
+      const filteredRows = tab.csvRows.map((row) =>
+        visibleIndices
+          .map((idx) => this.formatCsvExportCell(row[idx]))
+          .join(","),
       );
 
       // Unir header y filas
-      const csvContent = [
-        visibleCols.join(","),
-        ...filteredRows
-      ].join("\n");
+      const csvContent = [visibleCols.join(","), ...filteredRows].join("\n");
 
       // Convertir a DataURI
       dataToDownload = `data:text/csv;base64,${btoa(unescape(encodeURIComponent(csvContent)))}`;
@@ -2269,11 +2542,7 @@ export class AppComponent implements OnInit, DoCheck {
         jobTitle: tab.name || "SandraDocument.pdf",
       });
 
-      this.snapService.show(
-        "Enviado a impresora",
-        undefined,
-        "success",
-      );
+      this.snapService.show("Enviado a impresora", undefined, "success");
     } catch (e) {
       console.error("Print Error:", e);
       this.showModal("Error de Impresión", "" + e);
@@ -2306,13 +2575,12 @@ export class AppComponent implements OnInit, DoCheck {
 
   @HostListener("window:keydown", ["$event"])
   async handleKeyboardEvent(event: KeyboardEvent) {
-    const isDevToolsShortcut = 
-      (event.key.toLowerCase() === "i" && (
-        (event.ctrlKey && event.shiftKey) ||
-        (event.metaKey && event.shiftKey) ||
-        (event.metaKey && event.altKey)
-      )) || 
-      (event.key === "F12");
+    const isDevToolsShortcut =
+      (event.key.toLowerCase() === "i" &&
+        ((event.ctrlKey && event.shiftKey) ||
+          (event.metaKey && event.shiftKey) ||
+          (event.metaKey && event.altKey))) ||
+      event.key === "F12";
 
     if (isDevToolsShortcut) {
       event.preventDefault();
@@ -2352,7 +2620,7 @@ export class AppComponent implements OnInit, DoCheck {
       if (!this.isInspectorOpen) {
         this.toggleRightSidebar();
       } else {
-        window.dispatchEvent(new CustomEvent('request-inspector-close'));
+        window.dispatchEvent(new CustomEvent("request-inspector-close"));
       }
     }
   }
@@ -2366,8 +2634,8 @@ export class AppComponent implements OnInit, DoCheck {
     if (!this.showCsvSearch) {
       this.csvSearchQuery = "";
       const tabs = this.appState.getTabsSnapshot();
-      tabs.forEach(t => {
-        if (t.type === 'csv-viewer') t.csvFilteredRows = undefined;
+      tabs.forEach((t) => {
+        if (t.type === "csv-viewer") t.csvFilteredRows = undefined;
       });
     }
   }
@@ -2383,8 +2651,8 @@ export class AppComponent implements OnInit, DoCheck {
     if (!this.showTxtSearch) {
       this.txtSearchQuery = "";
       const tabs = this.appState.getTabsSnapshot();
-      tabs.forEach(t => {
-        if (t.mimeType === 'text/plain') {
+      tabs.forEach((t) => {
+        if (t.mimeType === "text/plain") {
           t.txtFilteredContent = undefined;
           if (t.txtLines) {
             t.txtTotalLines = t.txtLines.length;
@@ -2399,7 +2667,8 @@ export class AppComponent implements OnInit, DoCheck {
     if (!cell) return cell;
 
     // Check if it matches ISO date like 1997-07-05T00:00:00Z
-    const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
+    const isoDateRegex =
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
     const match = cell.match(isoDateRegex);
 
     if (match) {
@@ -2411,7 +2680,7 @@ export class AppComponent implements OnInit, DoCheck {
       const second = match[6];
 
       // If time is 00:00:00, just return DD/MM/YYYY
-      if (hour === '00' && minute === '00' && second === '00') {
+      if (hour === "00" && minute === "00" && second === "00") {
         return `${day}/${month}/${year}`;
       } else {
         return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
@@ -2432,7 +2701,8 @@ export class AppComponent implements OnInit, DoCheck {
     if (!cell) return cell;
 
     // ISO date YYYY-MM-DDTHH:mm:ssZ
-    const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
+    const isoDateRegex =
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
     const match = cell.match(isoDateRegex);
 
     if (match) {
@@ -2443,7 +2713,7 @@ export class AppComponent implements OnInit, DoCheck {
       const minute = match[5];
       const second = match[6];
 
-      if (hour === '00' && minute === '00' && second === '00') {
+      if (hour === "00" && minute === "00" && second === "00") {
         return `${year}-${month}-${day}`;
       } else {
         return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
@@ -2459,7 +2729,8 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   toggleCsvColumn(tab: Tab, columnName: string) {
-    if (!tab.csvVisibleColumns) tab.csvVisibleColumns = [...(tab.csvHeader || [])];
+    if (!tab.csvVisibleColumns)
+      tab.csvVisibleColumns = [...(tab.csvHeader || [])];
 
     const index = tab.csvVisibleColumns.indexOf(columnName);
     if (index > -1) {
@@ -2497,7 +2768,7 @@ export class AppComponent implements OnInit, DoCheck {
       return;
     }
 
-    const terms = query.split(/\s+/).filter(t => t.length > 0);
+    const terms = query.split(/\s+/).filter((t) => t.length > 0);
     if (terms.length === 0) {
       tab.csvFilteredRows = undefined;
       return;
@@ -2505,28 +2776,32 @@ export class AppComponent implements OnInit, DoCheck {
 
     // Si el archivo es grande (> 5000 filas), mostramos loading para dar feedback visual
     const isLargeFile = tab.csvRows.length > 5000;
-    if (isLargeFile) this.appState.setGlobalLoading(true, "Filtrando registros...");
+    if (isLargeFile)
+      this.appState.setGlobalLoading(true, "Filtrando registros...");
 
     // Usamos micro-task para no bloquear el frame actual y permitir que el loading se pinte
-    setTimeout(() => {
-      try {
-        // OPTIMIZACIÓN: Usamos el cache pre-calculado si existe
-        if (tab.csvSearchCache && tab.csvRows) {
-          tab.csvFilteredRows = tab.csvRows.filter((_, index) => {
-            const rowContent = tab.csvSearchCache![index];
-            return terms.every(term => rowContent.includes(term));
-          });
-        } else {
-          // Fallback por si no se generó el cache
-          tab.csvFilteredRows = tab.csvRows!.filter(row => {
-            const rowContent = row.join(" ").toLowerCase();
-            return terms.every(term => rowContent.includes(term));
-          });
+    setTimeout(
+      () => {
+        try {
+          // OPTIMIZACIÓN: Usamos el cache pre-calculado si existe
+          if (tab.csvSearchCache && tab.csvRows) {
+            tab.csvFilteredRows = tab.csvRows.filter((_, index) => {
+              const rowContent = tab.csvSearchCache![index];
+              return terms.every((term) => rowContent.includes(term));
+            });
+          } else {
+            // Fallback por si no se generó el cache
+            tab.csvFilteredRows = tab.csvRows!.filter((row) => {
+              const rowContent = row.join(" ").toLowerCase();
+              return terms.every((term) => rowContent.includes(term));
+            });
+          }
+        } finally {
+          if (isLargeFile) this.appState.setGlobalLoading(false);
         }
-      } finally {
-        if (isLargeFile) this.appState.setGlobalLoading(false);
-      }
-    }, isLargeFile ? 100 : 0);
+      },
+      isLargeFile ? 100 : 0,
+    );
   }
 
   onTxtSearch(tab: Tab) {
@@ -2547,26 +2822,34 @@ export class AppComponent implements OnInit, DoCheck {
     }
 
     const isLargeFile = tab.txtLines.length > 1000;
-    if (isLargeFile) this.appState.setGlobalLoading(true, "Buscando en documento completo...");
+    if (isLargeFile)
+      this.appState.setGlobalLoading(true, "Buscando en documento completo...");
 
-    setTimeout(() => {
-      this.zone.run(() => {
-        try {
-          const filteredLines = tab.txtLines!.filter(line => line.toLowerCase().includes(query));
-          tab.txtTotalLines = filteredLines.length;
+    setTimeout(
+      () => {
+        this.zone.run(() => {
+          try {
+            const filteredLines = tab.txtLines!.filter((line) =>
+              line.toLowerCase().includes(query),
+            );
+            tab.txtTotalLines = filteredLines.length;
 
-          if (filteredLines.length > 1000) {
-            tab.txtIsTruncated = true;
-            tab.txtFilteredContent = filteredLines.slice(0, 1000).join("\n") + `\n\n--- [INFO] Se encontraron ${filteredLines.length} coincidencias. Mostrando solo las primeras 1000 para optimizar rendimiento. ---`;
-          } else {
-            tab.txtIsTruncated = false;
-            tab.txtFilteredContent = filteredLines.join("\n");
+            if (filteredLines.length > 1000) {
+              tab.txtIsTruncated = true;
+              tab.txtFilteredContent =
+                filteredLines.slice(0, 1000).join("\n") +
+                `\n\n--- [INFO] Se encontraron ${filteredLines.length} coincidencias. Mostrando solo las primeras 1000 para optimizar rendimiento. ---`;
+            } else {
+              tab.txtIsTruncated = false;
+              tab.txtFilteredContent = filteredLines.join("\n");
+            }
+          } finally {
+            if (isLargeFile) this.appState.setGlobalLoading(false);
           }
-        } finally {
-          if (isLargeFile) this.appState.setGlobalLoading(false);
-        }
-      });
-    }, isLargeFile ? 100 : 0);
+        });
+      },
+      isLargeFile ? 100 : 0,
+    );
   }
 
   /**
@@ -2597,7 +2880,7 @@ export class AppComponent implements OnInit, DoCheck {
           const trimmedVal = val.trim();
           if (trimmedVal === "") continue;
 
-          const cleanedVal = trimmedVal.replace(/,/g, '');
+          const cleanedVal = trimmedVal.replace(/,/g, "");
           const num = parseFloat(cleanedVal);
 
           if (isNaN(num)) {
@@ -2611,20 +2894,20 @@ export class AppComponent implements OnInit, DoCheck {
           this.showModal(
             "Análisis de Columna",
             `<span class="sub-text" style="margin-top: -15px;">Columna: <span style="color:#475569; font-weight:700">${columnName}</span></span><div style="margin-top: 25px; display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 0 10px;"><div class="custom-input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-exclamation-triangle"></i></span></div><div class="input-label">Estado del Análisis</div><div class="input-value error">Error de Formato</div></div><div style="padding: 10px; font-size: 0.82rem; color: #94a3b8; text-align: center; background: #fef2f2; border-radius: 8px; border: 1px solid #fee2e2;">La columna contiene datos no numéricos.</div></div>`,
-            "error"
+            "error",
           );
         } else {
-          const formattedTotal = new Intl.NumberFormat('es-VE', {
-            style: 'currency',
-            currency: 'VES'
+          const formattedTotal = new Intl.NumberFormat("es-VE", {
+            style: "currency",
+            currency: "VES",
           }).format(total);
 
           const count = rowsToProcess.length;
           this.showModal(
             `${columnName}`,
-            `<div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px; text-align: left; padding: 0 10px;"><div class="custom-input-group"><div class="input-group-prepend"></div><div class="input-label">Total Acumulado</div><div class="input-value success">${formattedTotal.replace('Bs.', 'Bs.')}</div></div><div class="custom-input-group"><div class="input-group-prepend"><br><br></div><div class="input-label">Registros Procesados</div><div class="input-value">${count.toLocaleString('es-VE')}</div></div></div>`,
+            `<div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px; text-align: left; padding: 0 10px;"><div class="custom-input-group"><div class="input-group-prepend"></div><div class="input-label">Total Acumulado</div><div class="input-value success">${formattedTotal.replace("Bs.", "Bs.")}</div></div><div class="custom-input-group"><div class="input-group-prepend"><br><br></div><div class="input-label">Registros Procesados</div><div class="input-value">${count.toLocaleString("es-VE")}</div></div></div>`,
             "info",
-            "fa-calculator"
+            "fa-calculator",
           );
         }
       } finally {
@@ -2635,9 +2918,11 @@ export class AppComponent implements OnInit, DoCheck {
 
   async closeTab(tabId: string, evt: Event) {
     evt.stopPropagation();
-    
+
     if (this.activeNativeWebviews[tabId]) {
-      console.log(`🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${tabId}`);
+      console.log(
+        `🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${tabId}`,
+      );
       try {
         await this.activeNativeWebviews[tabId].clearAllBrowsingData();
         await this.activeNativeWebviews[tabId].close();
@@ -2659,11 +2944,11 @@ export class AppComponent implements OnInit, DoCheck {
 
     // Intelligence for returning to previous context
     const tabs = this.appState.getTabsSnapshot();
-    const closingTab = tabs.find(t => t.id === tabId);
+    const closingTab = tabs.find((t) => t.id === tabId);
 
     if (closingTab && this.currentTabId === tabId) {
-      if (closingTab.source === 'MANUALS') {
-        this.appState.setActiveTab('secure-viewer');
+      if (closingTab.source === "MANUALS") {
+        this.appState.setActiveTab("secure-viewer");
       }
     }
 
@@ -2680,26 +2965,39 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   isCurrentTabExternalMode(): boolean {
-    return !!(this.currentTabId && this.activeNativeWebviews[this.currentTabId.toString()]);
+    return !!(
+      this.currentTabId &&
+      this.activeNativeWebviews[this.currentTabId.toString()]
+    );
   }
 
   isCurrentTabDynamic(): boolean {
-    const staticTabs = ['dashboard', 'connections', 'security', 'monitor', 'proyectos', 'apps', 'secure-viewer'];
-    return !!(this.currentTabId && !staticTabs.includes(this.currentTabId.toString()));
+    const staticTabs = [
+      "dashboard",
+      "connections",
+      "security",
+      "monitor",
+      "proyectos",
+      "apps",
+      "secure-viewer",
+    ];
+    return !!(
+      this.currentTabId && !staticTabs.includes(this.currentTabId.toString())
+    );
   }
 
   setupResizeObserver(placeholder: HTMLElement) {
     if (this.activePlaceholderId === placeholder.id) return;
-    
+
     this.disconnectResizeObserver();
-    
+
     this.activePlaceholderId = placeholder.id;
     this.resizeObserver = new ResizeObserver(() => {
       this.zone.run(() => {
         this.syncNativeWebviews();
       });
     });
-    
+
     this.resizeObserver.observe(placeholder);
   }
 
@@ -2739,9 +3037,13 @@ export class AppComponent implements OnInit, DoCheck {
 
       // Limpiar webview nativo si existe
       if (this.activeNativeWebviews[this.tabIdToClose]) {
-        console.log(`🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${this.tabIdToClose}`);
+        console.log(
+          `🗑️ [Native Webview] Limpiando cache y destruyendo webview para: ${this.tabIdToClose}`,
+        );
         try {
-          await this.activeNativeWebviews[this.tabIdToClose].clearAllBrowsingData();
+          await this.activeNativeWebviews[
+            this.tabIdToClose
+          ].clearAllBrowsingData();
           await this.activeNativeWebviews[this.tabIdToClose].close();
         } catch (e) {
           console.error("Error al cerrar/limpiar webview nativo:", e);
@@ -2751,10 +3053,10 @@ export class AppComponent implements OnInit, DoCheck {
 
       // Intelligence for returning to previous context
       const tabs = this.appState.getTabsSnapshot();
-      const closingTab = tabs.find(t => t.id === this.tabIdToClose);
+      const closingTab = tabs.find((t) => t.id === this.tabIdToClose);
       if (closingTab && this.currentTabId === this.tabIdToClose) {
-        if (closingTab.source === 'MANUALS') {
-          this.appState.setActiveTab('secure-viewer');
+        if (closingTab.source === "MANUALS") {
+          this.appState.setActiveTab("secure-viewer");
         }
       }
 
@@ -2850,35 +3152,62 @@ export class AppComponent implements OnInit, DoCheck {
 
       // 3. Notificar Tareas Finalizadas (Si existen para esta APP)
       const tasks = this.appState.getTasksSnapshot();
-      const completedTasks = tasks.filter(t => t.appId === tabId && t.status === 'finalizado');
+      const completedTasks = tasks.filter(
+        (t) => t.appId === tabId && t.status === "finalizado",
+      );
 
-      completedTasks.forEach(task => {
-        console.log(`[PostMessage] Re-enviando finalización de tarea ${task.id} a ${tabId}`);
-        iframe.contentWindow!.postMessage({
-          type: "EXEC_FNX_FINALIZADO",
-          payload: {
-            appId: task.appId,
-            taskId: task.id,
-            data: task.logs?.join("\n") || task.payload
-          }
-        }, targetOrigin);
+      completedTasks.forEach((task) => {
+        console.log(
+          `[PostMessage] Re-enviando finalización de tarea ${task.id} a ${tabId}`,
+        );
+        iframe.contentWindow!.postMessage(
+          {
+            type: "EXEC_FNX_FINALIZADO",
+            payload: {
+              appId: task.appId,
+              taskId: task.id,
+              data: task.logs?.join("\n") || task.payload,
+            },
+          },
+          targetOrigin,
+        );
       });
     }
   }
   private async setupBackgroundTaskListener() {
-    this.backgroundTaskUnlisten = await listen("background-task-event", (event: any) => {
-      this.zone.run(() => {
-        const payload = event.payload;
-        if (payload.type === "exec-fnx" && (payload.from === "system" || payload.from === "Ejecución de Función" || !payload.from)) {
-          this.handleExecFnxTask(payload);
-        }
-      });
-    });
+    this.backgroundTaskUnlisten = await listen(
+      "background-task-event",
+      (event: any) => {
+        this.zone.run(() => {
+          const payload = event.payload;
+          if (
+            payload.type === "exec-fnx" &&
+            (payload.from === "system" ||
+              payload.from === "Ejecución de Función" ||
+              !payload.from)
+          ) {
+            this.handleExecFnxTask(payload);
+          }
+          if (
+            payload.type === "exec-fnx-track" &&
+            (payload.from === "system" ||
+              payload.from === "Ejecución de Función" ||
+              !payload.from)
+          ) {
+            this.handleExecFnxTaskTrack(payload);
+          }
+        });
+      },
+    );
   }
 
   private handleExecFnxTask(payload: any) {
     const taskId = payload.id || payload.appId || "unknown-task";
-    const status = payload.status as "pending" | "running" | "finalizado" | "error";
+    const status = payload.status as
+      | "pending"
+      | "running"
+      | "finalizado"
+      | "error";
 
     const task: BackgroundTask = {
       id: taskId,
@@ -2898,13 +3227,14 @@ export class AppComponent implements OnInit, DoCheck {
     // Si está finalizado, notificar a la app hija
 
     if (status === "finalizado") {
-
-
       // Recuperar la tarea completa con todos los logs acumulados
-      const fullTask = this.appState.getTasksSnapshot().find(t => t.id === taskId);
+      const fullTask = this.appState
+        .getTasksSnapshot()
+        .find((t) => t.id === taskId);
       // Si el backend envía el bloque final en payload.payload (o message), lo usamos.
       // Si no, recurrimos a los logs acumulados.
-      const accumulatedLogs = payload.payload || payload.message || fullTask?.logs?.join("\n");
+      const accumulatedLogs =
+        payload.payload || payload.message || fullTask?.logs?.join("\n");
 
       this.notifyExecFnxCompletion(payload, accumulatedLogs);
 
@@ -2912,6 +3242,44 @@ export class AppComponent implements OnInit, DoCheck {
       setTimeout(() => {
         this.appState.removeTask(taskId);
       }, 5000);
+    }
+  }
+
+  private handleExecFnxTaskTrack(payload: any) {
+    const taskId = payload.id || payload.appId || "unknown-task";
+    const status = payload.status as
+      | "pending"
+      | "running"
+      | "finalizado"
+      | "error";
+
+    const task: BackgroundTask = {
+      id: taskId,
+      appId: payload.appId,
+      title: payload.title || "Ejecución de Tarea",
+      status: status,
+      progress: payload.progress ?? 0,
+      message: payload.message,
+      payload: payload.payload,
+      timestamp: new Date(),
+      type: payload.type,
+    };
+
+    this.appState.addTask(task);
+    this.appState.updateTask(taskId, task);
+
+    if (status === "finalizado") {
+      const fullTask = this.appState
+        .getTasksSnapshot()
+        .find((t) => t.id === taskId);
+      const accumulatedLogs =
+        payload.payload || payload.message || fullTask?.logs?.join("\n");
+
+      this.notifyExecFnxCompletion(payload, accumulatedLogs);
+
+      setTimeout(() => {
+        this.appState.removeTask(taskId);
+      }, 2000);
     }
   }
 
@@ -2923,7 +3291,11 @@ export class AppComponent implements OnInit, DoCheck {
 
     // Resolver la pestaña correcta comparando tanto appId de texto como el id numérico
     const tabs = this.appState.getTabsSnapshot();
-    const tab = tabs.find(t => t.appId?.toLowerCase() === normalizedId || t.id?.toString().toLowerCase() === normalizedId);
+    const tab = tabs.find(
+      (t) =>
+        t.appId?.toLowerCase() === normalizedId ||
+        t.id?.toString().toLowerCase() === normalizedId,
+    );
     const resolvedTabId = tab ? tab.id : appId;
 
     const port = this.authPorts.get(resolvedTabId.toString().toLowerCase());
@@ -2933,11 +3305,13 @@ export class AppComponent implements OnInit, DoCheck {
         appId: appId,
         taskId: payload.id,
         data: data,
-      }
+      },
     };
 
     if (port) {
-      console.log(`🔌 [Bridge] Re-enviando EXEC_FNX_FINALIZADO vía MessagePort para Tab: ${resolvedTabId}`);
+      console.log(
+        `🔌 [Bridge] Re-enviando EXEC_FNX_FINALIZADO vía MessagePort para Tab: ${resolvedTabId}`,
+      );
       port.postMessage(completionMsg);
     } else {
       // Buscar el iframe usando el ID numérico correcto del Tab
@@ -2947,11 +3321,15 @@ export class AppComponent implements OnInit, DoCheck {
         document.getElementById(iframeExtId)) as HTMLIFrameElement;
 
       if (iframe && iframe.contentWindow) {
-        console.log(`📡 [Bridge] Re-enviando EXEC_FNX_FINALIZADO vía IFrame postMessage para Tab: ${resolvedTabId}`);
+        console.log(
+          `📡 [Bridge] Re-enviando EXEC_FNX_FINALIZADO vía IFrame postMessage para Tab: ${resolvedTabId}`,
+        );
         iframe.contentWindow.postMessage(completionMsg, "*");
       } else {
         // Fallback a broadcast global (menos recomendado pero útil como último recurso)
-        console.warn(`⚠️ [Bridge] IFrame no encontrado para ${resolvedTabId}. Usando fallback postMessage.`);
+        console.warn(
+          `⚠️ [Bridge] IFrame no encontrado para ${resolvedTabId}. Usando fallback postMessage.`,
+        );
         window.postMessage(completionMsg, "*");
       }
     }
@@ -2974,22 +3352,22 @@ export class AppComponent implements OnInit, DoCheck {
     const task: BackgroundTask = {
       id: taskId,
       title: `Descarga: ${data.id}`,
-      status: 'running',
+      status: "running",
       progress: 0,
-      message: 'Iniciando conexión segura...',
+      message: "Iniciando conexión segura...",
       timestamp: new Date(),
     };
 
     this.appState.addHttpTask(task);
 
     // Escuchar progreso desde Rust (Canal dedicado HTTP)
-    const unlisten = await listen('secure-download-progress', (event: any) => {
+    const unlisten = await listen("secure-download-progress", (event: any) => {
       if (event.payload.id === taskId) {
         this.zone.run(() => {
           this.appState.updateHttpTask(taskId, {
             progress: event.payload.progress,
             message: event.payload.message,
-            status: event.payload.status
+            status: event.payload.status,
           });
         });
       }
@@ -3002,7 +3380,7 @@ export class AppComponent implements OnInit, DoCheck {
         ip: this.activeConnection.ip_address,
         port: Number(this.activeConnection.port),
         hash: this.activeConnection.hash || "",
-        tempAuthToken: this.activeConnection.jwt || null
+        tempAuthToken: this.activeConnection.jwt || null,
       });
 
       this.snapService.show("Descarga Finalizada", undefined, "success");
@@ -3010,21 +3388,35 @@ export class AppComponent implements OnInit, DoCheck {
 
       // Notificar a la app hija si es necesario
       this.notifyDownloadCompletion(data, resultPath, tabIdInitiated);
-
     } catch (error: any) {
       console.error("Error en descarga segura:", error);
       this.appState.updateHttpTask(taskId, {
-        status: 'error',
-        message: typeof error === 'string' ? error : (error.message || "Error desconocido")
+        status: "error",
+        message:
+          typeof error === "string"
+            ? error
+            : error.message || "Error desconocido",
       });
-      this.showModal("Error de Descarga", typeof error === 'string' ? error : "Ocurrió un error al procesar la descarga.");
+      this.showModal(
+        "Error de Descarga",
+        typeof error === "string"
+          ? error
+          : "Ocurrió un error al procesar la descarga.",
+      );
     } finally {
       unlisten();
     }
   }
 
-  private notifyDownloadCompletion(originalData: any, path: string, tabIdInitiated?: any) {
-    const appId = tabIdInitiated !== undefined && tabIdInitiated !== null ? tabIdInitiated : originalData.id;
+  private notifyDownloadCompletion(
+    originalData: any,
+    path: string,
+    tabIdInitiated?: any,
+  ) {
+    const appId =
+      tabIdInitiated !== undefined && tabIdInitiated !== null
+        ? tabIdInitiated
+        : originalData.id;
     if (appId === undefined || appId === null) return;
 
     const normalizedId = String(appId).toLowerCase();
@@ -3034,54 +3426,64 @@ export class AppComponent implements OnInit, DoCheck {
       payload: {
         id_nomina: originalData.id_nomina || originalData.id,
         trackingId: originalData.trackingId,
-        path: path
-      }
+        path: path,
+      },
     };
 
     if (port) {
-      console.log(`🔌 [Bridge] Re-enviando DOWNLOAD_FINISHED vía MessagePort para Tab: ${appId}`);
+      console.log(
+        `🔌 [Bridge] Re-enviando DOWNLOAD_FINISHED vía MessagePort para Tab: ${appId}`,
+      );
       port.postMessage(completionMsg);
     } else {
       const iframeId = "iframe-" + appId;
       const iframe = document.getElementById(iframeId) as HTMLIFrameElement;
       if (iframe && iframe.contentWindow) {
-        console.log(`📡 [Bridge] Re-enviando DOWNLOAD_FINISHED vía IFrame postMessage para Tab: ${appId}`);
+        console.log(
+          `📡 [Bridge] Re-enviando DOWNLOAD_FINISHED vía IFrame postMessage para Tab: ${appId}`,
+        );
         iframe.contentWindow.postMessage(completionMsg, "*");
       } else {
-        console.warn(`⚠️ [Bridge] IFrame no encontrado para DOWNLOAD_FINISHED: ${iframeId}. Re-enviando vía broadcast global.`);
+        console.warn(
+          `⚠️ [Bridge] IFrame no encontrado para DOWNLOAD_FINISHED: ${iframeId}. Re-enviando vía broadcast global.`,
+        );
         window.postMessage(completionMsg, "*");
       }
     }
   }
 
   isAnyOverlayVisible(): boolean {
-    return this.showLoginModal ||
-           (this.installModal && this.installModal.show) ||
-           (this.confirmModal && this.confirmModal.show) ||
-           this.showDbModal ||
-           (this.genericModal && this.genericModal.show) ||
-           (this.exitModal && this.exitModal.show) ||
-           (this.questionModal && this.questionModal.show) ||
-           this.showJwtSetupModal ||
-           this.showControlPanel ||
-           this.isChatOpen ||
-           this.showUnlockTabModal ||
-           this.showSaveLogModal ||
-           this.showSetupWizard;
+    return (
+      this.showLoginModal ||
+      (this.installModal && this.installModal.show) ||
+      (this.confirmModal && this.confirmModal.show) ||
+      this.showDbModal ||
+      (this.genericModal && this.genericModal.show) ||
+      (this.exitModal && this.exitModal.show) ||
+      (this.questionModal && this.questionModal.show) ||
+      this.showJwtSetupModal ||
+      this.showControlPanel ||
+      this.isChatOpen ||
+      this.showUnlockTabModal ||
+      this.showSaveLogModal ||
+      this.showSetupWizard
+    );
   }
 
   ngDoCheck() {
     const overlayState = this.isAnyOverlayVisible();
     if (overlayState !== this.lastOverlayState) {
       this.lastOverlayState = overlayState;
-      console.log(`👁️ [Overlay State] Cambió a: ${overlayState ? 'Visible' : 'Oculto'}. Sincronizando webviews...`);
+      console.log(
+        `👁️ [Overlay State] Cambió a: ${overlayState ? "Visible" : "Oculto"}. Sincronizando webviews...`,
+      );
       // Retraso mínimo para asegurar que los elementos del DOM estén estables antes de sincronizar
       setTimeout(() => this.syncNativeWebviews(), 50);
     }
   }
 
   syncNativeWebviews() {
-    const isMac = window.navigator.userAgent.includes('Mac');
+    const isMac = window.navigator.userAgent.includes("Mac");
     const dpr = window.devicePixelRatio || 1;
     // Usamos LogicalSize y LogicalPosition que esperan píxeles lógicos.
     // Tauri maneja la escala DPR automáticamente a nivel nativo en todas las plataformas,
@@ -3089,14 +3491,19 @@ export class AppComponent implements OnInit, DoCheck {
     const scaleFactor = 1;
     const hasOverlay = this.isAnyOverlayVisible();
 
-    console.log(`🔄 [Native Webview] Sincronizando... currentTabId: ${this.currentTabId} | Overlays: ${hasOverlay} | OS: ${isMac ? 'macOS' : 'Otros'} | DPR: ${dpr} | Factor Escala: ${scaleFactor}`);
+    // console.log(
+    //   `🔄 [Native Webview] Sincronizando... currentTabId: ${this.currentTabId} | Overlays: ${hasOverlay} | OS: ${isMac ? "macOS" : "Otros"} | DPR: ${dpr} | Factor Escala: ${scaleFactor}`,
+    // );
 
     Object.keys(this.activeNativeWebviews).forEach((tabId) => {
       const webview = this.activeNativeWebviews[tabId];
       if (!webview) return;
 
       // El webview solo es visible si es la pestaña activa y NO hay ningún modal u overlay abierto
-      const isVisible = this.currentTabId && this.currentTabId.toString() === tabId && !hasOverlay;
+      const isVisible =
+        this.currentTabId &&
+        this.currentTabId.toString() === tabId &&
+        !hasOverlay;
 
       if (isVisible) {
         const placeholderId = `webview-placeholder-${tabId}`;
@@ -3105,35 +3512,43 @@ export class AppComponent implements OnInit, DoCheck {
           this.setupResizeObserver(placeholder);
 
           const rect = placeholder.getBoundingClientRect();
-          
+
           if (rect.width > 0 && rect.height > 0) {
-            import('@tauri-apps/api/dpi').then(({ LogicalSize, LogicalPosition }) => {
-              // Para Native Webview, ignoramos banners (quedan por debajo del renderizado nativo de Tauri)
-              // Ajustamos la posición +26px para bajarlo al punto ideal
-              const adjustedTop = Math.floor(rect.top) + 29;
-              
-              // Medición ultra-segura para llegar hasta el borde inferior y completar dimensiones
-              const heightFromWindow = window.innerHeight - adjustedTop;
-              const adjustedHeight = heightFromWindow + 30; // Extra padding para completar el bottom
+            import("@tauri-apps/api/dpi").then(
+              ({ LogicalSize, LogicalPosition }) => {
+                // Para Native Webview, ignoramos banners (quedan por debajo del renderizado nativo de Tauri)
+                // Ajustamos la posición +26px para bajarlo al punto ideal
+                const adjustedTop = Math.floor(rect.top) + 29;
 
-              const targetWidth = Math.ceil(rect.width * scaleFactor) + 15; // Extra padding para completar el ancho
-              const targetHeight = Math.ceil(adjustedHeight * scaleFactor);
-              const targetX = Math.floor(rect.left * scaleFactor);
-              const targetY = Math.floor(adjustedTop * scaleFactor);
+                // Medición ultra-segura para llegar hasta el borde inferior y completar dimensiones
+                const heightFromWindow = window.innerHeight - adjustedTop;
+                const adjustedHeight = heightFromWindow + 30; // Extra padding para completar el bottom
 
-              console.log(`  📐 Medidas Angular: ${rect.width}x${rect.height} en (${rect.left}, ${rect.top})`);
-              console.log(`  🚀 Enviando a Tauri: ${targetWidth}x${targetHeight} en (${targetX}, ${targetY})`);
+                const targetWidth = Math.ceil(rect.width * scaleFactor) + 15; // Extra padding para completar el ancho
+                const targetHeight = Math.ceil(adjustedHeight * scaleFactor);
+                const targetX = Math.floor(rect.left * scaleFactor);
+                const targetY = Math.floor(adjustedTop * scaleFactor);
 
-              webview.setSize(new LogicalSize(targetWidth, targetHeight))
-                .catch(e => console.error("Error setSize:", e));
-              
-              webview.setPosition(new LogicalPosition(targetX, targetY))
-                .catch(e => console.error("Error setPosition:", e));
-              
-              webview.show().catch(e => console.error("Error show:", e));
-            });
+                console.log(
+                  `  📐 Medidas Angular: ${rect.width}x${rect.height} en (${rect.left}, ${rect.top})`,
+                );
+                console.log(
+                  `  🚀 Enviando a Tauri: ${targetWidth}x${targetHeight} en (${targetX}, ${targetY})`,
+                );
+
+                webview
+                  .setSize(new LogicalSize(targetWidth, targetHeight))
+                  .catch((e) => console.error("Error setSize:", e));
+
+                webview
+                  .setPosition(new LogicalPosition(targetX, targetY))
+                  .catch((e) => console.error("Error setPosition:", e));
+
+                webview.show().catch((e) => console.error("Error show:", e));
+              },
+            );
           } else {
-             webview.hide();
+            webview.hide();
           }
         } else {
           this.disconnectResizeObserver();
@@ -3149,37 +3564,45 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   openQuickDiagnostics(tab: any) {
-    console.log("🔍 Quick diagnostics requested for tab:", tab);
-    
+    // console.log("🔍 Quick diagnostics requested for tab:", tab);
+
     // 1. Mostrar el panel de configuración
     this.showControlPanel = true;
     this.loadNetwork();
-    
+
     // 2. Esperar a que se renderice el componente e invocar el test
     setTimeout(async () => {
       if (this.configComponent) {
-        this.configComponent.activeConfigTab = 'network';
-        
+        this.configComponent.activeConfigTab = "network";
+
         let target = tab.url;
-        if (target && typeof target === 'object' && (target as any).changingThisBreaksApplicationSecurity) {
+        if (
+          target &&
+          typeof target === "object" &&
+          (target as any).changingThisBreaksApplicationSecurity
+        ) {
           target = (target as any).changingThisBreaksApplicationSecurity;
         }
-        
-        if (target && typeof target === 'string') {
-          if (target.includes('/bypass-proxy/') || target.includes('localhost/pace/')) {
-            this.configComponent.diagnosticsTargetUrl = 'http://pace.ipsfa.gob.ve:8080/pace/';
+
+        if (target && typeof target === "string") {
+          if (
+            target.includes("/bypass-proxy/") ||
+            target.includes("localhost/pace/")
+          ) {
+            this.configComponent.diagnosticsTargetUrl =
+              "http://pace.ipsfa.gob.ve:8080/pace/";
           } else {
             this.configComponent.diagnosticsTargetUrl = target;
           }
         }
-        
+
         await this.configComponent.testNetworkConnection();
       }
     }, 150);
   }
 
   async handleIdentityUpdate() {
-    console.log("🔄 [App] Actualizando identidad del sistema...");
+    // console.log("🔄 [App] Actualizando identidad del sistema...");
     try {
       const setupStatus = await invoke<any>("get_setup_status");
       if (setupStatus.machine_name) {
@@ -3199,17 +3622,35 @@ export class AppComponent implements OnInit, DoCheck {
       }
 
       if (this.activeConnection) {
-        this.snapService.show("Identidad Actualizada", { clientX: window.innerWidth / 2, clientY: 50 } as any, "info", "fa-sync");
-        await this.sdcService.disconnectFromServer(this.activeConnection, this.clientId);
-        this.zone.run(() => {
-          this.performLocalLogout();
+        this.snapService.show(
+          "Identidad Actualizada",
+          { clientX: window.innerWidth / 2, clientY: 50 } as any,
+          "info",
+          "fa-sync",
+        );
+        await this.sdcService.disconnectFromServer(
+          this.activeConnection,
+          this.clientId,
+        );
+        await this.zone.run(async () => {
+          await this.performLocalLogout();
         });
         await this.loadConnections();
         setTimeout(() => {
-          this.snapService.show("Por favor, reconecte para aplicar los cambios", { clientX: window.innerWidth / 2, clientY: 50 } as any, "warning", "fa-plug");
+          this.snapService.show(
+            "Por favor, reconecte para aplicar los cambios",
+            { clientX: window.innerWidth / 2, clientY: 50 } as any,
+            "warning",
+            "fa-plug",
+          );
         }, 1500);
       } else {
-        this.snapService.show("Identidad Actualizada", { clientX: window.innerWidth / 2, clientY: 50 } as any, "success", "fa-check");
+        this.snapService.show(
+          "Identidad Actualizada",
+          { clientX: window.innerWidth / 2, clientY: 50 } as any,
+          "success",
+          "fa-check",
+        );
       }
     } catch (e) {
       console.error("Error al refrescar identidad", e);
@@ -3225,9 +3666,9 @@ export class AppComponent implements OnInit, DoCheck {
         this.zone.run(() => {
           this.showMachinePopover = false;
         });
-        document.removeEventListener('click', closePopover);
+        document.removeEventListener("click", closePopover);
       };
-      setTimeout(() => document.addEventListener('click', closePopover), 0);
+      setTimeout(() => document.addEventListener("click", closePopover), 0);
     }
   }
 
@@ -3236,14 +3677,16 @@ export class AppComponent implements OnInit, DoCheck {
     if (this.jwtTimerInterval) {
       clearInterval(this.jwtTimerInterval);
     }
-    
+
     this.jwtTimerInterval = setInterval(() => {
       this.zone.run(() => {
         const token = this.getJwtToken();
-        
+
         // Si teníamos un usuario de sesión pero ya no hay token válido, la sesión ha expirado
         if (this.sessionUsername && !token) {
-          console.warn("🔐 [System] Sesión expirada detectada (teníamos usuario pero no hay token válido). Cerrando sesión...");
+          // console.warn(
+          //   "🔐 [System] Sesión expirada detectada (teníamos usuario pero no hay token válido). Cerrando sesión...",
+          // );
           this.handleSessionExpiration();
           return;
         }
@@ -3254,9 +3697,11 @@ export class AppComponent implements OnInit, DoCheck {
             if (payload) {
               // Username and Extracted Details
               if (payload.Usuario) {
-                this.sessionUsername = payload.Usuario.usuario || payload.sub || payload.name || "";
+                this.sessionUsername =
+                  payload.Usuario.usuario || payload.sub || payload.name || "";
                 this.jwtNombre = payload.Usuario.nombre || this.sessionUsername;
-                this.jwtCargo = payload.Usuario.cargo || payload.Usuario.Perfil?.nombre || "";
+                this.jwtCargo =
+                  payload.Usuario.cargo || payload.Usuario.Perfil?.nombre || "";
                 this.jwtDescripcion = payload.Usuario.descripcion || "";
               } else if (payload.sub || payload.name) {
                 this.sessionUsername = payload.sub || payload.name;
@@ -3267,36 +3712,50 @@ export class AppComponent implements OnInit, DoCheck {
               let expTime = 0;
               if (payload.exp) {
                 expTime = payload.exp * 1000;
-              } else if (payload.FirmaDigital?.tiempo && payload.FirmaDigital?.duracion) {
+              } else if (
+                payload.FirmaDigital?.tiempo &&
+                payload.FirmaDigital?.duracion
+              ) {
                 const start = new Date(payload.FirmaDigital.tiempo).getTime();
-                expTime = start + (payload.FirmaDigital.duracion * 60 * 1000); // asumiendo que duracion son minutos, el exp deberia venir
+                expTime = start + payload.FirmaDigital.duracion * 60 * 1000; // asumiendo que duracion son minutos, el exp deberia venir
               }
 
               if (expTime > 0) {
                 const now = Date.now();
                 const diffSeconds = Math.floor((expTime - now) / 1000);
-                
+
                 if (diffSeconds > 0) {
                   this.sessionSecondsLeft = diffSeconds;
                   const h = Math.floor(diffSeconds / 3600);
                   const m = Math.floor((diffSeconds % 3600) / 60);
                   const s = diffSeconds % 60;
-                  
+
                   if (h > 0) {
-                    this.sessionTimeRemaining = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    this.sessionTimeRemaining = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
                   } else {
-                    this.sessionTimeRemaining = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    this.sessionTimeRemaining = `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
                   }
-                  
+
                   // Notificación de advertencia 5 segundos antes
-                  if (diffSeconds <= 5 && diffSeconds > 0 && !this.jwtWarningShown) {
+                  if (
+                    diffSeconds <= 5 &&
+                    diffSeconds > 0 &&
+                    !this.jwtWarningShown
+                  ) {
                     this.jwtWarningShown = true;
-                    this.snapService.show(`La sesión expirará en ${diffSeconds} segundos`, undefined, "warning", "fa-clock");
+                    this.snapService.show(
+                      `La sesión expirará en ${diffSeconds} segundos`,
+                      undefined,
+                      "warning",
+                      "fa-clock",
+                    );
                   }
                 } else {
                   this.sessionTimeRemaining = "00:00";
                   this.sessionSecondsLeft = 0;
-                  console.warn("🔐 [System] Tiempo de token agotado en contador. Cerrando sesión...");
+                  // console.warn(
+                  //   "🔐 [System] Tiempo de token agotado en contador. Cerrando sesión...",
+                  // );
                   this.handleSessionExpiration();
                 }
               }

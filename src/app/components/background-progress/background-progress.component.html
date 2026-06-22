@@ -21,7 +21,7 @@
                         <button class="btn-sm-action" (click)="toggleExpand(task)" [title]="task.isExpanded ? 'Ver menos' : 'Ver detalle'">
                             <i class="fas" [class.fa-chevron-down]="!task.isExpanded" [class.fa-chevron-up]="task.isExpanded"></i>
                         </button>
-                        <button class="btn-mailbox" (click)="goToMailbox()" title="Ver en Buzón">
+                        <button class="btn-mailbox" *ngIf="task.type !== 'exec-fnx-track'" (click)="goToMailbox()" title="Ver en Buzón">
                             <i class="fas fa-envelope-open-text"></i> Buzón
                         </button>
                     </div>

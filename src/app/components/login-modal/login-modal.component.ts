@@ -53,10 +53,10 @@ export class LoginModalComponent implements OnInit {
 
   @ViewChild("otp0") otp0!: ElementRef;
 
-  constructor(private utils: UtilsService) { }
+  constructor(private utils: UtilsService) {}
 
   ngOnInit() {
-    console.log("🛠️ [LoginModal] Componente inicializado. IP:", this.ipAddress, "Port:", this.port);
+    // console.log("🛠️ [LoginModal] Componente inicializado. IP:", this.ipAddress, "Port:", this.port);
     this.showModal = true;
     if (this.connections && this.connections.length > 0) {
       this.showConnectionSelector = true;
@@ -119,8 +119,12 @@ export class LoginModalComponent implements OnInit {
           const payload: ISandraJwtPayload = this.utils.decodeJwt(token);
           const usuarioData = payload?.Usuario;
           // Si el JWT contiene un atributo 'token' no vacío en el objeto Usuario, significa que el login requiere 2FA
-          console.log("Decoded Usuario Data:", usuarioData);
-          if (usuarioData && usuarioData.token && String(usuarioData.token).trim() !== "") {
+          // console.log("Decoded Usuario Data:", usuarioData);
+          if (
+            usuarioData &&
+            usuarioData.token &&
+            String(usuarioData.token).trim() !== ""
+          ) {
             totpRequired = true;
           }
         } catch (e) {
@@ -145,7 +149,7 @@ export class LoginModalComponent implements OnInit {
         throw new Error(response.message || "Login failed");
       }
     } catch (err: any) {
-      console.error("Login error (Tauri API)", err);
+      // console.error("Login error (Tauri API)", err);
       this.verifying = false;
       this.loading = false;
       const msg = this.extractErrorMessage(
@@ -164,7 +168,7 @@ export class LoginModalComponent implements OnInit {
           const parsed = JSON.parse(match[0]);
           if (parsed && parsed.msj) return parsed.msj;
         }
-      } catch (e) { }
+      } catch (e) {}
     }
     return fallbackStr;
   }
@@ -191,7 +195,7 @@ export class LoginModalComponent implements OnInit {
 
       let currentHash = localStorage.getItem("sdc_ui_config")
         ? JSON.parse(localStorage.getItem("sdc_ui_config")!).connection_hash ||
-        ""
+          ""
         : "";
       if (!currentHash) {
         currentHash = await invoke("get_hash_preview", {
@@ -250,16 +254,19 @@ export class LoginModalComponent implements OnInit {
       const login = usuarioData?.usuario || payload?.sid || this.usuario;
 
       // 2. Actualizar active_connection en localStorage con el nuevo perfil y JWT
-      const storedConn = localStorage.getItem('active_connection');
+      const storedConn = localStorage.getItem("active_connection");
       if (storedConn) {
         try {
           const conn = JSON.parse(storedConn);
           // Actualizar estrictamente solo el campo username con el login obtenido
           conn.username = login;
-          localStorage.setItem('active_connection', JSON.stringify(conn));
-          console.log("✅ [Login] active_connection actualizada con username:", login);
+          localStorage.setItem("active_connection", JSON.stringify(conn));
+          // console.log("✅ [Login] active_connection actualizada con username:", login);
         } catch (e) {
-          console.warn("[Login] Error actualizando active_connection persistida", e);
+          console.warn(
+            "[Login] Error actualizando active_connection persistida",
+            e,
+          );
         }
       }
 
@@ -292,9 +299,12 @@ export class LoginModalComponent implements OnInit {
         hash: currentHash,
         tempAuthToken: token,
       });
-      console.log("MAC Address updated successfully");
+      // console.log("MAC Address updated successfully");
     } catch (err) {
-      console.error("Error updating MAC address during login success phase:", err);
+      console.error(
+        "Error updating MAC address during login success phase:",
+        err,
+      );
     }
 
     // Sync to SQLite (Connections table)
@@ -366,5 +376,4 @@ export class LoginModalComponent implements OnInit {
     inputs.forEach((input) => (val += input.value));
     return val;
   }
-
 }

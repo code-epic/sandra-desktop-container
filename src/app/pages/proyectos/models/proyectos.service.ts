@@ -33,12 +33,47 @@ export class ProyectosService {
    */
   async cargarDatos(rutaJson: string = 'assets/data/project.json'): Promise<void> {
     try {
-      const data = await this.http.get<SistemaProyectoJSON>(rutaJson).toPromise();
+      const data = await this.http.get<any>(rutaJson).toPromise();
+      if (data) {
+        this.normalizarDatos(data);
+      }
       this.sistemaData = data || null;
       this.sistemaSubject.next(this.sistemaData);
     } catch (error) {
       console.error('Error cargando datos de proyectos:', error);
       throw error;
+    }
+  }
+
+  private normalizarDatos(data: any): void {
+    if (!data) return;
+    data.fechaGeneracion = data.fechaGeneracion || data.fecha_generacion;
+    data.totalFuncionalidades = data.totalFuncionalidades || data.total_funcionalidades;
+    data.appsDisponibles = data.appsDisponibles || data.apps_disponibles;
+
+    if (data.modulos && Array.isArray(data.modulos)) {
+      for (const modulo of data.modulos) {
+        modulo.appId = modulo.appId || modulo.app_id;
+        modulo.totalSubmodulos = modulo.totalSubmodulos || modulo.total_submodulos;
+        modulo.totalFuncionalidades = modulo.totalFuncionalidades || modulo.total_funcionalidades;
+
+        if (modulo.submodulos && Array.isArray(modulo.submodulos)) {
+          for (const submodulo of modulo.submodulos) {
+            submodulo.appId = submodulo.appId || submodulo.app_id;
+            submodulo.totalFuncionalidades = submodulo.totalFuncionalidades || submodulo.total_funcionalidades;
+
+            if (submodulo.funcionalidades && Array.isArray(submodulo.funcionalidades)) {
+              for (const func of submodulo.funcionalidades) {
+                func.appId = func.appId || func.app_id;
+                func.camposExistentes = func.camposExistentes || func.campos_existentes || '';
+                func.descripcion = func.descripcion || '';
+                func.fechaDesde = func.fechaDesde || func.fecha_desde;
+                func.fechaHasta = func.fechaHasta || func.fecha_hasta;
+              }
+            }
+          }
+        }
+      }
     }
   }
   
@@ -290,13 +325,15 @@ export class ProyectosService {
     // Generar ID único
     const id = `${nueva.modulo}-${nueva.submodulo}-${submodulo.funcionalidades.length + 1}`.replace(/\s+/g, '');
     
-    const nuevaFuncionalidad: FuncionalidadJSON = {
+    const nuevaFuncionalidad: any = {
       id,
       appId: modulo.appId,
+      app_id: modulo.appId,
       modulo: nueva.modulo,
       submodulo: nueva.submodulo,
       descripcion: nueva.descripcion,
       camposExistentes: '',
+      campos_existentes: '',
       dev: '-',
       qa: '-',
       pro: '-',
@@ -305,7 +342,7 @@ export class ProyectosService {
       fecha: new Date().toISOString().split('T')[0],
       estado: false,
       ...nueva
-    } as FuncionalidadJSON;
+    };
 
     submodulo.funcionalidades.push(nuevaFuncionalidad);
     submodulo.totalFuncionalidades++;
