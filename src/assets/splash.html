@@ -267,19 +267,33 @@
             console.log("Sandra: High Performance Mode Active (User Preference: " + savedPerfMode.toUpperCase() + ")");
         }
 
-        // Set dynamic date
+        // Set dynamic date (fallback)
         const dateElement = document.getElementById('buildDate');
         const now = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         dateElement.textContent = "Compilación: " + now.toLocaleDateString('es-ES', options);
 
-        // Tauri Event Listener to update status
+        // Tauri Event Listener to update status and build info
         if (window.__TAURI__) {
             const { listen, emit } = window.__TAURI__.event;
+            const { invoke } = window.__TAURI__.core;
             const statusText = document.getElementById('statusText');
             
             listen('splash-status', (event) => {
                 statusText.textContent = event.payload;
+            });
+
+            invoke('get_build_info').then((info) => {
+                const versionElement = document.querySelector('.version');
+                if (versionElement) {
+                    versionElement.textContent = "Versión " + info.version;
+                }
+                if (info.build_timestamp) {
+                    const date = new Date(info.build_timestamp * 1000);
+                    dateElement.textContent = "Compilación: " + date.toLocaleDateString('es-ES', options);
+                }
+            }).catch((err) => {
+                console.error("Error loading build info in splash:", err);
             });
 
             // Signal performance mode to main app

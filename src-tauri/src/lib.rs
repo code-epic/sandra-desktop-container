@@ -72,6 +72,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::monitor::get_system_telemetry,
             commands::system::get_network_info,
+            commands::system::get_build_info,
             commands::system::remote_reboot,
             commands::system::export_database,
             commands::system::reset_database,

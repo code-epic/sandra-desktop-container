@@ -362,6 +362,13 @@ input[type="checkbox"] {
     color: #37474F;
 }
 
+.info-section .build-date-text {
+    font-size: 0.85rem;
+    color: #90A4AE;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
 .info-section .desc-text {
     color: #607D8B;
     margin-bottom: 25px;

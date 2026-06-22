@@ -10,6 +10,7 @@
     "frontendDist": "../dist/sandra-desktop-container/browser"
   },
   "app": {
+    "withGlobalTauri": true,
     "macOSPrivateApi": true,
     "windows": [
       {

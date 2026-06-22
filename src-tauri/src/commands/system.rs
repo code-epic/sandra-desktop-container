@@ -307,3 +307,20 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
         steps,
     })
 }
+
+#[derive(serde::Serialize)]
+pub struct BuildInfo {
+    pub version: String,
+    pub build_timestamp: u64,
+}
+
+#[tauri::command]
+pub fn get_build_info() -> BuildInfo {
+    let version = env!("CARGO_PKG_VERSION").to_string();
+    let timestamp_str = env!("BUILD_TIMESTAMP");
+    let build_timestamp = timestamp_str.parse::<u64>().unwrap_or(0);
+    BuildInfo {
+        version,
+        build_timestamp,
+    }
+}

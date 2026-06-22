@@ -33,9 +33,11 @@ export class ConfigComponent implements OnInit {
   @Output() onDisconnect = new EventEmitter<any>();
   @Output() onLoginRequest = new EventEmitter<void>();
 
-  activeConfigTab: string = 'logs';
+  activeConfigTab: string = 'info';
   viewingPolicies: boolean = false;
   policiesHtml = POLICIES_HTML;
+  version: string = '1.0.0 Alpha';
+  buildDateStr: string = '';
 
   perfOptions = [
     { label: 'Automático (Recomendado)', value: 'auto' },
@@ -81,9 +83,25 @@ export class ConfigComponent implements OnInit {
     this.selectedPerfMode = saved;
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.initForm();
     this.checkInitialTotpStatus();
+    await this.loadBuildInfo();
+  }
+
+  async loadBuildInfo() {
+    try {
+      const info: any = await invoke('get_build_info');
+      this.version = info.version;
+      if (info.build_timestamp) {
+        const date = new Date(info.build_timestamp * 1000);
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        this.buildDateStr = date.toLocaleDateString('es-ES', options);
+      }
+      this.cdr.detectChanges();
+    } catch (e) {
+      console.error("Error al cargar build info:", e);
+    }
   }
 
   private checkInitialTotpStatus() {

@@ -9,6 +9,9 @@
     </div>
     <div class="modal-body-layout">
       <div class="config-sidebar" *ngIf="!showFullDiagnostics">
+        <button [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'; viewingPolicies = false">
+          <i class="fas fa-info-circle sidebar-icon"></i> Info
+        </button>
         <button [class.active]="activeConfigTab === 'logs'" (click)="activeConfigTab = 'logs'">
           <i class="fas fa-clipboard-list sidebar-icon"></i> Logs
         </button>
@@ -23,9 +26,6 @@
         </button>
         <button [class.active]="activeConfigTab === 'updates'" (click)="activeConfigTab = 'updates'">
           <i class="fas fa-sync-alt sidebar-icon"></i> Updates
-        </button>
-        <button [class.active]="activeConfigTab === 'info'" (click)="activeConfigTab = 'info'; viewingPolicies = false">
-          <i class="fas fa-info-circle sidebar-icon"></i> Info
         </button>
         <button [class.active]="activeConfigTab === 'connections'" (click)="activeConfigTab = 'connections'">
           <i class="fas fa-plug sidebar-icon"></i> Conexiones
@@ -298,7 +298,8 @@
         <div *ngIf="activeConfigTab === 'info'" class="config-section info-section">
           <ng-container *ngIf="!viewingPolicies">
             <h3>Sandra Desktop Container</h3>
-            <p class="version-text">Versión 1.0.0 Alpha</p>
+            <p class="version-text">Versión {{ version }}</p>
+            <p class="build-date-text" *ngIf="buildDateStr">Compilación: {{ buildDateStr }}</p>
             <p class="desc-text">Plataforma de orquestación segura para aplicaciones de escritorio distribuidas.</p>
 
             <div class="help-box">
