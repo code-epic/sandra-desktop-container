@@ -1,23 +1,23 @@
 {
-  "version": "0.1.7",
-  "notes": "No new updates.",
-  "pub_date": "2026-06-22T00:00:00Z",
+  "version": "0.1.8",
+  "notes": "Actualización a la versión 0.1.8 - Stack Loader Sequence y correcciones de logs.",
+  "pub_date": "2026-06-24T12:00:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
-      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+      "signature": "PLACEHOLDER_SIGNATURE_ARM64_REPLACE_DURING_RELEASE",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases/download/app-v0.1.8/SandraDC_0.1.8_universal.dmg"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
-      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+      "signature": "PLACEHOLDER_SIGNATURE_X64_REPLACE_DURING_RELEASE",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases/download/app-v0.1.8/SandraDC_0.1.8_universal.dmg"
     },
     "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
-      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+      "signature": "PLACEHOLDER_SIGNATURE_LINUX_REPLACE_DURING_RELEASE",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases/download/app-v0.1.8/sandra-desktop-container_0.1.8_amd64.deb"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IGNyeXB0byBzaWduYXR1cmUg...",
-      "url": "https://github.com/code-epic/sandra-desktop-container/releases"
+      "signature": "PLACEHOLDER_SIGNATURE_WIN_REPLACE_DURING_RELEASE",
+      "url": "https://github.com/code-epic/sandra-desktop-container/releases/download/app-v0.1.8/SandraDC_0.1.8_x64-setup.nsis.zip"
     }
   }
 }
