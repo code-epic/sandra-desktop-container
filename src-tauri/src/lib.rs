@@ -157,7 +157,8 @@ pub fn run() {
             commands::gpg::decrypt_gpg_symmetric_file_raw,
             commands::file_upload::verify_file_seal,
             commands::file_upload::apply_alquimia_seal,
-            commands::secure_download::procesar_descarga_segura
+            commands::secure_download::procesar_descarga_segura,
+            commands::loader::start_loader_sequence
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -347,79 +347,152 @@ fn handle_welcome_msg(app_handle: &AppHandle, json: &Value) {
 }
 
 fn handle_exec_fnx_msg(app_handle: &AppHandle, json: &Value) {
-    // println!("[WS] Procesando tarea exec-fnx...");
-    let title = "Ejecución de Tarea";
-    let body = json["message"].as_str().unwrap_or("Procesando comando...");
-    
+    let mut safe_json = json.clone();
+    let status_str = safe_json["status"].as_str().map(|s| s.to_string());
+
     // Notificación nativa al iniciar
-    if json["status"].as_str() == Some("pending") {
+    if status_str.as_deref() == Some("pending") {
+        let title = "Ejecución de Tarea";
+        let body = safe_json["message"].as_str().unwrap_or("Procesando comando...");
+        show_native_notification(app_handle, title, body);
+    } else if status_str.as_deref() == Some("error") {
+        let title = "Error de Ejecución";
+        let body = safe_json["message"].as_str().unwrap_or("Falló la ejecución");
         show_native_notification(app_handle, title, body);
     }
-    
-    // Emitir para UI en tiempo real
-    let _ = app_handle.emit("background-task-event", json);
 
-    // Si está finalizado, guardar en el buzón de seguridad (Mailbox)
-    if json["status"].as_str() == Some("finalizado") {
-        // println!("[WS] Tarea finalizada, registrando en security_mailbox");
+    // Si está finalizado o es un error, lo enviamos al buzón de seguridad y verificamos el payload
+    if status_str.as_deref() == Some("finalizado") || status_str.as_deref() == Some("error") {
+        let mut is_json = false;
+        let mut is_error = status_str.as_deref() == Some("error");
         
-        let sid = json["id"].as_str().or(json["appId"].as_str());
-        let content = json["message"].as_str().unwrap_or("Sin detalle");
+        if let Some(payload) = safe_json.get("payload").cloned() {
+            if payload.is_object() || payload.is_array() {
+                is_json = true;
+            } else if let Some(s) = payload.as_str() {
+                if let Ok(parsed) = serde_json::from_str::<Value>(s) {
+                    if parsed.is_object() || parsed.is_array() {
+                        is_json = true;
+                    }
+                }
+                if s == "ERROR" || s.to_uppercase().contains("ERROR") {
+                    is_error = true;
+                }
+            }
+            
+            // Forzamos el payload a JSON string si no lo es, para prevenir SyntaxError en el cliente Angular
+            if !is_json {
+                let content_str = payload.as_str().unwrap_or(if is_error { "ERROR" } else { "SUCCESS" });
+                let json_obj = serde_json::json!({
+                    "status": "error",
+                    "message": content_str
+                });
+                safe_json["payload"] = serde_json::Value::String(json_obj.to_string());
+                safe_json["status"] = serde_json::Value::String("error".to_string());
+                is_error = true; // Si no era JSON, se considera anomalía/error
+                
+                show_native_notification(app_handle, "Respuesta del Sistema", content_str);
+            }
+        }
+
+        let sid = safe_json["id"].as_str().or(safe_json["appId"].as_str());
+        let content = safe_json["message"].as_str().unwrap_or("Sin detalle");
         let from = "Ejecución de Función";
+        let detail = safe_json["payload"].to_string();
+        let db_status = if is_error { "Error" } else { "Completed" };
         
-        let detail = json["payload"].to_string();
-        
-        show_native_notification(app_handle, "Ejecución de Tarea", &format!("Finalizado: {}", content));
+        if status_str.as_deref() == Some("finalizado") && is_json {
+            let body = if is_error { "Finalizado con errores" } else { &format!("Finalizado: {}", content) };
+            show_native_notification(app_handle, "Ejecución de Tarea", body);
+        }
 
         if let Some(state) = app_handle.try_state::<DbState>() {
             if let Ok(conn) = state.0.lock() {
                 let _ = conn.execute(
                     "INSERT INTO security_mailbox (sid, content, author, status, direction, tracking_info) 
-                     VALUES (?1, ?2, ?3, 'Completed', 'inbox', ?4)",
+                     VALUES (?1, ?2, ?3, ?4, 'inbox', ?5)",
                     (
                         sid,
                         content,
                         Some(from),
+                        Some(db_status),
                         Some(detail)
                     ),
                 );
             }
         }
     }
+
+    // Emitir para UI en tiempo real con el payload sanitizado
+    let _ = app_handle.emit("background-task-event", &safe_json);
 }
 
 fn handle_exec_fnx_track_msg(app_handle: &AppHandle, json: &Value) {
-    let status = json["status"].as_str().unwrap_or("unknown");
+    let mut safe_json = json.clone();
+    let status_str = safe_json["status"].as_str().map(|s| s.to_string());
     
-    // Si da error, notificar
-    if status == "error" {
-        let content = json["message"].as_str().unwrap_or("Error en ejecución");
+    if status_str.as_deref() == Some("error") {
+        let content = safe_json["message"].as_str().unwrap_or("Error en ejecución");
         show_native_notification(app_handle, "Error de Ejecución", content);
     }
     
-    // Si está finalizado, verificar si el payload es JSON
-    if status == "finalizado" {
-        let payload = &json["payload"];
+    if status_str.as_deref() == Some("finalizado") || status_str.as_deref() == Some("error") {
         let mut is_json = false;
+        let mut is_error = status_str.as_deref() == Some("error");
         
-        if payload.is_object() || payload.is_array() {
-            is_json = true;
-        } else if let Some(s) = payload.as_str() {
-            if let Ok(parsed) = serde_json::from_str::<Value>(s) {
-                if parsed.is_object() || parsed.is_array() {
-                    is_json = true;
+        if let Some(payload) = safe_json.get("payload").cloned() {
+            if payload.is_object() || payload.is_array() {
+                is_json = true;
+            } else if let Some(s) = payload.as_str() {
+                if let Ok(parsed) = serde_json::from_str::<Value>(s) {
+                    if parsed.is_object() || parsed.is_array() {
+                        is_json = true;
+                    }
+                }
+                if s == "ERROR" || s.to_uppercase().contains("ERROR") {
+                    is_error = true;
                 }
             }
+            
+            if !is_json {
+                let content_str = payload.as_str().unwrap_or(if is_error { "ERROR" } else { "SUCCESS" });
+                let json_obj = serde_json::json!({
+                    "status": "error",
+                    "message": content_str
+                });
+                safe_json["payload"] = serde_json::Value::String(json_obj.to_string());
+                safe_json["status"] = serde_json::Value::String("error".to_string());
+                is_error = true; // Considerado error/anomalía para el buzón
+                
+                show_native_notification(app_handle, "Respuesta del Sistema", content_str);
+            }
         }
-        
-        if !is_json {
-            let content = json["message"].as_str().unwrap_or("Respuesta no es JSON");
-            show_native_notification(app_handle, "Ejecución Finalizada", content);
+
+        let sid = safe_json["id"].as_str().or(safe_json["appId"].as_str());
+        let content = safe_json["message"].as_str().unwrap_or("Sin detalle");
+        let from = "Ejecución de Función";
+        let detail = safe_json["payload"].to_string();
+        let db_status = if is_error { "Error" } else { "Completed" };
+
+        if let Some(state) = app_handle.try_state::<DbState>() {
+            if let Ok(conn) = state.0.lock() {
+                let _ = conn.execute(
+                    "INSERT INTO security_mailbox (sid, content, author, status, direction, tracking_info) 
+                     VALUES (?1, ?2, ?3, ?4, 'inbox', ?5)",
+                    (
+                        sid,
+                        content,
+                        Some(from),
+                        Some(db_status),
+                        Some(detail)
+                    ),
+                );
+            }
         }
     }
     
     // Emitir para UI en tiempo real
-    let _ = app_handle.emit("background-task-event", json);
+    let _ = app_handle.emit("background-task-event", &safe_json);
 }
 
 fn handle_hsf_msg(app_handle: &AppHandle, json: &Value) {

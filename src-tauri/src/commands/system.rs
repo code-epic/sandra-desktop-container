@@ -110,11 +110,11 @@ pub struct DiagnosticReport {
 
 #[tauri::command]
 pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticReport, String> {
+    use std::collections::HashMap;
+    use std::time::Instant;
     use tokio::net::lookup_host;
     use tokio::time::{timeout, Duration};
-    use std::time::Instant;
     use url::Url;
-    use std::collections::HashMap;
 
     let mut steps = Vec::new();
     let mut dns_ips = Vec::new();
@@ -184,7 +184,10 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
             steps.push(DiagnosticStep {
                 name: "Resolución de DNS".to_string(),
                 success: false,
-                message: format!("Fallo al resolver dominio '{}'. ¿Está conectada la VPN? Detalle: {}", domain, e),
+                message: format!(
+                    "Fallo al resolver dominio '{}'. ¿Está conectada la VPN? Detalle: {}",
+                    domain, e
+                ),
                 duration_ms: dns_start.elapsed().as_millis() as u64,
             });
         }
@@ -202,7 +205,10 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
                         steps.push(DiagnosticStep {
                             name: "Prueba de Puerto TCP (Ping)".to_string(),
                             success: true,
-                            message: format!("Conexión TCP establecida con éxito a {} en el puerto {}", dns_ips[0], port),
+                            message: format!(
+                                "Conexión TCP establecida con éxito a {} en el puerto {}",
+                                dns_ips[0], port
+                            ),
                             duration_ms: tcp_start.elapsed().as_millis() as u64,
                         });
                     }
@@ -252,7 +258,12 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
 
         match client_res {
             Ok(client) => {
-                match client.get(&target_url).header("User-Agent", "SandraDC-Diagnostics/1.0").send().await {
+                match client
+                    .get(&target_url)
+                    .header("User-Agent", "SandraDC-Diagnostics/1.0")
+                    .send()
+                    .await
+                {
                     Ok(resp) => {
                         let status = resp.status();
                         http_status = Some(status.as_u16());
@@ -264,7 +275,12 @@ pub async fn run_network_diagnostics(target_url: String) -> Result<DiagnosticRep
                         steps.push(DiagnosticStep {
                             name: "Petición de Protocolo HTTP".to_string(),
                             success: status.is_success() || status.is_redirection(),
-                            message: format!("Respuesta HTTP recibida: {} {}. Latencia total: {}ms", status.as_u16(), status.canonical_reason().unwrap_or(""), http_start.elapsed().as_millis()),
+                            message: format!(
+                                "Respuesta HTTP recibida: {} {}. Latencia total: {}ms",
+                                status.as_u16(),
+                                status.canonical_reason().unwrap_or(""),
+                                http_start.elapsed().as_millis()
+                            ),
                             duration_ms: http_start.elapsed().as_millis() as u64,
                         });
                     }

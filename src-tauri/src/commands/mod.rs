@@ -13,3 +13,4 @@ pub mod mailbox;
 pub mod system;
 pub mod window;
 pub mod secure_download;
+pub mod loader;

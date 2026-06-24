@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sandra Loading</title>
+    <title>Sandra Agent Antigravity - Boot Sequence</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Palette from styles.css */
+            /* Palette from original styles.css */
             --bg-primary: #F4F6F8;
             --accent: #66BB6A; /* Green */
             --accent-light: #A5D6A7; /* Light Green */
@@ -33,7 +35,7 @@
             padding: 0;
             background: var(--bg-primary);
             color: var(--text-main);
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Outfit', sans-serif;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -50,18 +52,18 @@
             z-index: 20;
             text-align: center;
             animation: fadeIn 1s ease-out;
-            margin-bottom: 60px;
+            width: 440px;
         }
 
         /* Logo Animation - Circular with Border */
         .logo-container {
-            width: 160px;
-            height: 160px;
-            margin: 0 auto 30px;
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 15px;
             position: relative;
             background: #ffffff;
             border-radius: 50%;
-            padding: 20px;
+            padding: 15px;
             box-shadow: 0 10px 25px rgba(102, 187, 106, 0.2);
             border: 3px solid #ffffff;
             display: flex;
@@ -97,28 +99,98 @@
 
         h1 {
             font-size: 1.4rem;
-            font-weight: 700;
+            font-weight: 800;
             margin: 0 0 5px;
             letter-spacing: 0.5px;
             color: var(--text-main);
         }
 
+        .version-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+        }
+
         .version {
-            font-size: 0.9rem;
             color: var(--accent);
             font-weight: 600;
-            margin-bottom: 5px;
         }
 
         .date {
-            font-size: 0.75rem;
             color: var(--text-muted);
+        }
+
+        .status-text {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.5px;
+        }
+
+        /* Diagnostic logs inside the white content frame */
+        .console-logs {
+            background: rgba(43, 58, 66, 0.95); /* Deep slate green background for monospaced logs */
+            border: 1px solid rgba(102, 187, 106, 0.25);
+            border-radius: 8px;
+            padding: 10px 14px;
+            height: 60px;
             margin-bottom: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            text-align: left;
+            overflow-y: auto;
+            color: #c8e6c9;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .console-line {
+            margin: 2px 0;
+            line-height: 1.3;
+            opacity: 0.7;
+        }
+
+        .console-line.active {
+            color: #69f0ae;
+            opacity: 1;
+        }
+
+        /* Premium Progress Bar */
+        .progress-track {
+            background: rgba(102, 187, 106, 0.12);
+            border-radius: 10px;
+            height: 6px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(102, 187, 106, 0.05);
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-light), var(--accent));
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(102, 187, 106, 0.4);
+            transition: width 0.35s cubic-bezier(0.1, 0.8, 0.25, 1);
+        }
+
+        .percentage-badge {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+            font-weight: 700;
         }
 
         /* License Footer */
         .footer {
-            margin-top: 30px;
+            margin-top: 25px;
             font-size: 0.7rem;
             color: var(--text-muted);
             opacity: 0.8;
@@ -147,6 +219,7 @@
             z-index: 1;
             overflow: hidden;
             background: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
         }
         
         .wave {
@@ -192,14 +265,12 @@
         .bubble {
             position: absolute;
             bottom: -50px; /* Start further down */
-            background: rgba(102, 187, 106, 0.4); /* Slightly softer main opacity */
+            background: rgba(102, 187, 106, 0.3); /* Soft main opacity */
             border-radius: 50%;
-            /* Linear animation for constant speed - prevents "heavy/stuck" start */
             animation: fly 10s infinite linear; 
             border: 1px solid rgba(255,255,255,0.3);
         }
 
-        /* Adjust timings for a continuous stream */
         .bubble:nth-child(1) { width: 40px; height: 40px; left: 10%; animation-duration: 8s; animation-delay: 0s; }
         .bubble:nth-child(2) { width: 20px; height: 20px; left: 20%; animation-duration: 5s; animation-delay: 1s; }
         .bubble:nth-child(3) { width: 50px; height: 50px; left: 35%; animation-duration: 7s; animation-delay: 2s; }
@@ -213,14 +284,12 @@
 
         @keyframes fly {
             0% { transform: translateY(0); opacity: 0; }
-            10% { opacity: 0.6; } /* Fade in quickly */
+            10% { opacity: 0.6; }
             100% { transform: translateY(-110vh); opacity: 0; }
         }
-
     </style>
 </head>
 <body>
-
     <div class="bubbles">
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
         <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
@@ -236,13 +305,25 @@
 
     <div class="content">
         <div class="logo-container">
-            <!-- Loading from sandra.png (relative) -->
             <img src="sandra.png" alt="Sandra Logo" class="logo">
         </div>
         <h1>Sandra Desktop Container</h1>
-        <div class="version">Version 1.0</div>
-        <div class="date" id="buildDate"></div>
-        <div id="statusText" style="margin-top: 15px; font-weight: 600; font-size: 0.85rem; color: var(--accent); letter-spacing: 0.5px;">Validando sistema...</div>
+        
+        <div class="version-container">
+            <span class="version">Versión 1.0</span>
+            <span id="buildDate">Cargando...</span>
+        </div>
+
+        <div id="statusText" class="status-text">Iniciando Kernel Sandra...</div>
+        
+        <div class="console-logs" id="consoleLogs">
+            <div class="console-line active">> Esperando secuencia de carga...</div>
+        </div>
+
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="percentage-badge" id="percentageBadge">0%</span>
 
         <div class="footer">
             <p>Licencia: <a href="https://code-epic.com/wiki" target="_blank">Code-Epic Authority</a></p>
@@ -250,9 +331,9 @@
     </div>
 
     <script>
-        // Performance Evaluation: Check saved preference first, then RAM detection
+        // Performance evaluation
         const savedPerfMode = localStorage.getItem('sandra_perf_mode') || 'auto';
-        let memory = 4; // Default
+        let memory = 4;
         
         if (savedPerfMode === 'low') {
             document.body.classList.add('perf-low');
@@ -263,8 +344,6 @@
                 document.body.classList.add('perf-low');
                 console.log("Sandra: Performance Optimization Active (Low RAM detected: " + memory + "GB)");
             }
-        } else {
-            console.log("Sandra: High Performance Mode Active (User Preference: " + savedPerfMode.toUpperCase() + ")");
         }
 
         // Set dynamic date (fallback)
@@ -273,16 +352,24 @@
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         dateElement.textContent = "Compilación: " + now.toLocaleDateString('es-ES', options);
 
-        // Tauri Event Listener to update status and build info
         if (window.__TAURI__) {
             const { listen, emit } = window.__TAURI__.event;
             const { invoke } = window.__TAURI__.core;
-            const statusText = document.getElementById('statusText');
             
-            listen('splash-status', (event) => {
-                statusText.textContent = event.payload;
-            });
+            const statusText = document.getElementById('statusText');
+            const progressFill = document.getElementById('progressFill');
+            const percentageBadge = document.getElementById('percentageBadge');
+            const consoleLogs = document.getElementById('consoleLogs');
 
+            function addLog(text, isActive = false) {
+                const line = document.createElement('div');
+                line.className = 'console-line' + (isActive ? ' active' : '');
+                line.textContent = `> ${text}`;
+                consoleLogs.appendChild(line);
+                consoleLogs.scrollTop = consoleLogs.scrollHeight;
+            }
+
+            // Listen to build info
             invoke('get_build_info').then((info) => {
                 const versionElement = document.querySelector('.version');
                 if (versionElement) {
@@ -293,13 +380,35 @@
                     dateElement.textContent = "Compilación: " + date.toLocaleDateString('es-ES', options);
                 }
             }).catch((err) => {
-                console.error("Error loading build info in splash:", err);
+                console.error("Error loading build info:", err);
+            });
+
+            // Escuchar el avance de las capas de Rust
+            listen('loader-sequence-progress', (event) => {
+                const payload = event.payload;
+                statusText.textContent = payload.status_message;
+                progressFill.style.width = `${payload.percentage}%`;
+                percentageBadge.textContent = `${Math.round(payload.percentage)}%`;
+                
+                if (payload.detail) {
+                    addLog(payload.detail, true);
+                }
             });
 
             // Signal performance mode to main app
             if (memory < 4) {
                 emit('performance-mode', 'legacy');
             }
+
+            // Iniciar la secuencia de carga de la pila
+            setTimeout(() => {
+                addLog("Ejecutando cargador de pila Antigravity...");
+                invoke('start_loader_sequence').catch((err) => {
+                    addLog(`ERROR CRÍTICO: ${err}`, true);
+                    statusText.textContent = "Error en la inicialización";
+                    statusText.style.color = "#ff4a4a";
+                });
+            }, 600);
         }
     </script>
 </body>

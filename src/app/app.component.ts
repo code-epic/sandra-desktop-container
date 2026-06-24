@@ -1116,6 +1116,31 @@ export class AppComponent implements OnInit, DoCheck {
   showSetupWizard = false;
 
   async initApplication() {
+    // Esperar a que la secuencia de carga de Rust (Stack Loader) se complete
+    if ((window as any).__TAURI__) {
+      await new Promise<void>((resolve) => {
+        let resolved = false;
+        const timeout = setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            resolve();
+          }
+        }, 10000); // 10s fallback
+        
+        listen('loader-sequence-ready', () => {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeout);
+            resolve();
+          }
+        }).then((unlisten) => {
+          if (resolved) {
+            unlisten();
+          }
+        });
+      });
+    }
+
     // Opcional: Chequeo de actualizaciones automático si está habilitado
     if (this.config.updates.autoUpdate) {
       setTimeout(() => {
@@ -1425,7 +1450,7 @@ export class AppComponent implements OnInit, DoCheck {
       }
       const target = encodeURIComponent(targetUrl);
       rawUrl = `${protocolBase}/bypass-proxy/${appId}/?target=${target}`;
-      console.log(`🚧 [Bypass Nav] Opening ${appData.name} -> ${rawUrl}`);
+      // console.log(`🚧 [Bypass Nav] Opening ${appData.name} -> ${rawUrl}`);
     }
     // 1. Modo CSRF Sync (auto-sincroniza tokens CSRF)
     else if (appData.is_csrf_sync) {
@@ -1438,7 +1463,7 @@ export class AppComponent implements OnInit, DoCheck {
       }
       const target = encodeURIComponent(targetUrl);
       rawUrl = `${protocolBase}/csrf-sync-proxy/${appId}/?target=${target}`;
-      console.log(`🔐 [CSRF Sync Nav] Opening ${appData.name} -> ${rawUrl}`);
+      // console.log(`🔐 [CSRF Sync Nav] Opening ${appData.name} -> ${rawUrl}`);
     }
     // 2. Modo "Motor Limitless" (Proxied via Rust CookieJar)
     else if (appData.is_limitless) {
@@ -1451,7 +1476,7 @@ export class AppComponent implements OnInit, DoCheck {
       }
       const target = encodeURIComponent(targetUrl);
       rawUrl = `${protocolBase}/limitless-proxy/${appId}/?target=${target}`;
-      console.log(`🚀 [Limitless Nav] Opening ${appData.name} -> ${rawUrl}`);
+      // console.log(`🚀 [Limitless Nav] Opening ${appData.name} -> ${rawUrl}`);
     }
     // 3. Modo "Navegador Libre" (Apertura como Native Child Webview)
     else if (appData.is_external_browser) {
@@ -1462,9 +1487,9 @@ export class AppComponent implements OnInit, DoCheck {
         );
         return;
       }
-      console.log(
-        `🌐 [Native Browser Mode] Creando Webview para -> ${targetUrl}`,
-      );
+      // console.log(
+      //   `🌐 [Native Browser Mode] Creando Webview para -> ${targetUrl}`,
+      // );
       rawUrl = targetUrl;
       isExternalMode = true;
 
@@ -1481,14 +1506,14 @@ export class AppComponent implements OnInit, DoCheck {
       });
 
       webview.once("tauri://created", () => {
-        console.log(`✅ [Native Webview] Creado exitosamente: ${webviewId}`);
+        // console.log(`✅ [Native Webview] Creado exitosamente: ${webviewId}`);
         this.activeNativeWebviews[appData.id.toString()] = webview;
         // Espera 1.2 segundos para mostrar el cargador premium y evitar flashes blancos de renderizado
         setTimeout(() => this.syncNativeWebviews(), 1200);
       });
 
       webview.once("tauri://error", (e) => {
-        console.error(`❌ [Native Webview] Error al crear: ${webviewId}`, e);
+        // console.error(`❌ [Native Webview] Error al crear: ${webviewId}`, e);
         this.showModal("Error", "No se pudo crear el navegador nativo.");
       });
     }
@@ -1496,17 +1521,17 @@ export class AppComponent implements OnInit, DoCheck {
     else if (targetUrl && appData.is_proxy_required) {
       const target = encodeURIComponent(targetUrl);
       rawUrl = `${protocolBase}/external-proxy/${appId}/?target=${target}`;
-      console.log(
-        `🛡️ [Proxy Nav] Wrapping External ${appData.name} -> ${rawUrl}`,
-      );
+      // console.log(
+      //   `🛡️ [Proxy Nav] Wrapping External ${appData.name} -> ${rawUrl}`,
+      // );
     } else if (targetUrl) {
       // Caso Externa Directa
       rawUrl = targetUrl;
-      console.log(`🌍 [External Nav] Direct ${appData.name} -> ${rawUrl}`);
+      // console.log(`🌍 [External Nav] Direct ${appData.name} -> ${rawUrl}`);
     } else {
       // Caso Local
       rawUrl = `${protocolBase}/${appId}/`;
-      console.log(`🏠 [Local Nav] Opening ${appData.name} via ${rawUrl}`);
+      // console.log(`🏠 [Local Nav] Opening ${appData.name} via ${rawUrl}`);
     }
 
     const safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl);
