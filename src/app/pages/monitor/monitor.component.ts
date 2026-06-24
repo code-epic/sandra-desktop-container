@@ -182,7 +182,10 @@ export class MonitorComponent implements OnInit, OnDestroy {
             let allLogs: MonitorLog[] = [];
 
             for (const appId of appsToFetch) {
-                const appLogs = await invoke<MonitorLog[]>('get_app_logs', { appId });
+                const appLogs = await invoke<MonitorLog[]>('get_app_logs', { 
+                    appId,
+                    userLogin: this.securityService.getCurrentUserLogin()
+                });
                 allLogs = [...allLogs, ...appLogs];
             }
 
