@@ -1,6 +1,7 @@
 import { Component, OnInit, OnChanges, SimpleChanges, Input, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ModalService } from '../../core/services/modal.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
@@ -479,6 +480,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   constructor(
     public securityService: SecurityService,
     private appState: AppStateService,
+    private modalService: ModalService,
     private fileService: FileService,
     private sdcService: SdcService,
     private sanitizer: DomSanitizer,
@@ -2412,7 +2414,7 @@ export class SecurityComponent implements OnInit, OnChanges {
   async saveConfig() {
     try {
       await this.securityService.updateSecurityConfig(this.config);
-      alert('Configuración guardada exitosamente');
+      this.modalService.showGenericModal("Seguridad", "Configuración guardada exitosamente", "success");
     } catch (e) {
       console.error('Error al guardar configuración', e);
     }

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { ModalService } from "../../core/services/modal.service";
 import { invoke } from "@tauri-apps/api/core";
 
 import { POLICIES_HTML } from "../../constants/policies";
@@ -17,6 +18,8 @@ export class SetupWizardComponent implements OnInit {
   @Input() stats: any = null;
   @Input() networkInfo: string[] = [];
   @Output() onComplete = new EventEmitter<any>();
+
+  constructor(private modalService: ModalService) {}
 
   step = 1;
   policiesAccepted = false;
@@ -145,13 +148,13 @@ export class SetupWizardComponent implements OnInit {
 
   finish() {
     if (!this.formData.name || !this.formData.area) {
-      alert("Por favor complete el nombre y área del equipo.");
+      this.modalService.showGenericModal("Validación", "Por favor complete el nombre y área del equipo.", "warning");
       this.step = 1;
       return;
     }
 
     if (!this.formData.ip_address) {
-      alert("Debe configurar la dirección del servidor.");
+      this.modalService.showGenericModal("Validación", "Debe configurar la dirección del servidor.", "warning");
       this.step = 4;
       return;
     }

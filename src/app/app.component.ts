@@ -55,6 +55,7 @@ import { SetupWizardComponent } from "./components/setup-wizard/setup-wizard.com
 import { LoginModalComponent } from "./components/login-modal/login-modal.component";
 import { PerformanceService } from "./core/services/performance.service";
 import { UpdateService } from "./core/services/update.service";
+import { ModalService } from "./core/services/modal.service";
 
 type ConnectionStatus =
   | "Conectado"
@@ -209,17 +210,11 @@ export class AppComponent implements OnInit, DoCheck {
 
   isInspectorOpen = false;
 
-  genericModal: {
-    show: boolean;
-    title: string;
-    message: string;
-    type: "success" | "error" | "info";
-    infoIcon?: string;
-  } = {
+  genericModal = {
     show: false,
     title: "",
     message: "",
-    type: "info",
+    type: "info" as "success" | "error" | "info" | "warning",
     infoIcon: "fa-info-circle",
   };
   exitModal = { show: false, closing: false };
@@ -236,7 +231,7 @@ export class AppComponent implements OnInit, DoCheck {
   // Track MessagePorts for Secure Authorizations
   authPorts = new Map<string, MessagePort>();
 
-  questionModal = {
+  questionModal: import('./core/services/modal.service').QuestionModalState = {
     show: false,
     title: "",
     message: "",
@@ -248,27 +243,9 @@ export class AppComponent implements OnInit, DoCheck {
 
   showJwtSetupModal = false;
 
-  showQuestionModal(
-    title: string,
-    message: string,
-    confirmText: string,
-    cancelText: string,
-    onConfirm: () => void,
-    onCancel: () => void = () => {},
-  ) {
-    this.questionModal.title = title;
-    this.questionModal.message = message;
-    this.questionModal.confirmText = confirmText;
-    this.questionModal.cancelText = cancelText;
-    this.questionModal.onConfirm = () => {
-      this.questionModal.show = false;
-      onConfirm();
-    };
-    this.questionModal.onCancel = () => {
-      this.questionModal.show = false;
-      onCancel();
-    };
-    this.questionModal.show = true;
+  // ModalService takes care of the state; AppComponent just binds to it
+  closeGenericModal() {
+    this.modalService.closeGenericModal();
   }
 
   constructor(
@@ -286,6 +263,7 @@ export class AppComponent implements OnInit, DoCheck {
     public utils: UtilsService,
     private performance: PerformanceService,
     private updateService: UpdateService,
+    public modalService: ModalService,
   ) {
     // ... existing constructor logic ...
     this.performance.initialize();
@@ -303,6 +281,32 @@ export class AppComponent implements OnInit, DoCheck {
     this.rightSidebarOpen$ = this.appState.rightSidebarOpen$;
     this.leftSidebarOpen$ = this.appState.leftSidebarOpen$;
     this.viewerLoading$ = this.appState.viewerLoading$;
+
+    this.modalService.genericModal$.subscribe(state => {
+      this.zone.run(() => {
+        this.genericModal = {
+          show: state.show,
+          title: state.title,
+          message: state.message,
+          type: state.type as "success" | "error" | "info",
+          infoIcon: state.infoIcon || "fa-info-circle",
+        };
+      });
+    });
+
+    this.modalService.questionModal$.subscribe(state => {
+      this.zone.run(() => {
+        this.questionModal = state;
+      });
+    });
+
+    this.modalService.closeAllOverlays$.subscribe(() => {
+      this.zone.run(() => {
+        this.showControlPanel = false;
+        this.showLoginModal = false;
+        this.showJwtSetupModal = false;
+      });
+    });
 
     this.viewerLoading$.subscribe((val) => (this.isViewerLoading = val));
 
@@ -687,9 +691,16 @@ export class AppComponent implements OnInit, DoCheck {
       this.appState.setActiveTab(this.pendingNavTab);
       this.pendingNavTab = null;
     }
+    
+    // 6. Si había una aplicación pendiente de abrir
+    if (this.pendingAppToOpen) {
+      this.openApp(this.pendingAppToOpen);
+      this.pendingAppToOpen = null;
+    }
   }
 
   pendingNavTab: string | null = null;
+  pendingAppToOpen: any = null;
 
   handleNavigationRequest(tabId: string) {
     const protectedTabs = ["security", "monitor", "proyectos", "secure-viewer"];
@@ -882,25 +893,22 @@ export class AppComponent implements OnInit, DoCheck {
         }
       } catch (e) {
         console.error("Error al desconectar:", e);
-        this.genericModal = {
-          show: true,
-          type: "error",
-          title: "Error",
-          message: "Error al desconectar: " + e,
-        };
+        this.modalService.showGenericModal("Error", "Error al desconectar: " + e, "error");
       }
     };
 
     if (!this.getJwtToken() || this.wsStatus !== "Conectado") {
       await performDisconnect();
     } else {
-      this.showQuestionModal(
+      const confirmed = await this.modalService.showQuestionModal(
         "Confirmar Desconexión",
         "¿Estás seguro de que deseas desconectarte? Se cerrará la sesión actual y será necesario ingresar credenciales nuevamente.",
         "Desconectar",
-        "Mantener Conexión",
-        performDisconnect,
+        "Mantener Conexión"
       );
+      if (confirmed) {
+        await performDisconnect();
+      }
     }
   }
 
@@ -988,10 +996,10 @@ export class AppComponent implements OnInit, DoCheck {
     // 2. Cerrar todas las pestañas y webviews
     await this.closeAllTabsAndWebviews();
 
-    // 3. Limpiar Storage de sesión
+    // 3. Limpiar Storage de sesión completamente
     sessionStorage.clear();
 
-    // 3. Limpiar Token JWT y persistencia de conexión según configuración
+    // 4. Limpiar Token JWT explícitamente por si acaso (aunque se limpie con storage.clear)
     const storage =
       this.config.access.jwtStorage === "sessionStorage"
         ? sessionStorage
@@ -1007,7 +1015,14 @@ export class AppComponent implements OnInit, DoCheck {
         keysToRemove.push(key);
       }
     }
-    keysToRemove.forEach((k) => localStorage.removeItem(k));
+    keysToRemove.forEach((k) => {
+      localStorage.removeItem(k);
+    });
+    
+    // Asegurarse de eliminar jwt y config de red residuales explícitamente
+    localStorage.removeItem("active_connection");
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
 
     // 4. Resetear estados visuales y de sesión
     this.activeConnection = null;
@@ -1108,6 +1123,11 @@ export class AppComponent implements OnInit, DoCheck {
       );
       this.performFullLogout();
       this.pendingNavTab = null;
+    }
+    
+    if (this.pendingAppToOpen) {
+      console.warn("⚠️ [System] Login cancelado. Cancelando apertura de la app.");
+      this.pendingAppToOpen = null;
     }
   }
 
@@ -1387,17 +1407,16 @@ export class AppComponent implements OnInit, DoCheck {
       await this.refreshStats();
 
       // Trigger Post-Setup JWT Prompt
-      setTimeout(() => {
-        this.showQuestionModal(
+      setTimeout(async () => {
+        const confirmed = await this.modalService.showQuestionModal(
           "Activar Seguridad JWT",
           "¿Desea activar la protección por token JWT de Sandra-Security ahora?\n\nEsto habilitará servicios avanzados como notificación en tiempo real y protegerá secciones sensibles.",
           "Sí, Activar JWT",
-          "No, Quizás Luego",
-          () => {
-            // Instead of direct activation, show the config modal
-            this.showJwtSetupModal = true;
-          },
+          "No, Quizás Luego"
         );
+        if (confirmed) {
+          this.showJwtSetupModal = true;
+        }
       }, 3500); // Dar algo de buffer después del Toast Finalizado
     } catch (e) {
       console.error("Error in setup complete:", e);
@@ -1418,6 +1437,20 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   openApp(app: any) {
+    if (!this.activeConnection || this.wsStatus !== "Conectado") {
+      this.showModal(
+        "Sin Conexión Activa",
+        "Debes estar conectado a un servidor para abrir aplicaciones.",
+      );
+      return;
+    }
+
+    if (this.config.access.enableJwtSession && !this.getJwtToken()) {
+      this.pendingAppToOpen = app;
+      this.checkAndPromptJwt(true);
+      return;
+    }
+
     // Fix: Los datos pueden estar en _original o directamente en app
     const appData = app._original || app;
     const targetUrl = appData.external_url || appData.externalUrl || "";
@@ -2466,10 +2499,10 @@ export class AppComponent implements OnInit, DoCheck {
   showModal(
     title: string,
     message: string,
-    forceType?: "success" | "error" | "info",
+    forceType?: "success" | "error" | "info" | "warning",
     infoIcon?: string,
   ) {
-    let type: "success" | "error" | "info" = "info";
+    let type: "success" | "error" | "info" | "warning" = "info";
     const t = title.toLowerCase();
 
     if (forceType) {
@@ -2489,17 +2522,7 @@ export class AppComponent implements OnInit, DoCheck {
       type = "success";
     }
 
-    this.genericModal = {
-      show: true,
-      title,
-      message,
-      type,
-      infoIcon: infoIcon || "fa-info-circle",
-    };
-  }
-
-  closeGenericModal() {
-    this.genericModal = { show: false, title: "", message: "", type: "info" };
+    this.modalService.showGenericModal(title, message, type, infoIcon || "fa-info-circle");
   }
 
   async downloadPdfFromTab(tab: Tab) {

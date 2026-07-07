@@ -9,6 +9,7 @@ import { Component, OnInit, OnDestroy, HostListener } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ProyectosService } from "./models/proyectos.service";
+import { ModalService } from "../../core/services/modal.service";
 import {
   SistemaProyectoJSON,
   ModuloJSON,
@@ -119,6 +120,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
     private appState: AppStateService,
     private sanitizer: DomSanitizer,
     private securityService: SecurityService,
+    private modalService: ModalService
   ) {}
 
   async ngOnInit() {
@@ -703,16 +705,13 @@ export class ProyectosComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Imprime el reporte actual
-   */
-  /**
    * Generar PDF con jsPDF y jspdf-autotable, luego enviar al Visor Seguro
    */
   imprimirReporte(): void {
     const datosFiltrados = this.funcionalidadesFiltradas;
 
-    if (datosFiltrados.length === 0) {
-      alert("❌ No hay datos para generar reporte");
+    if (!datosFiltrados || datosFiltrados.length === 0) {
+      this.modalService.showGenericModal("Exportación", "No hay datos para generar reporte", "warning");
       return;
     }
 
@@ -1084,7 +1083,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       !this.nuevaTarea.modulo ||
       !this.nuevaTarea.submodulo
     ) {
-      alert("Por favor complete todos los campos requeridos");
+      this.modalService.showGenericModal("Validación", "Por favor complete todos los campos requeridos", "warning");
       return;
     }
 
@@ -1093,7 +1092,7 @@ export class ProyectosComponent implements OnInit, OnDestroy {
       this.cerrarModalNuevaTarea();
       this.aplicarFiltros();
     } else {
-      alert("Error al agregar la tarea. Verifique los datos.");
+      this.modalService.showGenericModal("Error", "Error al agregar la tarea. Verifique los datos.", "error");
     }
   }
 

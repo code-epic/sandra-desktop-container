@@ -135,7 +135,6 @@ async fn run_hot_update(app_handle: &AppHandle, url: &str) -> Result<(), String>
         
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         app_handle.restart();
-        return Ok(());
     }
 
     #[cfg(target_os = "windows")]
@@ -177,7 +176,7 @@ async fn run_hot_update(app_handle: &AppHandle, url: &str) -> Result<(), String>
 
         app_handle.exit(0);
     }
-
+    #[allow(unreachable_code)]
     Ok(())
 }
 
@@ -191,15 +190,13 @@ pub async fn start_loader_sequence(app_handle: AppHandle) -> Result<(), String> 
     ];
 
     for (layer, percentage, msg) in steps {
-        let mut detail = String::new();
-        
         match layer {
             "BOOT_LAYER" => {
                 let mut sys = System::new_all();
                 sys.refresh_all();
                 let total_mem = sys.total_memory() / 1024 / 1024; // MB
                 let cpu_count = sys.cpus().len();
-                detail = format!("CPU Cores: {} | RAM: {} MB | Integrity: OK", cpu_count, total_mem);
+                let detail = format!("CPU Cores: {} | RAM: {} MB | Integrity: OK", cpu_count, total_mem);
                 
                 app_handle.emit("loader-sequence-progress", LoaderProgress {
                     layer: layer.to_string(),
@@ -267,6 +264,7 @@ pub async fn start_loader_sequence(app_handle: AppHandle) -> Result<(), String> 
                 }
             }
             "STORAGE_LAYER" => {
+                let detail;
                 if let Some(db_state) = app_handle.try_state::<DbState>() {
                     let conn = db_state.0.lock().map_err(|e| e.to_string())?;
                     let result: Result<i32, _> = conn.query_row("SELECT 1", [], |row| row.get(0));
@@ -288,7 +286,7 @@ pub async fn start_loader_sequence(app_handle: AppHandle) -> Result<(), String> 
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
             }
             "IPC_LAYER" => {
-                detail = "Bridges IPC activos | Handshake completado | OK".to_string();
+                let detail = "Bridges IPC activos | Handshake completado | OK".to_string();
                 
                 app_handle.emit("loader-sequence-progress", LoaderProgress {
                     layer: layer.to_string(),

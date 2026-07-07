@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { ModalComponent } from "../modal/modal.component";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import { ModalService } from "../../core/services/modal.service";
 
 export interface DbStats {
   connected: boolean;
@@ -24,6 +25,8 @@ export interface ColumnInfo {
 })
 export class StorageComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
+
+  constructor(private modalService: ModalService) {}
 
   dbStats: DbStats | null = null;
   expandedTable: string | null = null;
@@ -126,14 +129,14 @@ export class StorageComponent implements OnInit {
         console.log("Guardando en:", filePath);
         await invoke("export_database", { targetPath: filePath });
         console.log("Exportación completada en backend");
-        alert("Archivo guardado exitosamente.");
+        this.modalService.showGenericModal("Almacenamiento", "Archivo guardado exitosamente.", "success");
         this.closeModal();
       } else {
         console.log("Diálogo cancelado por el usuario");
       }
     } catch (error) {
       console.error("Error exporting DB (Catch):", error);
-      alert("Error al exportar la base de datos: " + error);
+      this.modalService.showGenericModal("Error", "Error al exportar la base de datos: " + error, "error");
     }
   }
 

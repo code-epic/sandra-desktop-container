@@ -1,8 +1,8 @@
 import { Injectable, NgZone } from '@angular/core';
 import { check } from '@tauri-apps/plugin-updater';
-import { ask, message } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { BehaviorSubject } from 'rxjs';
+import { ModalService } from './modal.service';
 
 export interface UpdateStatus {
   checking: boolean;
@@ -27,7 +27,10 @@ export class UpdateService {
 
   status$ = this.status.asObservable();
 
-  constructor(private ngZone: NgZone) {}
+  constructor(
+    private ngZone: NgZone,
+    private modalService: ModalService
+  ) {}
 
   /**
    * Checks for available updates on the remote repository.
@@ -47,10 +50,12 @@ export class UpdateService {
           body: update.body 
         });
 
-        const shouldInstall = await ask(
-          `Una nueva versión (${update.version}) está disponible.\n\n${update.body}\n\n¿Deseas descargar e instalar ahora?`,
-          { title: 'Sincronización de Sistema', kind: 'info' }
-        );
+        const shouldInstall = await this.modalService.showQuestionModal(
+        'Sincronización de Sistema',
+        `Una nueva versión (${update.version}) está disponible.\n\n${update.body}\n\n¿Deseas descargar e instalar ahora?`,
+        'Descargar e Instalar',
+        'Cancelar'
+      );
 
         if (shouldInstall) {
           await this.performUpdate(update);
@@ -58,10 +63,12 @@ export class UpdateService {
       } else {
         this.updateState({ checking: false, available: false });
         if (!silent) {
-          await message('Tu sistema SandraDC ya está en la última versión.', {
-            title: 'Sistema Sincronizado',
-            kind: 'info'
-          });
+          this.modalService.showGenericModal(
+            'Sistema Sincronizado',
+            'Tu sistema SandraDC ya está en la última versión.',
+            'info',
+            'fa-check-circle'
+          );
         }
       }
     } catch (error) {
@@ -108,9 +115,11 @@ export class UpdateService {
         }
       });
 
-      const confirmRestart = await ask(
+      const confirmRestart = await this.modalService.showQuestionModal(
+        'Instalación Lista',
         'La actualización se ha descargado correctamente. El sistema necesita reiniciarse para aplicar los cambios.',
-        { title: 'Instalación Lista', kind: 'info' }
+        'Reiniciar Ahora',
+        'Posponer'
       );
 
       if (confirmRestart) {

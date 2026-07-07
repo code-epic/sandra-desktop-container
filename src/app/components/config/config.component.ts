@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, A
 import { POLICIES_HTML } from '../../constants/policies';
 import { PerformanceService, PerformanceProfile } from '../../core/services/performance.service';
 import { UpdateService } from '../../core/services/update.service';
+import { ModalService } from '../../core/services/modal.service';
 import { UtilsService } from '../../core/services/utils.service';
 import { SecurityService } from '../../core/services/security.service';
 import { invoke } from '@tauri-apps/api/core';
@@ -72,6 +73,7 @@ export class ConfigComponent implements OnInit {
   constructor(
     public performance: PerformanceService,
     public updateService: UpdateService,
+    private modalService: ModalService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
     private utils: UtilsService,
@@ -336,7 +338,7 @@ export class ConfigComponent implements OnInit {
     }
 
     if (!login) {
-      alert("No se pudo identificar el usuario de la sesión actual.");
+      this.modalService.showGenericModal("Validación", "No se pudo identificar el usuario de la sesión actual.", "warning");
       return;
     }
 
@@ -383,7 +385,7 @@ export class ConfigComponent implements OnInit {
         throw new Error(errorMsg);
       }
     } catch (error) {
-      alert('Error al cambiar contraseña: ' + error);
+      this.modalService.showGenericModal("Error", 'Error al cambiar contraseña: ' + error, "error");
     }
   }
 
@@ -422,7 +424,7 @@ export class ConfigComponent implements OnInit {
         }
       }
     } catch (error) {
-      alert('Error al cambiar contraseña: ' + error);
+      this.modalService.showGenericModal("Error", 'Error al cargar TOTP: ' + error, "error");
     }
   }
 

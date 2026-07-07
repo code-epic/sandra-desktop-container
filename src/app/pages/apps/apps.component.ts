@@ -5,6 +5,7 @@ import {
   DesktopAppsService,
   DesktopApp,
 } from "../../core/services/desktop-apps.service";
+import { ModalService } from "../../core/services/modal.service";
 
 @Component({
   selector: "app-desktop-apps",
@@ -22,7 +23,10 @@ export class AppsComponent implements OnInit {
   currentApp: DesktopApp = this.getEmptyApp();
   activeTab: 'general' | 'modes' = 'general';
 
-  constructor(private appsService: DesktopAppsService) { }
+  constructor(
+    private appsService: DesktopAppsService,
+    private modalService: ModalService
+  ) { }
 
   ngOnInit() {
     this.loadApps();
@@ -142,7 +146,7 @@ export class AppsComponent implements OnInit {
 
   async saveApp() {
     if (!this.currentApp.app_id || !this.currentApp.name) {
-      alert("App ID and Name are required");
+      this.modalService.showGenericModal("Validación", "El ID de la Aplicación y el Nombre son requeridos.", "warning");
       return;
     }
 
@@ -171,7 +175,7 @@ export class AppsComponent implements OnInit {
       this.showSuccessModal = true;
       // this.loadApps() will be called when success modal is closed
     } catch (e) {
-      alert("Error saving app: " + e);
+      this.modalService.showGenericModal("Error", "Error al guardar la aplicación: " + e, "error");
     }
   }
 
@@ -194,7 +198,7 @@ export class AppsComponent implements OnInit {
         await this.appsService.deleteApp(this.appToDelete.app_id);
         this.loadApps();
       } catch (e) {
-        alert("Error deleting: " + e);
+        this.modalService.showGenericModal("Error", "Error al eliminar: " + e, "error");
       }
       this.cancelDelete();
     }
