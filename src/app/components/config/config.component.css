@@ -288,21 +288,48 @@ input[type="checkbox"] {
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    background: #f8fafc;
-    border: 2px solid transparent;
+    background: var(--bg-surface);
+    border: 2px solid var(--border-color);
     border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.connection-item:hover {
-    background: #f1f5f9;
-    transform: translateY(-1px);
+    cursor: default;
+    transition: all 0.2s ease;
 }
 
 .connection-item.active {
-    background: rgba(102, 187, 106, 0.05); /* Green tint */
-    border-color: var(--accent-purple, #66BB6A);
+    background: var(--accent-soft);
+    border-color: var(--accent-primary);
+}
+
+.connection-item.disabled-profile {
+    opacity: 0.45;
+    filter: grayscale(90%);
+    pointer-events: none;
+}
+
+/* Elegant Connection Action Buttons */
+.btn-connect {
+    background: var(--accent-soft);
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-connect:hover {
+    background: var(--accent-primary);
+    color: var(--bg-surface);
+    transform: scale(1.03);
+}
+
+.btn-connect i {
+    font-size: 0.9em;
 }
 
 .conn-icon {
@@ -440,15 +467,15 @@ input[type="text"], select, .styled-select {
 
 /* Disconnect Button */
 .btn-disconnect {
-    background: #FFEBEE;
-    color: #D32F2F;
-    border: none;
-    padding: 6px 12px;
+    background: rgba(211, 47, 47, 0.1);
+    color: #d32f2f;
+    border: 1px solid #d32f2f;
+    padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.85em;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -583,8 +610,9 @@ input[type="text"], select, .styled-select {
 .policies-viewer-content hr { border: 0; border-top: 1px solid #F1F5F9; margin: 30px 0; }
 
 .btn-disconnect:hover {
-    background: #FFCDD2;
-    transform: scale(1.05);
+    background: #d32f2f;
+    color: #ffffff;
+    transform: scale(1.03);
 }
 
 .btn-disconnect i {

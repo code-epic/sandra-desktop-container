@@ -42,8 +42,8 @@
 
       <div class="header-right-group">
 
-        <!-- Pill JWT pendiente: conectado sin autenticar -->
-        <div class="jwt-pending-pill" *ngIf="wsStatus === 'Conectado' && !getJwtToken()"
+        <!-- Pill JWT pendiente: Iniciar sesión -->
+        <div class="jwt-pending-pill" *ngIf="!getJwtToken()"
           (click)="checkAndPromptJwt(true)" title="Iniciar sesión para acceder a módulos protegidos">
           <i class="fas fa-lock"></i>
           <span>Iniciar Sesión</span>
@@ -76,7 +76,7 @@
           </div>
         </div>
 
-        <div class="connection-pill" [style.border-color]="statusColor" (click)="toggleMachinePopover($event)" *ngIf="!getJwtToken() || !sessionTimeRemaining">
+        <div class="connection-pill" [style.border-color]="statusColor" (click)="promptConnectionSelection($event)" *ngIf="!getJwtToken() || !sessionTimeRemaining">
           <div class="pulse-dot" [style.background-color]="statusColor"></div>
           <!-- Branding Local (Sandra DC) -->
           <div class="app-brand data-drag" data-tauri-drag-region>
@@ -598,7 +598,7 @@
     [availableConnections]="availableConnections" [activeConnection]="activeConnection"
     [wsStatus]="wsStatus" [isLoggedIn]="!!getJwtToken()"
     (onSave)="saveConfig()" (onActivateConnection)="activateConnectionGlobal($event)"
-    (onDisconnect)="disconnectConnection($event)" (close)="showControlPanel = false"
+    (onDisconnect)="disconnectConnection($event, true)" (close)="showControlPanel = false"
     (onLoginRequest)="checkAndPromptJwt(true)">
   </app-config>
 
@@ -775,7 +775,8 @@
   <!-- LOGIN MODAL (JWT Session) -->
   <app-login-modal *ngIf="showLoginModal" [ipAddress]="loginIpAddress" [port]="loginPort"
     [connections]="loginConnections" [requireLogin]="requireJwtLogin" [storageTarget]="config.access.jwtStorage"
-    [variableName]="config.access.jwtVariableName" (onConnectionSelect)="handleConnectionSelect($event)"
+    [variableName]="config.access.jwtVariableName" [showConnectionSelector]="showConnectionSelectorInModal"
+    (onConnectionSelect)="handleConnectionSelect($event)"
     (onClose)="handleLoginModalClose()" (onLoginSuccess)="handleLoginSuccess($event)">
   </app-login-modal>
 

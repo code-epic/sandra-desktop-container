@@ -231,7 +231,7 @@ export class AppComponent implements OnInit, DoCheck {
   // Track MessagePorts for Secure Authorizations
   authPorts = new Map<string, MessagePort>();
 
-  questionModal: import('./core/services/modal.service').QuestionModalState = {
+  questionModal: import("./core/services/modal.service").QuestionModalState = {
     show: false,
     title: "",
     message: "",
@@ -282,7 +282,7 @@ export class AppComponent implements OnInit, DoCheck {
     this.leftSidebarOpen$ = this.appState.leftSidebarOpen$;
     this.viewerLoading$ = this.appState.viewerLoading$;
 
-    this.modalService.genericModal$.subscribe(state => {
+    this.modalService.genericModal$.subscribe((state) => {
       this.zone.run(() => {
         this.genericModal = {
           show: state.show,
@@ -294,7 +294,7 @@ export class AppComponent implements OnInit, DoCheck {
       });
     });
 
-    this.modalService.questionModal$.subscribe(state => {
+    this.modalService.questionModal$.subscribe((state) => {
       this.zone.run(() => {
         this.questionModal = state;
       });
@@ -545,16 +545,33 @@ export class AppComponent implements OnInit, DoCheck {
 
   loginConnections: any[] = [];
   requireJwtLogin: boolean = true;
+  showConnectionSelectorInModal: boolean = false;
 
-  async checkAndPromptJwt(force: boolean = false) {
-    console.log(
-      "🔍 [System] checkAndPromptJwt llamado. Force:",
-      force,
-      "ActiveConn:",
-      !!this.activeConnection,
-      "JWT Enabled:",
-      this.config.access.enableJwtSession,
-    );
+  async promptConnectionSelection(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.availableConnections = await this.sdcService.getConnections();
+    this.zone.run(() => {
+      this.loginConnections = this.availableConnections;
+      this.requireJwtLogin = this.config.access.enableJwtSession;
+      this.showConnectionSelectorInModal = true;
+      this.showLoginModal = true;
+    });
+  }
+
+  async checkAndPromptJwt(
+    force: boolean = false,
+    startWithLogin: boolean = false,
+  ) {
+    // console.log(
+    //   "🔍 [System] checkAndPromptJwt llamado. Force:",
+    //   force,
+    //   "ActiveConn:",
+    //   !!this.activeConnection,
+    //   "JWT Enabled:",
+    //   this.config.access.enableJwtSession,
+    // );
 
     if (!this.activeConnection) {
       try {
@@ -564,10 +581,6 @@ export class AppComponent implements OnInit, DoCheck {
 
         if (!this.activeConnection && this.availableConnections.length > 0) {
           this.activeConnection = this.availableConnections[0];
-          // console.log(
-          //   "ℹ️ [System] Usando primer perfil de conexión disponible como fallback:",
-          //   this.activeConnection.name,
-          // );
         }
       } catch (e) {
         console.error(
@@ -577,8 +590,7 @@ export class AppComponent implements OnInit, DoCheck {
       }
     }
 
-    if (!this.activeConnection) {
-      // console.warn("⚠️ [System] No hay conexión activa para solicitar JWT.");
+    if (!this.activeConnection && this.availableConnections.length === 0) {
       this.zone.run(() => {
         this.showControlPanel = true;
         const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
@@ -596,13 +608,26 @@ export class AppComponent implements OnInit, DoCheck {
 
     // Si forzamos (clic manual) O si está habilitado y falta el token real
     if (force || (this.config.access.enableJwtSession && !token)) {
+      if (this.showLoginModal && !force) {
+        return;
+      }
       // console.log("🔓 [System] ACTIVANDO showLoginModal = true");
       this.zone.run(() => {
         this.showControlPanel = false; // Cerramos el panel para ver el login claramente
-        this.loginConnections = [];
+        this.loginConnections = this.availableConnections;
+        this.showConnectionSelectorInModal = !startWithLogin;
         this.requireJwtLogin = true;
-        this.loginIpAddress = this.activeConnection.ip_address || "localhost";
-        this.loginPort = Number(this.activeConnection.port) || 443;
+        this.loginIpAddress = this.activeConnection
+          ? this.activeConnection.ip_address || "localhost"
+          : "localhost";
+        this.loginPort = this.activeConnection
+          ? Number(this.activeConnection.port) || 443
+          : 443;
+
+        if (this.showLoginModal) {
+          // Si la modal ya está abierta, no la destruimos/recreamos para evitar el parpadeo de recarga
+          return;
+        }
 
         // Forzar ciclo de detección de cambios
         this.showLoginModal = false;
@@ -617,6 +642,7 @@ export class AppComponent implements OnInit, DoCheck {
       // Sincronización silenciosa si ya hay token en storage
       if (
         token &&
+        this.activeConnection &&
         (!this.activeConnection.jwt || this.activeConnection.jwt !== token)
       ) {
         // console.log(
@@ -691,7 +717,7 @@ export class AppComponent implements OnInit, DoCheck {
       this.appState.setActiveTab(this.pendingNavTab);
       this.pendingNavTab = null;
     }
-    
+
     // 6. Si había una aplicación pendiente de abrir
     if (this.pendingAppToOpen) {
       this.openApp(this.pendingAppToOpen);
@@ -741,11 +767,7 @@ export class AppComponent implements OnInit, DoCheck {
       if (!storageHasJwt || !connectionHasJwt) {
         // Si no hay token válido, forzar login
         this.pendingNavTab = tabId;
-        this.loginConnections = [];
-        this.requireJwtLogin = true;
-        this.loginIpAddress = this.activeConnection.ip_address;
-        this.loginPort = Number(this.activeConnection.port);
-        this.showLoginModal = true;
+        this.checkAndPromptJwt(true, false);
 
         const safeEvent = { clientX: window.innerWidth / 2, clientY: 50 };
         this.snapService.show("Autenticación Requerida", safeEvent as any);
@@ -893,7 +915,11 @@ export class AppComponent implements OnInit, DoCheck {
         }
       } catch (e) {
         console.error("Error al desconectar:", e);
-        this.modalService.showGenericModal("Error", "Error al desconectar: " + e, "error");
+        this.modalService.showGenericModal(
+          "Error",
+          "Error al desconectar: " + e,
+          "error",
+        );
       }
     };
 
@@ -904,7 +930,7 @@ export class AppComponent implements OnInit, DoCheck {
         "Confirmar Desconexión",
         "¿Estás seguro de que deseas desconectarte? Se cerrará la sesión actual y será necesario ingresar credenciales nuevamente.",
         "Desconectar",
-        "Mantener Conexión"
+        "Mantener Conexión",
       );
       if (confirmed) {
         await performDisconnect();
@@ -916,7 +942,7 @@ export class AppComponent implements OnInit, DoCheck {
    * Cierra todas las pestañas dinámicas y destruye los webviews nativos.
    */
   async closeAllTabsAndWebviews() {
-    console.log("🗑️ [System] Cerrando todas las pestañas y webviews...");
+    // console.log("🗑️ [System] Cerrando todas las pestañas y webviews...");
 
     // 1. Cerrar todos los webviews nativos activos y borrar sus datos de navegación
     for (const tabId of Object.keys(this.activeNativeWebviews)) {
@@ -944,7 +970,7 @@ export class AppComponent implements OnInit, DoCheck {
    * Centraliza la lógica de "Logout" para reutilización.
    */
   async performLocalLogout() {
-    console.log("🔐 [System] Ejecutando limpieza de sesión local...");
+    // console.log("🔐 [System] Ejecutando limpieza de sesión local...");
 
     // 1. Notificar a todas las pestañas tipo iframe que limpien su sesión antes de desmontarlas
     try {
@@ -1018,7 +1044,7 @@ export class AppComponent implements OnInit, DoCheck {
     keysToRemove.forEach((k) => {
       localStorage.removeItem(k);
     });
-    
+
     // Asegurarse de eliminar jwt y config de red residuales explícitamente
     localStorage.removeItem("active_connection");
     localStorage.removeItem("token");
@@ -1124,9 +1150,11 @@ export class AppComponent implements OnInit, DoCheck {
       this.performFullLogout();
       this.pendingNavTab = null;
     }
-    
+
     if (this.pendingAppToOpen) {
-      console.warn("⚠️ [System] Login cancelado. Cancelando apertura de la app.");
+      console.warn(
+        "⚠️ [System] Login cancelado. Cancelando apertura de la app.",
+      );
       this.pendingAppToOpen = null;
     }
   }
@@ -1135,30 +1163,27 @@ export class AppComponent implements OnInit, DoCheck {
 
   showSetupWizard = false;
 
+  async checkLoaderReady(): Promise<void> {
+    try {
+      const isReady = await invoke<boolean>("is_loader_ready");
+      if (isReady) {
+        return;
+      }
+      return new Promise<void>((resolve) => {
+        const unlistenPromise = listen("loader-sequence-ready", () => {
+          unlistenPromise.then((unlisten) => unlisten());
+          resolve();
+        });
+      });
+    } catch (e) {
+      console.warn("Error checking loader readiness:", e);
+    }
+  }
+
   async initApplication() {
     // Esperar a que la secuencia de carga de Rust (Stack Loader) se complete
     if ((window as any).__TAURI__) {
-      await new Promise<void>((resolve) => {
-        let resolved = false;
-        const timeout = setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            resolve();
-          }
-        }, 10000); // 10s fallback
-        
-        listen('loader-sequence-ready', () => {
-          if (!resolved) {
-            resolved = true;
-            clearTimeout(timeout);
-            resolve();
-          }
-        }).then((unlisten) => {
-          if (resolved) {
-            unlisten();
-          }
-        });
-      });
+      await this.checkLoaderReady();
     }
 
     // Opcional: Chequeo de actualizaciones automático si está habilitado
@@ -1187,13 +1212,11 @@ export class AppComponent implements OnInit, DoCheck {
         await invoke("emit_splash_status", {
           message: "Requiere Configuración",
         });
-        setTimeout(async () => {
-          await invoke("close_splash");
-          this.zone.run(() => {
-            console.log("🚀 [Init] Activando Setup Wizard...");
-            this.showSetupWizard = true;
-          });
-        }, 2000);
+        await invoke("close_splash");
+        this.zone.run(() => {
+          console.log("🚀 [Init] Activando Setup Wizard...");
+          this.showSetupWizard = true;
+        });
       } else {
         // Configurado -> Intentar conexión
         if (setupStatus.machine_name) {
@@ -1224,22 +1247,21 @@ export class AppComponent implements OnInit, DoCheck {
             message: "Seleccionando Perfil de Red...",
           });
 
-          setTimeout(async () => {
-            await invoke("close_splash");
-            this.zone.run(() => {
-              this.loginConnections = this.availableConnections;
-              this.requireJwtLogin = this.config.access.enableJwtSession;
-              this.showLoginModal = true;
-            });
-          }, 1000);
+          await invoke("close_splash");
+          this.zone.run(() => {
+            this.loginConnections = this.availableConnections;
+            this.showConnectionSelectorInModal = true;
+            this.requireJwtLogin = this.config.access.enableJwtSession;
+            this.showLoginModal = true;
+          });
 
           return; // Termina la inicialización, el flujo continúa a través del Modal
         } else if (this.availableConnections.length === 1) {
           this.activeConnection = this.availableConnections[0];
-          console.log(
-            "ℹ️ [Init] Usando único perfil disponible:",
-            this.activeConnection.name,
-          );
+          // console.log(
+          //   "[Init] Usando único perfil disponible:",
+          //   this.activeConnection.name,
+          // );
         } else {
           await invoke("emit_splash_status", {
             message: "Sin Perfiles de Conexión",
@@ -1251,7 +1273,7 @@ export class AppComponent implements OnInit, DoCheck {
       }
 
       if (this.activeConnection) {
-        console.log("🔌 [Init] Auto-conectando a:", this.activeConnection.name);
+        // console.log("🔌 [Init] Auto-conectando a:", this.activeConnection.name);
         await invoke("emit_splash_status", {
           message: `Enlazando con ${this.activeConnection.name}...`,
         });
@@ -1273,22 +1295,16 @@ export class AppComponent implements OnInit, DoCheck {
         // Validar si requiere JWT aunque sea conexión única autoseleccionada
         if (this.config.access.enableJwtSession && !this.getJwtToken()) {
           setTimeout(() => {
-            this.loginConnections = [];
-            this.requireJwtLogin = true;
-            this.loginIpAddress = this.activeConnection.ip_address;
-            this.loginPort = Number(this.activeConnection.port);
-            this.showLoginModal = true;
+            this.checkAndPromptJwt(true, false);
           }, 500);
         }
       }
 
-      setTimeout(async () => {
-        await invoke("close_splash");
-      }, 2000);
+      await invoke("close_splash");
     } catch (e) {
       console.error("Error during initApplication:", e);
       // Fallback: cerrar splash para no bloquear al usuario
-      setTimeout(() => invoke("close_splash"), 3000);
+      await invoke("close_splash");
     }
   }
 
@@ -1297,7 +1313,7 @@ export class AppComponent implements OnInit, DoCheck {
   logoutStep: string = "";
 
   async handleConnectionSelect(conn: any) {
-    console.log("🔌 [Selector] Conexión seleccionada:", conn.name);
+    // console.log("🔌 [Selector] Conexión seleccionada:", conn.name);
     this.isChangingConnection = true;
     this.requireJwtLogin = true; // Forzar que la modal requiera credenciales
     try {
@@ -1315,7 +1331,7 @@ export class AppComponent implements OnInit, DoCheck {
       await this.loadConnections(); // Sync is_connected ref
 
       // Forzar la visualización de la ventana de login (Acceso Requerido)
-      this.checkAndPromptJwt(true);
+      this.checkAndPromptJwt(true, true);
     } catch (e) {
       console.error("Error conectando tras selección de perfil:", e);
       this.showModal(
@@ -1412,7 +1428,7 @@ export class AppComponent implements OnInit, DoCheck {
           "Activar Seguridad JWT",
           "¿Desea activar la protección por token JWT de Sandra-Security ahora?\n\nEsto habilitará servicios avanzados como notificación en tiempo real y protegerá secciones sensibles.",
           "Sí, Activar JWT",
-          "No, Quizás Luego"
+          "No, Quizás Luego",
         );
         if (confirmed) {
           this.showJwtSetupModal = true;
@@ -2048,12 +2064,12 @@ export class AppComponent implements OnInit, DoCheck {
     if (!event.data || !event.data.type) return;
 
     const { type, payload } = event.data;
-    const logInfo =
-      payload?.fileName ||
-      (type === "EXEC_FNX_FINALIZADO" ? payload?.taskId : "");
-    console.log(
-      `📥 [Bridge] Mensaje recibido: ${type}${logInfo ? " – " + logInfo : ""}`,
-    );
+    // const logInfo =
+    //   payload?.fileName ||
+    //   (type === "EXEC_FNX_FINALIZADO" ? payload?.taskId : "");
+    // console.log(
+    //   `📥 [Bridge] Mensaje recibido: ${type}${logInfo ? " – " + logInfo : ""}`,
+    // );
 
     switch (type) {
       case "DOWNLOAD_PDF":
@@ -2522,7 +2538,12 @@ export class AppComponent implements OnInit, DoCheck {
       type = "success";
     }
 
-    this.modalService.showGenericModal(title, message, type, infoIcon || "fa-info-circle");
+    this.modalService.showGenericModal(
+      title,
+      message,
+      type,
+      infoIcon || "fa-info-circle",
+    );
   }
 
   async downloadPdfFromTab(tab: Tab) {
@@ -3153,7 +3174,7 @@ export class AppComponent implements OnInit, DoCheck {
   }
 
   onIframeLoad(tabId: string) {
-    console.log(`[Iframe Loaded] Sending context to ${tabId}`);
+    // console.log(`[Iframe Loaded] Sending context to ${tabId}`);
     this.sendContextToIframe(tabId);
   }
 
@@ -3188,7 +3209,7 @@ export class AppComponent implements OnInit, DoCheck {
       // 2. Enviar Sesión JWT (SET_SESSION) si está habilitada
       const token = this.getJwtToken();
       if (token) {
-        console.log(`[PostMessage] Enviando SET_SESSION a ${tabId}`);
+        // console.log(`[PostMessage] Enviando SET_SESSION a ${tabId}`);
         iframe.contentWindow.postMessage(
           {
             type: "SET_SESSION",
@@ -3522,9 +3543,9 @@ export class AppComponent implements OnInit, DoCheck {
     const overlayState = this.isAnyOverlayVisible();
     if (overlayState !== this.lastOverlayState) {
       this.lastOverlayState = overlayState;
-      console.log(
-        `👁️ [Overlay State] Cambió a: ${overlayState ? "Visible" : "Oculto"}. Sincronizando webviews...`,
-      );
+      // console.log(
+      //   `👁️ [Overlay State] Cambió a: ${overlayState ? "Visible" : "Oculto"}. Sincronizando webviews...`,
+      // );
       // Retraso mínimo para asegurar que los elementos del DOM estén estables antes de sincronizar
       setTimeout(() => this.syncNativeWebviews(), 50);
     }

@@ -109,6 +109,13 @@
                                 Cancelar
                             </button>
                         </div>
+                        <div class="change-connection-wrapper" *ngIf="connections && connections.length > 0" 
+                             style="text-align: center; margin-top: 20px; border-top: 1px dashed #e2e8f0; padding-top: 15px;">
+                            <a (click)="backToConnectionSelector()" 
+                               style="color: #2e7d32; cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s;">
+                                <i class="fas fa-network-wired"></i> Cambiar de conexión
+                            </a>
+                        </div>
                     </form>
                 </ng-container>
 

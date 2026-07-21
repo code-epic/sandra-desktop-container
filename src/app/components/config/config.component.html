@@ -488,7 +488,8 @@
 
           <div class="connection-list">
             <div class="connection-item" *ngFor="let conn of availableConnections"
-              [class.active]="activeConnection?.id === conn.id" (click)="activateConnectionGlobal(conn)">
+              [class.active]="activeConnection?.id === conn.id"
+              [class.disabled-profile]="activeConnection && activeConnection.id !== conn.id">
               <div class="conn-icon">
                 <i class="fas fa-server"></i>
               </div>
@@ -497,15 +498,21 @@
                 <span class="conn-ip">{{ conn.ip_address }}:{{ conn.port }}</span>
               </div>
               <div class="conn-status">
-                <ng-container *ngIf="activeConnection?.id === conn.id; else inactiveStatus">
-                  <button class="btn-disconnect" (click)="$event.stopPropagation(); disconnect(conn)"
-                    title="Desconectar / Inactivar">
+                <!-- Si esta conexión es la activa, botón de Desconectar -->
+                <ng-container *ngIf="activeConnection?.id === conn.id">
+                  <button class="btn-disconnect" (click)="disconnect(conn)"
+                    title="Desconectar">
                     <i class="fas fa-power-off"></i> Desconectar
                   </button>
                 </ng-container>
-                <ng-template #inactiveStatus>
-                  <!-- Empty or maybe a connect icon if desired, but default clean is fine -->
-                </ng-template>
+
+                <!-- Si todas están desconectadas, botón de Conectar -->
+                <ng-container *ngIf="!activeConnection">
+                  <button class="btn-connect" (click)="activateConnectionGlobal(conn)"
+                    title="Conectar">
+                    <i class="fas fa-plug"></i> Conectar
+                  </button>
+                </ng-container>
               </div>
             </div>
             <div class="no-data" *ngIf="availableConnections.length === 0">

@@ -29,13 +29,13 @@ export class LoginModalComponent implements OnInit {
 
   @Input() connections: any[] = [];
   @Input() requireLogin: boolean = true;
+  @Input() showConnectionSelector: boolean = false;
 
   @Output() onClose = new EventEmitter<void>();
   @Output() onLoginSuccess = new EventEmitter<string>();
   @Output() onConnectionSelect = new EventEmitter<any>();
 
   showModal: boolean = true;
-  showConnectionSelector: boolean = false;
   isHidden: boolean = true;
   showTotpSection: boolean = false;
   verifying: boolean = false;
@@ -58,9 +58,20 @@ export class LoginModalComponent implements OnInit {
   ngOnInit() {
     // console.log("🛠️ [LoginModal] Componente inicializado. IP:", this.ipAddress, "Port:", this.port);
     this.showModal = true;
-    if (this.connections && this.connections.length > 0) {
-      this.showConnectionSelector = true;
+    if (!this.connections || this.connections.length === 0) {
+      this.showConnectionSelector = false;
     }
+  }
+
+  backToConnectionSelector() {
+    this.showConnectionSelector = true;
+    this.errorMessage = "";
+    this.showTotpSection = false;
+    this.verifying = false;
+    this.verified = false;
+    this.loading = false;
+    this.usuario = "";
+    this.clave = "";
   }
 
   selectConnection(conn: any) {

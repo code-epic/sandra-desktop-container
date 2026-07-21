@@ -48,8 +48,27 @@ async fn check_updater_github(app_handle: &AppHandle) -> Result<Option<String>, 
     Ok(None)
 }
 
+#[cfg(target_os = "macos")]
+fn get_mac_app_bundle_path(exe_path: &std::path::Path) -> Option<std::path::PathBuf> {
+    let mut path = exe_path.to_path_buf();
+    while let Some(parent) = path.parent() {
+        if parent.extension().map_or(false, |ext| ext == "app") {
+            return Some(parent.to_path_buf());
+        }
+        path = parent.to_path_buf();
+    }
+    None
+}
+
 // Descarga en caliente del binario y reemplazo de inodos/procesos
 async fn run_hot_update(app_handle: &AppHandle, url: &str) -> Result<(), String> {
+    // 1. Indicar que estamos en proceso de actualización
+    if let Some(updating_state) = app_handle.try_state::<crate::UpdatingState>() {
+        if let Ok(mut updating) = updating_state.0.lock() {
+            *updating = true;
+        }
+    }
+
     let client = reqwest::Client::new();
     let mut response = client.get(url)
         .send()
@@ -61,12 +80,32 @@ async fn run_hot_update(app_handle: &AppHandle, url: &str) -> Result<(), String>
     }
 
     let total_size = response.content_length().unwrap_or(0);
-    let mut temp_file_path = std::env::temp_dir();
     
-    #[cfg(target_os = "windows")]
-    temp_file_path.push("SandraDC_update.exe");
-    #[cfg(not(target_os = "windows"))]
-    temp_file_path.push("SandraDC_update");
+    // Determinar la extensión del archivo a descargar basado en la URL
+    let url_lower = url.to_lowercase();
+    let is_zip = url_lower.ends_with(".zip");
+    let is_msi = url_lower.ends_with(".msi");
+    let is_exe = url_lower.ends_with(".exe");
+    let is_dmg = url_lower.ends_with(".dmg");
+    let is_deb = url_lower.ends_with(".deb");
+
+    let mut temp_file_path = std::env::temp_dir();
+    if is_zip {
+        temp_file_path.push("SandraDC_setup.zip");
+    } else if is_msi {
+        temp_file_path.push("SandraDC_setup.msi");
+    } else if is_exe {
+        temp_file_path.push("SandraDC_setup.exe");
+    } else if is_dmg {
+        temp_file_path.push("SandraDC_setup.dmg");
+    } else if is_deb {
+        temp_file_path.push("SandraDC_setup.deb");
+    } else {
+        #[cfg(target_os = "windows")]
+        temp_file_path.push("SandraDC_setup.exe");
+        #[cfg(not(target_os = "windows"))]
+        temp_file_path.push("SandraDC_setup");
+    }
 
     let mut temp_file = std::fs::File::create(&temp_file_path)
         .map_err(|e| format!("Error creando archivo temporal: {}", e))?;
@@ -96,7 +135,7 @@ async fn run_hot_update(app_handle: &AppHandle, url: &str) -> Result<(), String>
     app_handle.emit("loader-sequence-progress", LoaderProgress {
         layer: "NETWORK_LAYER".to_string(),
         percentage: 95.0,
-        status_message: "Instalando parche en caliente...".to_string(),
+        status_message: "Instalando parche...".to_string(),
         detail: "Updates: Deteniendo Base de Datos e Inodos...".to_string(),
     }).unwrap();
 
@@ -112,70 +151,219 @@ async fn run_hot_update(app_handle: &AppHandle, url: &str) -> Result<(), String>
     let current_exe_path = std::env::current_exe()
         .map_err(|e| format!("Error localizando ejecutable activo: {}", e))?;
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        std::fs::remove_file(&current_exe_path).ok();
-        std::fs::copy(&temp_file_path, &current_exe_path)
-            .map_err(|e| format!("Error sobreescribiendo binario: {}. ¿Permisos insuficientes?", e))?;
-        
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut perms = std::fs::metadata(&current_exe_path).unwrap().permissions();
-            perms.set_mode(0o755);
-            std::fs::set_permissions(&current_exe_path, perms).unwrap();
-        }
-
-        app_handle.emit("loader-sequence-progress", LoaderProgress {
-            layer: "NETWORK_LAYER".to_string(),
-            percentage: 100.0,
-            status_message: "Reinicio listo".to_string(),
-            detail: "Updates: Reiniciando aplicación...".to_string(),
-        }).unwrap();
-        
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        app_handle.restart();
-    }
-
     #[cfg(target_os = "windows")]
     {
-        let old_exe_path = current_exe_path.with_extension("exe.old");
-        std::fs::remove_file(&old_exe_path).ok();
-
-        std::fs::rename(&current_exe_path, &old_exe_path)
-            .map_err(|e| format!("Fallo al renombrar ejecutable en uso: {}", e))?;
+        let pid = std::process::id();
+        let ps_script_path = std::env::temp_dir().join("SandraDC_install.ps1");
+        let extract_dir = std::env::temp_dir().join("SandraDC_extracted");
         
-        if let Err(e) = std::fs::copy(&temp_file_path, &current_exe_path) {
-            std::fs::rename(&old_exe_path, &current_exe_path).ok();
-            return Err(format!("Fallo al copiar nuevo ejecutable: {}", e));
-        }
+        let ps_content = format!(
+            r#"# Esperar a que el proceso principal de SandraDC termine
+$processId = {pid}
+while (Get-Process -Id $processId -ErrorAction SilentlyContinue) {{
+    Start-Sleep -Milliseconds 500
+}}
 
-        let bat_path = std::env::temp_dir().join("SandraDC_cleanup.bat");
-        let bat_content = format!(
-            "@echo off\r\ntimeout /t 1 /nobreak > NUL\r\ndel \"{}\"\r\nstart \"\" \"{}\"\r\ndel \"%~f0\"\r\n",
-            old_exe_path.to_string_lossy(),
-            current_exe_path.to_string_lossy()
+$downloadedPath = "{temp_file_path}"
+$extractDir = "{extract_dir}"
+
+# 1. Si es un archivo ZIP, extraerlo
+if ($downloadedPath.EndsWith(".zip", [System.StringComparison]::OrdinalIgnoreCase)) {{
+    if (Test-Path $extractDir) {{
+        Remove-Item -Recurse -Force $extractDir
+    }}
+    New-Item -ItemType Directory -Path $extractDir -Force
+    Expand-Archive -Path $downloadedPath -DestinationPath $extractDir -Force
+    
+    # Buscar instaladores dentro de la carpeta extraida
+    $installer = Get-ChildItem -Path $extractDir -Include "*.msi", "*.exe" -Recurse | Select-Object -First 1
+    if ($installer) {{
+        $downloadedPath = $installer.FullName
+    }}
+}}
+
+# 2. Ejecutar el instalador
+if ($downloadedPath.EndsWith(".msi", [System.StringComparison]::OrdinalIgnoreCase)) {{
+    # Ejecutar MSI de forma pasiva
+    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$downloadedPath`" /passive /norestart" -Wait
+}} elseif ($downloadedPath.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) {{
+    # Ejecutar EXE de forma silenciosa (/S es el estándar para NSIS)
+    Start-Process -FilePath $downloadedPath -ArgumentList "/S" -Wait
+}}
+
+# 3. Re-iniciar la aplicacion principal
+if (Test-Path "{current_exe_path}") {{
+    Start-Process -FilePath "{current_exe_path}"
+}}
+
+# Limpieza
+if (Test-Path $extractDir) {{
+    Remove-Item -Recurse -Force $extractDir
+}}
+if (Test-Path "{temp_file_path}") {{
+    Remove-Item -Force "{temp_file_path}"
+}}
+Remove-Item -Force $MyInvocation.MyCommand.Path
+"#,
+            pid = pid,
+            temp_file_path = temp_file_path.to_string_lossy().replace('\\', "\\\\"),
+            extract_dir = extract_dir.to_string_lossy().replace('\\', "\\\\"),
+            current_exe_path = current_exe_path.to_string_lossy().replace('\\', "\\\\")
         );
 
-        std::fs::write(&bat_path, bat_content)
-            .map_err(|e| format!("Fallo escribiendo script de limpieza: {}", e))?;
+        std::fs::write(&ps_script_path, ps_content)
+            .map_err(|e| format!("Fallo al escribir script de instalación: {}", e))?;
 
         app_handle.emit("loader-sequence-progress", LoaderProgress {
             layer: "NETWORK_LAYER".to_string(),
             percentage: 100.0,
-            status_message: "Reiniciando...".to_string(),
-            detail: "Updates: Apagando para aplicar parche...".to_string(),
+            status_message: "Instalando actualización...".to_string(),
+            detail: "Updates: Apagando sistema e instalando nueva versión...".to_string(),
         }).unwrap();
-        
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
-        std::process::Command::new("cmd")
-            .args(&["/C", &bat_path.to_string_lossy()])
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+        // Ejecutar PowerShell en segundo plano de forma oculta
+        std::process::Command::new("powershell.exe")
+            .args(&[
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-WindowStyle",
+                "Hidden",
+                "-File",
+                &ps_script_path.to_string_lossy(),
+            ])
             .spawn()
-            .map_err(|e| format!("Error ejecutando script de reinicio: {}", e))?;
+            .map_err(|e| format!("Error ejecutando script de actualización: {}", e))?;
 
         app_handle.exit(0);
     }
+
+    #[cfg(target_os = "macos")]
+    {
+        let pid = std::process::id();
+        let app_bundle_path = get_mac_app_bundle_path(&current_exe_path)
+            .ok_or_else(|| "No se pudo determinar el bundle de la aplicación (.app)".to_string())?;
+
+        let script_path = std::env::temp_dir().join("SandraDC_install.sh");
+        let script_content = format!(
+            r#"#!/bin/bash
+# Esperar a que el proceso principal termine
+while kill -0 {pid} 2>/dev/null; do
+    sleep 0.5
+done
+
+# Crear punto de montaje temporal
+MOUNT_DIR=$(mktemp -d -t sandra_mount)
+hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT_DIR" "{temp_file_path}"
+
+# Buscar la app en el volumen montado
+APP_PATH=$(find "$MOUNT_DIR" -maxdepth 1 -name "*.app" | head -n 1)
+
+if [ -n "$APP_PATH" ]; then
+    # Sobreescribir la aplicación instalada
+    rm -rf "{app_bundle_path}"
+    cp -R "$APP_PATH" "{app_bundle_path}"
+fi
+
+# Desmontar DMG y limpiar
+hdiutil detach "$MOUNT_DIR"
+rm -rf "$MOUNT_DIR"
+
+# Abrir la nueva versión
+open "{app_bundle_path}"
+
+# Limpiar archivos de instalación
+rm -f "{temp_file_path}"
+rm -f "$0"
+"#,
+            pid = pid,
+            temp_file_path = temp_file_path.to_string_lossy(),
+            app_bundle_path = app_bundle_path.to_string_lossy()
+        );
+
+        std::fs::write(&script_path, script_content)
+            .map_err(|e| format!("Fallo al escribir script de instalación: {}", e))?;
+
+        // Hacer ejecutable el script
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&script_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&script_path, perms).unwrap();
+
+        app_handle.emit("loader-sequence-progress", LoaderProgress {
+            layer: "NETWORK_LAYER".to_string(),
+            percentage: 100.0,
+            status_message: "Instalando actualización...".to_string(),
+            detail: "Updates: Apagando sistema e instalando nueva versión...".to_string(),
+        }).unwrap();
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+        std::process::Command::new("/bin/bash")
+            .arg(&script_path)
+            .spawn()
+            .map_err(|e| format!("Error ejecutando script de actualización: {}", e))?;
+
+        app_handle.exit(0);
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let pid = std::process::id();
+        let script_path = std::env::temp_dir().join("SandraDC_install.sh");
+        let script_content = format!(
+            r#"#!/bin/bash
+# Esperar a que el proceso principal termine
+while kill -0 {pid} 2>/dev/null; do
+    sleep 0.5
+done
+
+# Instalar deb usando pkexec para pedir privilegios gráficos
+pkexec dpkg -i "{temp_file_path}"
+
+# Re-iniciar la aplicación
+if [ -f "/usr/bin/sandra-desktop-container" ]; then
+    /usr/bin/sandra-desktop-container &
+else
+    "{current_exe_path}" &
+fi
+
+# Limpieza
+rm -f "{temp_file_path}"
+rm -f "$0"
+"#,
+            pid = pid,
+            temp_file_path = temp_file_path.to_string_lossy(),
+            current_exe_path = current_exe_path.to_string_lossy()
+        );
+
+        std::fs::write(&script_path, script_content)
+            .map_err(|e| format!("Fallo al escribir script de instalación: {}", e))?;
+
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&script_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&script_path, perms).unwrap();
+
+        app_handle.emit("loader-sequence-progress", LoaderProgress {
+            layer: "NETWORK_LAYER".to_string(),
+            percentage: 100.0,
+            status_message: "Instalando actualización...".to_string(),
+            detail: "Updates: Apagando sistema e instalando nueva versión...".to_string(),
+        }).unwrap();
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+        std::process::Command::new("/bin/bash")
+            .arg(&script_path)
+            .spawn()
+            .map_err(|e| format!("Error ejecutando script de actualización: {}", e))?;
+
+        app_handle.exit(0);
+    }
+
     #[allow(unreachable_code)]
     Ok(())
 }
@@ -303,13 +491,21 @@ pub async fn start_loader_sequence(app_handle: AppHandle) -> Result<(), String> 
 
     app_handle.emit("loader-sequence-ready", ()).map_err(|e| e.to_string())?;
 
-    if let Some(splash) = app_handle.get_webview_window("splashscreen") {
-        let _ = splash.close();
-    }
-    if let Some(main) = app_handle.get_webview_window("main") {
-        let _ = main.show();
-        let _ = main.set_focus();
+    if let Some(loader_state) = app_handle.try_state::<crate::LoaderReady>() {
+        if let Ok(mut ready) = loader_state.0.lock() {
+            *ready = true;
+        }
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn is_loader_ready(app_handle: AppHandle) -> bool {
+    if let Some(loader_state) = app_handle.try_state::<crate::LoaderReady>() {
+        if let Ok(ready) = loader_state.0.lock() {
+            return *ready;
+        }
+    }
+    false
 }

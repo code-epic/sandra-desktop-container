@@ -12,6 +12,8 @@ use tauri::Manager;
 
 pub struct ConnectionTask(pub Mutex<Option<JoinHandle<()>>>);
 pub struct WsStatus(pub Mutex<String>);
+pub struct LoaderReady(pub std::sync::Mutex<bool>);
+pub struct UpdatingState(pub std::sync::Mutex<bool>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -51,19 +53,30 @@ pub fn run() {
             app.manage(DbState(Mutex::new(conn)));
             app.manage(ConnectionTask(Mutex::new(None)));
             app.manage(WsStatus(Mutex::new("disconnected".to_string())));
+            app.manage(LoaderReady(std::sync::Mutex::new(false)));
+            app.manage(UpdatingState(std::sync::Mutex::new(false)));
 
             // FALLBACK DE SEGURIDAD PARA WINDOWS:
             // Si por alguna razón el frontend falla al cerrar el splash, 
             // lo cerramos nosotros después de un tiempo prudencial para no bloquear al usuario.
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_secs(15)).await;
-                if let Some(splash) = app_handle.get_webview_window("splashscreen") {
-                    let _ = splash.close();
-                }
-                if let Some(main) = app_handle.get_webview_window("main") {
-                    let _ = main.show();
-                    let _ = main.set_focus();
+                tokio::time::sleep(std::time::Duration::from_secs(20)).await;
+                
+                let is_updating = if let Some(updating_state) = app_handle.try_state::<UpdatingState>() {
+                    updating_state.0.lock().map(|g| *g).unwrap_or(false)
+                } else {
+                    false
+                };
+
+                if !is_updating {
+                    if let Some(splash) = app_handle.get_webview_window("splashscreen") {
+                        let _ = splash.close();
+                    }
+                    if let Some(main) = app_handle.get_webview_window("main") {
+                        let _ = main.show();
+                        let _ = main.set_focus();
+                    }
                 }
             });
 
@@ -158,7 +171,8 @@ pub fn run() {
             commands::file_upload::verify_file_seal,
             commands::file_upload::apply_alquimia_seal,
             commands::secure_download::procesar_descarga_segura,
-            commands::loader::start_loader_sequence
+            commands::loader::start_loader_sequence,
+            commands::loader::is_loader_ready
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
