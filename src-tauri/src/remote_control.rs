@@ -383,15 +383,16 @@ fn handle_exec_fnx_msg(app_handle: &AppHandle, json: &Value) {
             // Forzamos el payload a JSON string si no lo es, para prevenir SyntaxError en el cliente Angular
             if !is_json {
                 let content_str = payload.as_str().unwrap_or(if is_error { "ERROR" } else { "SUCCESS" });
+                let status_val = if is_error { "error" } else { status_str.as_deref().unwrap_or("finalizado") };
                 let json_obj = serde_json::json!({
-                    "status": "error",
+                    "status": status_val,
                     "message": content_str
                 });
                 safe_json["payload"] = serde_json::Value::String(json_obj.to_string());
-                safe_json["status"] = serde_json::Value::String("error".to_string());
-                is_error = true; // Si no era JSON, se considera anomalía/error
-                
-                show_native_notification(app_handle, "Respuesta del Sistema", content_str);
+                if is_error {
+                    safe_json["status"] = serde_json::Value::String("error".to_string());
+                    show_native_notification(app_handle, "Respuesta del Sistema", content_str);
+                }
             }
         }
 
@@ -456,15 +457,16 @@ fn handle_exec_fnx_track_msg(app_handle: &AppHandle, json: &Value) {
             
             if !is_json {
                 let content_str = payload.as_str().unwrap_or(if is_error { "ERROR" } else { "SUCCESS" });
+                let status_val = if is_error { "error" } else { status_str.as_deref().unwrap_or("finalizado") };
                 let json_obj = serde_json::json!({
-                    "status": "error",
+                    "status": status_val,
                     "message": content_str
                 });
                 safe_json["payload"] = serde_json::Value::String(json_obj.to_string());
-                safe_json["status"] = serde_json::Value::String("error".to_string());
-                is_error = true; // Considerado error/anomalía para el buzón
-                
-                show_native_notification(app_handle, "Respuesta del Sistema", content_str);
+                if is_error {
+                    safe_json["status"] = serde_json::Value::String("error".to_string());
+                    show_native_notification(app_handle, "Respuesta del Sistema", content_str);
+                }
             }
         }
 
